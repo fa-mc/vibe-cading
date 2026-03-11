@@ -1,0 +1,37 @@
+# ── Build configuration ───────────────────────────────────────────────────────
+# Each [[build]] entry generates one STEP file under output/.
+# "model"  : dotted import path to the class (relative to models/)
+# "output" : path under output/ for the generated STEP file
+# "params" : keyword arguments passed to the class __init__
+# ─────────────────────────────────────────────────────────────────────────────
+
+# ── Technic ball bearing axle sleeves ─────────────────────────────────────────
+
+[[build]]
+model  = "technic_ball_bearing.axle_sleeve.AxleSleeve"
+output = "technic_ball_bearing/axle_sleeve_5mm_id.step"
+[build.params]
+bearing_id       = 5.0
+length           = 2.5
+flange_od        = 7.0
+flange_thickness = 0.8
+
+[[build]]
+model  = "technic_ball_bearing.axle_sleeve.AxleSleeve"
+output = "technic_ball_bearing/axle_sleeve_8mm_id.step"
+[build.params]
+bearing_id       = 8.0
+length           = 3.0
+flange_od        = 10.5
+flange_thickness = 1.0
+
+# ── Arrma Vorteks 223S ────────────────────────────────────────────────────────
+
+[[build]]
+model  = "rc.vorteks_223s.esc_mount.EscMount"
+output = "rc/vorteks_223s/esc_mount.step"
+[build.params]
+# all defaults — explicit here for reference
+length           = 57.0
+width            = 38.0
+height           = 4.0

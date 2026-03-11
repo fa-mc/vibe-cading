@@ -1,0 +1,7 @@
+# Generated STEP output — run build.py to regenerate
+output/
+
+# Python
+**/__pycache__/
+*.pyc
+*.pyo
