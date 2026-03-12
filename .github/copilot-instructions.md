@@ -25,3 +25,12 @@ Typical parts include:
 
 ## Agent Behavior
 - When something is ambiguous, ask for specifications or confirmation rather than making assumptions.
+
+# Copilot workspace instructions
+
+## Temporary / throwaway files
+- Never create temporary scripts, analysis helpers, dump utilities, or one-off
+  investigation files in the repository root (`/workspaces/cad/`).
+- If a temporary file is needed (e.g. `analyze_stp.py`, `dump_coords.py`,
+  `inspect_*.py`), place it under `/workspaces/cad/tmp/` instead.
+- The `tmp/` directory is git-ignored; files there will not be committed.

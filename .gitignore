@@ -1,6 +1,9 @@
 # Generated STEP output — run build.py to regenerate
 output/
 
+# Throwaway scratch files
+tmp/
+
 # Python
 **/__pycache__/
 *.pyc
