@@ -35,3 +35,8 @@ output = "rc/vorteks_223s/esc_mount.step"
 length           = 57.0
 width            = 38.0
 height           = 4.0
+
+[[build]]
+model  = "lego.not_very_lego.servo_mount.sg90.servo_case.ServoCase"
+output = "lego/not_very_lego/servo_mount/sg90/servo_case.step"
+[build.params]

@@ -27,7 +27,7 @@ AXLE_ARM_PROTRUSION: float = 1.50  # Arm protrusion past flat face (mm)
 AXLE_LENGTH_PER_STUD: float = 8.0  # Axle length per stud unit (mm)
 
 # ── Technic Axle Hole (cross profile) ────────────────────────────────────────
-AXLE_HOLE_TIP_TO_TIP: float = 4.9  # Axle hole cross tip-to-tip (mm)
+AXLE_HOLE_TIP_TO_TIP: float = 5.05  # Axle hole cross tip-to-tip (mm)
 AXLE_HOLE_ARM_WIDTH: float = 1.9   # Axle hole flat-to-flat (mm)
 
 # ── Shared geometry defaults ──────────────────────────────────────────────────
