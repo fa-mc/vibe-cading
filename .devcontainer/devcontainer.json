@@ -19,7 +19,8 @@
         "source=${localEnv:SSH_AUTH_SOCK},target=/ssh-agent,type=bind"
     ],
     "remoteEnv": {
-        "SSH_AUTH_SOCK": "/ssh-agent"
+        "SSH_AUTH_SOCK": "/ssh-agent",
+        "PYTHONPATH": "/workspaces/cad/models"
     },
     "postCreateCommand": "git config --global --add safe.directory /workspaces/cad"
 }
