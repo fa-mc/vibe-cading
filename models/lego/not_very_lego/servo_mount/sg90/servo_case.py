@@ -52,8 +52,8 @@ Snap-post clusters (4 clusters × 4 posts, 8 × 8 mm LEGO grid)
 import cadquery as cq
 
 from lego.constants import PIN_HOLE_DIAMETER, STUD_PITCH
-from lego.technic_axle_hole import TechnicAxleHole
-from lego.technic_pin_hole import TechnicPinHole
+from lego.cutters.technic_axle_hole import TechnicAxleHole
+from lego.cutters.technic_pin_hole import TechnicPinHole
 from cq_utils import (
     rounded_box,
     cylinder,

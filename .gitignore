@@ -8,3 +8,5 @@ tmp/
 **/__pycache__/
 *.pyc
 *.pyo
+*.stl
+*.stp
