@@ -11,7 +11,8 @@ Typical parts include:
 ## Environment
 - Language: **Python**
 - CAD library: **CadQuery**
-- IDE: VS Code with Dev Container
+- IDE: VS Code with Dev Container (Docker container — Debian GNU/Linux)
+- Use the system `python3` binary directly; do **not** create or activate a virtual environment
 
 ## Key Constraints
 - All hole centers must align to the **8 mm stud grid**
