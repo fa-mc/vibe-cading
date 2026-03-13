@@ -43,6 +43,23 @@ You are the **Planner** in a three-role agentic workflow (see
 - Modify `copilot-instructions.md` (that is the Overseer's job).
 - Make scope changes without user/Overseer approval.
 
+## Incremental writing — crash resilience
+
+Long planning sessions can hit response-length limits and lose work.  To
+guard against this:
+
+- **Write the plan file section by section**, not all at once.  After each
+  major section is written to `tmp/plans/`, emit a short checkpoint message
+  to the user, e.g.:
+  > `✓ Checkpoint: "Coordinate system" section written to tmp/plans/foo.md`
+- **Never compose the full plan in the chat response** — the file is the
+  source of truth, not the response text.
+- If a session does crash mid-plan, the partial file already exists.  On
+  resume, read the file, identify the last completed section, and continue
+  from there.
+- Keep individual chat messages short — summaries only.  Detail belongs in
+  the plan file.
+
 ## Plan quality checklist
 
 Before handing a plan to the Developer, verify:

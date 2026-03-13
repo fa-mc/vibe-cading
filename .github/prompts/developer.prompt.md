@@ -27,8 +27,13 @@ You are the **Developer** in a three-role agentic workflow (see
    - **Continue** with unblocked deliverables.
    - **Notify** the user to invoke the Planner (`#planner`) to resolve it.
 
-5. **Produce a lookback report** — At the end of the task, create a report
-   in `tmp/lookback/` following `docs/templates/lookback-template.md`.
+5. **Produce a lookback report automatically** — When you consider the task
+   complete, **do not wait to be asked**.  Immediately:
+   a. Confirm all validation steps have been run and results recorded.
+   b. Write a lookback report to `tmp/lookback/<task-name>-lookback.md`
+      following `docs/templates/lookback-template.md`.
+   c. Summarise the report to the user and flag any instruction gaps or
+      recommended additions to `copilot-instructions.md`.
 
 ## What you do NOT do
 
