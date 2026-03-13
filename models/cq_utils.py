@@ -155,6 +155,59 @@ def orient_to_pos_x(
     return solid.rotate((0, 0, 0), (0, 1, 0), -90).translate((wall_x, at_y, at_z))
 
 
+# ── Cutter modifier ──────────────────────────────────────────────────────────
+
+class WithAllowance:
+    """Offset all faces of a solid outward by *allowance* mm.
+
+    Useful when you need a slightly enlarged cutter without modifying the
+    original object — works with any ``cq.Workplane`` or ``cq.Shape``, whether
+    from a cutter class or built ad-hoc.
+
+    .. note::
+        Uses CadQuery's ``shell`` offset, which grows faces uniformly in all
+        directions.  For directional allowance (e.g. radial-only on a Technic
+        axle hole cross) prefer building allowance into the cutter class itself,
+        as the concave inner corners of non-convex solids can cause ``shell``
+        to fail.
+
+    Parameters
+    ----------
+    solid:
+        The base cutter solid (``cq.Workplane`` or ``cq.Shape``).
+    allowance:
+        Outward face offset in mm.  Positive = larger cutter.
+        Zero is a no-op and returns the original solid unchanged.
+
+    Examples
+    --------
+    ::
+
+        from cq_utils import WithAllowance
+
+        cutter = WithAllowance(TechnicPinHole(depth=8).solid, allowance=0.1).solid
+        part = part.cut(cutter)
+
+        loose_box = WithAllowance(cq.Workplane("XY").box(5, 5, 5), allowance=0.2).solid
+        part = part.cut(loose_box)
+    """
+
+    def __init__(self, solid: cq.Workplane | cq.Shape, allowance: float):
+        self._solid = self._apply(solid, allowance)
+
+    @staticmethod
+    def _apply(solid: cq.Workplane | cq.Shape, allowance: float) -> cq.Workplane:
+        if allowance == 0.0:
+            return solid if isinstance(solid, cq.Workplane) else cq.Workplane(solid)
+        shape: cq.Shape = solid.val() if isinstance(solid, cq.Workplane) else solid
+        return cq.Workplane(shape.shell(allowance))
+
+    @property
+    def solid(self) -> cq.Workplane:
+        """The offset solid — cut this from any part."""
+        return self._solid
+
+
 # ── Grid cut helper ───────────────────────────────────────────────────────────
 
 def cut_at_positions(
