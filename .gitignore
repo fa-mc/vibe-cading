@@ -10,3 +10,5 @@ tmp/
 *.pyo
 *.stl
 *.stp
+*.step
+*.svg

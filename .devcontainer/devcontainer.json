@@ -6,7 +6,6 @@
     "customizations": {
         "vscode": {
             "extensions": [
-                "ms-python.python",
                 "bernhard-42.ocp-cad-viewer"
             ]
         }
