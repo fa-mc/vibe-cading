@@ -1,8 +1,8 @@
-# Plan: [TASK TITLE]
+# Design Brief: [TASK TITLE]
 
 **Date:** YYYY-MM-DD
 **Task ID:** [short slug, e.g. `sg90-servo-model`]
-**Requested by:** [user / overseer]
+**Requested by:** [user / admin]
 
 ## Task Summary
 
@@ -18,13 +18,28 @@ One paragraph describing the scope, goal, and constraints.
 
 Mapping notes (STEP ↔ model coordinate relationship, if applicable):
 
-## Pre-resolved Decisions
+## Dimension Table
 
-Ambiguities identified by the Planner and resolved before execution.
+All key dimensions with their source.
+
+| Dimension | Value | Source |
+|---|---|---|
+| | | STEP analysis / reference drawing / Lego spec / user input |
+
+## Design Decisions
+
+Domain ambiguities identified by the Designer and resolved before execution.
 
 | # | Question | Decision | Rationale |
 |---|---|---|---|
 | 1 | | | |
+
+## Special Considerations
+
+Tolerances, print orientation, assembly order, interference risks, material
+constraints, or other domain-specific concerns.
+
+-
 
 ## Deliverables
 
@@ -78,4 +93,4 @@ python3 tools/boolean_diff.py reference.step models.module.ClassName --model --a
 **What was attempted:**
 **What failed / is ambiguous:**
 **Decision needed:**
-**Resolution:** *(filled by Planner)*
+**Resolution:** *(filled by Designer)*

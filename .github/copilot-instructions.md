@@ -22,7 +22,7 @@ Typical parts include:
 
 ## Reference Docs
 - [docs/lego-technic.md](docs/lego-technic.md) — Lego Technic part dimensions (beams, pins, axles, holes, gears, tolerances)
-- [docs/agentic-workflow.md](docs/agentic-workflow.md) — Three-role agentic workflow (Overseer / Planner / Developer)
+- [docs/agentic-workflow.md](docs/agentic-workflow.md) — Three-role agentic workflow (Admin / Designer / Developer)
 
 ## Agentic Workflow
 
@@ -30,27 +30,93 @@ This project uses a structured three-role workflow for complex tasks.
 See [docs/agentic-workflow.md](docs/agentic-workflow.md) for the full
 specification.
 
-**Roles:** Overseer (instructions & review), Planner (plans & decisions),
-Developer (code & execution).
+**Roles:** Admin (instructions & review), Designer (domain reasoning &
+design briefs), Developer (code structure, implementation & execution).
 
 **Prompt files** in `.github/prompts/`:
-- `#overseer` — requirements, instruction maintenance, lookback review
-- `#planner` — structured plans, ambiguity resolution, output review
-- `#developer` — code, tools, validation, escalation
+- `#admin` — requirements, instruction maintenance, lookback review
+- `#designer` — brainstorming, design briefs, reference analysis, domain decisions
+- `#developer` — code structure, implementation, tools, validation, escalation
 - `#lookback` — end-of-task reflection and feedback
 
 **Artefact locations** (git-ignored):
-- Plans: `tmp/plans/`
+- Design briefs: `tmp/plans/`
 - Lookback reports: `tmp/lookback/`
 
 **Key rule:** The Developer must not interpret ambiguous reference material
-(drawings, STEP files).  The Planner pre-digests all dimensions, coordinate
-mappings, and design decisions into the plan.
+(drawings, STEP files).  The Designer pre-digests all dimensions, coordinate
+mappings, and design decisions into the design brief.  The Developer owns
+code structure (classes, methods, build pipeline) and decides *how* to
+implement the brief.
 
 ## Agent Behavior
 - When something is ambiguous, ask for specifications or confirmation rather than making assumptions.
 - When a gap or missing guidance is detected in these instructions — e.g. a class of error that the instructions didn't anticipate, an edge case that required reasoning beyond what is documented, or a repeated mistake caused by absent rules — **alert the user immediately** and recommend a concrete addition or amendment to this file.
 - When reverse-engineering from STEP files or images, **process objects from large to small** — identify and model the largest / outermost body first, then work inward to smaller features (bosses, holes, fillets, chamfers, etc.).
+
+## Known Modelling Pitfalls
+
+### Chord-vs-arc ring (polygonal boolean cutters on cylinders)
+
+**Symptom:** A thin ring of uncut material is left around a cylindrical body
+after boolean-cutting with a series of polygonal wedge prisms (e.g.
+approximating an annular cam ramp with N flat wedges).
+
+**Root cause:** The outer (or inner) edge of each wedge cutter is a straight
+line (chord) connecting two adjacent points on the cylinder's circle.  Chords
+are always inscribed *inside* the arc, so the cutter never reaches the
+cylinder surface between corner points.  The uncut material forms a thin
+ring whose cross-section equals the **sagitta**:
+
+    sagitta = r × (1 − cos(Δθ / 2))
+
+For r = 5 mm and 72 steps (Δθ = 5°), this is only 0.005 mm — but OCCT
+treats the cutter boundary as a new face, creating visible edges that the
+tessellator highlights as a seam or ring even though the geometric gap is
+sub-micron.
+
+**Fix:** Extend the cutter radius by a small **overcut** (0.1 mm is
+sufficient) beyond the nominal body boundary.  The excess is outside the
+body and has no effect on the cut, but guarantees the cutter fully overlaps
+the cylindrical surface.  Apply the same logic to inner radii (shrink by
+overcut).
+
+**General rule:** Whenever a boolean cutter's face is designed to be
+*coincident* with an existing face of the target body, add a small overcut
+(typically 0.05–0.1 mm) so the cutter extends *beyond* the target face.
+Coincident faces are a well-known source of unreliable results in the OCCT
+boolean kernel.
+
+### Stair-step surface (flat-topped polygon approximation)
+
+**Symptom:** A surface that should be smoothly curved (e.g. a sinusoidal
+ramp) shows visible stair-step transitions between adjacent facets.
+
+**Root cause:** Each wedge prism's bottom (or top) face is assigned a single
+Z value evaluated at the wedge midpoint.  Adjacent wedges have *different*
+midpoint Z values, creating discontinuous steps.
+
+**Maximum step height:**
+
+    Δz_max ≈ cam_lift × sin(2θ_steepest) × Δθ
+
+For cam_lift = 2.5 mm and 72 steps (Δθ = 5°):  Δz_max ≈ 0.22 mm — within
+typical FDM layer height (0.2 mm).  Increase step count for smoother result:
+144 steps → 0.11 mm, 360 steps → 0.044 mm.
+
+**Why the "obvious" fix fails:** The natural impulse is to evaluate the
+surface function at each wedge *edge* angle (θ_lo, θ_hi) instead of the
+midpoint, creating sloped bottom faces that form a C0-continuous surface.
+**This breaks OCCT booleans.**  Adjacent sloped wedges share boundary edges
+at identical (θ, Z) coordinates — effectively coincident faces.  Sequential
+boolean cuts on such geometry produce split solids, negative volumes, or
+void results.  Compound cuts (collecting all wedges and cutting once) also
+fail.
+
+**Fix:** Keep the midpoint (flat-topped) evaluation and increase the step
+count if the stair-step height is unacceptable for the application.  The
+flat-topped approach is safe because adjacent wedges have *different* bottom
+Z values at their shared boundary, preventing coincident faces.
 
 ## Asset Validation
 

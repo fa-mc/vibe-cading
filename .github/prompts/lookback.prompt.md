@@ -35,7 +35,7 @@ Work through these questions to generate the feedback:
 
 ### Plan deficiencies
 - Were any deliverables underspecified?
-- Did you have to make a design decision that the Planner should have made?
+- Did you have to make a design decision that the Designer should have made?
 - Were dependencies between deliverables missing or wrong?
 - Were validation commands incomplete or incorrect?
 
@@ -47,4 +47,4 @@ Work through these questions to generate the feedback:
 ## Output
 
 Write the report to `tmp/lookback/YYYY-MM-DD-[task-slug].md` and summarise
-the key findings to the user so they can invoke `#overseer` for review.
+the key findings to the user so they can invoke `#admin` for review.

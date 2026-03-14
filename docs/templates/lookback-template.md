@@ -19,7 +19,7 @@ assessment.
 
 ## Feedback
 
-### Instruction Gaps → Overseer
+### Instruction Gaps → Admin
 
 Issues where `copilot-instructions.md` was missing guidance, leading to
 wasted effort or incorrect assumptions.
@@ -28,7 +28,7 @@ wasted effort or incorrect assumptions.
 |---|---|---|
 | 1 | | |
 
-### Missing Tools → Planner
+### Missing Tools → Designer
 
 Capabilities that would have made the task faster or more reliable.
 
@@ -36,12 +36,12 @@ Capabilities that would have made the task faster or more reliable.
 |---|---|---|---|
 | 1 | | | |
 
-### Plan Deficiencies → Planner
+### Design Deficiencies → Designer
 
-Cases where the plan was ambiguous, incomplete, or contained incorrect
-assumptions that the Developer had to work around.
+Cases where the design brief was ambiguous, incomplete, or contained
+incorrect assumptions that the Developer had to work around.
 
-| # | Deficiency | Impact | Suggested fix for future plans |
+| # | Deficiency | Impact | Suggested fix for future briefs |
 |---|---|---|---|
 | 1 | | | |
 
