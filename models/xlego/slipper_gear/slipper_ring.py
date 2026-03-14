@@ -144,6 +144,52 @@ class SlipperRing:
 
     # ── Ramp bore profile ─────────────────────────────────────────────────────
 
+    @staticmethod
+    def _fillet_corner(A: tuple[float, float], B: tuple[float, float], C: tuple[float, float], R: float, steps: int = 5):
+        ux = A[0] - B[0]; uy = A[1] - B[1]
+        lu = math.hypot(ux, uy)
+        if lu == 0: return [B], 0.0
+        ux /= lu; uy /= lu
+
+        vx = C[0] - B[0]; vy = C[1] - B[1]
+        lv = math.hypot(vx, vy)
+        if lv == 0: return [B], 0.0
+        vx /= lv; vy /= lv
+
+        dot = max(-1.0, min(1.0, ux * vx + uy * vy))
+        theta_angle = math.acos(dot)
+        if theta_angle < 0.01 or theta_angle > math.pi - 0.01:
+            return [B], 0.0
+
+        d = R / math.tan(theta_angle / 2.0)
+        if d > lu * 0.9 or d > lv * 0.9:
+            d = min(lu * 0.9, lv * 0.9)
+            R = d * math.tan(theta_angle / 2.0)
+
+        T1 = (B[0] + d * ux, B[1] + d * uy)
+        T2 = (B[0] + d * vx, B[1] + d * vy)
+
+        dc = R / math.sin(theta_angle / 2.0)
+        dir_cx = (ux + vx); dir_cy = (uy + vy)
+        ld = math.hypot(dir_cx, dir_cy)
+        dir_cx /= ld; dir_cy /= ld
+
+        Center = (B[0] + dc * dir_cx, B[1] + dc * dir_cy)
+
+        a1 = math.atan2(T1[1] - Center[1], T1[0] - Center[0])
+        a2 = math.atan2(T2[1] - Center[1], T2[0] - Center[0])
+
+        diff = (a2 - a1) % (2 * math.pi)
+        if diff > math.pi:
+            diff -= 2 * math.pi
+
+        out = []
+        for i in range(steps + 1):
+            frac = i / steps
+            a = a1 + diff * frac
+            out.append((Center[0] + R * math.cos(a), Center[1] + R * math.sin(a)))
+        return out, d
+
     def _ramp_profile_points(self) -> list[tuple[float, float]]:
         """CCW closed profile for the ring bore with directional saw-tooth ramps
         and an angled hook to prevent the rounded spring tip from slipping.
@@ -168,11 +214,30 @@ class SlipperRing:
         for i in range(n_r):
             base_angle = i * cycle
 
+            # Calculate fillet for the concave pocket root
+            A_theta = base_angle
+            A = (ramp_r * math.cos(A_theta), ramp_r * math.sin(A_theta))
+            B_theta = base_angle - hook_angle
+            B = (pocket_r * math.cos(B_theta), pocket_r * math.sin(B_theta))
+
+            # Use true tangent of the circle at B to prevent restricting the fillet distance 'd'
+            T_x = -math.sin(B_theta) * 10.0 + B[0]
+            T_y =  math.cos(B_theta) * 10.0 + B[1]
+            C = (T_x, T_y)
+
+            # Concave corner fillet R=0.35, high step count for smoothness
+            fillet_arc, d_corner = self._fillet_corner(A, B, C, R=0.35, steps=12)
+            pts.extend(fillet_arc)
+
             # 1. Pocket flat (extended backwards to form the hook)
-            for j in range(n_pocket):
+            for j in range(1, n_pocket):
                 frac = j / n_pocket
                 theta = base_angle - hook_angle + (pocket_angle + hook_angle) * frac
-                pts.append((pocket_r * math.cos(theta), pocket_r * math.sin(theta)))
+                P = (pocket_r * math.cos(theta), pocket_r * math.sin(theta))
+                # Skip points embedded inside the structural fillet to avoid zigzag artifacts
+                if math.hypot(P[0] - B[0], P[1] - B[1]) < d_corner:
+                    continue
+                pts.append(P)
 
             # 2. Gradual ramp inward
             for j in range(n_ramp):
@@ -218,20 +283,15 @@ class SlipperRing:
         ring = ring.cut(bore.translate((0, 0, -0.1)))
 
         # Fillet the sharp inward hook teeth tips
-        # The hook tip lies exactly at the transition angle `base_angle + cycle`
-        # Because we break the curve into lines, there are many edges near ramp_r.
-        # We specifically want ONLY the vertices joining the ridge flat to the cliff.
-
-        # Due to polyline resolution, it's easier to find the tip edge by its vertex proximity
         tip_edges = []
         for e in ring.edges("|Z").vals():
-            # Get start coordinates of the vertical edge
             v = e.startPoint()
             r = math.hypot(v.x, v.y)
             if abs(r - self.ramp_r) < 0.05:
                 ang = math.atan2(v.y, v.x) % (2 * math.pi)
-                for angle_deg in [0, 120, 240]:
-                    target = math.radians(angle_deg)
+                cycle_deg = 360.0 / self.spring_count
+                for i in range(self.spring_count):
+                    target = math.radians(i * cycle_deg)
                     diff = min(abs(ang - target), 2 * math.pi - abs(ang - target))
                     if diff < 0.05:
                         tip_edges.append(e)
@@ -239,11 +299,9 @@ class SlipperRing:
 
         if tip_edges:
             try:
-                # Workplane does not have filterBy, instead we can pass a CQ custom selector class or build a specialized Edge list wrapper
-                # However, you can pass an explicit list of Edge objects to Workplane.newObject to put them on the stack!
                 ring = ring.newObject(tip_edges).fillet(0.4)
             except Exception as ex:
-                print("Failed to fillet:", ex)
+                print("Failed to fillet tip:", ex)
 
         # Add top and bottom counterbore sags for the plates
         if self.sag_depth > 0:
