@@ -4,7 +4,7 @@ sys.path.insert(0, os.path.join(os.path.dirname(__file__), ".."))
 
 import cadquery as cq
 
-from lego.technic_axle_hole import TechnicAxleHole
+from lego.cutters.technic_axle_hole import TechnicAxleHole
 
 
 class AxleSleeve:
