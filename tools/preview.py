@@ -146,20 +146,30 @@ def _fix_svg_viewport(svg_path: Path) -> None:
     svg_path.write_text(text, encoding="utf-8")
 
 
-def _parse_params(raw: list[str]) -> dict[str, float]:
-    result: dict[str, float] = {}
+def _parse_params(raw: list[str]) -> dict[str, any]:
+    result: dict[str, any] = {}
     for item in raw:
         if "=" not in item:
             raise ValueError(f"--params entries must be key=value, got: {item!r}")
         k, v = item.split("=", 1)
-        result[k.strip()] = float(v.strip())
+        k = k.strip()
+        v = v.strip()
+        # Try returning an integer, then a float, otherwise leave as string.
+        try:
+            val = int(v)
+        except ValueError:
+            try:
+                val = float(v)
+            except ValueError:
+                val = v
+        result[k] = val
     return result
 
 
 def export_previews(
     model_path: str,
     out_dir: Path,
-    params: dict[str, float] | None = None,
+    params: dict[str, any] | None = None,
     views: list[str] | None = None,
 ) -> list[Path]:
     """Build *model_path* and write one SVG per view to *out_dir*.
