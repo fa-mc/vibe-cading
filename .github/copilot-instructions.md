@@ -142,6 +142,16 @@ Z values at their shared boundary, preventing coincident faces.
 1. **Additive bounding:** Do not extrude the main base geometry to the absolute highest/lowest point if that point only belongs to a small localized feature (like a central boss or disk). Extrude the main body only to its true functional height, and use `union()` later to add localized taller features.
 2. **Infinite Cutter Overcut:** When building a cutter that bounds a part from the top or bottom (like a surface profile or ramp cutter), *always* extend its orthogonal extrusion height arbitrarily far beyond the body limits (e.g. `needed_h + 10.0` or `100.0` mm) to guarantee it cleanly clears the topmost/bottom-most bounds of the material. Never use precise/tight bounds for the "waste" side of a cutter.
 
+### Blind Holes and Internal Geometry Under-visibility
+
+**Symptom:** Counterbores, internal cavities, or snap-rings fail to appear inside a boolean-cut body, or leaving a zero-thickness planar wafer blocking the hole.
+
+**Root cause:** Mismanagement of blind-hole cutters. If a cutter is designed to create a *blind* hole (stopping exactly inside a body), its terminal faces must *not* have an overcut (or it goes too deep). However, the entry face that sits flush with the solid's boundary must have an outward overcut (e.g. 0.01 mm). Furthermore, developers often fail to notice these bugs because standard external views (e.g. `iso_ne`) physically cannot see inside a blind hole.
+
+**Fix:**
+1. **Cutter Overcuts:** Apply an outward overcut securely on the *entry* bounds. The *terminal* bounds (bottom of the blind hole) must end precisely at the target dimension.
+2. **Mandatory Slicing:** Never rely on external previews to validate holes with internal structures (like snap rings or internal counterbores). The Designer **must** instruct the Developer to use `section_slicer.py` through the hole axis (`--axis X` or `Y`) and read the report to statically verify the internal Z-steps and widths.
+
 ## Asset Validation
 
 After generating or modifying a model, always validate it visually using the
