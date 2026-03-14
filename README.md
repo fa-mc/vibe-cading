@@ -1,6 +1,6 @@
-# cad
+# vibe-cading
 
-Parametric 3D CAD models written in Python with [CadQuery](https://cadquery.readthedocs.io/). The primary focus is parts that interface **RC (radio-controlled) components** with **Lego Technic** assemblies — motor mounts, ESC holders, axle adapters, and similar hardware.
+Parametric 3D CAD models written in Python with [CadQuery](https://cadquery.readthedocs.io/). The primary focus is generating common machinery models (screws, hexes, gears, etc.) and parts that interface **RC (radio-controlled) components** with **Lego Technic** assemblies — motor mounts, ESC holders, axle adapters, and similar hardware.
 
 Models are built with AI assistance via [GitHub Copilot](https://github.com/features/copilot).
 

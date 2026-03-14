@@ -1,9 +1,10 @@
 # Copilot Instructions
 
 ## Project Purpose
-Parametric 3D CAD models built with **CadQuery** (Python). Primary goal: design parts that interface **RC (radio-controlled) components** with **Lego Technic** assemblies.
+Parametric 3D CAD models built with **CadQuery** (Python). Primary goal: generate common machinery models (screws, hexes, gears, etc.) and design parts that interface **RC (radio-controlled) components** with **Lego Technic** assemblies.
 
 Typical parts include:
+- Common machinery models (screws, hexes, gears, etc.)
 - Motor mounts, servo brackets, ESC/receiver holders
 - Adapters between RC hardware and Lego Technic beams, axles, and pins
 - Custom structural parts that conform to the Lego Technic 8 mm stud grid
