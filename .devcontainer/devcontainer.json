@@ -15,11 +15,11 @@
     ],
     "remoteUser": "root",
     "mounts": [
-        "source=${localEnv:SSH_AUTH_SOCK},target=/ssh-agent,type=bind"
+        "source=${localEnv:HOME}/.ssh,target=/tmp/host-ssh,type=bind,readonly"
     ],
     "remoteEnv": {
         "SSH_AUTH_SOCK": "/ssh-agent",
         "PYTHONPATH": "/workspaces/cad/models"
     },
-    "postCreateCommand": "git config --global --add safe.directory /workspaces/cad"
+    "postCreateCommand": "mkdir -p ~/.ssh && cp -a /tmp/host-ssh/. ~/.ssh/ && chown -R $(whoami) ~/.ssh && chmod 700 ~/.ssh && chmod 600 ~/.ssh/* && git config --global --add safe.directory /workspaces/vcad"
 }
