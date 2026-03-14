@@ -54,6 +54,19 @@ implement the brief.
 - When a gap or missing guidance is detected in these instructions — e.g. a class of error that the instructions didn't anticipate, an edge case that required reasoning beyond what is documented, or a repeated mistake caused by absent rules — **alert the user immediately** and recommend a concrete addition or amendment to this file.
 - When reverse-engineering from STEP files or images, **process objects from large to small** — identify and model the largest / outermost body first, then work inward to smaller features (bosses, holes, fillets, chamfers, etc.).
 
+## Multi-Part Assemblies
+
+When a reference (STL, STEP, drawing) contains **N physically distinct
+parts** (e.g. two plates and a ring, or a case top and bottom), each part
+must be implemented as its own class with its own `.solid` property.  A
+wrapper / assembly class may compose them, but individual parts must be
+independently buildable and exportable via `build.toml`.
+
+Never merge distinct parts into one monolithic `_build()` method.  If a
+reference looks like a single mesh (e.g. a pre-assembled STL), the
+Designer must still identify the logical part boundaries in the design
+brief, and the Developer must implement each part as a separate class.
+
 ## Known Modelling Pitfalls
 
 ### Chord-vs-arc ring (polygonal boolean cutters on cylinders)
