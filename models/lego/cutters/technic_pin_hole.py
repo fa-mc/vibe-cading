@@ -66,10 +66,19 @@ class TechnicPinHole:
         self._solid = self._build()
 
     def _build(self) -> cq.Workplane:
-        bore = cylinder(self.diameter / 2, self.depth)
+        # Standard bore strictly bounded to the requested depth.
+        # We use a small overcut at the bottom (Z=0) so it cuts cleanly
+        # when placed flush against a face, but it ends exactly at self.depth.
+        overcut = 0.01
+        bore = cylinder(self.diameter / 2, self.depth + overcut, center=(0, 0, -overcut))
 
         if self.counterbore_depth > 0:
-            cb_bottom = cylinder(self.counterbore_diameter / 2, self.counterbore_depth)
+            cb_bottom = cylinder(
+                self.counterbore_diameter / 2,
+                self.counterbore_depth + overcut,
+                center=(0, 0, -overcut)
+            )
+            # Top counterbore stops exactly at self.depth, forming the blind cavity
             cb_top = cylinder(
                 self.counterbore_diameter / 2,
                 self.counterbore_depth,
@@ -87,4 +96,12 @@ class TechnicPinHole:
 
 if __name__ == "__main__":
     from ocp_vscode import show
-    show(TechnicPinHole.standard(depth=8).solid)
+    import cadquery as cq
+
+    depth = 10.0
+    hole_cutter = TechnicPinHole.standard(depth=8.0).solid
+    main_body = cq.Workplane("XY").circle(8.0 / 2).extrude(depth)
+    part = main_body.cut(hole_cutter)
+
+    cq.exporters.export(part, "tmp/technic_pin_hole.step")
+    show(part)

@@ -53,13 +53,13 @@ class SlipperSpring:
         self.spring_count    = spring_count
         self.root_thickness  = root_thickness
         self.tip_thickness   = tip_thickness
-        
+
         if sweep_angle is None:
             # Auto-calculate sweep angle to maintain consistent overlap proportions
             # For 3 arms (120 pitch), 160 deg was optimal (1.33x pitch)
             # This works out to (360 / count) + 40
             sweep_angle = (360.0 / spring_count) + 40.0
-            
+
         self.sweep_angle     = math.radians(sweep_angle)
         self.ring_inner_r    = ring_inner_r
         self.clearance       = clearance

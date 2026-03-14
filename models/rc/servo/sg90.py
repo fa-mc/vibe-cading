@@ -435,6 +435,60 @@ class Sg90Servo:
     def solid(self) -> cq.Workplane:
         return self._solid
 
+    def to_cutter(self, clearance: float = 0.2, extend_shaft_up: float = 5.0) -> cq.Workplane:
+        """Return a simplified, oversized solid for cavity boolean cuts.
+        
+        Includes the main body, collar, gear boss, and shaft stub, expanded by `clearance`.
+        The main body is extended infinitely downwards for through-cuts.
+        """
+        # Give the base body slightly more lateral clearance to avoid 
+        # exact coincident/tangent faces with the collar at X = ±6.5.
+        body_clearance = clearance + 0.1
+        bw = self.body_width + 2 * body_clearance
+        bd = self.body_depth + 2 * body_clearance
+        bh = self.body_height + clearance  # Keep Z the same to preserve the shelf depth
+        
+        # We start the body way down (Z = -20) so it cleanly cuts open bottoms
+        z_min = -20.0
+        body_h = bh - z_min
+        
+        from cq_utils import rounded_box, cylinder
+        # Base body
+        part = rounded_box(
+            bd, bw, body_h,
+            corner_r=self.corner_r + body_clearance,
+            center=(0, self._body_y_centre, z_min),
+        )
+        
+        # Collar
+        collar_h = self.collar_height + clearance + 0.1
+        collar = cylinder(
+            self.collar_r + clearance,
+            collar_h,
+            center=(0, 0, self.body_height - 0.1),
+        )
+        part = part.union(collar)
+        
+        # Gear boss
+        gear_boss_h = self._GEAR_BOSS_HEIGHT + clearance + 0.1
+        gear_boss = cylinder(
+            self._GEAR_BOSS_R + clearance,
+            gear_boss_h,
+            center=(0, self._GEAR_BOSS_Y, self.body_height - 0.1),
+        )
+        part = part.union(gear_boss)
+        
+        # Shaft Stub (extended upwards to guarantee union with arbitrary downward bores)
+        shaft_h = self.shaft_height + clearance + 0.1 + extend_shaft_up
+        shaft_stub = cylinder(
+            self.shaft_r + clearance,
+            shaft_h,
+            center=(0, 0, self.body_height + self.collar_height - 0.1),
+        )
+        part = part.union(shaft_stub)
+        
+        return part
+
 
 if __name__ == "__main__":
     from ocp_vscode import show

@@ -24,8 +24,8 @@ printing clearances for functional fits.
 | Property                      | Value   | Notes                                     |
 |-------------------------------|---------|-------------------------------------------|
 | Technic pin hole diameter     | 4.8 mm  | Nominal; use 4.85 mm for printed parts    |
-| Technic axle hole (cross)     | 4.80 mm | Tip-to-tip of the + cross section         |
-| Cross axle flat-to-flat       | 1.83 mm | The flat sides of the + cross             |
+| Technic axle hole (cross)     | 4.80 mm | Nominal; use 5.3 mm for printed FDM parts |
+| Cross axle flat-to-flat       | 1.83 mm | Nominal; use 2.1 mm for printed FDM parts |
 | Technic hole center spacing   | 8.0 mm  | Same as stud pitch                        |
 | Hole center from part edge    | 4.0 mm  | Half the stud pitch                       |
 

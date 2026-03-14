@@ -10,6 +10,17 @@ from models.xlego.slipper_gear.slipper_plate import SlipperPlate
 from models.xlego.slipper_gear.slipper_ring import SlipperRing
 
 class SlipperGear:
+    """
+    SlipperGear Assembly
+
+    A torque-limiting, directional slip gear compatible with Lego Technic.
+    The internal core dimensions are structurally optimized for anything from 24T to 40T.
+
+    Defaults:
+      Module: 1.0 (Lego standard)
+      Face width: 8.0mm (1 stud)
+      Ratch: 3-arm Spring engaging with a 12-ramp SlipperRing
+    """
     def __init__(self):
         # The ring is 8.0mm wide, with 1.2mm sags on both sides.
         # This leaves 5.6mm of inner space for the spring.

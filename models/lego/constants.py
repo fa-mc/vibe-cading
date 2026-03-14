@@ -27,8 +27,8 @@ AXLE_ARM_PROTRUSION: float = 1.50  # Arm protrusion past flat face (mm)
 AXLE_LENGTH_PER_STUD: float = 8.0  # Axle length per stud unit (mm)
 
 # ── Technic Axle Hole (cross profile) ────────────────────────────────────────
-AXLE_HOLE_TIP_TO_TIP: float = 5.05  # Axle hole cross tip-to-tip (mm)
-AXLE_HOLE_ARM_WIDTH: float = 1.9   # Axle hole flat-to-flat (mm)
+AXLE_HOLE_TIP_TO_TIP: float = 5.3   # Axle hole cross tip-to-tip (mm, FDM clearance)
+AXLE_HOLE_ARM_WIDTH: float = 2.1    # Axle hole flat-to-flat (mm, FDM clearance)
 
 # ── Shared geometry defaults ──────────────────────────────────────────────────
 DEFAULT_CORNER_RADIUS: float = 0.4   # Inner concave corner fillet radius (mm) — TechnicAxle
