@@ -19,11 +19,10 @@ Outer box
     24 × 24 mm in XY, vertical corner fillet R = 4 mm.
     Total height Z = 0 to Z = 21.2.
 
-Servo cavity (open bottom)
+Servo cavity (open bottom and far +Y face)
     Inner pocket from Z = 0 up to the shelf at Z = 5.7.
     Width  X: ±6.9 mm  → 13.8 mm inside
-    Depth  Y: −10.8 to +5.8 mm → 16.6 mm inside
-    Rounded inner vertical corners R ≈ 0.9 mm.
+    Front wall at Y = −10.8 mm; back is open (breaks through the outer +Y wall).
 
 Side-wall LEGO pin holes (3 per side, 8 mm pitch)
     Each hole is a round bore Ø 4.8 mm through a 1 mm deep × 5.05 mm tall
@@ -56,7 +55,6 @@ from lego.cutters.technic_axle_hole import TechnicAxleHole
 from lego.cutters.technic_pin_hole import TechnicPinHole
 from cq_utils import (
     rounded_box,
-    cylinder,
     countersunk_hole,
     orient_to_neg_x,
     orient_to_pos_x,
@@ -99,14 +97,6 @@ class ServoCase:
         Z height of side hole centres (mm). Default 9.2.
     pin_recess_depth : float
         Depth of the outer flanged recess (mm). Default 1.0.
-    screw_r : float
-        Radius of side-face screw holes (mm). Default 1.5.
-    screw_y_offsets : tuple[float, ...]
-        Y offsets from servo_center_y for the two screw holes. Default (1.262, −1.262).
-    screw_z_lo : float
-        Lower Z of screw hole span (mm). Default 6.675.
-    screw_z_hi : float
-        Upper Z of screw hole span (mm). Default 11.725.
     shaft_hole_r : float
         Radius of the top-face servo shaft opening (mm). Default 4.8.
     top_plate_z : float
@@ -145,12 +135,10 @@ class ServoCase:
     PIN_HOLE_Z: float = 9.2
     PIN_RECESS_DEPTH: float = 1.0
 
-    SCREW_R: float = 1.5
-    SCREW_Y_OFFSETS: tuple = (1.262, -1.262)
-    SCREW_Z_LO: float = 6.675    # 25.475 − 18.8
-    SCREW_Z_HI: float = 11.725   # 30.525 − 18.8
-
     SHAFT_HOLE_R: float = 4.8
+    # TODO: widen servo case shaft bore to ≥ Ø 10.5 mm (SHAFT_HOLE_R ≥ 5.25) to
+    #   accommodate the servo-saver spring OD (10.03 mm).  The current bore
+    #   (Ø 9.6 mm) is 0.43 mm too narrow.  See shaft_with_saver.py / ShaftBody.
     # The shaft and boss bores are two offset cylinders (not one centred bore).
     # Both pairs are symmetric around servo_center_y.
     SHAFT_Y_OFFSET: float = 3.056   # ±offset of each of the two shaft bores
@@ -197,10 +185,6 @@ class ServoCase:
         pin_hole_ys: tuple = PIN_HOLE_YS,
         pin_hole_z: float = PIN_HOLE_Z,
         pin_recess_depth: float = PIN_RECESS_DEPTH,
-        screw_r: float = SCREW_R,
-        screw_y_offsets: tuple = SCREW_Y_OFFSETS,
-        screw_z_lo: float = SCREW_Z_LO,
-        screw_z_hi: float = SCREW_Z_HI,
         shaft_hole_r: float = SHAFT_HOLE_R,
         top_plate_z: float = TOP_PLATE_Z,
         post_cluster_positions: tuple = POST_CLUSTER_POSITIONS,
@@ -224,10 +208,6 @@ class ServoCase:
         self.pin_hole_ys = pin_hole_ys
         self.pin_hole_z = pin_hole_z
         self.pin_recess_depth = pin_recess_depth
-        self.screw_r = screw_r
-        self.screw_y_offsets = screw_y_offsets
-        self.screw_z_lo = screw_z_lo
-        self.screw_z_hi = screw_z_hi
         self.shaft_hole_r = shaft_hole_r
         self.top_plate_z = top_plate_z
         self.post_cluster_positions = post_cluster_positions
@@ -252,7 +232,6 @@ class ServoCase:
         part = self._outer_shell()
         part = self._cut_servo_cavity(part)
         part = self._cut_pin_holes(part)
-        part = self._cut_side_screws(part)
         part = self._cut_bottom_screw(part)
         part = self._cut_top_holes(part)
         return part
@@ -269,8 +248,14 @@ class ServoCase:
     # ── 2. Open-bottom servo cavity ──────────────────────────────────────────
 
     def _cut_servo_cavity(self, part: cq.Workplane) -> cq.Workplane:
-        """Open-bottom pocket (Z = 0 → shelf at cavity_depth) for the servo body."""
-        yf, yb = self.cavity_front_y, self.cavity_back_y
+        """Open-bottom pocket (Z = 0 → shelf at cavity_depth) for the servo body.
+
+        The cavity breaks through the far +Y outer wall so the servo can slide
+        in from the back face (XZ plane at maximum Y).
+        """
+        yf = self.cavity_front_y
+        # Extend 1 mm past the outer +Y face to ensure a clean boolean cut.
+        yb = self.servo_center_y + self._half + 1
         cavity = rounded_box(
             2 * self.cavity_half_x, yb - yf, self.cavity_depth,
             self.cavity_corner_r, center=(0, (yf + yb) / 2, 0),
@@ -290,25 +275,7 @@ class ServoCase:
             part = part.cut(orient_to_pos_x(cutter,  h, y, hz))
         return part
 
-    # ── 4. Side-face M2 mounting screw holes ─────────────────────────────────
-
-    def _cut_side_screws(self, part: cq.Workplane) -> cq.Workplane:
-        """Two Ø 3 mm through-bores per X wall for M2 self-tapping screws."""
-        h = self._half
-        z_mid = (self.screw_z_lo + self.screw_z_hi) / 2
-        # Build a 2h-long cylinder along Z at origin, rotate to align with X,
-        # then shift so it spans from x = −h to x = +h.
-        cutter = (
-            cylinder(self.screw_r, 2 * h)
-            .rotate((0, 0, 0), (0, 1, 0), 90)   # +Z → +X  ⇒  bore now along X
-            .translate((-h, 0, 0))               # centre on X axis
-        )
-        for y_off in self.screw_y_offsets:
-            y_c = self.servo_center_y + y_off
-            part = part.cut(cutter.translate((0, y_c, z_mid)))
-        return part
-
-    # ── 5. Shaft bore + boss clearance (two cylinders each, offset in Y) ──────
+    # ── 4. Shaft bore + boss clearance (two cylinders each, offset in Y) ──────
 
     def _cut_shaft_hole(self, part: cq.Workplane) -> cq.Workplane:
         """Cut shaft bore and boss clearance as two offset cylinders each.
