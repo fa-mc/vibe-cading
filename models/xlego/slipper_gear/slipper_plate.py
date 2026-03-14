@@ -32,9 +32,9 @@ class SlipperPlate:
 
     def __init__(
         self,
-        plate_r: float = 19.8,
+        plate_r: float = 10.3,
         plate_thickness: float = 1.2,
-        hub_r: float = 6.475,
+        hub_r: float = 6.0,
         hub_length: float = 1.2,
     ) -> None:
         self.plate_r = plate_r
