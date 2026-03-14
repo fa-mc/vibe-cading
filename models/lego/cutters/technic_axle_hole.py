@@ -106,6 +106,11 @@ class TechnicAxleHole:
 
 if __name__ == "__main__":
     from ocp_vscode import show
+    import cadquery as cq
 
-    hole = TechnicAxleHole(depth=4)
-    show(hole.solid)
+    depth = 2.0
+    hole_cutter = TechnicAxleHole(depth=depth).solid
+    main_body = cq.Workplane("XY").circle(8.0 / 2).extrude(depth)
+    part = main_body.cut(hole_cutter)
+    cq.exporters.export(part, "tmp/technic_axle_hole.step")
+    show(part)

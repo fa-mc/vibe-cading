@@ -24,7 +24,7 @@ class SlipperRing:
         Maximum inner radius (in the pocket) where the spring tip can expand (mm).
     ramp_r : float
         Minimum inner radius (on the ridges) that compresses the spring arm (mm).
-    spring_count : int
+    ramp_count : int
         Number of directional saw-tooth ramps matching the spring arms.
     sag_r : float
         Radius of the recessed counterbore for the plate to sink into (mm).
@@ -41,7 +41,7 @@ class SlipperRing:
         n_flank: int = 32,
         pocket_r: float = 10.0,
         ramp_r: float = 8.0,
-        spring_count: int = 3,
+        ramp_count: int = 12,
         sag_r: float = 10.5,
         sag_depth: float = 1.2,
     ) -> None:
@@ -52,7 +52,7 @@ class SlipperRing:
 
         self.pocket_r       = pocket_r
         self.ramp_r         = ramp_r
-        self.spring_count   = spring_count
+        self.ramp_count     = ramp_count
         self.sag_r          = sag_r
         self.sag_depth      = sag_depth
         self._n_flank       = n_flank
@@ -194,67 +194,67 @@ class SlipperRing:
         """CCW closed profile for the ring bore with directional saw-tooth ramps
         and an angled hook to prevent the rounded spring tip from slipping.
         """
-        n_r = self.spring_count
+        n_r = int(self.ramp_count)
         cycle = 2.0 * math.pi / n_r
 
-        hook_angle   = math.radians(10.0)
-        pocket_angle = math.radians(20.0)
-        ramp_angle   = math.radians(70.0)
-        ridge_angle  = cycle - pocket_angle - ramp_angle
+        # Scale angles depending on ramp count, assuming 3 ramps (120 deg cycle) as baseline
+        scale = cycle / math.radians(120.0)
+        hook_angle = math.radians(10.0) * scale
 
         pocket_r = self.pocket_r
         ramp_r   = self.ramp_r
 
-        n_pocket = max(3, int((pocket_angle + hook_angle) / (2 * math.pi) * 144))
-        n_ramp   = max(10, int(ramp_angle / (2 * math.pi) * 144))
-        n_ridge  = max(2, int(ridge_angle / (2 * math.pi) * 144))
-
         pts: list[tuple[float, float]] = []
+        n_ramp = 90
+
+        # Spiral parameters
+        total_theta = cycle + hook_angle
+        b = (ramp_r - pocket_r) / total_theta
 
         for i in range(n_r):
             base_angle = i * cycle
+            next_angle = base_angle + cycle
 
-            # Calculate fillet for the concave pocket root
-            A_theta = base_angle
-            A = (ramp_r * math.cos(A_theta), ramp_r * math.sin(A_theta))
-            B_theta = base_angle - hook_angle
-            B = (pocket_r * math.cos(B_theta), pocket_r * math.sin(B_theta))
+            theta_start = base_angle - hook_angle
+            theta_end   = next_angle
 
-            # Use true tangent of the circle at B to prevent restricting the fillet distance 'd'
-            T_x = -math.sin(B_theta) * 10.0 + B[0]
-            T_y =  math.cos(B_theta) * 10.0 + B[1]
-            C = (T_x, T_y)
+            Tip_prev  = (ramp_r * math.cos(base_angle), ramp_r * math.sin(base_angle))
+            Root      = (pocket_r * math.cos(theta_start), pocket_r * math.sin(theta_start))
+            Tip_curr  = (ramp_r * math.cos(theta_end), ramp_r * math.sin(theta_end))
+            Root_next = (pocket_r * math.cos(theta_end - hook_angle), pocket_r * math.sin(theta_end - hook_angle))
 
-            # Concave corner fillet R=0.35, high step count for smoothness
-            fillet_arc, d_corner = self._fillet_corner(A, B, C, R=0.35, steps=12)
-            pts.extend(fillet_arc)
+            # True tangent vectors for spiral
+            # dx/dtheta = b*cos(theta) - r*sin(theta)
+            # dy/dtheta = b*sin(theta) + r*cos(theta)
+            dx_start = b * math.cos(theta_start) - pocket_r * math.sin(theta_start)
+            dy_start = b * math.sin(theta_start) + pocket_r * math.cos(theta_start)
+            Tang_start = (Root[0] + dx_start, Root[1] + dy_start)
 
-            # 1. Pocket flat (extended backwards to form the hook)
-            for j in range(1, n_pocket):
-                frac = j / n_pocket
-                theta = base_angle - hook_angle + (pocket_angle + hook_angle) * frac
-                P = (pocket_r * math.cos(theta), pocket_r * math.sin(theta))
-                # Skip points embedded inside the structural fillet to avoid zigzag artifacts
-                if math.hypot(P[0] - B[0], P[1] - B[1]) < d_corner:
-                    continue
-                pts.append(P)
+            dx_end = b * math.cos(theta_end) - ramp_r * math.sin(theta_end)
+            dy_end = b * math.sin(theta_end) + ramp_r * math.cos(theta_end)
+            # Reverse vector since the corner travels backwards from Tip_curr to generate arc A-B-C
+            Tang_end = (Tip_curr[0] - dx_end, Tip_curr[1] - dy_end)
 
-            # 2. Gradual ramp inward
-            for j in range(n_ramp):
+            spiral_pts = []
+            for j in range(0, n_ramp + 1):
                 frac = j / n_ramp
-                theta = base_angle + pocket_angle + ramp_angle * frac
-                r = pocket_r - (pocket_r - ramp_r) * frac
-                pts.append((r * math.cos(theta), r * math.sin(theta)))
+                theta_j = theta_start + total_theta * frac
+                r_j = pocket_r + b * (theta_j - theta_start)
+                spiral_pts.append((r_j * math.cos(theta_j), r_j * math.sin(theta_j)))
 
-            # 3. Ridge flat
-            for j in range(n_ridge):
-                frac = j / n_ridge
-                theta = base_angle + pocket_angle + ramp_angle + ridge_angle * frac
-                pts.append((ramp_r * math.cos(theta), ramp_r * math.sin(theta)))
+            # Fillets with true geometric tangents matching the spiral equations
+            root_arc, d_root = self._fillet_corner(Tip_prev, Root, Tang_start, R=0.35, steps=24)
+            tip_arc, d_tip   = self._fillet_corner(Tang_end, Tip_curr, Root_next, R=0.25, steps=24)
 
-            # Sharp hook tip to be filleted in 3D
-            theta_end = base_angle + cycle
-            pts.append((ramp_r * math.cos(theta_end), ramp_r * math.sin(theta_end)))
+            pts.extend(root_arc)
+            for pt in spiral_pts:
+                # Exclude internal overlapping points covered by fillets
+                if math.hypot(pt[0] - Root[0], pt[1] - Root[1]) < d_root:
+                    continue
+                if math.hypot(pt[0] - Tip_curr[0], pt[1] - Tip_curr[1]) < d_tip:
+                    continue
+                pts.append(pt)
+            pts.extend(tip_arc)
 
         return pts
 
@@ -282,27 +282,6 @@ class SlipperRing:
 
         ring = ring.cut(bore.translate((0, 0, -0.1)))
 
-        # Fillet the sharp inward hook teeth tips
-        tip_edges = []
-        for e in ring.edges("|Z").vals():
-            v = e.startPoint()
-            r = math.hypot(v.x, v.y)
-            if abs(r - self.ramp_r) < 0.05:
-                ang = math.atan2(v.y, v.x) % (2 * math.pi)
-                cycle_deg = 360.0 / self.spring_count
-                for i in range(self.spring_count):
-                    target = math.radians(i * cycle_deg)
-                    diff = min(abs(ang - target), 2 * math.pi - abs(ang - target))
-                    if diff < 0.05:
-                        tip_edges.append(e)
-                        break
-
-        if tip_edges:
-            try:
-                ring = ring.newObject(tip_edges).fillet(0.4)
-            except Exception as ex:
-                print("Failed to fillet tip:", ex)
-
         # Add top and bottom counterbore sags for the plates
         if self.sag_depth > 0:
             sag_cut = cq.Workplane("XY").circle(self.sag_r).extrude(self.sag_depth + 0.1)
@@ -321,6 +300,6 @@ if __name__ == "__main__":
 
     r = SlipperRing(
         module=2.0, teeth=24, face_width=8.0, pressure_angle=20.0,
-        n_flank=32, pocket_r=18.5, ramp_r=16.5, spring_count=3
+        n_flank=32, pocket_r=18.5, ramp_r=16.5, ramp_count=12
     )
     show(r.solid, names=["SlipperRing Directional"])
