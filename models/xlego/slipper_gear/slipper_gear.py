@@ -21,13 +21,22 @@ class SlipperGear:
       Face width: 8.0mm (1 stud)
       Ratch: 3-arm Spring engaging with a 12-ramp SlipperRing
     """
-    def __init__(self):
+    def __init__(
+        self,
+        ring_params: dict | None = None,
+        plate_params: dict | None = None,
+        spring_params: dict | None = None
+    ):
         # The ring is 8.0mm wide, with 1.2mm sags on both sides.
         # This leaves 5.6mm of inner space for the spring.
-        plate = SlipperPlate()
-        ring = SlipperRing()
-        spring = SlipperSpring().solid.translate((0,0, 1.3))
-        plate_flip = SlipperPlate().solid.rotate((0,0,0), (1,0,0), 180).translate((0,0, 8.0))
+        ring_params = ring_params or {}
+        plate_params = plate_params or {}
+        spring_params = spring_params or {}
+
+        plate = SlipperPlate(**plate_params)
+        ring = SlipperRing(**ring_params)
+        spring = SlipperSpring(**spring_params).solid.translate((0,0, 1.3))
+        plate_flip = SlipperPlate(**plate_params).solid.rotate((0,0,0), (1,0,0), 180).translate((0,0, 8.0))
 
         self._solid = cq.Compound.makeCompound([
             plate.solid.val(),

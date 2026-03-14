@@ -36,85 +36,46 @@ length           = 57.0
 width            = 38.0
 height           = 4.0
 
-# ── XLego slipper gear — 28T (module 1.0, 1 stud width) ───────────────────────
-
-[[build]]
-model  = "xlego.slipper_gear.slipper_ring.SlipperRing"
-output = "xlego/slipper_gear/slipper_gear_28t_ring.step"
-[build.params]
-module         = 1.0
-teeth          = 28
-face_width     = 7.8
-pressure_angle = 20.0
-pocket_r       = 11.0
-ramp_r         = 9.0
-ramp_count     = 12
-sag_r          = 11.5
-sag_depth      = 1.2
-
-[[build]]
-model  = "xlego.slipper_gear.slipper_plate.SlipperPlate"
-output = "xlego/slipper_gear/slipper_gear_28t_plate.step"
-[build.params]
-plate_r         = 11.3
-plate_thickness = 1.2
-hub_r           = 6.475
-hub_length      = 1.2
-
-[[build]]
-model  = "xlego.slipper_gear.slipper_spring.SlipperSpring"
-output = "xlego/slipper_gear/slipper_gear_28t_spring.step"
-[build.params]
-hub_r           = 6.475
-plate_thickness = 5.4
-spring_count    = 3
-root_thickness  = 1.2
-tip_thickness   = 0.5
-ring_inner_r    = 11.0
-clearance       = 0.25
-
-# ── XLego slipper gear — 20T (module 1.0, 1 stud width) ───────────────────────
-
-[[build]]
-model  = "xlego.slipper_gear.slipper_ring.SlipperRing"
-output = "xlego/slipper_gear/slipper_gear_20t_ring.step"
-[build.params]
-module         = 1.0
-teeth          = 20
-face_width     = 7.8
-pressure_angle = 20.0
-pocket_r       = 7.0
-ramp_r         = 5.5
-ramp_count     = 12
-sag_r          = 7.5
-sag_depth      = 1.2
-
-[[build]]
-model  = "xlego.slipper_gear.slipper_plate.SlipperPlate"
-output = "xlego/slipper_gear/slipper_gear_20t_plate.step"
-[build.params]
-plate_r         = 7.3
-plate_thickness = 1.2
-hub_r           = 4.0
-hub_length      = 1.2
-
-[[build]]
-model  = "xlego.slipper_gear.slipper_spring.SlipperSpring"
-output = "xlego/slipper_gear/slipper_gear_20t_spring.step"
-[build.params]
-hub_r           = 4.0
-plate_thickness = 5.4
-spring_count    = 3
-root_thickness  = 1.2
-tip_thickness   = 0.5
-ring_inner_r    = 7.0
-clearance       = 0.25
-
-# ── XLego slipper gear — Full Assembly ────────────────────────────────────────
+# ── XLego slipper gear assemblies (20T, 24T, 28T) ─────────────────────────────
 
 [[build]]
 model  = "xlego.slipper_gear.slipper_gear.SlipperGear"
-output = "xlego/slipper_gear/slipper_gear_assembly.step"
-[build.params]
-# Uses default 24T parameters from the underlying classes
+output = "xlego/slipper_gear/slipper_gear_20t_assembly.step"
 
+[build.params.ring_params]
+teeth          = 20
+pocket_r       = 7.0
+ramp_r         = 5.5
+sag_r          = 7.5
+
+[build.params.plate_params]
+plate_r        = 7.3
+hub_r          = 4.0
+
+[build.params.spring_params]
+hub_r          = 4.0
+ring_inner_r   = 7.0
+
+[[build]]
+model  = "xlego.slipper_gear.slipper_gear.SlipperGear"
+output = "xlego/slipper_gear/slipper_gear_24t_assembly.step"
+# Blank params object effectively uses defaults
+[build.params]
+
+[[build]]
+model  = "xlego.slipper_gear.slipper_gear.SlipperGear"
+output = "xlego/slipper_gear/slipper_gear_28t_assembly.step"
+
+[build.params.ring_params]
+teeth          = 28
+pocket_r       = 11.0
+ramp_r         = 9.0
+sag_r          = 11.5
+
+[build.params.plate_params]
+plate_r        = 11.3
+hub_r          = 6.475
+
+[build.params.spring_params]
+hub_r          = 6.475
+ring_inner_r   = 11.0
