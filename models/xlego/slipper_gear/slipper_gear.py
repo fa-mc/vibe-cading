@@ -15,7 +15,7 @@ class SlipperGear:
         # This leaves 5.6mm of inner space for the spring.
         plate = SlipperPlate()
         ring = SlipperRing()
-        spring = SlipperSpring(plate_thickness=5.6).solid.translate((0,0, 1.2))
+        spring = SlipperSpring().solid.translate((0,0, 1.3))
         plate_flip = SlipperPlate().solid.rotate((0,0,0), (1,0,0), 180).translate((0,0, 8.0))
 
         self._solid = cq.Compound.makeCompound([

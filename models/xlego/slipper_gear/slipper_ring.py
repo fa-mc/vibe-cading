@@ -34,15 +34,15 @@ class SlipperRing:
 
     def __init__(
         self,
-        module: float = 2.0,
+        module: float = 1.0,
         teeth: int = 24,
         face_width: float = 8.0,
         pressure_angle: float = 20.0,
         n_flank: int = 32,
-        pocket_r: float = 18.5,
-        ramp_r: float = 16.5,
+        pocket_r: float = 10.0,
+        ramp_r: float = 8.0,
         spring_count: int = 3,
-        sag_r: float = 20.0,
+        sag_r: float = 10.5,
         sag_depth: float = 1.2,
     ) -> None:
         self.module         = module
@@ -221,7 +221,7 @@ class SlipperRing:
         # The hook tip lies exactly at the transition angle `base_angle + cycle`
         # Because we break the curve into lines, there are many edges near ramp_r.
         # We specifically want ONLY the vertices joining the ridge flat to the cliff.
-        
+
         # Due to polyline resolution, it's easier to find the tip edge by its vertex proximity
         tip_edges = []
         for e in ring.edges("|Z").vals():
@@ -236,7 +236,7 @@ class SlipperRing:
                     if diff < 0.05:
                         tip_edges.append(e)
                         break
-        
+
         if tip_edges:
             try:
                 # Workplane does not have filterBy, instead we can pass a CQ custom selector class or build a specialized Edge list wrapper

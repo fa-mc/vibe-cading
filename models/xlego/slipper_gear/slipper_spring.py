@@ -38,13 +38,13 @@ class SlipperSpring:
 
     def __init__(
         self,
-        hub_r: float = 6.475,
-        plate_thickness: float = 1.2,
+        hub_r: float = 6.0,
+        plate_thickness: float = 5.4,
         spring_count: int = 3,
-        root_thickness: float = 3.2,
-        tip_thickness: float = 1.0,
+        root_thickness: float = 1.2,
+        tip_thickness: float = 0.5,
         sweep_angle: float = 160.0,
-        ring_inner_r: float = 18.5,
+        ring_inner_r: float = 10.0,
         clearance: float = 0.25,
     ) -> None:
         self.hub_r           = hub_r
