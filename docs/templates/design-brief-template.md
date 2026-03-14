@@ -78,6 +78,9 @@ Exact commands to run after all deliverables are complete:
 # Example: visual preview
 python3 tools/preview.py models.module.ClassName --views top front left
 
+# Example: internal geometry check (vital for blind holes/snap rings)
+python3 tools/section_slicer.py tmp/output.step --axis Z --at 4.0 --report
+
 # Example: volume comparison against reference STEP
 python3 tools/boolean_diff.py reference.step models.module.ClassName --model --align-bbox
 ```
