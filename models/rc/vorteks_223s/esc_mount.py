@@ -43,7 +43,7 @@ class EscMount:
     RIGHT_NOTCH_H: float = 10.0
     FILLET_R: float = 2.0
     GROOVE_W: float = 5.0
-    GROOVE_DEPTH: float = 1.3
+    GROOVE_DEPTH: float = 1.5
 
     def __init__(
         self,
