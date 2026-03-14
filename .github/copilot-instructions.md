@@ -132,6 +132,16 @@ count if the stair-step height is unacceptable for the application.  The
 flat-topped approach is safe because adjacent wedges have *different* bottom
 Z values at their shared boundary, preventing coincident faces.
 
+### Incomplete boolean cuts (floating wings / artifacts)
+
+**Symptom:** Thin artifacts, floating "wings", or tabs of material are left behind at the extreme bounds of a part after performing a subtractive boolean cut.
+
+**Root cause:** The base geometric block was extruded to the *absolute maximum bounding box* of the part design (e.g. extending all the way up to an inner, taller feature's height). However, the subtractive cutter tool didn't reach high enough (or deep enough) to completely engulf that maximum bounding box perfectly. This leaves behind a tiny, un-cut wafer of original material.
+
+**Fix (Two approaches):**
+1. **Additive bounding:** Do not extrude the main base geometry to the absolute highest/lowest point if that point only belongs to a small localized feature (like a central boss or disk). Extrude the main body only to its true functional height, and use `union()` later to add localized taller features.
+2. **Infinite Cutter Overcut:** When building a cutter that bounds a part from the top or bottom (like a surface profile or ramp cutter), *always* extend its orthogonal extrusion height arbitrarily far beyond the body limits (e.g. `needed_h + 10.0` or `100.0` mm) to guarantee it cleanly clears the topmost/bottom-most bounds of the material. Never use precise/tight bounds for the "waste" side of a cutter.
+
 ## Asset Validation
 
 After generating or modifying a model, always validate it visually using the
