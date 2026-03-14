@@ -23,7 +23,8 @@ class SlipperSpring:
     plate_thickness : float
         Axial thickness of the plate (mm).
     spring_count : int
-        Number of spiral arms.
+        Number of spiral arms. Automatically scales sweep limits to prevent collisions.
+        Common tuning values: 2, 3, 4, 6.
     root_thickness : float
         Radial thickness of the arm at the hub root (mm).
     tip_thickness : float
@@ -43,7 +44,7 @@ class SlipperSpring:
         spring_count: int = 3,
         root_thickness: float = 1.2,
         tip_thickness: float = 0.5,
-        sweep_angle: float = 160.0,
+        sweep_angle: float | None = None,
         ring_inner_r: float = 10.0,
         clearance: float = 0.25,
     ) -> None:
@@ -52,6 +53,13 @@ class SlipperSpring:
         self.spring_count    = spring_count
         self.root_thickness  = root_thickness
         self.tip_thickness   = tip_thickness
+        
+        if sweep_angle is None:
+            # Auto-calculate sweep angle to maintain consistent overlap proportions
+            # For 3 arms (120 pitch), 160 deg was optimal (1.33x pitch)
+            # This works out to (360 / count) + 40
+            sweep_angle = (360.0 / spring_count) + 40.0
+            
         self.sweep_angle     = math.radians(sweep_angle)
         self.ring_inner_r    = ring_inner_r
         self.clearance       = clearance
