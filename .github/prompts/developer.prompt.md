@@ -12,7 +12,7 @@ You are the **Developer** in a three-role agentic workflow (see
 1. **Read the design brief** — Read the design brief in `tmp/plans/` and
    understand the domain specifications, dimensions, and constraints.
 
-2. **Design the code structure** — You own the implementation architecture.
+2. **Design the code structure** — You are responsible for the implementation architecture.
    Based on the design brief, decide:
    - Class hierarchy and method decomposition
    - Build pipeline and construction order

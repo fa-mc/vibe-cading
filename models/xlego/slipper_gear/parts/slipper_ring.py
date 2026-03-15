@@ -70,6 +70,34 @@ class SlipperRing:
     def solid(self) -> cq.Workplane:
         return self._solid
 
+    # --- Systematic Ramp Mathematics ---
+    @property
+    def cycle_angle(self) -> float:
+        """Total angular span of one tooth cycle in radians."""
+        return 2.0 * math.pi / int(self.ramp_count)
+
+    @property
+    def hook_angle(self) -> float:
+        """Angular span of the steep drop-off hook.
+        
+        Scales dynamically with ramp_count. Base baseline is 10 degrees at 3 ramps (120 degree cycle).
+        """
+        scale = self.cycle_angle / math.radians(120.0)
+        return math.radians(10.0) * scale
+
+    @property
+    def ramp_span(self) -> float:
+        """Angular span of the actual sloped ramp contact area in radians."""
+        return self.cycle_angle - self.hook_angle
+
+    @property
+    def b_out(self) -> float:
+        """The calculated Archimedean pitch (delta Radius / delta Theta) for the ramp cut.
+        
+        Used by the main assembly to perfectly synchronize the spring arm's outer profile (r = a + b_out * theta).
+        """
+        return (self.pocket_r - self.ramp_r) / self.ramp_span
+
     # ── Involute helpers (identical to SpurGear) ──────────────────────────────
 
     @staticmethod
@@ -195,20 +223,18 @@ class SlipperRing:
         and an angled hook to prevent the rounded spring tip from slipping.
         """
         n_r = int(self.ramp_count)
-        cycle = 2.0 * math.pi / n_r
-
-        # Scale angles depending on ramp count, assuming 3 ramps (120 deg cycle) as baseline
-        scale = cycle / math.radians(120.0)
-        hook_angle = math.radians(10.0) * scale
+        
+        # Systematically pull math from class properties to guarantee sync with the spring 
+        cycle = self.cycle_angle
+        hook_angle = self.hook_angle
+        ramp_span = self.ramp_span
+        b = self.b_out
 
         pocket_r = self.pocket_r
         ramp_r   = self.ramp_r
 
         pts: list[tuple[float, float]] = []
         n_ramp = 90
-
-        ramp_span = cycle - hook_angle
-        b = (pocket_r - ramp_r) / ramp_span
 
         for i in range(n_r):
             theta_start = i * cycle                  # inner root

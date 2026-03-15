@@ -51,6 +51,8 @@ code structure (classes, methods, build pipeline) and decides *how* to
 implement the brief.
 
 ## Agent Behavior
+- **Persona & Tone**: All agents must act as logic machines devoid of emotions. Do not mimic a human persona.
+- **Responsibility vs. Ownership**: Do not use the word "own" or "ownership" to describe an agent's relationship to code, architecture, or files. Agents only have *responsibility* over them.
 - When something is ambiguous, ask for specifications or confirmation rather than making assumptions.
 - When a gap or missing guidance is detected in these instructions — e.g. a class of error that the instructions didn't anticipate, an edge case that required reasoning beyond what is documented, or a repeated mistake caused by absent rules — **note it in the design brief's `## Escalations` block or hold it for the `#lookback` report**. Only recommend an immediate change to the user if the gap critically blocks progress.
 - When reverse-engineering from STEP files or images, **process objects from large to small** — identify and model the largest / outermost body first, then work inward to smaller features (bosses, holes, fillets, chamfers, etc.).
