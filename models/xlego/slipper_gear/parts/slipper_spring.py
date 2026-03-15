@@ -7,7 +7,7 @@ import cadquery as cq
 
 import sys
 import os
-sys.path.insert(0, os.path.join(os.path.dirname(__file__), "../../.."))
+sys.path.insert(0, os.path.join(os.path.dirname(__file__), "../../../.."))
 from models.lego.cutters.technic_axle_hole import TechnicAxleHole
 
 class SlipperSpring:
@@ -47,6 +47,7 @@ class SlipperSpring:
         sweep_angle: float | None = None,
         ring_inner_r: float = 10.0,
         clearance: float = 0.25,
+        b_out: float | None = None,
     ) -> None:
         self.hub_r           = hub_r
         self.plate_thickness = plate_thickness
@@ -54,13 +55,6 @@ class SlipperSpring:
         self.root_thickness  = root_thickness
         self.tip_thickness   = tip_thickness
 
-        if sweep_angle is None:
-            # Auto-calculate sweep angle to maintain consistent overlap proportions
-            # For 3 arms (120 pitch), 160 deg was optimal (1.33x pitch)
-            # This works out to (360 / count) + 40
-            sweep_angle = (360.0 / spring_count) + 40.0
-
-        self.sweep_angle     = math.radians(sweep_angle)
         self.ring_inner_r    = ring_inner_r
         self.clearance       = clearance
 
@@ -69,6 +63,19 @@ class SlipperSpring:
 
         if self.r_max <= self.hub_r + self.root_thickness:
             raise ValueError("Hub + root thickness exceeds available outer radius.")
+
+        if sweep_angle is None:
+            if b_out is not None:
+                # Force outer spiral pitch to match `b_out`
+                a_out = self.hub_r + self.root_thickness
+                sweep_angle = math.degrees((self.r_max - a_out) / b_out)
+            else:
+                # Auto-calculate sweep angle to maintain consistent overlap proportions
+                # For 3 arms (120 pitch), 160 deg was optimal (1.33x pitch)
+                # This works out to (360 / count) + 40
+                sweep_angle = (360.0 / spring_count) + 40.0
+
+        self.sweep_angle = math.radians(sweep_angle)
 
         self._solid = self._build()
 
@@ -171,7 +178,7 @@ class SlipperSpring:
 
 if __name__ == "__main__":
     import sys, os
-    sys.path.insert(0, os.path.join(os.path.dirname(__file__), "../../.."))
+    sys.path.insert(0, os.path.join(os.path.dirname(__file__), "../../../.."))
     from ocp_vscode import show
 
     p = SlipperSpring()
