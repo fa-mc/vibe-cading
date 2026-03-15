@@ -7,6 +7,19 @@ Update values here and they propagate to all models that import from this module
 All measurements are in millimetres (mm).
 """
 
+import os
+from pathlib import Path
+
+# Parse local .env file if it exists (simple fallback without external dependencies)
+_env_file = Path(__file__).parent.parent.parent / ".env"
+if _env_file.exists():
+    with open(_env_file, "r") as _f:
+        for _line in _f:
+            _line = _line.strip()
+            if _line and not _line.startswith("#") and "=" in _line:
+                _k, _v = _line.split("=", 1)
+                os.environ.setdefault(_k.strip(), _v.strip())
+
 # ── Grid & Stud Spacing ───────────────────────────────────────────────────────
 STUD_PITCH: float = 8.0       # Centre-to-centre stud spacing (mm)
 PLATE_HEIGHT: float = 3.2     # 1 plate height (mm)
@@ -27,8 +40,8 @@ AXLE_ARM_PROTRUSION: float = 1.50  # Arm protrusion past flat face (mm)
 AXLE_LENGTH_PER_STUD: float = 8.0  # Axle length per stud unit (mm)
 
 # ── Technic Axle Hole (cross profile) ────────────────────────────────────────
-AXLE_HOLE_TIP_TO_TIP: float = 5.3   # Axle hole cross tip-to-tip (mm, FDM clearance)
-AXLE_HOLE_ARM_WIDTH: float = 2.1    # Axle hole flat-to-flat (mm, FDM clearance)
+AXLE_HOLE_TIP_TO_TIP: float = float(os.getenv("AXLE_HOLE_TIP_TO_TIP", "5.08"))  # Axle hole cross tip-to-tip (mm)
+AXLE_HOLE_ARM_WIDTH: float = float(os.getenv("AXLE_HOLE_ARM_WIDTH", "1.92"))   # Axle hole flat-to-flat (mm)
 
 # ── Shared geometry defaults ──────────────────────────────────────────────────
 DEFAULT_CORNER_RADIUS: float = 0.4   # Inner concave corner fillet radius (mm) — TechnicAxle

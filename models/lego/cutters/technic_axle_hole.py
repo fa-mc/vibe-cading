@@ -16,9 +16,9 @@ class TechnicAxleHole:
     Use the :pymeth:`solid` property as a boolean cutter to bore a correctly
     shaped axle hole into any part::
 
-        from lego.technic_axle_hole import TechnicAxleHole
+        from lego.cutters.technic_axle_hole import TechnicAxleHole
 
-        hole = TechnicAxleHole(depth=my_thickness)
+        hole = TechnicAxleHole(depth=my_thickness, fit="tight")
         part = part.cut(hole.solid)
 
     Parameters
@@ -33,10 +33,6 @@ class TechnicAxleHole:
         perpendicular arms (mm).  Set to 0 to skip.
     """
 
-    # ── Dimensions sourced from lego.constants ─────────────────────────────
-    TIP_TO_TIP: float = AXLE_HOLE_TIP_TO_TIP
-    ARM_WIDTH: float = AXLE_HOLE_ARM_WIDTH
-
     # ── Hole-specific corner radius defaults ───────────────────────────────
     DEFAULT_CONVEX_RADIUS: float = 0  # Convex junction (arm tip meets flat side)
     DEFAULT_CONCAVE_RADIUS: float = 0.6  # Concave inner corner (valley between arms)
@@ -50,8 +46,11 @@ class TechnicAxleHole:
         self.depth = depth
         self.convex_radius = convex_radius
         self.concave_radius = concave_radius
+        
+        self.TIP_TO_TIP = AXLE_HOLE_TIP_TO_TIP
+        self.ARM_WIDTH = AXLE_HOLE_ARM_WIDTH
+        
         self._solid = self._build()
-
     def _build(self) -> cq.Workplane:
         """Build the + cross solid using the axle hole dimensions."""
         tip = self.TIP_TO_TIP
@@ -108,7 +107,7 @@ if __name__ == "__main__":
     from ocp_vscode import show
     import cadquery as cq
 
-    depth = 2.0
+    depth = 8.0
     hole_cutter = TechnicAxleHole(depth=depth).solid
     main_body = cq.Workplane("XY").circle(8.0 / 2).extrude(depth)
     part = main_body.cut(hole_cutter)

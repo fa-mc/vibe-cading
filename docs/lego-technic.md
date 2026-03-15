@@ -24,8 +24,8 @@ printing clearances for functional fits.
 | Property                      | Value   | Notes                                     |
 |-------------------------------|---------|-------------------------------------------|
 | Technic pin hole diameter     | 4.8 mm  | Nominal; use 4.85 mm for printed parts    |
-| Technic axle hole (cross)     | 4.80 mm | Nominal; use 5.3 mm for printed FDM parts |
-| Cross axle flat-to-flat       | 1.83 mm | Nominal; use 2.1 mm for printed FDM parts |
+| Technic axle hole (cross)     | 4.80 mm | Nominal; defaults to 5.08 mm for FDM |
+| Cross axle flat-to-flat       | 1.83 mm | Nominal; defaults to 1.92 mm for FDM |
 | Technic hole center spacing   | 8.0 mm  | Same as stud pitch                        |
 | Hole center from part edge    | 4.0 mm  | Half the stud pitch                       |
 
@@ -194,3 +194,13 @@ Common bent beam angles are **90°** and **53.13°** (3–4–5 triangle geometr
   use **4.9 mm**. Adjust by ±0.1 mm per printer calibration.
 - When exporting STEP files for Lego-compatible parts, **do not scale** — CadQuery
   works in mm natively.
+---
+
+## Tuning Tolerances
+
+Because different 3D printers and materials (FDM vs Resin) shrink differently, the default clearance provided in `models/lego/constants.py` might result in holes that are too tight or too loose on your specific machine.
+
+To solve this, this repository supports local overrides:
+1. Copy the `.env.example` file in the root directory to `.env`.
+2. Uncomment the `AXLE_HOLE_TIP_TO_TIP` and `AXLE_HOLE_ARM_WIDTH` variables.
+3. Adjust their values to perfectly dial in the friction fit for your process without having to track these local changes in git.
