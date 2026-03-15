@@ -52,7 +52,7 @@ implement the brief.
 
 ## Agent Behavior
 - When something is ambiguous, ask for specifications or confirmation rather than making assumptions.
-- When a gap or missing guidance is detected in these instructions — e.g. a class of error that the instructions didn't anticipate, an edge case that required reasoning beyond what is documented, or a repeated mistake caused by absent rules — **alert the user immediately** and recommend a concrete addition or amendment to this file.
+- When a gap or missing guidance is detected in these instructions — e.g. a class of error that the instructions didn't anticipate, an edge case that required reasoning beyond what is documented, or a repeated mistake caused by absent rules — **note it in the design brief's `## Escalations` block or hold it for the `#lookback` report**. Only recommend an immediate change to the user if the gap critically blocks progress.
 - When reverse-engineering from STEP files or images, **process objects from large to small** — identify and model the largest / outermost body first, then work inward to smaller features (bosses, holes, fillets, chamfers, etc.).
 
 ## Multi-Part Assemblies
@@ -335,12 +335,10 @@ simplified in the parametric model.
 
 # Copilot workspace instructions
 
-## Temporary / throwaway files
-- Never create temporary scripts, analysis helpers, dump utilities, or one-off
-  investigation files in the repository root (`/workspaces/cad/`).
-- If a temporary file is needed (e.g. `analyze_stp.py`, `dump_coords.py`,
-  `inspect_*.py`), place it under `/workspaces/cad/tmp/` instead.
-- The `tmp/` directory is git-ignored; files there will not be committed.
+## Built-in Tools vs Throwaway Scripts
+- **Always prioritize direct file edits**: Use the built-in file editing tools to modify model code directly. Do not write temporary Python scripts (e.g. `fix_z.py`, `update_file.py`) to perform string replacements or refactoring on source code.
+- **Temporary / throwaway files**: If a temporary script is absolutely required because an edit is too massive/complex for standard tools, or you need to run analysis/dump utilities, you must place it under `/workspaces/cad/tmp/`. Never place them in the repository root.
+- Clean up any refactoring scripts in `tmp/` as soon as the edit is successfully applied.
 ## Constants & Tolerances
 
 - When modifying or creating constants in `models/lego/constants.py` that describe 3D printed friction fits or clearances (e.g. hole diameters, axle thickness), you must wrap the hardcoded default in `os.getenv("VARIABLE_NAME", "default")` and cast it to float. This allows users to tweak dimensions in a `.env` file without modifying source tracked code.
