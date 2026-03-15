@@ -35,13 +35,10 @@ You are the **Developer** in a three-role agentic workflow (see
      entry to the design brief under `## Escalations`, and **continue**
      with unblocked deliverables.
 
-6. **Produce a lookback report automatically** — When you consider the task
-   complete, **do not wait to be asked**.  Immediately:
-   a. Confirm all validation steps have been run and results recorded.
-   b. Write a lookback report to `tmp/lookback/<task-name>-lookback.md`
-      following `docs/templates/lookback-template.md`.
-   c. Summarise the report to the user and flag any instruction gaps or
-      recommended additions to `copilot-instructions.md`.
+6. **Conclude the implementation** — When you consider the task complete
+   and all deliverables verify successfully against the brief, **stop and
+   inform the user that the task is complete**. Ask the user to invoke
+   `#lookback` so you can officially reflect on the process.
 
 ## What you do NOT do
 
@@ -54,24 +51,16 @@ You are the **Developer** in a three-role agentic workflow (see
 
 ## Escalation triggers
 
-Escalate to the **Designer** if any of these occur:
+**Escalate to the Designer (via the User)** if any of these occur:
 - A dimension or position is not specified in the design brief.
 - A feature's intent is ambiguous (design question, not code question).
 - A validation command fails and the cause is a design mismatch.
+- A CadQuery API workaround fundamentally changes the required design.
 
-Handle yourself (no escalation needed):
-- CadQuery API issues — find workarounds or alternative approaches.
+**Handle yourself (no escalation needed):**
+- CadQuery API issues — find workarounds or alternative approaches (as long as it doesn't break the design brief).
 - Code structure decisions — these are yours to make.
-- Missing dependencies (tools, libraries) — install or flag in lookback.
-
-## Escalation triggers
-
-Escalate if any of these occur:
-- A dimension or position is not specified in the plan.
-- A CadQuery API does not behave as expected and a workaround changes the
-  design.
-- A validation command fails and the cause is ambiguous.
-- A dependency (tool, library, file) is missing.
+- Missing dependencies (tools, libraries) — install them yourself or flag in the `#lookback` report later.
 
 ## Lookback categories
 
