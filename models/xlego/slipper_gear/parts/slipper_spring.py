@@ -48,6 +48,7 @@ class SlipperSpring:
         ring_inner_r: float = 10.0,
         clearance: float = 0.25,
         b_out: float | None = None,
+        arm_rotation_offset: float = 0.0,
     ) -> None:
         self.hub_r           = hub_r
         self.plate_thickness = plate_thickness
@@ -57,6 +58,7 @@ class SlipperSpring:
 
         self.ring_inner_r    = ring_inner_r
         self.clearance       = clearance
+        self.arm_rotation_offset = arm_rotation_offset
 
         # Target tip outermost radius
         self.r_max = self.ring_inner_r - self.clearance
@@ -68,7 +70,21 @@ class SlipperSpring:
             if b_out is not None:
                 # Force outer spiral pitch to match `b_out`
                 a_out = self.hub_r + self.root_thickness
-                sweep_angle = math.degrees((self.r_max - a_out) / b_out)
+
+                # Math gives the exact sweep angle to reach the pocket_r.
+                # However, the physical arm finishes with a rounded semi-circle cap across its
+                # `tip_thickness`. This cap protrudes outwards radially beyond the mathematical stopping
+                # point. If we don't subtract the angular equivalent of the cap, it will physically clip
+                # into the vertical drop-off wall of the gear's ramp (the hook).
+                # The radius of the cap is tip_thickness / 2.0. The angular overshoot is approx
+                # cap_radius / (circumference roughly) but practically it's about 1.5 to 2.0 degrees on an 8mm gear.
+
+                raw_sweep_rad = (self.r_max - a_out) / b_out
+                cap_r = self.tip_thickness / 2.0
+                # Using the angular approximation of that cap given the current radius
+                angular_overshoot_rad = cap_r / self.r_max
+
+                sweep_angle = math.degrees(raw_sweep_rad - angular_overshoot_rad)
             else:
                 # Auto-calculate sweep angle to maintain consistent overlap proportions
                 # For 3 arms (120 pitch), 160 deg was optimal (1.33x pitch)
@@ -84,46 +100,46 @@ class SlipperSpring:
         return self._solid
 
     def _arm_profile(self, n_points: int = 50) -> list[tuple[float, float]]:
-        """Closed polyline for one spiral arm oriented at 0 degrees."""
-        # Inner curve: r_in(t)  = a_in + b_in * t
-        # Outer curve: r_out(t) = a_out + b_out * t
+        """Closed polyline for one spiral arm oriented at 0 degrees, strictly bounded by sweep_angle."""
         a_in  = self.hub_r
         a_out = self.hub_r + self.root_thickness
 
-        # Outer curve reaches exactly r_max at the tip
         b_out = (self.r_max - a_out) / self.sweep_angle
-        # Inner curve reaches r_max - tip_thickness at the tip
         b_in  = ((self.r_max - self.tip_thickness) - a_in) / self.sweep_angle
 
-        pts = []
+        # Back off the mathematical spiral so the round cap fits within the max angle
+        cap_r = self.tip_thickness / 2.0
+        tip_center_r = self.r_max - cap_r
+        angular_overshoot_rad = cap_r / tip_center_r
+        curve_end_angle = max(0.1, self.sweep_angle - angular_overshoot_rad)
 
-        # Start sweeping from a negative angle to cleanly embed the base into the hub
+        pts = []
         t_start = - (self.root_thickness + 0.5) / b_out
 
-        # Inner curve: from embedded base to tip (CCW)
+        # Inner curve
         for i in range(n_points + 1):
-            t = t_start + (self.sweep_angle - t_start) * i / n_points
-            r = max(a_in + b_in * t, 0.1) # protect against negative radius crossing origin
+            t = t_start + (curve_end_angle - t_start) * i / n_points
+            r = max(a_in + b_in * t, 0.1)
             pts.append((r * math.cos(t), r * math.sin(t)))
 
-        # Approximate outward semi-circle cap at the tip
-        tip_center_r = self.r_max - (self.tip_thickness / 2.0)
-        cap_r = self.tip_thickness / 2.0
+        # Cap sweeps from inner to outer
+        actual_r_out = a_out + b_out * curve_end_angle
+        actual_r_in  = a_in + b_in * curve_end_angle
+        cap_center_r = (actual_r_out + actual_r_in) / 2.0
+        cap_r_actual = (actual_r_out - actual_r_in) / 2.0
+
+        cx = cap_center_r * math.cos(curve_end_angle)
+        cy = cap_center_r * math.sin(curve_end_angle)
 
         cap_steps = 10
-        base_angle = self.sweep_angle
-        cx = tip_center_r * math.cos(base_angle)
-        cy = tip_center_r * math.sin(base_angle)
-
-        # Cap sweeps from inner curve end (base_angle + pi) outwards to outer curve (base_angle)
         for i in range(1, cap_steps):
             frac = i / cap_steps
-            ang = base_angle + math.pi - math.pi * frac
-            pts.append((cx + cap_r * math.cos(ang), cy + cap_r * math.sin(ang)))
+            ang = curve_end_angle + math.pi - math.pi * frac
+            pts.append((cx + cap_r_actual * math.cos(ang), cy + cap_r_actual * math.sin(ang)))
 
-        # Outer curve: from tip back to embedded base (CW)
+        # Outer curve
         for i in range(n_points, -1, -1):
-            t = t_start + (self.sweep_angle - t_start) * i / n_points
+            t = t_start + (curve_end_angle - t_start) * i / n_points
             r = max(a_out + b_out * t, 0.1)
             pts.append((r * math.cos(t), r * math.sin(t)))
 
@@ -144,7 +160,7 @@ class SlipperSpring:
                 .polyline(arm_pts)
                 .close()
                 .extrude(fw)
-                .rotate((0, 0, 0), (0, 0, 1), angle_deg)
+                .rotate((0, 0, 0), (0, 0, 1), angle_deg + math.degrees(self.arm_rotation_offset))
             )
             hub = hub.union(arm)
 

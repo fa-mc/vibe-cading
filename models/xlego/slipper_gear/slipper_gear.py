@@ -24,35 +24,33 @@ class SlipperGearBase:
         plate_params = plate_params or {}
         spring_params = spring_params or {}
 
-        # The assembly intrinsically knows the relationship of the spring sweep degree and the ramp parameters.
-        # We evaluate the geometry of the ring gear's ramps to force the spring's Archimedean spirals to match perfectly.
-        ramp_count = ring_params.get("ramp_count", 3)
-        pocket_r = ring_params.get("pocket_r", 10.0)
-        ramp_r = ring_params.get("ramp_r", 8.0)
+        # 1. Instantiate the ring first. It intrinsically owns the geometric ramp mathematics.
+        ring_obj = SlipperRing(**ring_params)
 
-        # Mathematical logic mapping ring teeth geometry to the spring parameter requirements
-        cycle_deg = 360.0 / ramp_count
-        cycle = math.radians(cycle_deg)
-        scale = cycle / math.radians(120.0)
-        hook_angle = math.radians(10.0) * scale
-        ramp_span = cycle - hook_angle
-        b_out = (pocket_r - ramp_r) / ramp_span
+        # 2. Extract the systematic relationship. For flush contact, the spring's outer Archimedean
+        # pitch (b_out) must perfectly match the computed pitch of the ring's ramps.
+        spring_params.setdefault("b_out", ring_obj.b_out)
+        spring_params.setdefault("ring_inner_r", ring_obj.pocket_r)
 
-        # Force the spring to act correctly mathematically
-        spring_params.setdefault("b_out", b_out)
-        spring_params.setdefault("ring_inner_r", pocket_r)
+        # 3. Discover exact spring arm length.
+        # Temp spring lets us query the derived sweep angle (automatically bounded short of the hook)
+        temp_spring = SlipperSpring(**spring_params)
+
+        # 4. Calculate alignment rot offset.
+        # The arm starts its sweep at the ramp's root angle. We offset it so the tip mathematically
+        # aligns with the end of the ramp span, ensuring the physical cap nests exactly into the pocket.
+        tip_angle_deg = math.degrees(temp_spring.sweep_angle)
+        ramp_span_deg = math.degrees(ring_obj.ramp_span)
+        offset_deg = ramp_span_deg - tip_angle_deg + spring_rotation_offset
+
+        # Pass the rotation natively so the inner axle shaft remains globally aligned at 0 degrees
+        spring_params["arm_rotation_offset"] = math.radians(offset_deg)
 
         plate = SlipperPlate(**plate_params)
-        ring_obj = SlipperRing(**ring_params)
         spring_obj = SlipperSpring(**spring_params)
 
-        # Calculate automatic alignment offset so the spring arm tip lands directly in the ring's first pocket
-        tip_angle_deg = math.degrees(spring_obj.sweep_angle)
-        ramp_span_deg = math.degrees(ramp_span)
-        offset = ramp_span_deg - tip_angle_deg + spring_rotation_offset
-
         ring = ring_obj.solid
-        spring = spring_obj.solid.rotate((0,0,0), (0,0,1), offset).translate((0,0, 1.3))
+        spring = spring_obj.solid.translate((0,0, 1.3))
         plate_flip = SlipperPlate(**plate_params).solid.rotate((0,0,0), (1,0,0), 180).translate((0,0, 8.0))
 
         parts = [
@@ -82,9 +80,23 @@ class SlipperGearMatched(SlipperGearBase):
         spring_p = kwargs.pop("spring_params", {})
 
         ring_p.setdefault("ramp_count", 3)
-        ring_p.setdefault("pocket_r", 10.0)
-        ring_p.setdefault("ramp_r", 8.0)
+        
+        # Reduced Ramp Height (Drop-off): 
+        # By bringing pocket_r from 10.0 -> 9.8, and ramp_r from 8.0 -> 8.8,
+        # the cliff the arm must climb over drops from a massive 2.0mm down to just 1.0mm.
+        # This cuts the bending fatigue during a "slip" event in half.
+        ring_p.setdefault("pocket_r", 9.8)
+        ring_p.setdefault("ramp_r", 8.8)
+
         spring_p.setdefault("spring_count", 3)
+        
+        # Increase Arm Curvy Radius (Hub base):
+        # We increase the solid center hub`s radius from 6.0 -> 6.8. This shifts the entire
+        # working bend mechanism further outwards from the axle centre. Together with the 
+        # small 1.0mm ramp height, this forces the Archimedean math to spiral around 
+        # a massive ~170 degrees before reaching the tip, maximizing flexibility length.
+        spring_p.setdefault("hub_r", 6.8)
+        spring_p.setdefault("root_thickness", 1.2)
 
         super().__init__(ring_params=ring_p, spring_params=spring_p, **kwargs)
 
