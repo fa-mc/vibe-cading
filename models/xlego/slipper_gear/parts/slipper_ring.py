@@ -207,49 +207,44 @@ class SlipperRing:
         pts: list[tuple[float, float]] = []
         n_ramp = 90
 
-        # Spiral parameters
-        total_theta = cycle + hook_angle
-        b = (ramp_r - pocket_r) / total_theta
+        ramp_span = cycle - hook_angle
+        b = (pocket_r - ramp_r) / ramp_span
 
         for i in range(n_r):
-            base_angle = i * cycle
-            next_angle = base_angle + cycle
+            theta_start = i * cycle                  # inner root
+            theta_end   = theta_start + ramp_span    # outer pocket edge
+            theta_next  = (i + 1) * cycle            # next inner root
 
-            theta_start = base_angle - hook_angle
-            theta_end   = next_angle
+            theta_prev_end = theta_start - hook_angle
 
-            Tip_prev  = (ramp_r * math.cos(base_angle), ramp_r * math.sin(base_angle))
-            Root      = (pocket_r * math.cos(theta_start), pocket_r * math.sin(theta_start))
-            Tip_curr  = (ramp_r * math.cos(theta_end), ramp_r * math.sin(theta_end))
-            Root_next = (pocket_r * math.cos(theta_end - hook_angle), pocket_r * math.sin(theta_end - hook_angle))
+            Root_curr = (ramp_r * math.cos(theta_start), ramp_r * math.sin(theta_start))
+            Tip_curr  = (pocket_r * math.cos(theta_end), pocket_r * math.sin(theta_end))
+            Root_next = (ramp_r * math.cos(theta_next), ramp_r * math.sin(theta_next))
+            Tip_prev  = (pocket_r * math.cos(theta_prev_end), pocket_r * math.sin(theta_prev_end))
 
-            # True tangent vectors for spiral
-            # dx/dtheta = b*cos(theta) - r*sin(theta)
-            # dy/dtheta = b*sin(theta) + r*cos(theta)
-            dx_start = b * math.cos(theta_start) - pocket_r * math.sin(theta_start)
-            dy_start = b * math.sin(theta_start) + pocket_r * math.cos(theta_start)
-            Tang_start = (Root[0] + dx_start, Root[1] + dy_start)
+            dx_start = b * math.cos(theta_start) - ramp_r * math.sin(theta_start)
+            dy_start = b * math.sin(theta_start) + ramp_r * math.cos(theta_start)
+            Tang_start = (Root_curr[0] + dx_start, Root_curr[1] + dy_start)
 
-            dx_end = b * math.cos(theta_end) - ramp_r * math.sin(theta_end)
-            dy_end = b * math.sin(theta_end) + ramp_r * math.cos(theta_end)
-            # Reverse vector since the corner travels backwards from Tip_curr to generate arc A-B-C
+            dx_end = b * math.cos(theta_end) - pocket_r * math.sin(theta_end)
+            dy_end = b * math.sin(theta_end) + pocket_r * math.cos(theta_end)
             Tang_end = (Tip_curr[0] - dx_end, Tip_curr[1] - dy_end)
 
             spiral_pts = []
             for j in range(0, n_ramp + 1):
                 frac = j / n_ramp
-                theta_j = theta_start + total_theta * frac
-                r_j = pocket_r + b * (theta_j - theta_start)
+                theta_j = theta_start + ramp_span * frac
+                r_j = ramp_r + b * (theta_j - theta_start)
                 spiral_pts.append((r_j * math.cos(theta_j), r_j * math.sin(theta_j)))
 
             # Fillets with true geometric tangents matching the spiral equations
-            root_arc, d_root = self._fillet_corner(Tip_prev, Root, Tang_start, R=0.35, steps=24)
+            root_arc, d_root = self._fillet_corner(Tip_prev, Root_curr, Tang_start, R=0.35, steps=24)
             tip_arc, d_tip   = self._fillet_corner(Tang_end, Tip_curr, Root_next, R=0.25, steps=24)
 
             pts.extend(root_arc)
             for pt in spiral_pts:
                 # Exclude internal overlapping points covered by fillets
-                if math.hypot(pt[0] - Root[0], pt[1] - Root[1]) < d_root:
+                if math.hypot(pt[0] - Root_curr[0], pt[1] - Root_curr[1]) < d_root:
                     continue
                 if math.hypot(pt[0] - Tip_curr[0], pt[1] - Tip_curr[1]) < d_tip:
                     continue
@@ -271,31 +266,36 @@ class SlipperRing:
             .extrude(self.face_width)
         )
 
+        # Add top and bottom counterbore sags for the plates FIRST, it avoids complicated OCC boolean edge cases
+        # with the intricate bore cut.
+        if self.sag_depth > 0:
+            sag_cut_bot = cq.Workplane("XY").circle(self.sag_r).extrude(self.sag_depth + 1.0)
+            sag_cut_top = cq.Workplane("XY").circle(self.sag_r).extrude(self.sag_depth + 1.0)
+
+            # Bottom sag (cut upwards from below z=0)
+
+            ring = ring.cut(sag_cut_bot.translate((0, 0, -1.0)))
+            # Top sag (cut upwards intersecting top face)
+            ring = ring.cut(sag_cut_top.translate((0, 0, self.face_width - self.sag_depth)))
+
         # Inner bore with directional ramp profile
         ramp_pts = self._ramp_profile_points()
         bore = (
             cq.Workplane("XY")
             .polyline(ramp_pts)
             .close()
-            .extrude(self.face_width + 0.2)
+            .extrude(self.face_width + 2.0)
         )
 
-        ring = ring.cut(bore.translate((0, 0, -0.1)))
 
-        # Add top and bottom counterbore sags for the plates
-        if self.sag_depth > 0:
-            sag_cut = cq.Workplane("XY").circle(self.sag_r).extrude(self.sag_depth + 0.1)
-            # Bottom sag
-            ring = ring.cut(sag_cut.translate((0, 0, -0.1)))
-            # Top sag
-            ring = ring.cut(sag_cut.translate((0, 0, self.face_width - self.sag_depth)))
+        ring = ring.cut(bore.translate((0, 0, -1.0)))
 
         return ring
 
 
 if __name__ == "__main__":
     import sys, os
-    sys.path.insert(0, os.path.join(os.path.dirname(__file__), "../../.."))
+    sys.path.insert(0, os.path.join(os.path.dirname(__file__), "../../../.."))
     from ocp_vscode import show
 
     r = SlipperRing(
