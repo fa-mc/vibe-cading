@@ -341,3 +341,7 @@ simplified in the parametric model.
 - If a temporary file is needed (e.g. `analyze_stp.py`, `dump_coords.py`,
   `inspect_*.py`), place it under `/workspaces/cad/tmp/` instead.
 - The `tmp/` directory is git-ignored; files there will not be committed.
+## Constants & Tolerances
+
+- When modifying or creating constants in `models/lego/constants.py` that describe 3D printed friction fits or clearances (e.g. hole diameters, axle thickness), you must wrap the hardcoded default in `os.getenv("VARIABLE_NAME", "default")` and cast it to float. This allows users to tweak dimensions in a `.env` file without modifying source tracked code.
+- Avoid introducing third-party pip dependencies like `python-dotenv` for this. The `constants.py` file should implement its own simple standard library file parser (e.g. reading lines that contain `=`).
