@@ -11,4 +11,4 @@ tmp/
 *.stl
 *.stp
 *.step
-*.svg
+*.svg\.env
