@@ -42,6 +42,7 @@ You are the **Developer** in a three-role agentic workflow (see
 
 ## What you do NOT do
 
+- Create temporary, throwaway, debug, or test scripts in the repository root (e.g., `fix.py`, `test_*.py`). You must strictly place them inside the `tmp/` directory and delete them when done.
 - Make design decisions that the brief left ambiguous — escalate to the
   Designer instead.
 - Modify `copilot-instructions.md` — flag gaps in the lookback report.
