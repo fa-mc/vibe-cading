@@ -49,17 +49,17 @@ class SlipperPlate:
         return self._solid
 
     def _build(self) -> cq.Workplane:
-        # 1. Base Disk
-        base = cq.Workplane("XY").circle(self.plate_r).extrude(self.plate_thickness)
+        # If hub is taller than base, union them. Otherwise base covers it.
+        overall_length = max(self.plate_thickness, self.hub_length)
 
-        # 2. Central Hub
-        hub = cq.Workplane("XY").circle(self.hub_r).extrude(self.hub_length)
+        # 1. Base Disk
+        core = cq.Workplane("XY").circle(self.plate_r).extrude(overall_length)
 
         # 3. Add dog-bone axle hole to the hub & base
-        axle_fw = self.hub_length + 2.0
+        axle_fw = overall_length + 2.0
         axle_tool = TechnicAxleHole(depth=axle_fw).solid.translate((0, 0, -1.0))
 
-        core = base.union(hub).cut(axle_tool)
+        core = core.cut(axle_tool)
 
         return core
 

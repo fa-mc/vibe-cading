@@ -24,9 +24,8 @@ class SlipperGearBase:
         # 1. Instantiate the ring first. It intrinsically owns the geometric ramp mathematics.
         ring_obj = SlipperRing(**ring_params)
 
-        # Force the spring to act correctly mathematically
-        spring_params.setdefault("b_out", ring_obj.b_out)
-        spring_params.setdefault("ring_inner_r", ring_obj.pocket_r)
+        # Map correct parameters over
+        spring_params.setdefault("ramp_end_r", ring_obj.ramp_end_r)
 
         temp_spring = SlipperSpring(**spring_params)
 

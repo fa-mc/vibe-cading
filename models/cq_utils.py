@@ -245,6 +245,7 @@ def tapered_arm_profile(
     angle_start: float = 0.0,
     n_points: int = 50,
     r_start_draw: float | None = None,
+    b_out: float | None = None,
 ) -> list[tuple[float, float]]:
     cap_r = width_end / 2.0
     tip_center_r = r_end - cap_r
@@ -252,9 +253,12 @@ def tapered_arm_profile(
     effective_sweep = max(0.01, sweep_angle - angular_overshoot_rad)
 
     a_in = r_start
-    b_in = (r_end - width_end - r_start) / sweep_angle
     a_out = r_start + width_start
-    b_out = (r_end - a_out) / sweep_angle
+    if b_out is None:
+        b_out = (r_end - a_out) / sweep_angle
+    # For a tapered arm, we infer b_in so the tip matches width_end
+    # r_end_in = r_end - width_end. Since r_end_in = a_in + b_in * sweep_angle:
+    b_in = (r_end - width_end - a_in) / sweep_angle
 
     if r_start_draw is not None and b_in != 0:
         t_draw_start = (r_start_draw - a_in) / b_in
@@ -324,3 +328,22 @@ def archimedean_spiral_arc(
         th = angle_start + t
         pts.append((r * math.cos(th), r * math.sin(th)))
     return pts
+
+def fillet_z_edges(wp: cq.Workplane, r_min: float, r_max: float, radius: float = 0.8) -> cq.Workplane:
+    """Safely apply a fillet to all Z-aligned edges whose radial centroid falls between r_min and r_max"""
+    import math
+    z_edges = wp.edges("|Z")
+    
+    def match_edge(e) -> bool:
+        c = e.Center()
+        dist = math.hypot(c.x, c.y)
+        return r_min <= dist <= r_max
+        
+    try:
+        matched = [e for e in z_edges.vals() if match_edge(e)]
+        if matched:
+            return wp.objects(matched).fillet(radius)
+    except Exception:
+        pass
+        
+    return wp

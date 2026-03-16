@@ -15,8 +15,8 @@ class SlipperGearMatched(SlipperGearBase):
         ring_p.setdefault("ramp_count", 3)
 
         # Reduced Ramp Height (Drop-off): 1.0mm drop cuts bending fatigue.
-        ring_p.setdefault("pocket_r", 9.8)
-        ring_p.setdefault("ramp_r", 8.8)
+        ring_p.setdefault("ramp_end_r", 9.8)
+        ring_p.setdefault("ramp_start_r", 8.8)
 
         spring_p.setdefault("spring_count", 3)
 
@@ -25,7 +25,12 @@ class SlipperGearMatched(SlipperGearBase):
         # but increase `root_thickness` to 4.0mm. Mathematical a_out
         # is preserved identically at 8.0, meaning the sweeping curve stays the exact same.
         spring_p.setdefault("hub_r", 4.0)
-        spring_p.setdefault("root_thickness", 4.0)
+
+        # Anchor strictly at coordinate center to decouple inner math from hub width
+        spring_p.setdefault("arm_base_width", 4.0)
+
+        # Slower long pitch means the arm spirals tightly along the ring's 120-degree long hooks.
+        spring_p.setdefault("arm_pitch", 2.0)
 
         # Thinner Spring to guarantee it avoids pinching in the assembly gap
         # The ring creates a 5.6mm internal gap. 5.2mm thickness gives a comfortable 0.2mm anti-pinch clearance top & bottom.

@@ -21,9 +21,9 @@ class SlipperRing:
         Pressure angle (degrees).
     n_flank : int
         Involute flank sample points per side.
-    pocket_r : float
+    ramp_end_r : float
         Maximum inner radius (in the pocket) where the spring tip can expand (mm).
-    ramp_r : float
+    ramp_start_r : float
         Minimum inner radius (on the ridges) that compresses the spring arm (mm).
     ramp_count : int
         Number of directional saw-tooth ramps matching the spring arms.
@@ -40,8 +40,9 @@ class SlipperRing:
         face_width: float = 8.0,
         pressure_angle: float = 20.0,
         n_flank: int = 32,
-        pocket_r: float = 10.0,
-        ramp_r: float = 8.0,
+        ramp_end_r: float = 10.0,
+        ramp_curve_type: str = "archimedean",
+        ramp_start_r: float = 8.0,
         ramp_count: int = 12,
         sag_r: float = 10.5,
         sag_depth: float = 1.2,
@@ -51,8 +52,9 @@ class SlipperRing:
         self.face_width     = face_width
         self.pressure_angle = pressure_angle
 
-        self.pocket_r       = pocket_r
-        self.ramp_r         = ramp_r
+        self.ramp_end_r     = ramp_end_r
+        self.ramp_curve_type = ramp_curve_type
+        self.ramp_start_r   = ramp_start_r
         self.ramp_count     = ramp_count
         self.sag_r          = sag_r
         self.sag_depth      = sag_depth
@@ -97,7 +99,7 @@ class SlipperRing:
 
         Used by the main assembly to perfectly synchronize the spring arm's outer profile (r = a + b_out * theta).
         """
-        return (self.pocket_r - self.ramp_r) / self.ramp_span
+        return (self.ramp_end_r - self.ramp_start_r) / self.ramp_span
 
     # ── Involute helpers (identical to SpurGear) ──────────────────────────────
 
@@ -231,8 +233,8 @@ class SlipperRing:
         ramp_span = self.ramp_span
         b = self.b_out
 
-        pocket_r = self.pocket_r
-        ramp_r   = self.ramp_r
+        ramp_end_r = self.ramp_end_r
+        ramp_start_r = self.ramp_start_r
 
         pts: list[tuple[float, float]] = []
         n_ramp = max(90, int(math.degrees(ramp_span)))
@@ -244,36 +246,45 @@ class SlipperRing:
 
             theta_prev_end = theta_start - hook_angle
 
-            Root_curr = (ramp_r * math.cos(theta_start), ramp_r * math.sin(theta_start))
-            Tip_curr  = (pocket_r * math.cos(theta_end), pocket_r * math.sin(theta_end))
-            Root_next = (ramp_r * math.cos(theta_next), ramp_r * math.sin(theta_next))
-            Tip_prev  = (pocket_r * math.cos(theta_prev_end), pocket_r * math.sin(theta_prev_end))
+            # Introduce an undercut "hook" by burying the pocket bottom
+            undercut_angle = math.radians(6)  # backwards lean for the hook
+            theta_pocket_curr = theta_end - undercut_angle
+            theta_pocket_prev = theta_prev_end - undercut_angle
 
-            dx_start = b * math.cos(theta_start) - ramp_r * math.sin(theta_start)
-            dy_start = b * math.sin(theta_start) + ramp_r * math.cos(theta_start)
+            Root_curr = (ramp_start_r * math.cos(theta_start), ramp_start_r * math.sin(theta_start))
+            Tip_curr  = (ramp_end_r * math.cos(theta_end), ramp_end_r * math.sin(theta_end))
+            Pocket_curr = (ramp_start_r * math.cos(theta_pocket_curr), ramp_start_r * math.sin(theta_pocket_curr))
+            Root_next = (ramp_start_r * math.cos(theta_next), ramp_start_r * math.sin(theta_next))
+
+            # The 'prev' values are used to compute the incoming fillet for Root_curr
+            Tip_prev  = (ramp_end_r * math.cos(theta_prev_end), ramp_end_r * math.sin(theta_prev_end))
+            Pocket_prev = (ramp_start_r * math.cos(theta_pocket_prev), ramp_start_r * math.sin(theta_pocket_prev))
+
+            dx_start = b * math.cos(theta_start) - ramp_start_r * math.sin(theta_start)
+            dy_start = b * math.sin(theta_start) + ramp_start_r * math.cos(theta_start)
             Tang_start = (Root_curr[0] + dx_start, Root_curr[1] + dy_start)
 
-            dx_end = b * math.cos(theta_end) - pocket_r * math.sin(theta_end)
-            dy_end = b * math.sin(theta_end) + pocket_r * math.cos(theta_end)
+            dx_end = b * math.cos(theta_end) - ramp_end_r * math.sin(theta_end)
+            dy_end = b * math.sin(theta_end) + ramp_end_r * math.cos(theta_end)
             Tang_end = (Tip_curr[0] - dx_end, Tip_curr[1] - dy_end)
 
-            # Standardize on the global mathematical center just like the spring
-            # We anchor at r=0.1, and evaluate the sweep only out at the ramp bounds.
-            global_sweep = (pocket_r - 0.1) / b
-            t_draw_start = (ramp_r - 0.1) / b
+            global_sweep = (ramp_end_r - 0.1) / b
+            t_draw_start = (ramp_start_r - 0.1) / b
 
             spiral_pts = archimedean_spiral_arc(
                 r_start=0.1,
-                r_end=pocket_r,
+                r_end=ramp_end_r,
                 angle_start=theta_start - t_draw_start,
                 sweep_angle=global_sweep,
                 n_points=n_ramp,
-                r_start_draw=ramp_r
+                r_start_draw=ramp_start_r
             )
 
             # Fillets with true geometric tangents matching the spiral equations
-            root_arc, d_root = self._fillet_corner(Tip_prev, Root_curr, Tang_start, R=0.35, steps=24)
-            tip_arc, d_tip   = self._fillet_corner(Tang_end, Tip_curr, Root_next, R=0.25, steps=24)
+            # For root, we arrive from Pocket_prev
+            root_arc, d_root = self._fillet_corner(Pocket_prev, Root_curr, Tang_start, R=0.35, steps=24)
+            # For tip, we depart to Pocket_curr. Make it slightly more rounded.
+            tip_arc, d_tip   = self._fillet_corner(Tang_end, Tip_curr, Pocket_curr, R=0.4, steps=24)
 
             pts.extend(root_arc)
             for pt in spiral_pts:
@@ -284,6 +295,13 @@ class SlipperRing:
                     continue
                 pts.append(pt)
             pts.extend(tip_arc)
+
+            # Now we add the flat hook pocket bottom connecting Pocket_curr to Root_next
+            pocket_steps = 12
+            for j in range(1, pocket_steps):
+                f = j / pocket_steps
+                th = theta_pocket_curr + f * (theta_next - theta_pocket_curr)
+                pts.append((ramp_start_r * math.cos(th), ramp_start_r * math.sin(th)))
 
         return pts
 
@@ -334,6 +352,6 @@ if __name__ == "__main__":
 
     r = SlipperRing(
         module=2.0, teeth=24, face_width=8.0, pressure_angle=20.0,
-        n_flank=32, pocket_r=18.5, ramp_r=16.5, ramp_count=12
+        n_flank=32, ramp_end_r=18.5, ramp_start_r=16.5, ramp_count=12
     )
     show(r.solid, names=["SlipperRing Directional"])

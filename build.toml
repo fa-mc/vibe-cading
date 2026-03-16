@@ -39,7 +39,7 @@ height           = 4.0
 # ── XLego slipper gear assemblies (20T, 24T, 28T) ─────────────────────────────
 
 [[build]]
-model  = "xlego.slipper_gear.slipper_gear.SlipperGear"
+model  = "xlego.slipper_gear.directional.steep.SlipperGearSteep"
 output = "xlego/slipper_gear/slipper_gear_20t_assembly.step"
 
 [build.params.ring_params]
@@ -57,13 +57,13 @@ hub_r          = 4.0
 ring_inner_r   = 7.0
 
 [[build]]
-model  = "xlego.slipper_gear.slipper_gear.SlipperGear"
+model  = "xlego.slipper_gear.directional.steep.SlipperGearSteep"
 output = "xlego/slipper_gear/slipper_gear_24t_assembly.step"
 # Blank params object effectively uses defaults
 [build.params]
 
 [[build]]
-model  = "xlego.slipper_gear.slipper_gear.SlipperGear"
+model  = "xlego.slipper_gear.directional.steep.SlipperGearSteep"
 output = "xlego/slipper_gear/slipper_gear_28t_assembly.step"
 
 [build.params.ring_params]

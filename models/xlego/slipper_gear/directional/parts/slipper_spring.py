@@ -40,59 +40,45 @@ class SlipperSpring:
 
     def __init__(
         self,
-        hub_r: float = 6.0,
         plate_thickness: float = 5.4,
         spring_count: int = 3,
-        root_thickness: float = 1.2,
-        tip_thickness: float = 0.5,
-        sweep_angle: float | None = None,
-        ring_inner_r: float = 10.0,
+        arm_pitch: float = 5.1,
+        arm_base_width: float = 3.2,
+        arm_tip_width: float = 0.5,
+        hub_r: float = 4.0,
+        ramp_end_r: float = 10.0,
         clearance: float = 0.25,
-        b_out: float | None = None,
         arm_rotation_offset: float = 0.0,
     ) -> None:
-        self.hub_r           = hub_r
         self.plate_thickness = plate_thickness
         self.spring_count    = spring_count
-        self.root_thickness  = root_thickness
-        self.tip_thickness   = tip_thickness
-
-        self.ring_inner_r    = ring_inner_r
+        self.arm_pitch       = arm_pitch
+        self.arm_base_width = arm_base_width
+        self.arm_tip_width   = arm_tip_width
+        self.hub_r           = hub_r
         self.clearance       = clearance
         self.arm_rotation_offset = arm_rotation_offset
 
         # Target tip outermost radius
-        self.r_max = self.ring_inner_r - self.clearance
+        self.r_max = ramp_end_r - self.clearance
 
-        if self.r_max <= self.hub_r + self.root_thickness:
-            raise ValueError("Hub + root thickness exceeds available outer radius.")
+        # Anchor the mathematical origin strictly at the center point (r=0)
+        # so the entire start of the arm profile is swallowed by the hub, preventing a flat stump.
+        self.r_start_embed = 0.0
 
-        if sweep_angle is None:
-            if b_out is not None:
-                # Force outer spiral pitch to match `b_out`
-                a_out = self.hub_r + self.root_thickness
+        a_out = self.r_start_embed + self.arm_base_width
+        b_out = self.arm_pitch
 
-                # Math gives the exact sweep angle to reach the pocket_r.
-                # However, the physical arm finishes with a rounded semi-circle cap across its
-                # `tip_thickness`. This cap protrudes outwards radially beyond the mathematical stopping
-                # point. If we don't subtract the angular equivalent of the cap, it will physically clip
-                # into the vertical drop-off wall of the gear's ramp (the hook).
-                # The radius of the cap is tip_thickness / 2.0. The angular overshoot is approx
-                # cap_radius / (circumference roughly) but practically it's about 1.5 to 2.0 degrees on an 8mm gear.
+        # Equation for outer curve: r = a_out + b_out * theta
+        # Calculate exactly how much sweep is needed to reach the ramp pocket
+        raw_sweep_rad = (self.r_max - a_out) / b_out
 
-                raw_sweep_rad = (self.r_max - a_out) / b_out
-                cap_r = self.tip_thickness / 2.0
-                # Using the angular approximation of that cap given the current radius
-                angular_overshoot_rad = cap_r / self.r_max
+        # The physical arm finishes with a rounded semi-circle cap across its
+        # `arm_tip_width`. Subtract this radius to avoid collision with the hook wall.
+        cap_r = self.arm_tip_width / 2.0
+        angular_overshoot_rad = cap_r / self.r_max
 
-                sweep_angle = math.degrees(raw_sweep_rad - angular_overshoot_rad)
-            else:
-                # Auto-calculate sweep angle to maintain consistent overlap proportions
-                # For 3 arms (120 pitch), 160 deg was optimal (1.33x pitch)
-                # This works out to (360 / count) + 40
-                sweep_angle = (360.0 / spring_count) + 40.0
-
-        self.sweep_angle = math.radians(sweep_angle)
+        self.sweep_angle = raw_sweep_rad - angular_overshoot_rad
 
         self._solid = self._build()
         # assert len(self._solid.solids().vals()) == 1, "Expected single solid spring, got multiple pieces (floating root artefact)."
@@ -112,14 +98,15 @@ class SlipperSpring:
             n_points = max(50, int(math.degrees(self.sweep_angle)))
 
         return tapered_arm_profile(
-            r_start=self.hub_r,
+            r_start=self.r_start_embed,
             r_end=self.r_max,
-            width_start=self.root_thickness,
-            width_end=self.tip_thickness,
+            width_start=self.arm_base_width,
+            width_end=self.arm_tip_width,
             sweep_angle=self.sweep_angle,
             angle_start=0.0,
             n_points=n_points,
-            r_start_draw=max(0.1, self.hub_r - 0.2)
+            r_start_draw=0.1,  # Safe start just off exact zero to prevent singular faces inside the hub
+            b_out=self.arm_pitch  # Need to thread this through to override auto-calculated b!
         )
 
     def _build(self) -> cq.Workplane:
@@ -148,24 +135,8 @@ class SlipperSpring:
         hub = hub.cut(axle_tool)
 
         # 3. Add root fillets to reduce stress concentrations
-        # We select the edges that connect the arms to the hub. Since CQ's edge
-        # selection can be tricky, we select Z-aligned edges near the hub.
-        z_edges = hub.edges("|Z")
-        hub_r_min = self.hub_r - 0.2
-        hub_r_max = self.hub_r + self.root_thickness + 0.2
-
-
-        def is_root_edge(e) -> bool:
-            c = e.Center()
-            r = math.hypot(c.x, c.y)
-            return (self.hub_r - 0.5) <= r <= (self.hub_r + 1.5)
-
-        root_edge_objs = [e for e in z_edges.vals() if is_root_edge(e)]
-        if root_edge_objs:
-            try:
-                hub = hub.objects([e for e in root_edge_objs]).fillet(0.8)
-            except Exception:
-                pass # skip if filleting fails
+        from models.cq_utils import fillet_z_edges
+        hub = fillet_z_edges(hub, self.hub_r - 0.5, self.hub_r + 1.5, 0.8)
 
         return hub
 
