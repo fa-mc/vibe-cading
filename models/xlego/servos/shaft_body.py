@@ -26,8 +26,8 @@ sys.path.insert(0, os.path.join(os.path.dirname(__file__), "../../.."))
 
 import cadquery as cq
 
-from xlego.servos.shaft_crown import ShaftCrown
-from xlego.servos.cam_utils import (
+from models.xlego.servos.shaft_crown import ShaftCrown
+from models.xlego.servos.cam_utils import (
     cut_sinusoidal_cam,
     CAM_LIFT,
     CAM_R_INNER,
@@ -36,7 +36,7 @@ from xlego.servos.cam_utils import (
     SPRING_ID,
     SPRING_GAP,
 )
-from lego.cutters.technic_axle_hole import TechnicAxleHole
+from models.lego.cutters.technic_axle_hole import TechnicAxleHole
 
 
 class ShaftBody:

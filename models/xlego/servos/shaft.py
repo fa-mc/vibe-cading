@@ -24,8 +24,8 @@ sys.path.insert(0, os.path.join(os.path.dirname(__file__), "../../.."))
 
 import cadquery as cq
 
-from xlego.servos.cam_utils import SPRING_OD
-from lego.cutters.technic_axle_hole import TechnicAxleHole
+from models.xlego.servos.cam_utils import SPRING_OD
+from models.lego.cutters.technic_axle_hole import TechnicAxleHole
 
 
 class Shaft:

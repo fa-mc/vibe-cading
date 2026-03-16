@@ -3,8 +3,8 @@ import os
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), ".."))
 
 import cadquery as cq
-from lego.constants import PIN_HOLE_DIAMETER
-from cq_utils import cylinder
+from models.lego.constants import PIN_HOLE_DIAMETER
+from models.cq_utils import cylinder
 
 
 # Standard Technic counterbore spec (measured from STP loose-fit file)
@@ -21,7 +21,7 @@ class TechnicPinHole:
 
     Use the :pymeth:`solid` property as a boolean cutter::
 
-        from lego.technic_pin_hole import TechnicPinHole
+        from models.lego.technic_pin_hole import TechnicPinHole
 
         hole = TechnicPinHole(depth=8.0)
         part = part.cut(hole.solid)
@@ -98,7 +98,7 @@ if __name__ == "__main__":
     from ocp_vscode import show
     import cadquery as cq
 
-    depth = 10.0
+    depth = 8.0
     hole_cutter = TechnicPinHole.standard(depth=8.0).solid
     main_body = cq.Workplane("XY").circle(8.0 / 2).extrude(depth)
     part = main_body.cut(hole_cutter)

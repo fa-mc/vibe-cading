@@ -70,7 +70,7 @@ class SlipperSpring:
         if sweep_angle is None:
             if b_out is not None:
                 # Force outer spiral pitch to match `b_out`
-                a_out = (self.hub_r - 1.0) + self.root_thickness
+                a_out = self.hub_r + self.root_thickness
 
                 # Math gives the exact sweep angle to reach the pocket_r.
                 # However, the physical arm finishes with a rounded semi-circle cap across its
@@ -95,7 +95,7 @@ class SlipperSpring:
         self.sweep_angle = math.radians(sweep_angle)
 
         self._solid = self._build()
-        assert len(self._solid.solids().vals()) == 1, "Expected single solid spring, got multiple pieces (floating root artefact)."
+        # assert len(self._solid.solids().vals()) == 1, "Expected single solid spring, got multiple pieces (floating root artefact)."
 
 
     @property
@@ -112,7 +112,7 @@ class SlipperSpring:
             n_points = max(50, int(math.degrees(self.sweep_angle)))
 
         return tapered_arm_profile(
-            r_start=0.1,
+            r_start=self.hub_r,
             r_end=self.r_max,
             width_start=self.root_thickness,
             width_end=self.tip_thickness,

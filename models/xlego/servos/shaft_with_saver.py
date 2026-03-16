@@ -39,12 +39,12 @@ import os
 
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), "../../.."))
 
-from xlego.servos.shaft_crown import ShaftCrown  # noqa: F401
-from xlego.servos.cam_utils import (  # noqa: F401
+from models.xlego.servos.shaft_crown import ShaftCrown  # noqa: F401
+from models.xlego.servos.cam_utils import (  # noqa: F401
     SPRING_OD, SPRING_ID, SPRING_FREE_HEIGHT, SPRING_PRELOAD, SPRING_GAP,
     CAM_LIFT, CAM_R_INNER, CAM_R_OUTER, CAM_STEPS,
 )
-from xlego.servos.shaft_body import ShaftBody  # noqa: F401
+from models.xlego.servos.shaft_body import ShaftBody  # noqa: F401
 
 __all__ = ["ShaftCrown", "ShaftBody"]
 

@@ -183,7 +183,7 @@ class WithAllowance:
     --------
     ::
 
-        from cq_utils import WithAllowance
+        from models.cq_utils import WithAllowance
 
         cutter = WithAllowance(TechnicPinHole(depth=8).solid, allowance=0.1).solid
         part = part.cut(cutter)
@@ -256,8 +256,12 @@ def tapered_arm_profile(
     a_out = r_start + width_start
     b_out = (r_end - a_out) / sweep_angle
 
-    if r_start_draw is not None and b_in > 0:
-        t_draw_start = max(0.0, (r_start_draw - a_in) / b_in)
+    if r_start_draw is not None and b_in != 0:
+        t_draw_start = (r_start_draw - a_in) / b_in
+        # Prevent going to negative radius
+        t_min_in = (0.1 - a_in) / b_in if b_in > 0 else -10.0
+        t_min_out = (0.1 - a_out) / b_out if b_out > 0 else -10.0
+        t_draw_start = max(t_draw_start, t_min_in, t_min_out)
         t_draw_start = min(t_draw_start, effective_sweep)
     else:
         t_draw_start = 0.0
@@ -303,12 +307,20 @@ def archimedean_spiral_arc(
     sweep_angle: float,
     angle_start: float = 0.0,
     n_points: int = 50,
+    r_start_draw: float | None = None,
 ) -> list[tuple[float, float]]:
-    a = r_start
     b = (r_end - r_start) / sweep_angle
+    
+    if r_start_draw is not None and b != 0:
+        t_start = (r_start_draw - r_start) / b
+    else:
+        t_start = 0.0
+
     pts = []
     for i in range(n_points + 1):
-        t = angle_start + i * sweep_angle / n_points
-        r = a + b * (t - angle_start)
-        pts.append((r * math.cos(t), r * math.sin(t)))
+        frac = i / n_points
+        t = t_start + (sweep_angle - t_start) * frac
+        r = r_start + b * t
+        th = angle_start + t
+        pts.append((r * math.cos(th), r * math.sin(th)))
     return pts

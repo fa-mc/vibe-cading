@@ -1,4 +1,4 @@
-from .slipper_gear import SlipperGear
-from .parts.slipper_ring import SlipperRing
-from .parts.slipper_plate import SlipperPlate
-from .parts.slipper_spring import SlipperSpring
+from .directional.steep import SlipperGearSteep as SlipperGear
+from .directional.parts.slipper_ring import SlipperRing
+from .directional.parts.slipper_plate import SlipperPlate
+from .directional.parts.slipper_spring import SlipperSpring
