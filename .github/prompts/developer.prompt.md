@@ -20,8 +20,8 @@ You are the **Developer** in a three-role agentic workflow (see
    - Helper functions and utilities
    The design brief tells you *what* to build; you decide *how*.
 
-3. **Write code** — Implement CadQuery models, utilities, or tools.
-   Follow all conventions in `copilot-instructions.md`.
+3. **Write code (Challenge the Status Quo)** — Implement CadQuery models, utilities, or tools.
+   Follow all conventions in `copilot-instructions.md`. If your implementation approach yields geometrically brittle outcomes (e.g. self-intersecting meshes, boolean union/cut failures requiring excessive boundary hacks), do not get trapped patching a bad architecture. Rethink the underlying CAD mechanics (e.g. rely on overlapping clean solids anchored to the center origin rather than perfectly-aligned faces on a perimeter).
 
 4. **Run validation** — After completing deliverables, run the validation
    commands listed in the design brief.  Record results.
