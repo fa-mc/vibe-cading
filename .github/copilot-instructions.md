@@ -43,6 +43,7 @@ design briefs), Developer (code structure, implementation & execution).
 **Artefact locations** (git-ignored):
 - Design briefs: `tmp/plans/`
 - Lookback reports: `tmp/lookback/`
+- Session backlog / Parking lot: `/memories/session/ideas.md` (Store ideas, refactures, or tooling improvements that emerge during the session but should not be acted upon immediately).
 
 **Key rule:** The Developer must not interpret ambiguous reference material
 (drawings, STEP files).  The Designer pre-digests all dimensions, coordinate
