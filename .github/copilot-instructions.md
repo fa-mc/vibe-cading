@@ -155,6 +155,19 @@ Z values at their shared boundary, preventing coincident faces.
 1. **Cutter Overcuts:** Apply an outward overcut securely on the *entry* bounds. The *terminal* bounds (bottom of the blind hole) must end precisely at the target dimension.
 2. **Mandatory Slicing:** Never rely on external previews to validate holes with internal structures (like snap rings or internal counterbores). The Designer **must** instruct the Developer to use `section_slicer.py` through the hole axis (`--axis X` or `Y`) and read the report to statically verify the internal Z-steps and widths.
 
+### Topological Validation (Floating Bodies)
+
+
+**Symptom:** Thin slivers, floating geometric islands, or unattached pieces appear in the final build, which are disconnected from the primary solid. This often happens after boolean cuts or when unions fail to overlap correctly.
+
+
+**Fix:**
+
+1. **Programmatic Assertion:** The Developer must ensure that the final produced geometry consists of a single contiguous solid. Add a programmatic check at the end of parts that should produce a single object: `assert len(result.solids().vals()) == 1, "Expected single solid, got multiple pieces"`.
+
+2. **Overlap:** Check that mating parts overlap completely before unions, and cut profiles fully sever material without leaving thin root remnants.
+
+
 ## Asset Validation
 
 After generating or modifying a model, always validate it visually using the
