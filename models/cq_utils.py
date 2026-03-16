@@ -233,3 +233,82 @@ def cut_at_positions(
     for x, y in positions:
         part = part.cut(base.translate((x, y, 0)))
     return part
+
+import math
+
+def tapered_arm_profile(
+    r_start: float,
+    r_end: float,
+    width_start: float,
+    width_end: float,
+    sweep_angle: float,
+    angle_start: float = 0.0,
+    n_points: int = 50,
+    r_start_draw: float | None = None,
+) -> list[tuple[float, float]]:
+    cap_r = width_end / 2.0
+    tip_center_r = r_end - cap_r
+    angular_overshoot_rad = cap_r / tip_center_r
+    effective_sweep = max(0.01, sweep_angle - angular_overshoot_rad)
+
+    a_in = r_start
+    b_in = (r_end - width_end - r_start) / sweep_angle
+    a_out = r_start + width_start
+    b_out = (r_end - a_out) / sweep_angle
+
+    if r_start_draw is not None and b_in > 0:
+        t_draw_start = max(0.0, (r_start_draw - a_in) / b_in)
+        t_draw_start = min(t_draw_start, effective_sweep)
+    else:
+        t_draw_start = 0.0
+
+    pts = []
+    
+    # Inner curve
+    for i in range(n_points + 1):
+        frac = i / n_points
+        t = t_draw_start + (effective_sweep - t_draw_start) * frac
+        r = a_in + b_in * t
+        th = angle_start + t
+        pts.append((r * math.cos(th), r * math.sin(th)))
+
+    # Semicircular Cap
+    actual_r_out = a_out + b_out * effective_sweep
+    actual_r_in  = a_in + b_in * effective_sweep
+    cap_center_r = (actual_r_out + actual_r_in) / 2.0
+    cap_r_actual = (actual_r_out - actual_r_in) / 2.0
+    cap_angle = angle_start + effective_sweep
+    cx = cap_center_r * math.cos(cap_angle)
+    cy = cap_center_r * math.sin(cap_angle)
+
+    cap_steps = 10
+    for i in range(1, cap_steps):
+        frac = i / cap_steps
+        ang = cap_angle + math.pi - math.pi * frac
+        pts.append((cx + cap_r_actual * math.cos(ang), cy + cap_r_actual * math.sin(ang)))
+
+    # Outer curve
+    for i in range(n_points, -1, -1):
+        frac = i / n_points
+        t = t_draw_start + (effective_sweep - t_draw_start) * frac
+        r = a_out + b_out * t
+        th = angle_start + t
+        pts.append((r * math.cos(th), r * math.sin(th)))
+
+    return pts
+
+def archimedean_spiral_arc(
+    r_start: float,
+    r_end: float,
+    sweep_angle: float,
+    angle_start: float = 0.0,
+    n_points: int = 50,
+) -> list[tuple[float, float]]:
+    a = r_start
+    b = (r_end - r_start) / sweep_angle
+    pts = []
+    for i in range(n_points + 1):
+        t = angle_start + i * sweep_angle / n_points
+        r = a + b * (t - angle_start)
+        pts.append((r * math.cos(t), r * math.sin(t)))
+    return pts
