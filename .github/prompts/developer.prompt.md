@@ -24,7 +24,7 @@ You are the **Developer** in a three-role agentic workflow (see
    Follow all conventions in `copilot-instructions.md`. If your implementation approach yields geometrically brittle outcomes (e.g. self-intersecting meshes, boolean union/cut failures requiring excessive boundary hacks), do not get trapped patching a bad architecture. Rethink the underlying CAD mechanics (e.g. rely on overlapping clean solids anchored to the center origin rather than perfectly-aligned faces on a perimeter).
 
 4. **Run validation** — After completing deliverables, run the validation
-   commands listed in the design brief.  Record results.
+   commands listed in the design brief. Record results. Topologically validate models by using programmatic checks (e.g., `assert len(result.solids().vals()) == 1`).
 
 5. **Escalate blockers** — If you encounter something that blocks progress:
    - **Design ambiguity** (a dimension is unclear, features conflict) →
