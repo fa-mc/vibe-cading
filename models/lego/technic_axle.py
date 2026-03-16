@@ -3,7 +3,7 @@ import os
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), ".."))
 
 import cadquery as cq
-from lego.constants import (
+from models.lego.constants import (
     AXLE_TIP_TO_TIP,
     AXLE_ARM_WIDTH,
     AXLE_ARM_PROTRUSION,
@@ -31,7 +31,7 @@ class TechnicAxle:
         Fillet radius for inner concave corners. Defaults to 0.4 mm.
     """
 
-    # ── Dimensions sourced from lego.constants ─────────────────────────────
+    # ── Dimensions sourced from models.lego.constants ─────────────────────────────
     TIP_TO_TIP: float = AXLE_TIP_TO_TIP
     ARM_WIDTH: float = AXLE_ARM_WIDTH
     ARM_PROTRUSION: float = AXLE_ARM_PROTRUSION

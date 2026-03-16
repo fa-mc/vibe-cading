@@ -50,12 +50,12 @@ Snap-post clusters (4 clusters × 4 posts, 8 × 8 mm LEGO grid)
 
 import cadquery as cq
 
-from lego.constants import PIN_HOLE_DIAMETER, STUD_PITCH
-from lego.cutters.technic_axle_hole import TechnicAxleHole
-from lego.cutters.technic_pin_hole import TechnicPinHole
-from xlego.servos.shaft import Shaft
-from rc.servo.sg90 import Sg90Servo
-from cq_utils import (
+from models.lego.constants import PIN_HOLE_DIAMETER, STUD_PITCH
+from models.lego.cutters.technic_axle_hole import TechnicAxleHole
+from models.lego.cutters.technic_pin_hole import TechnicPinHole
+from models.xlego.servos.shaft import Shaft
+from models.rc.servo.sg90 import Sg90Servo
+from models.cq_utils import (
     rounded_box,
     countersunk_hole,
     orient_to_neg_x,
@@ -256,11 +256,11 @@ class ServoCase:
         This inherently cuts the correct footprint, offset, and collar/gear boss voids.
         """
         servo_ref = Sg90Servo()
-        
+
         # The servo's tabs rest flush against Z=0 of this mount.
         # So we align servo's Z=0 to mount's Z: -(tabZ + tabThickness)
         z_shift = -(servo_ref.tab_z_bottom + servo_ref.tab_thickness)
-        
+
         servo_cutter = (
             servo_ref.to_cutter(clearance=0.2)
             .translate((0, self.servo_center_y, z_shift))

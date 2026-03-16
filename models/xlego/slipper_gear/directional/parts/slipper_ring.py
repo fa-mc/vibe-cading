@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import math
 import cadquery as cq
+from models.cq_utils import archimedean_spiral_arc
 
 class SlipperRing:
     """Outer gear ring: involute spur teeth on OD, directional ramp bore on ID.
@@ -79,7 +80,7 @@ class SlipperRing:
     @property
     def hook_angle(self) -> float:
         """Angular span of the steep drop-off hook.
-        
+
         Scales dynamically with ramp_count. Base baseline is 10 degrees at 3 ramps (120 degree cycle).
         """
         scale = self.cycle_angle / math.radians(120.0)
@@ -93,7 +94,7 @@ class SlipperRing:
     @property
     def b_out(self) -> float:
         """The calculated Archimedean pitch (delta Radius / delta Theta) for the ramp cut.
-        
+
         Used by the main assembly to perfectly synchronize the spring arm's outer profile (r = a + b_out * theta).
         """
         return (self.pocket_r - self.ramp_r) / self.ramp_span
@@ -223,8 +224,8 @@ class SlipperRing:
         and an angled hook to prevent the rounded spring tip from slipping.
         """
         n_r = int(self.ramp_count)
-        
-        # Systematically pull math from class properties to guarantee sync with the spring 
+
+        # Systematically pull math from class properties to guarantee sync with the spring
         cycle = self.cycle_angle
         hook_angle = self.hook_angle
         ramp_span = self.ramp_span
@@ -234,7 +235,7 @@ class SlipperRing:
         ramp_r   = self.ramp_r
 
         pts: list[tuple[float, float]] = []
-        n_ramp = 90
+        n_ramp = max(90, int(math.degrees(ramp_span)))
 
         for i in range(n_r):
             theta_start = i * cycle                  # inner root
@@ -256,12 +257,19 @@ class SlipperRing:
             dy_end = b * math.sin(theta_end) + pocket_r * math.cos(theta_end)
             Tang_end = (Tip_curr[0] - dx_end, Tip_curr[1] - dy_end)
 
-            spiral_pts = []
-            for j in range(0, n_ramp + 1):
-                frac = j / n_ramp
-                theta_j = theta_start + ramp_span * frac
-                r_j = ramp_r + b * (theta_j - theta_start)
-                spiral_pts.append((r_j * math.cos(theta_j), r_j * math.sin(theta_j)))
+            # Standardize on the global mathematical center just like the spring
+            # We anchor at r=0.1, and evaluate the sweep only out at the ramp bounds.
+            global_sweep = (pocket_r - 0.1) / b
+            t_draw_start = (ramp_r - 0.1) / b
+
+            spiral_pts = archimedean_spiral_arc(
+                r_start=0.1,
+                r_end=pocket_r,
+                angle_start=theta_start - t_draw_start,
+                sweep_angle=global_sweep,
+                n_points=n_ramp,
+                r_start_draw=ramp_r
+            )
 
             # Fillets with true geometric tangents matching the spiral equations
             root_arc, d_root = self._fillet_corner(Tip_prev, Root_curr, Tang_start, R=0.35, steps=24)

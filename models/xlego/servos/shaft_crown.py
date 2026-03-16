@@ -21,7 +21,7 @@ sys.path.insert(0, os.path.join(os.path.dirname(__file__), "../../.."))
 
 import cadquery as cq
 
-from xlego.servos.cam_utils import (  # noqa: F401 — re-exported
+from models.xlego.servos.cam_utils import (  # noqa: F401 — re-exported
     cut_sinusoidal_cam,
     SPRING_OD, SPRING_ID, SPRING_FREE_HEIGHT, SPRING_PRELOAD, SPRING_GAP,
     CAM_LIFT, CAM_R_INNER, CAM_R_OUTER, CAM_STEPS,

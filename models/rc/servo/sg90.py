@@ -65,7 +65,7 @@ Total height = 23.7 + 4.2 + 2.5 = 30.4 mm.
 
 import cadquery as cq
 
-from cq_utils import rounded_box, cylinder
+from models.cq_utils import rounded_box, cylinder
 
 
 class Sg90Servo:
@@ -452,7 +452,7 @@ class Sg90Servo:
         z_min = -20.0
         body_h = bh - z_min
         
-        from cq_utils import rounded_box, cylinder
+        from models.cq_utils import rounded_box, cylinder
         # Base body
         part = rounded_box(
             bd, bw, body_h,
