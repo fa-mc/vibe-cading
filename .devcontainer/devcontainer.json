@@ -19,7 +19,7 @@
     ],
     "remoteEnv": {
         "SSH_AUTH_SOCK": "/ssh-agent",
-        "PYTHONPATH": "/workspaces/cad"
+        "PYTHONPATH": "/workspaces/vibe-cading"
     },
-    "postCreateCommand": "mkdir -p ~/.ssh && cp -a /tmp/host-ssh/. ~/.ssh/ && chown -R $(whoami) ~/.ssh && chmod 700 ~/.ssh && chmod 600 ~/.ssh/* && git config --global --add safe.directory /workspaces/vcad"
+    "postCreateCommand": "mkdir -p ~/.ssh && cp -a /tmp/host-ssh/. ~/.ssh/ && chown -R $(whoami) ~/.ssh && chmod 700 ~/.ssh && chmod 600 ~/.ssh/* && git config --global --add safe.directory /workspaces/vibe-cading"
 }
