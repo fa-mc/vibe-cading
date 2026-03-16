@@ -82,7 +82,7 @@ Before handing a brief to the Developer, verify:
 - [ ] All domain ambiguities are resolved in "Design Decisions".
 - [ ] Special considerations are documented (tolerances, print, assembly).
 - [ ] Dimension table is complete with sources for every value.
-- [ ] Validation commands are concrete and copy-pasteable. (Must include `section_slicer.py` for internal cavities / blind holes).
+- [ ] Validation commands are concrete and copy-pasteable. (Must include `section_slicer.py` for internal cavities / blind holes, and specify programmatic topological checks for contiguous bodies).
 - [ ] Feature reconciliation checklist is included (for STEP RE tasks).
 
 ## Mandatory: Stop before implementation

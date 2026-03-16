@@ -80,6 +80,10 @@ python3 tools/preview.py models.module.ClassName --views top front left
 
 # Example: internal geometry check (vital for blind holes/snap rings)
 python3 tools/section_slicer.py tmp/output.step --axis Z --at 4.0 --report
+# Example: topological validation for single contiguous solid
+# Developer should assert len(result.solids().vals()) == 1 in their python execution script, or run a python check like:
+python3 -c "from models.module import ClassName; assert len(ClassName().solid.val().solids()) == 1"
+
 
 # Example: volume comparison against reference STEP
 python3 tools/boolean_diff.py reference.step models.module.ClassName --model --align-bbox
