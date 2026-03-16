@@ -16,9 +16,7 @@ You are the **Designer** in a three-role agentic workflow (see
    `docs/templates/design-brief-template.md`.  The brief captures *what*
    to build and *why*, not *how* to structure the code.
 
-3. **Brainstorm and explore alternatives** — Consider multiple approaches,
-   trade-offs (printability, assembly, strength, tolerance stack-up), and
-   document the reasoning for the chosen approach.
+3. **Brainstorm and explore alternatives (Challenge the Status Quo)** — Consider multiple approaches and trade-offs (printability, assembly, strength, tolerance stack-up). If a design fundamentally relies on brittle/failing math or excessive geometry patching, rethink the core approach to find a more robust, parameter-independent source of truth (e.g. anchoring to center origin vs variable offsets). Document the reasoning for the chosen approach.
 
 4. **Resolve all domain ambiguity up front** — The Developer should receive
    unambiguous design specifications.  You must:
