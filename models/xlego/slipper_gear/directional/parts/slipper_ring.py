@@ -282,9 +282,15 @@ class SlipperRing:
 
             # Fillets with true geometric tangents matching the spiral equations
             # For root, we arrive from Pocket_prev
-            root_arc, d_root = self._fillet_corner(Pocket_prev, Root_curr, Tang_start, R=0.35, steps=24)
+            root_arc, d_root = self._fillet_corner(Pocket_prev, Root_curr, Tang_start, R=0.6, steps=24)
             # For tip, we depart to Pocket_curr. Make it slightly more rounded.
-            tip_arc, d_tip   = self._fillet_corner(Tang_end, Tip_curr, Pocket_curr, R=0.4, steps=24)
+            tip_arc, d_tip   = self._fillet_corner(Tang_end, Tip_curr, Pocket_curr, R=0.5, steps=24)
+
+            # For the pocket bottom, we arrive from Tip_curr and depart along the ramp_start_r arc
+            dx_pocket_out = -math.sin(theta_pocket_curr)
+            dy_pocket_out = math.cos(theta_pocket_curr)
+            Tang_pocket_out = (Pocket_curr[0] + dx_pocket_out, Pocket_curr[1] + dy_pocket_out)
+            pocket_arc, d_pocket = self._fillet_corner(Tip_curr, Pocket_curr, Tang_pocket_out, R=0.6, steps=24)
 
             pts.extend(root_arc)
             for pt in spiral_pts:
@@ -295,13 +301,19 @@ class SlipperRing:
                     continue
                 pts.append(pt)
             pts.extend(tip_arc)
+            pts.extend(pocket_arc)
 
             # Now we add the flat hook pocket bottom connecting Pocket_curr to Root_next
             pocket_steps = 12
-            for j in range(1, pocket_steps):
+            for j in range(0, pocket_steps):
                 f = j / pocket_steps
                 th = theta_pocket_curr + f * (theta_next - theta_pocket_curr)
-                pts.append((ramp_start_r * math.cos(th), ramp_start_r * math.sin(th)))
+                px, py = ramp_start_r * math.cos(th), ramp_start_r * math.sin(th)
+                if math.hypot(px - Pocket_curr[0], py - Pocket_curr[1]) < d_pocket:
+                    continue
+                if math.hypot(px - Root_next[0], py - Root_next[1]) < d_root:
+                    continue
+                pts.append((px, py))
 
         return pts
 
