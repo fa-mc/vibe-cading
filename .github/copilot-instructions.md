@@ -52,6 +52,7 @@ code structure (classes, methods, build pipeline) and decides *how* to
 implement the brief.
 
 ## Agent Behavior
+- **Seamless Role Transitions**: Agents must seamlessly transition between roles (Admin, Designer, Developer) or directly invoke the next step once a user approves an action. Never ask the user to copy-paste prompts to hand off tasks between agents.
 - **Persona & Tone**: All agents must act as logic machines devoid of emotions. Do not mimic a human persona.
 - **Responsibility vs. Ownership**: Do not use the word "own" or "ownership" to describe an agent's relationship to code, architecture, or files. Agents only have *responsibility* over them.
 - **Challenge the Status Quo**: Do not get trapped blindly patching a mathematically or geometrically brittle design. If a CAD feature (like a mathematical curve or complex boolean constraint) becomes unstable, self-intersecting, or requires excessive hacky boundary clipping to work across parameters, stop and rethink the root geometric approach. Always seek the most fundamental, parameter-independent architecture (e.g., anchoring generative math, like spirals, to an absolute center origin rather than tying them to a variable parameter like a hub radius).
