@@ -178,6 +178,14 @@ Z values at their shared boundary, preventing coincident faces.
 1. **Visual Cross-Sectioning:** When writing or modifying boolean operations that form complex internal mating faces (such as gear teeth, ramps, and spring pawls), the Developer MUST generate a section slice through the active mechanism using `section_slicer.py` or export a 3D generic snapshot (e.g., `iso_ne`) with the obstructing cover/top-plates temporarily disabled.
 2. **Programmatic Intersect Validation:** The Designer must task the Developer to programmatically compute the boolean intersection (`.intersect()`) volume between the two mating parts. If clearance is correctly applied, the intersection volume should be strictly equal to `0.0` or empty.
 
+### 2D Array Sequence Validation (Polar Monotonicity)
+
+**Symptom:** Unbounded tangent vectors applied to structural corner fillets in 2D profile generation cause the local geometry to "overshoot" available chord distance and violently whip backwards. This generates jagged, retrograde "hooks" that survive general extrusion/boolean topology checks completely undetected because they form a mathematically closed valid solid. Testing the abstract math curve prior to array concatenation does not catch these bounding overlaps.
+
+**Fix:**
+1. **Mandatory Monotonicity Check:** The Developer MUST run `tools/check_polar_monotonicity.py <module.path.ClassName>._method_name` on any function returning a complex concatenated radial/polar 2D sequence (like ramps or gears). The script mathematically proves the finalized point sequence only moves forward without geometric back-tracking.
+2. **Bounded Fillets:** Never feed infinite rays or raw vectors blindly into `_fillet_corner` when the shared segment between two adjacent bounds is physically limited. Always supply a literal adjacent real-world target vector coordinate, and ensure structural tools natively enforce maximum proportional bounds (e.g., capping tangent scaling at `< 0.49` length).
+
 
 ## Asset Validation
 
