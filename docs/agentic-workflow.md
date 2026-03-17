@@ -21,7 +21,7 @@ responsibility and recommended model tier.
 │     Admin ensures instructions cover the task domain.           │
 ├─────────────────────────────────────────────────────────────────┤
 │  2. DESIGN                User ←→ Designer                     │
-│     Designer produces a design brief (tmp/plans/).              │
+│     Designer produces a design brief (.agents/plans/).              │
 │     All domain ambiguities are resolved here, not deferred.     │
 │     User approves the brief before proceeding.                  │
 ├─────────────────────────────────────────────────────────────────┤
@@ -60,7 +60,7 @@ recommended tier for each role.
 
 ## Design Brief Format
 
-Design briefs are stored in `tmp/plans/` (git-ignored).  See
+Design briefs are stored in `.agents/plans/` (git-ignored).  See
 [docs/templates/design-brief-template.md](templates/design-brief-template.md)
 for the required format.
 
@@ -100,7 +100,7 @@ When the Developer encounters a design blocker during execution:
 
 ## Lookback Report
 
-Lookback reports are stored in `tmp/lookback/` (git-ignored).  See
+Lookback reports are stored in `.agents/lookback/` (git-ignored).  See
 [docs/templates/lookback-template.md](templates/lookback-template.md) for
 the required format.
 

@@ -48,8 +48,8 @@ design briefs), Developer (code structure, implementation & execution).
 - `#lookback` — end-of-task reflection and feedback
 
 **Artefact locations** (git-ignored):
-- Design briefs: `tmp/plans/`
-- Lookback reports: `tmp/lookback/`
+- Design briefs: `.agents/plans/`
+- Lookback reports: `.agents/lookback/`
 - Session backlog / Parking lot: `/memories/session/ideas.md` (Store ideas, refactures, or tooling improvements that emerge during the session but should not be acted upon immediately).
 
 **Key rule:** The Developer must not interpret ambiguous reference material

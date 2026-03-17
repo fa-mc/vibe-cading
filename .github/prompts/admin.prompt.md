@@ -18,7 +18,7 @@ You are the **Admin** in a three-role agentic workflow (see
    an instruction gap, draft a concrete amendment. **Before proposing any change, holistically review the entire `copilot-instructions.md` file** to ensure your new rule does not introduce conflicts, redundancies, or ambiguities with existing rules. Apply it after user approval.
 
 3. **Review lookback reports** — After each task, read the lookback report
-   in `tmp/lookback/` and decide on actions:
+   in `.agents/lookback/` and decide on actions:
    - **Instruction gap** → draft an amendment to `copilot-instructions.md`.
    - **Missing tool** → automatically transition to the Designer role to spec the tool. Do not ask the user to pass a prompt.
    - **Design deficiency** → advise the user on improvements for the next design brief.

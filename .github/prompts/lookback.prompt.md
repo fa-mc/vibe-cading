@@ -9,10 +9,10 @@ structured lookback report.
 
 ## Instructions
 
-1. Read the plan file from `tmp/plans/` for the current task.
+1. Read the plan file from `.agents/plans/` for the current task.
 2. Review everything that happened during execution: code written, tools
    run, escalations raised, validation results.
-3. Create a lookback report in `tmp/lookback/` following the template at
+3. Create a lookback report in `.agents/lookback/` following the template at
    `docs/templates/lookback-template.md`.  Name it
    `YYYY-MM-DD-[task-slug].md`.
 
@@ -46,5 +46,5 @@ Work through these questions to generate the feedback:
 
 ## Output
 
-Write the report to `tmp/lookback/YYYY-MM-DD-[task-slug].md` and summarise
+Write the report to `.agents/lookback/YYYY-MM-DD-[task-slug].md` and summarise
 the key findings to the user. Then, automatically transition to the `#admin` role for review without asking the user to manually invoke it.

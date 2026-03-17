@@ -3,7 +3,7 @@
 **Date:** YYYY-MM-DD
 **Task ID:** [matches the plan slug]
 **Developer model:** Claude Sonnet 4.6
-**Plan file:** `tmp/plans/[plan-file].md`
+**Plan file:** `.agents/plans/[plan-file].md`
 
 ## Summary
 
