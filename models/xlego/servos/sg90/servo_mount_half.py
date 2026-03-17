@@ -39,7 +39,7 @@ Top plate with servo shaft opening
 
 Top Face LEGO holes (Technic pin and axle grid)
     The top face (Z = 21.2) is perfectly flat, allowing the piece to be 3D printed
-    UPSIDE-DOWN (face down on the bed) completely without supports. The cavity 
+    UPSIDE-DOWN (face down on the bed) completely without supports. The cavity
     forms stable bridging layers naturally.
     It contains 4 standard Technic pin holes at the corner positions:
         (±8, 2.4)  and  (±8, −13.6)
