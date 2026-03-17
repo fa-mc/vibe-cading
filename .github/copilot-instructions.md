@@ -21,6 +21,13 @@ Typical parts include:
 - All units are **millimeters (mm)**
 - Do not scale exported STEP/STL files — CadQuery works in mm natively
 
+## Code Quality & Open-Source Standards
+This codebase must be maintained at a high standard of structural quality and readability, as it will be released as open-source.
+- **No Overly Specific Hardcoding:** Avoid "magic numbers" in model logic. Dimensions should be derived from fundamental parameters (e.g., `self.length = holes * 8.0`) or imported from centralized constants (like `lego.constants`). 
+- **Fundamental Geometry over Hacky Patches:** Do not use arbitrary translations, clipping boxes, or brute-force boolean intersections just to "make it look right" for one specific set of parameters. Geometry should be anchored to logical origins (e.g., centering a gear on `(0, 0, 0)`) and scaling cleanly.
+- **Self-Documenting Code:** Class properties, methods, and parameters must be clearly named. Complex geometric reasoning (e.g., *why* an overcut of `0.05` is used, or the math behind a polar array) should be briefly commented in the code so future open-source contributors understand the intent.
+- **Generic Tooling:** Shared features (like generating a standard Technic axle hole, or a generic mounting tab) should be abstracted into reusable functions in `cq_utils.py` or base classes, rather than duplicated across models.
+
 ## Reference Docs
 - [docs/lego-technic.md](docs/lego-technic.md) — Lego Technic part dimensions (beams, pins, axles, holes, gears, tolerances)
 - [docs/agentic-workflow.md](docs/agentic-workflow.md) — Three-role agentic workflow (Admin / Designer / Developer)
