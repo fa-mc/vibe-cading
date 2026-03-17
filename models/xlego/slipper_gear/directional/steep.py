@@ -34,8 +34,6 @@ class SlipperGearSteep(SlipperGearBase):
         Rate of expansion for the pawls (spiral coefficient) reaching outward.
     arm_base_width : float
         Anchor thickness of the pawls strictly at origin.
-    clearance : float
-        General slip separation margin in ratcheting operation.
     tip_gap : float
         Radial setback of the pawl tip from the deepest point of the ratcheting pocket.
     """
@@ -53,7 +51,6 @@ class SlipperGearSteep(SlipperGearBase):
         spring_count: int = 3,
         arm_pitch: float = 2.4,
         arm_base_width: float = 2.0,
-        clearance: float = 0.1,
         tip_gap: float = 0.05,
         **kwargs
     ):
@@ -85,7 +82,6 @@ class SlipperGearSteep(SlipperGearBase):
 
         # Anchor strictly at origin (0 width) and use pure mathematical spiral to reach tip
         spring_p.setdefault("arm_base_width", arm_base_width)
-        spring_p.setdefault("clearance", clearance)
         spring_p.setdefault("tip_gap", tip_gap)
 
         # Thinner Spring to guarantee it avoids pinching in the slightly smaller assembly gap

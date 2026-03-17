@@ -34,8 +34,6 @@ class SlipperSpring:
         Total angular span of each arm from root to tip (degrees).
     ring_inner_r : float
         Inner radius of the outer ring assembly (mm).
-    clearance : float
-        Radial gap between the unwound spring tip and the ring inner bore (mm).
     """
 
     def __init__(
@@ -47,7 +45,6 @@ class SlipperSpring:
         arm_tip_width: float = 0.5,
         hub_r: float = 4.0,
         ramp_end_r: float = 10.0,
-        clearance: float = 0.25,
         tip_gap: float = 0.5,
         arm_rotation_offset: float = 0.0,
     ) -> None:
@@ -57,12 +54,11 @@ class SlipperSpring:
         self.arm_base_width = arm_base_width
         self.arm_tip_width   = arm_tip_width
         self.hub_r           = hub_r
-        self.clearance       = clearance
         self.tip_gap         = tip_gap
         self.arm_rotation_offset = arm_rotation_offset
 
         # Target tip outermost radius
-        self.r_max = ramp_end_r - self.clearance - self.tip_gap
+        self.r_max = ramp_end_r - self.tip_gap
 
         # Anchor the mathematical origin strictly at the center point (r=0)
         # so the entire start of the arm profile is swallowed by the hub, preventing a flat stump.
