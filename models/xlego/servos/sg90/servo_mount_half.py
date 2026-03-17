@@ -34,18 +34,18 @@ Side-face M2 mounting screws (2 per side, X direction)
     Ø 3 mm bores at (X = ±9.5,  Y = −4.338 and −6.862),  Z = 6.7–11.7 mm.
 
 Top plate with servo shaft opening
-    8 mm solid plate (Z = 13.2 to 21.2) with a central Ø 9.6 mm shaft hole at
-    (0, −5.6).
+    8 mm solid plate (Z = 13.2 to 21.2) with a central stepped shaft clearance hole
+    (R = 3.55 mm to 5.16 mm).
 
-Snap-post clusters (4 clusters × 4 posts, 8 × 8 mm LEGO grid)
-    Each cluster is centred at one of the four LEGO-pitch corner positions:
+Top Face LEGO holes (Technic pin and axle grid)
+    The top face (Z = 21.2) is perfectly flat, allowing the piece to be 3D printed
+    UPSIDE-DOWN (face down on the bed) completely without supports. The cavity 
+    forms stable bridging layers naturally.
+    It contains 4 standard Technic pin holes at the corner positions:
         (±8, 2.4)  and  (±8, −13.6)
-    plus four clusters on the shaft-opening ring:
-        (±8, −5.6)  and  (0, ±(2.4 / −13.6))
-    Each cluster has 4 snap posts arranged on a 2 × 2 grid at ±1.737 mm.
-    Post outer radius = 2.525 mm, inner bore R = 0.5 mm; stepped cap R = 3.05 mm
-    at top and bottom (1 mm each), body R = 2.5 mm over the middle 6 mm.
-    Posts rise from Z = 13.2 (top plate surface) to Z = 21.2 (top face).
+    and 4 Technic axle holes around the shaft perimeter:
+        (±8, −5.6)  and  (0, 2.4) and (0, −13.6)
+    These holes cut downwards from Z = 21.2 down to Z = 13.2.
 """
 
 import cadquery as cq
@@ -104,20 +104,8 @@ class ServoCase:
         Radius of the top-face servo shaft opening (mm). Default 4.8.
     top_plate_z : float
         Z where the top plate / snap posts begin (mm). Default 13.2.
-    post_cluster_positions : tuple[tuple[float, float], ...]
-        (x, y) centres of the four snap-post clusters. Default (±8, 2.4 / −13.6).
-    post_outer_r : float
-        Outer radius of each snap post (mm). Default 2.525.
-    post_body_r : float
-        Outer radius of the post body mid-section (mm). Default 2.5.
-    post_cap_r : float
-        Outer radius of the post step cap at top & bottom (mm). Default 3.05.
-    post_cap_h : float
-        Height of each step cap at top and bottom (mm). Default 1.0.
-    post_bore_r : float
-        Inner bore radius of each snap post (mm). Default 0.5.
-    post_grid_offset : float
-        ±XY offset of each post from the cluster centre (mm). Default 1.737.
+    top_pin_positions : tuple[tuple[float, float], ...]
+        (x, y) centres of the four Technic pin holes on the top face. Default (±8, 2.4 / −13.6).
     """
 
     # ── Default dimensions (reverse-engineered from STEP) ───────────────────
@@ -153,19 +141,13 @@ class ServoCase:
 
     TOP_PLATE_Z: float = 13.2   # Z=32 in STEP (32 − 18.8)
 
-    # Four 2×2 snap-post clusters at LEGO-pitch positions
-    POST_CLUSTER_POSITIONS: tuple = (
+    # Four Technic pin holes at LEGO-pitch positions
+    TOP_PIN_POSITIONS: tuple = (
         ( 8.0,   2.4),
         (-8.0,   2.4),
         ( 8.0, -13.6),
         (-8.0, -13.6),
     )
-    POST_OUTER_R: float = 2.525   # = inner ring of snap fit
-    POST_BODY_R: float = 2.5      # mid-section outer radius
-    POST_CAP_R: float = 3.05      # step-cap outer radius (top & bottom 1 mm)
-    POST_CAP_H: float = 1.0
-    POST_BORE_R: float = 0.5      # M2 centre bore
-    POST_GRID_OFFSET: float = 1.737  # ±XY offset within each 2×2 cluster
 
     def __init__(
         self,
@@ -187,13 +169,7 @@ class ServoCase:
         pin_recess_depth: float = PIN_RECESS_DEPTH,
         shaft_hole_r: float = SHAFT_HOLE_R,
         top_plate_z: float = TOP_PLATE_Z,
-        post_cluster_positions: tuple = POST_CLUSTER_POSITIONS,
-        post_outer_r: float = POST_OUTER_R,
-        post_body_r: float = POST_BODY_R,
-        post_cap_r: float = POST_CAP_R,
-        post_cap_h: float = POST_CAP_H,
-        post_bore_r: float = POST_BORE_R,
-        post_grid_offset: float = POST_GRID_OFFSET,
+        top_pin_positions: tuple = TOP_PIN_POSITIONS,
     ):
         self.outer_size = outer_size
         self.total_height = total_height
@@ -213,13 +189,7 @@ class ServoCase:
         self.pin_recess_depth = pin_recess_depth
         self.shaft_hole_r = shaft_hole_r
         self.top_plate_z = top_plate_z
-        self.post_cluster_positions = post_cluster_positions
-        self.post_outer_r = post_outer_r
-        self.post_body_r = post_body_r
-        self.post_cap_r = post_cap_r
-        self.post_cap_h = post_cap_h
-        self.post_bore_r = post_bore_r
-        self.post_grid_offset = post_grid_offset
+        self.top_pin_positions = top_pin_positions
 
         self._solid = self._build()
 
@@ -339,7 +309,7 @@ class ServoCase:
             (-8.0, -5.6), (8.0, -5.6),
         ]
 
-        part = cut_at_positions(part, pin_cutter,  self.post_cluster_positions, z_offset=z0)
+        part = cut_at_positions(part, pin_cutter,  self.top_pin_positions, z_offset=z0)
         part = cut_at_positions(part, axle_cutter, axle_positions,              z_offset=z0)
         return part
 
