@@ -442,8 +442,9 @@ class Sg90Servo:
         The main body is extended infinitely downwards for through-cuts.
         """
         # Give the base body slightly more lateral clearance to avoid 
-        # exact coincident/tangent faces with the collar at X = ±6.5.
-        body_clearance = clearance + 0.1
+        # exact coincident/tangent faces with the collar at X = ±6.5,
+        # and to ensure Y_min fully engulfs the collar overhang (-6.5).
+        body_clearance = clearance + 0.3
         bw = self.body_width + 2 * body_clearance
         bd = self.body_depth + 2 * body_clearance
         bh = self.body_height + clearance  # Keep Z the same to preserve the shelf depth
@@ -470,10 +471,13 @@ class Sg90Servo:
         part = part.union(collar)
         
         # Gear boss
+        # For the cutter, unify the gear boss height with the collar height.
+        # Although physically 0.3mm shorter (3.9 vs 4.2), preserving this as a negative 
+        # cavity leaves an unprintable 0.3mm stair-step crescent on the ceiling of the mount.
         gear_boss_h = self._GEAR_BOSS_HEIGHT + clearance + 0.1
         gear_boss = cylinder(
             self._GEAR_BOSS_R + clearance,
-            gear_boss_h,
+            collar_h,  # Override to match collar_h (eliminates micro-ceiling step)
             center=(0, self._GEAR_BOSS_Y, self.body_height - 0.1),
         )
         part = part.union(gear_boss)
