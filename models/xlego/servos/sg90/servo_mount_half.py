@@ -271,9 +271,19 @@ class ServoCase:
 
     def _cut_pin_holes(self, part: cq.Workplane) -> cq.Workplane:
         """Three standard Technic pin holes per X side, each 1 stud deep."""
+        from models.cq_utils import cylinder
+        from models.lego.cutters.technic_pin_hole import TECHNIC_PIN_CB_DIAMETER, TECHNIC_PIN_CB_DEPTH
+
         h = self._half   # 12.0
         hz = self.pin_hole_z
-        cutter = TechnicPinHole.standard(depth=STUD_PITCH).solid
+
+        # We build a custom cutter with an outside counterbore but NO inside counterbore.
+        # The standard TechnicPinHole has counterbores on both ends, which would pierce
+        # and scar the inner servo cavity walls because it intersects the collar space.
+        base_bore = TechnicPinHole(depth=STUD_PITCH, counterbore_depth=0.0).solid
+        cb_bottom = cylinder(TECHNIC_PIN_CB_DIAMETER / 2, TECHNIC_PIN_CB_DEPTH, center=(0, 0, 0))
+        cutter = base_bore.union(cb_bottom)
+
         positions = [(0, y) for y in self.pin_hole_ys]
         for x, y in positions:
             part = part.cut(orient_to_neg_x(cutter, -h, y, hz))
@@ -283,17 +293,31 @@ class ServoCase:
     # ── 4. Shaft bore + boss clearance ───────────────────────────────────────────
 
     def _cut_shaft_hole(self, part: cq.Workplane) -> cq.Workplane:
-        """Cut Rigid Shaft void."""
+        """Cut clearance void for the servo saver spring + shaft."""
         cy = self.servo_center_y
 
-        # Cut Rigid Shaft shape from top face down
-        rigid_shaft = Shaft()
-        shaft_z = self.total_height - rigid_shaft.height
-        shaft_cutter = (
-            rigid_shaft.to_cutter(clearance=0.15, extend_up=1.0, extend_down=5.0)
-            .translate((0, cy, shaft_z))
+        # The spring max compressed height reaches Z=20.5 absolute.
+        # Spring radius is ~5.015. With 0.15 clearance -> 5.165.
+        spring_r = Shaft.OUTER_R + 0.15
+
+        spring_clearance = (
+            cq.Workplane("XY")
+            .circle(spring_r)
+            .extrude(20.5 - 8.0)
+            .translate((0, cy, 8.0))
         )
-        return part.cut(shaft_cutter)
+        part = part.cut(spring_clearance)
+
+        # Ceiling clearance bore for the rigid shaft / lego axle
+        # to poke out through the top (Z = 20.4 to Z = 21.3)
+        # Shaft top core radius is 3.4. Clearance 0.15 -> 3.55.
+        ceiling_clearance = (
+            cq.Workplane("XY")
+            .circle(3.55)
+            .extrude(21.3 - 20.4)
+            .translate((0, cy, 20.4))
+        )
+        return part.cut(ceiling_clearance)
 
     # ── 5b. Bottom screw hole ─────────────────────────────────────────────────
 
