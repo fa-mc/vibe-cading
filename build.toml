@@ -37,48 +37,48 @@ width            = 38.0
 height           = 4.0
 
 # ── XLego slipper gear assemblies (20T, 24T, 28T) ─────────────────────────────
+# Disabled for now
+# [[build]]
+# model  = "xlego.slipper_gear.directional.steep.SlipperGearSteep"
+# output = "xlego/slipper_gear/slipper_gear_20t_assembly.step"
 
-[[build]]
-model  = "xlego.slipper_gear.directional.steep.SlipperGearSteep"
-output = "xlego/slipper_gear/slipper_gear_20t_assembly.step"
+# [build.params.ring_params]
+# teeth          = 20
+# pocket_r       = 7.0
+# ramp_r         = 5.5
+# sag_r          = 7.5
 
-[build.params.ring_params]
-teeth          = 20
-pocket_r       = 7.0
-ramp_r         = 5.5
-sag_r          = 7.5
+# [build.params.plate_params]
+# plate_r        = 7.3
+# hub_r          = 4.0
 
-[build.params.plate_params]
-plate_r        = 7.3
-hub_r          = 4.0
+# [build.params.spring_params]
+# hub_r          = 4.0
+# ring_inner_r   = 7.0
 
-[build.params.spring_params]
-hub_r          = 4.0
-ring_inner_r   = 7.0
-
-[[build]]
-model  = "xlego.slipper_gear.directional.steep.SlipperGearSteep"
-output = "xlego/slipper_gear/slipper_gear_24t_assembly.step"
+# [[build]]
+# model  = "xlego.slipper_gear.directional.steep.SlipperGearSteep"
+# output = "xlego/slipper_gear/slipper_gear_24t_assembly.step"
 # Blank params object effectively uses defaults
-[build.params]
+# [build.params]
 
-[[build]]
-model  = "xlego.slipper_gear.directional.steep.SlipperGearSteep"
-output = "xlego/slipper_gear/slipper_gear_28t_assembly.step"
+# [[build]]
+# model  = "xlego.slipper_gear.directional.steep.SlipperGearSteep"
+# output = "xlego/slipper_gear/slipper_gear_28t_assembly.step"
 
-[build.params.ring_params]
-teeth          = 28
-pocket_r       = 11.0
-ramp_r         = 9.0
-sag_r          = 11.5
+# [build.params.ring_params]
+# teeth          = 28
+# pocket_r       = 11.0
+# ramp_r         = 9.0
+# sag_r          = 11.5
 
-[build.params.plate_params]
-plate_r        = 11.3
-hub_r          = 6.475
+# [build.params.plate_params]
+# plate_r        = 11.3
+# hub_r          = 6.475
 
-[build.params.spring_params]
-hub_r          = 6.475
-ring_inner_r   = 11.0
+# [build.params.spring_params]
+# hub_r          = 6.475
+# ring_inner_r   = 11.0
 
 # ── XLego Servo Saver (Generic SG90 and Spektrum A370) ───────────────────────
 
@@ -100,3 +100,60 @@ output = "xlego/servos/shaft_body.step"
 [build.params]
 # Uses generic default params
 
+
+
+# ── Spline Fit Grid Search (Centered around 4.63) ───────────────────────────
+
+[[build]]
+model  = "xlego.servos.shaft_crown.ShaftCrown"
+output = "test_fits/shaft_crown_4_40.step"
+[build.params]
+spline_bore_r = 2.200
+
+[[build]]
+model  = "xlego.servos.shaft_crown.ShaftCrown"
+output = "test_fits/shaft_crown_4_45.step"
+[build.params]
+spline_bore_r = 2.225
+
+[[build]]
+model  = "xlego.servos.shaft_crown.ShaftCrown"
+output = "test_fits/shaft_crown_4_50.step"
+[build.params]
+spline_bore_r = 2.250
+
+[[build]]
+model  = "xlego.servos.shaft_crown.ShaftCrown"
+output = "test_fits/shaft_crown_4_55.step"
+[build.params]
+spline_bore_r = 2.275
+
+[[build]]
+model  = "xlego.servos.shaft_crown.ShaftCrown"
+output = "test_fits/shaft_crown_4_60.step"
+[build.params]
+spline_bore_r = 2.300
+
+[[build]]
+model  = "xlego.servos.shaft_crown.ShaftCrown"
+output = "test_fits/shaft_crown_4_65.step"
+[build.params]
+spline_bore_r = 2.325
+
+[[build]]
+model  = "xlego.servos.shaft_crown.ShaftCrown"
+output = "test_fits/shaft_crown_4_70.step"
+[build.params]
+spline_bore_r = 2.350
+
+[[build]]
+model  = "xlego.servos.shaft_crown.ShaftCrown"
+output = "test_fits/shaft_crown_4_75.step"
+[build.params]
+spline_bore_r = 2.375
+
+[[build]]
+model  = "xlego.servos.shaft_crown.ShaftCrown"
+output = "test_fits/shaft_crown_4_80.step"
+[build.params]
+spline_bore_r = 2.400

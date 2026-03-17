@@ -236,46 +236,6 @@ def cut_at_positions(
 
 import math
 
-def get_corner(A, B, C, R, steps=10):
-    import math
-    ux = A[0] - B[0]; uy = A[1] - B[1]
-    lu = math.hypot(ux, uy)
-    if lu == 0: return [B]
-    ux /= lu; uy /= lu
-    vx = C[0] - B[0]; vy = C[1] - B[1]
-    lv = math.hypot(vx, vy)
-    if lv == 0: return [B]
-    vx /= lv; vy /= lv
-    dot = max(-1.0, min(1.0, ux * vx + uy * vy))
-    theta_angle = math.acos(dot)
-    if theta_angle < 0.01 or theta_angle > math.pi - 0.01: return [B]
-    d = R / math.tan(theta_angle / 2.0)
-    d = min(d, lu * 0.49, lv * 0.49)
-    R = d * math.tan(theta_angle / 2.0)
-    T1 = (B[0] + d * ux, B[1] + d * uy)
-    T2 = (B[0] + d * vx, B[1] + d * vy)
-    dc = R / math.sin(theta_angle / 2.0)
-    dir_cx = (ux + vx); dir_cy = (uy + vy)
-    ld = math.hypot(dir_cx, dir_cy); dir_cx /= ld; dir_cy /= ld
-    Center = (B[0] + dc * dir_cx, B[1] + dc * dir_cy)
-    a1 = math.atan2(T1[1] - Center[1], T1[0] - Center[0])
-    a2 = math.atan2(T2[1] - Center[1], T2[0] - Center[0])
-    diff = (a2 - a1) % (2 * math.pi)
-    if diff > math.pi: diff -= 2 * math.pi
-    out = []
-    for i in range(steps + 1):
-        f = i / steps
-        out.append((Center[0] + R * math.cos(a1 + diff * f), Center[1] + R * math.sin(a1 + diff * f)))
-    return out
-
-
-def line_intersect(p1, v1, p2, v2):
-    det = v1[0]*v2[1] - v1[1]*v2[0]
-    if abs(det) < 1e-9:
-        return None
-    t1 = ((p2[0] - p1[0])*v2[1] - (p2[1] - p1[1])*v2[0]) / det
-    return (p1[0] + t1*v1[0], p1[1] + t1*v1[1])
-
 def tapered_arm_profile(
     r_start: float,
     r_end: float,
@@ -287,20 +247,22 @@ def tapered_arm_profile(
     r_start_draw: float | None = None,
     b_out: float | None = None,
 ) -> list[tuple[float, float]]:
-    import math
     cap_r = width_end / 2.0
-    # Stop early so we can fit the cap
-    angular_overshoot_rad = cap_r / (r_end - cap_r) if (r_end - cap_r) > 0 else 0
+    tip_center_r = r_end - cap_r
+    angular_overshoot_rad = cap_r / tip_center_r
     effective_sweep = max(0.01, sweep_angle - angular_overshoot_rad)
 
     a_in = r_start
     a_out = r_start + width_start
     if b_out is None:
         b_out = (r_end - a_out) / sweep_angle
+    # For a tapered arm, we infer b_in so the tip matches width_end
+    # r_end_in = r_end - width_end. Since r_end_in = a_in + b_in * sweep_angle:
     b_in = (r_end - width_end - a_in) / sweep_angle
 
     if r_start_draw is not None and b_in != 0:
         t_draw_start = (r_start_draw - a_in) / b_in
+        # Prevent going to negative radius
         t_min_in = (0.1 - a_in) / b_in if b_in > 0 else -10.0
         t_min_out = (0.1 - a_out) / b_out if b_out > 0 else -10.0
         t_draw_start = max(t_draw_start, t_min_in, t_min_out)
@@ -308,52 +270,40 @@ def tapered_arm_profile(
     else:
         t_draw_start = 0.0
 
-    inner_pts = []
+    pts = []
+    
+    # Inner curve
     for i in range(n_points + 1):
         frac = i / n_points
         t = t_draw_start + (effective_sweep - t_draw_start) * frac
         r = a_in + b_in * t
         th = angle_start + t
-        inner_pts.append((r * math.cos(th), r * math.sin(th)))
+        pts.append((r * math.cos(th), r * math.sin(th)))
 
-    outer_pts = []
+    # Semicircular Cap
+    actual_r_out = a_out + b_out * effective_sweep
+    actual_r_in  = a_in + b_in * effective_sweep
+    cap_center_r = (actual_r_out + actual_r_in) / 2.0
+    cap_r_actual = (actual_r_out - actual_r_in) / 2.0
+    cap_angle = angle_start + effective_sweep
+    cx = cap_center_r * math.cos(cap_angle)
+    cy = cap_center_r * math.sin(cap_angle)
+
+    cap_steps = 10
+    for i in range(1, cap_steps):
+        frac = i / cap_steps
+        ang = cap_angle + math.pi - math.pi * frac
+        pts.append((cx + cap_r_actual * math.cos(ang), cy + cap_r_actual * math.sin(ang)))
+
+    # Outer curve
     for i in range(n_points, -1, -1):
         frac = i / n_points
         t = t_draw_start + (effective_sweep - t_draw_start) * frac
         r = a_out + b_out * t
         th = angle_start + t
-        outer_pts.append((r * math.cos(th), r * math.sin(th)))
+        pts.append((r * math.cos(th), r * math.sin(th)))
 
-    if width_end <= 0.01:
-        return inner_pts + outer_pts
-
-    # Calculate tangents at effective_sweep
-    t_end = effective_sweep
-    th_end = angle_start + t_end
-    r_in_end = a_in + b_in*t_end
-    r_out_end = a_out + b_out*t_end
-
-    pin = (r_in_end*math.cos(th_end), r_in_end*math.sin(th_end))
-    pout = (r_out_end*math.cos(th_end), r_out_end*math.sin(th_end))
-
-    dx_in = b_in*math.cos(th_end) - r_in_end*math.sin(th_end)
-    dy_in = b_in*math.sin(th_end) + r_in_end*math.cos(th_end)
-    
-    dx_out = b_out*math.cos(th_end) - r_out_end*math.sin(th_end)
-    dy_out = b_out*math.sin(th_end) + r_out_end*math.cos(th_end)
-
-    apex = line_intersect(pin, (dx_in, dy_in), pout, (dx_out, dy_out))
-    
-    if apex:
-        # Check if apex is forward (dot product > 0)
-        v_in_to_apex = (apex[0]-pin[0], apex[1]-pin[1])
-        if (v_in_to_apex[0]*dx_in + v_in_to_apex[1]*dy_in) > 0:
-            cap_pts = get_corner(inner_pts[-2], apex, outer_pts[1], R=cap_r, steps=10)
-            return inner_pts[:-1] + cap_pts + outer_pts[1:]
-
-    # Fallback to simple corner if lines are parallel or apex is backwards
-    cap_pts = get_corner(inner_pts[-2], inner_pts[-1], outer_pts[1], R=cap_r, steps=10)
-    return inner_pts[:-1] + cap_pts + outer_pts[1:]
+    return pts
 
 def archimedean_spiral_arc(
     r_start: float,

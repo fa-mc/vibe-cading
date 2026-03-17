@@ -247,7 +247,7 @@ class SlipperRing:
             theta_prev_end = theta_start - hook_angle
 
             # Introduce an undercut "hook" by burying the pocket bottom
-            undercut_angle = math.radians(6)  # backwards lean for the hook
+            undercut_angle = 0.0  # Explicitly zeroed to prevent backward hooks
             theta_pocket_curr = theta_end - undercut_angle
             theta_pocket_prev = theta_prev_end - undercut_angle
 
