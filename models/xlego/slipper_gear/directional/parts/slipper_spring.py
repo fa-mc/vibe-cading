@@ -71,11 +71,9 @@ class SlipperSpring:
         # Calculate exactly how much sweep is needed to reach the ramp pocket
         raw_sweep_rad = (self.r_max - a_out) / b_out
 
-        # The physical arm finishes with a rounded semi-circle cap across its
-        # `arm_tip_width`. Subtract this radius to avoid collision with the hook wall.
-        cap_r = self.arm_tip_width / 2.0
-        angular_overshoot_rad = cap_r / self.r_max
-        self.sweep_angle = raw_sweep_rad - angular_overshoot_rad
+        # `cq_utils.tapered_arm_profile` automatically subtracts the angular overshoot internally
+        # so that the true mathematical length respects the semicircle tip radius.
+        self.sweep_angle = raw_sweep_rad
 
         self._solid = self._build()
         # assert len(self._solid.solids().vals()) == 1, "Expected single solid spring, got multiple pieces (floating root artefact)."

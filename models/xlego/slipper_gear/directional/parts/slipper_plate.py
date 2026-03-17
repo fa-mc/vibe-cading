@@ -37,12 +37,16 @@ class SlipperPlate:
         hub_r: float = 6.0,
         hub_length: float = 1.2,
         hole_d: float | None = None,
+        bushing_r: float | None = None,
+        bushing_clearance: float = 0.1,
     ) -> None:
         self.plate_r = plate_r
         self.plate_thickness = plate_thickness
         self.hub_r = hub_r
         self.hub_length = hub_length
         self.hole_d = hole_d
+        self.bushing_r = bushing_r
+        self.bushing_clearance = bushing_clearance
 
         self._solid = self._build()
 
@@ -53,13 +57,26 @@ class SlipperPlate:
     def _build(self) -> cq.Workplane:
         # If hub is taller than base, union them. Otherwise base covers it.
         overall_length = max(self.plate_thickness, self.hub_length)
+        axle_fw = overall_length + 2.0
+
+        if self.bushing_r is not None:
+            # 1. Outer plate (washer)
+            outer_hole_r = self.bushing_r + self.bushing_clearance
+            outer = cq.Workplane("XY").circle(self.plate_r).circle(outer_hole_r).extrude(overall_length)
+
+            # 2. Inner bushing
+            inner = cq.Workplane("XY").circle(self.bushing_r).extrude(overall_length)
+            axle_tool = TechnicAxleHole(depth=axle_fw).solid.translate((0, 0, -1.0))
+            inner = inner.cut(axle_tool)
+
+            parts = [outer.val(), inner.val()]
+            return cq.Workplane(obj=cq.Compound.makeCompound(parts))
 
         # 1. Base Disk
         core = cq.Workplane("XY").circle(self.plate_r).extrude(overall_length)
 
         # 3. Add axle hole or round clearance hole
-        axle_fw = overall_length + 2.0
-        
+
         if self.hole_d is not None:
             axle_tool = cq.Workplane("XY").circle(self.hole_d / 2.0).extrude(axle_fw).translate((0, 0, -1.0))
         else:
