@@ -246,11 +246,12 @@ def tapered_arm_profile(
     n_points: int = 50,
     r_start_draw: float | None = None,
     b_out: float | None = None,
+    angular_cutoff: float = 0.0,
 ) -> list[tuple[float, float]]:
     cap_r = width_end / 2.0
     tip_center_r = r_end - cap_r
     angular_overshoot_rad = cap_r / tip_center_r
-    effective_sweep = max(0.01, sweep_angle - angular_overshoot_rad)
+    effective_sweep = max(0.01, sweep_angle - angular_overshoot_rad - angular_cutoff)
 
     a_in = r_start
     a_out = r_start + width_start
