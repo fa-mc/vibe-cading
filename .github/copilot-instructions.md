@@ -354,8 +354,8 @@ simplified in the parametric model.
 
 ## Built-in Tools vs Throwaway Scripts
 - **Always prioritize direct file edits**: Use the built-in file editing tools to modify model code directly. Do not write temporary Python scripts (e.g. `fix_z.py`, `update_file.py`) to perform string replacements or refactoring on source code.
-- **Temporary / throwaway files**: If a temporary script is absolutely required because an edit is too massive/complex for standard tools, or you need to run analysis/dump utilities, you must place it under `/workspaces/vibe-cading/tmp/`. Never place them in the repository root.
-- Clean up any refactoring scripts in `tmp/` as soon as the edit is successfully applied.
+- **Temporary / throwaway files**: If a temporary script is absolutely required because an edit is too massive/complex for standard tools, or you need to run analysis/dump utilities, you must place it under `/workspaces/vibe-cading/tmp/`. Never place them in the repository root. **This rule also strictly applies to Subagents:** any downloaded reference manuals, HTML scrapes, search output logs (`ddg.txt`), or research scripts MUST be saved in `tmp/`.
+- Clean up any refactoring scripts or research junction files as soon as the edit is successfully applied.
 ## Constants & Tolerances
 
 - When modifying or creating constants in `models/lego/constants.py` that describe 3D printed friction fits or clearances (e.g. hole diameters, axle thickness), you must wrap the hardcoded default in `os.getenv("VARIABLE_NAME", "default")` and cast it to float. This allows users to tweak dimensions in a `.env` file without modifying source tracked code.
