@@ -11,6 +11,9 @@ class SlipperGearSteep(SlipperGearBase):
     def __init__(self, **kwargs):
         ring_p = kwargs.pop("ring_params", {})
         spring_p = kwargs.pop("spring_params", {})
+        plate_p = kwargs.pop("plate_params", {})
+
+        plate_p.setdefault("hole_d", 5.0)
 
         ring_p.setdefault("ramp_count", 12)
         ring_p.setdefault("ramp_end_r", 10.0)
@@ -18,7 +21,7 @@ class SlipperGearSteep(SlipperGearBase):
         ring_p.setdefault("ramp_start_r", 9.0)
 
         spring_p.setdefault("spring_count", 3)
-        spring_p.setdefault("hub_r", 3.6)
+        spring_p.setdefault("hub_r", 4.0)
 
         # Anchor strictly at origin (0 width) and use pure mathematical spiral to reach tip
         spring_p.setdefault("arm_base_width", 2.0)
@@ -32,7 +35,7 @@ class SlipperGearSteep(SlipperGearBase):
         # A very steep pitch (22.0) means it will reach r=9.75 in just ~25 degrees of sweep.
         spring_p.setdefault("arm_pitch", 2.4)
 
-        super().__init__(ring_params=ring_p, spring_params=spring_p, **kwargs)
+        super().__init__(ring_params=ring_p, spring_params=spring_p, plate_params=plate_p, **kwargs)
 
 if __name__ == "__main__":
     from ocp_vscode import show
