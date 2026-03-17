@@ -94,7 +94,7 @@ class ShaftCrown:
 
     SERVO_PROFILES = {
         "SG90": 2.3,            # Generic 9g micro servo (21T, ~4.8mm OD) -> Ø 4.6 mm bore
-        "SPMSA370": 1.875,      # Spektrum A370 (20T, ~3.9mm OD) -> Ø 3.75 mm bore
+        "SPMSA370": 2.25,       # Spektrum A370 (20T, ~3.9mm OD) calibrated to Ø 4.5 mm bore for PETG tolerance
     }
 
     def __init__(
