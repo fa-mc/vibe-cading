@@ -47,4 +47,4 @@ Work through these questions to generate the feedback:
 ## Output
 
 Write the report to `tmp/lookback/YYYY-MM-DD-[task-slug].md` and summarise
-the key findings to the user so they can invoke `#admin` for review.
+the key findings to the user. Then, automatically transition to the `#admin` role for review without asking the user to manually invoke it.

@@ -268,6 +268,14 @@ def get_corner(A, B, C, R, steps=10):
         out.append((Center[0] + R * math.cos(a1 + diff * f), Center[1] + R * math.sin(a1 + diff * f)))
     return out
 
+
+def line_intersect(p1, v1, p2, v2):
+    det = v1[0]*v2[1] - v1[1]*v2[0]
+    if abs(det) < 1e-9:
+        return None
+    t1 = ((p2[0] - p1[0])*v2[1] - (p2[1] - p1[1])*v2[0]) / det
+    return (p1[0] + t1*v1[0], p1[1] + t1*v1[1])
+
 def tapered_arm_profile(
     r_start: float,
     r_end: float,
@@ -281,8 +289,8 @@ def tapered_arm_profile(
 ) -> list[tuple[float, float]]:
     import math
     cap_r = width_end / 2.0
-    tip_center_r = r_end - cap_r
-    angular_overshoot_rad = cap_r / tip_center_r
+    # Stop early so we can fit the cap
+    angular_overshoot_rad = cap_r / (r_end - cap_r) if (r_end - cap_r) > 0 else 0
     effective_sweep = max(0.01, sweep_angle - angular_overshoot_rad)
 
     a_in = r_start
@@ -316,11 +324,36 @@ def tapered_arm_profile(
         th = angle_start + t
         outer_pts.append((r * math.cos(th), r * math.sin(th)))
 
-    corner_in = get_corner(inner_pts[-2], inner_pts[-1], outer_pts[0], R=cap_r, steps=10)
-    corner_out = get_corner(inner_pts[-1], outer_pts[0], outer_pts[1], R=cap_r, steps=10)
+    if width_end <= 0.01:
+        return inner_pts + outer_pts
 
-    return inner_pts[:-1] + corner_in + corner_out + outer_pts[1:]
+    # Calculate tangents at effective_sweep
+    t_end = effective_sweep
+    th_end = angle_start + t_end
+    r_in_end = a_in + b_in*t_end
+    r_out_end = a_out + b_out*t_end
 
+    pin = (r_in_end*math.cos(th_end), r_in_end*math.sin(th_end))
+    pout = (r_out_end*math.cos(th_end), r_out_end*math.sin(th_end))
+
+    dx_in = b_in*math.cos(th_end) - r_in_end*math.sin(th_end)
+    dy_in = b_in*math.sin(th_end) + r_in_end*math.cos(th_end)
+    
+    dx_out = b_out*math.cos(th_end) - r_out_end*math.sin(th_end)
+    dy_out = b_out*math.sin(th_end) + r_out_end*math.cos(th_end)
+
+    apex = line_intersect(pin, (dx_in, dy_in), pout, (dx_out, dy_out))
+    
+    if apex:
+        # Check if apex is forward (dot product > 0)
+        v_in_to_apex = (apex[0]-pin[0], apex[1]-pin[1])
+        if (v_in_to_apex[0]*dx_in + v_in_to_apex[1]*dy_in) > 0:
+            cap_pts = get_corner(inner_pts[-2], apex, outer_pts[1], R=cap_r, steps=10)
+            return inner_pts[:-1] + cap_pts + outer_pts[1:]
+
+    # Fallback to simple corner if lines are parallel or apex is backwards
+    cap_pts = get_corner(inner_pts[-2], inner_pts[-1], outer_pts[1], R=cap_r, steps=10)
+    return inner_pts[:-1] + cap_pts + outer_pts[1:]
 
 def archimedean_spiral_arc(
     r_start: float,
