@@ -36,11 +36,13 @@ class SlipperPlate:
         plate_thickness: float = 1.2,
         hub_r: float = 6.0,
         hub_length: float = 1.2,
+        hole_d: float | None = None,
     ) -> None:
         self.plate_r = plate_r
         self.plate_thickness = plate_thickness
         self.hub_r = hub_r
         self.hub_length = hub_length
+        self.hole_d = hole_d
 
         self._solid = self._build()
 
@@ -55,9 +57,13 @@ class SlipperPlate:
         # 1. Base Disk
         core = cq.Workplane("XY").circle(self.plate_r).extrude(overall_length)
 
-        # 3. Add dog-bone axle hole to the hub & base
+        # 3. Add axle hole or round clearance hole
         axle_fw = overall_length + 2.0
-        axle_tool = TechnicAxleHole(depth=axle_fw).solid.translate((0, 0, -1.0))
+        
+        if self.hole_d is not None:
+            axle_tool = cq.Workplane("XY").circle(self.hole_d / 2.0).extrude(axle_fw).translate((0, 0, -1.0))
+        else:
+            axle_tool = TechnicAxleHole(depth=axle_fw).solid.translate((0, 0, -1.0))
 
         core = core.cut(axle_tool)
 
