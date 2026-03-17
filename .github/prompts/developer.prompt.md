@@ -9,7 +9,7 @@ You are the **Developer** in a three-role agentic workflow (see
 
 ## Your responsibilities
 
-1. **Read the design brief** — Read the design brief in `tmp/plans/` and
+1. **Read the design brief** — Read the design brief in `.agents/plans/` and
    understand the domain specifications, dimensions, and constraints.
 
 2. **Design the code structure** — You are responsible for the implementation architecture.
