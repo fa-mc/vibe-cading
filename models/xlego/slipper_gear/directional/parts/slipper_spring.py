@@ -48,6 +48,7 @@ class SlipperSpring:
         hub_r: float = 4.0,
         ramp_end_r: float = 10.0,
         clearance: float = 0.25,
+        tip_gap: float = 0.5,
         arm_rotation_offset: float = 0.0,
     ) -> None:
         self.plate_thickness = plate_thickness
@@ -57,6 +58,7 @@ class SlipperSpring:
         self.arm_tip_width   = arm_tip_width
         self.hub_r           = hub_r
         self.clearance       = clearance
+        self.tip_gap         = tip_gap
         self.arm_rotation_offset = arm_rotation_offset
 
         # Target tip outermost radius
@@ -76,7 +78,7 @@ class SlipperSpring:
         # The physical arm finishes with a rounded semi-circle cap across its
         # `arm_tip_width`. Subtract this radius to avoid collision with the hook wall.
         cap_r = self.arm_tip_width / 2.0
-        angular_overshoot_rad = cap_r / self.r_max
+        angular_overshoot_rad = (cap_r + self.tip_gap) / self.r_max
 
         self.sweep_angle = raw_sweep_rad - angular_overshoot_rad
 
