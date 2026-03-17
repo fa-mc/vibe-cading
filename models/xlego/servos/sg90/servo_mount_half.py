@@ -61,6 +61,7 @@ from models.cq_utils import (
     orient_to_neg_x,
     orient_to_pos_x,
     cut_at_positions,
+    cylinder,
 )
 
 
@@ -300,23 +301,14 @@ class ServoCase:
         # Spring radius is ~5.015. With 0.15 clearance -> 5.165.
         spring_r = Shaft.OUTER_R + 0.15
 
-        spring_clearance = (
-            cq.Workplane("XY")
-            .circle(spring_r)
-            .extrude(20.5 - 8.0)
-            .translate((0, cy, 8.0))
-        )
+        # We start the cut down inside the servo cavity (Z=8.0) and push up to the 20.5mm ceiling.
+        spring_clearance = cylinder(spring_r, 20.5 - 8.0, center=(0, cy, 8.0))
         part = part.cut(spring_clearance)
 
         # Ceiling clearance bore for the rigid shaft / lego axle
         # to poke out through the top (Z = 20.4 to Z = 21.3)
         # Shaft top core radius is 3.4. Clearance 0.15 -> 3.55.
-        ceiling_clearance = (
-            cq.Workplane("XY")
-            .circle(3.55)
-            .extrude(21.3 - 20.4)
-            .translate((0, cy, 20.4))
-        )
+        ceiling_clearance = cylinder(3.55, 21.3 - 20.4, center=(0, cy, 20.4))
         return part.cut(ceiling_clearance)
 
     # ── 5b. Bottom screw hole ─────────────────────────────────────────────────
