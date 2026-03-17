@@ -22,6 +22,7 @@ class SlipperGearSteep(SlipperGearBase):
 
         # Anchor strictly at origin (0 width) and use pure mathematical spiral to reach tip
         spring_p.setdefault("arm_base_width", 2.0)
+        spring_p.setdefault("clearance", 0.1)
 
         # Thinner Spring to guarantee it avoids pinching in the assembly gap
         spring_p.setdefault("plate_thickness", 5.2)
