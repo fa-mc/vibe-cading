@@ -22,6 +22,8 @@ class SlipperGearSteep(SlipperGearBase):
         Radius of the inner cross-axle bushing and spring core.
     bushing_clearance : float
         Gap leaving float tolerance between the inner bushing hub and the outer shell caps.
+    ring_wall_thickness : float
+        Minimum solid wall thickness separating the outer gear teeth root from the inner ratcheting pocket.
     ramp_count : int
         Number of hard ratcheting steep ramps profiled into the inner bore of the ring.
     ramp_height : float
@@ -35,7 +37,7 @@ class SlipperGearSteep(SlipperGearBase):
     clearance : float
         General slip separation margin in ratcheting operation.
     tip_gap : float
-        The linear gap distance separating the tip of the pawl from the ratchet hook face.
+        Radial setback of the pawl tip from the deepest point of the ratcheting pocket.
     """
     def __init__(
         self,
@@ -46,12 +48,13 @@ class SlipperGearSteep(SlipperGearBase):
         hub_r: float = 4.0,
         bushing_clearance: float = 0.1,
         ramp_count: int = 12,
+        ring_wall_thickness: float = 0.5,
         ramp_height: float = 0.5,
         spring_count: int = 3,
         arm_pitch: float = 2.4,
         arm_base_width: float = 2.0,
         clearance: float = 0.1,
-        tip_gap: float = 0.5,
+        tip_gap: float = 0.05,
         **kwargs
     ):
         ring_p = kwargs.pop("ring_params", {})
@@ -70,7 +73,7 @@ class SlipperGearSteep(SlipperGearBase):
         ring_p.setdefault("module", actual_module)
         ring_p.setdefault("sag_r", default_sag_r)
 
-        ramp_outer_r = default_sag_r - 0.5
+        ramp_outer_r = default_sag_r - ring_wall_thickness
 
         ring_p.setdefault("ramp_count", ramp_count)
         ring_p.setdefault("ramp_end_r", ramp_outer_r)
