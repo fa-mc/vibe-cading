@@ -46,12 +46,12 @@ class SlipperGearSteep(SlipperGearBase):
         hub_r: float = 4.0,
         bushing_clearance: float = 0.1,
         ramp_count: int = 12,
-        ring_wall_thickness: float = 0.5,
+        ring_wall_thickness: float = 0.8,
         ramp_height: float = 0.5,
         spring_count: int = 3,
         arm_pitch: float = 2.4,
         arm_base_width: float = 2.0,
-        tip_gap: float = 0.05,
+        tip_gap: float = 0.1,
         **kwargs
     ):
         ring_p = kwargs.pop("ring_params", {})
