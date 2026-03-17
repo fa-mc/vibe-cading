@@ -51,7 +51,8 @@ __all__ = ["ShaftCrown", "ShaftBody"]
 if __name__ == "__main__":
     from ocp_vscode import show
 
-    crown = ShaftCrown()
+    # You can configure the servo profile here: "SG90" (default) or "SPMSA370"
+    crown = ShaftCrown(servo_profile="SPMSA370")
     body  = ShaftBody()
 
     # ShaftBody Z=0 aligns with ShaftCrown top of disc (Z=2.0)

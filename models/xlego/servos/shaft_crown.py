@@ -85,20 +85,26 @@ class ShaftCrown:
     INNER_DISK_HEIGHT: float   = 4.05                 # Z of solid inner boss
     DISC_HEIGHT: float         = 2.0                  # cam trough Z = assembly offset
     SPLINE_SOCKET_DEPTH: float = 2.75                 # socket depth (mm)
-    SPLINE_BORE_R: float       = 2.3                  # Ø 4.6 mm press-fit bore
+    DEFAULT_SPLINE_BORE_R: float = 2.3                # Ø 4.6 mm press-fit bore
     SHAFT_BORE_R: float        = 1.5                  # central through-bore
     CAM_LIFT: float            = CAM_LIFT             # 2.5 mm
     CAM_R_INNER: float         = CAM_R_INNER          # 3.5 mm
     CAM_R_OUTER: float         = CAM_R_OUTER          # 5.0 mm
     CAM_STEPS: int             = CAM_STEPS            # 72 wedges
 
+    SERVO_PROFILES = {
+        "SG90": 2.3,            # Generic 9g micro servo (21T, ~4.8mm OD) -> Ø 4.6 mm bore
+        "SPMSA370": 1.875,      # Spektrum A370 (20T, ~3.9mm OD) -> Ø 3.75 mm bore
+    }
+
     def __init__(
         self,
+        servo_profile: str | None  = "SG90",
+        spline_bore_r: float | None= None,
         disc_r: float              = DISC_R,
         inner_disk_height: float   = INNER_DISK_HEIGHT,
         disc_height: float         = DISC_HEIGHT,
         spline_socket_depth: float = SPLINE_SOCKET_DEPTH,
-        spline_bore_r: float       = SPLINE_BORE_R,
         shaft_bore_r: float        = SHAFT_BORE_R,
         cam_lift: float            = CAM_LIFT,
         cam_r_inner: float         = CAM_R_INNER,
@@ -109,7 +115,15 @@ class ShaftCrown:
         self.inner_disk_height   = inner_disk_height
         self.disc_height         = disc_height
         self.spline_socket_depth = spline_socket_depth
-        self.spline_bore_r       = spline_bore_r
+
+        # Resolve spline bore radius
+        if spline_bore_r is not None:
+            self.spline_bore_r = spline_bore_r
+        elif servo_profile and servo_profile in self.SERVO_PROFILES:
+            self.spline_bore_r = self.SERVO_PROFILES[servo_profile]
+        else:
+            self.spline_bore_r = self.DEFAULT_SPLINE_BORE_R
+
         self.shaft_bore_r        = shaft_bore_r
         self.cam_lift            = cam_lift
         self.cam_r_inner         = cam_r_inner

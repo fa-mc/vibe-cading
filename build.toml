@@ -79,3 +79,24 @@ hub_r          = 6.475
 [build.params.spring_params]
 hub_r          = 6.475
 ring_inner_r   = 11.0
+
+# ── XLego Servo Saver (Generic SG90 and Spektrum A370) ───────────────────────
+
+[[build]]
+model  = "xlego.servos.shaft_crown.ShaftCrown"
+output = "xlego/servos/shaft_crown_sg90.step"
+[build.params]
+servo_profile = "SG90"
+
+[[build]]
+model  = "xlego.servos.shaft_crown.ShaftCrown"
+output = "xlego/servos/shaft_crown_spmsa370.step"
+[build.params]
+servo_profile = "SPMSA370"
+
+[[build]]
+model  = "xlego.servos.shaft_body.ShaftBody"
+output = "xlego/servos/shaft_body.step"
+[build.params]
+# Uses generic default params
+
