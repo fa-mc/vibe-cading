@@ -78,9 +78,13 @@ class SlipperSpring:
         # The physical arm finishes with a rounded semi-circle cap across its
         # `arm_tip_width`. Subtract this radius to avoid collision with the hook wall.
         cap_r = self.arm_tip_width / 2.0
-        angular_overshoot_rad = (cap_r + self.tip_gap) / self.r_max
+        angular_overshoot_rad = cap_r / self.r_max
 
+        # We keep the old base sweep angle calculation to preserve the exact same taper ratio (thickness)
         self.sweep_angle = raw_sweep_rad - angular_overshoot_rad
+        
+        # Calculate the pure gap amount in radians to cut off the end
+        self.angular_cutoff = self.tip_gap / self.r_max
 
         self._solid = self._build()
         # assert len(self._solid.solids().vals()) == 1, "Expected single solid spring, got multiple pieces (floating root artefact)."
@@ -108,7 +112,8 @@ class SlipperSpring:
             angle_start=0.0,
             n_points=n_points,
             r_start_draw=0.1,  # Safe start just off exact zero to prevent singular faces inside the hub
-            b_out=self.arm_pitch  # Need to thread this through to override auto-calculated b!
+            b_out=self.arm_pitch,  # Need to thread this through to override auto-calculated b!
+            angular_cutoff=self.angular_cutoff
         )
 
     def _build(self) -> cq.Workplane:
