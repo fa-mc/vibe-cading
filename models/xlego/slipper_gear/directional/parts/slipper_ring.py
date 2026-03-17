@@ -193,8 +193,8 @@ class SlipperRing:
             return [B], 0.0
 
         d = R / math.tan(theta_angle / 2.0)
-        if d > lu * 0.9 or d > lv * 0.9:
-            d = min(lu * 0.9, lv * 0.9)
+        if d > lu * 0.49 or d > lv * 0.49:
+            d = min(lu * 0.49, lv * 0.49)
             R = d * math.tan(theta_angle / 2.0)
 
         T1 = (B[0] + d * ux, B[1] + d * uy)
@@ -287,10 +287,8 @@ class SlipperRing:
             tip_arc, d_tip   = self._fillet_corner(Tang_end, Tip_curr, Pocket_curr, R=0.5, steps=24)
 
             # For the pocket bottom, we arrive from Tip_curr and depart along the ramp_start_r arc
-            dx_pocket_out = -math.sin(theta_pocket_curr)
-            dy_pocket_out = math.cos(theta_pocket_curr)
-            Tang_pocket_out = (Pocket_curr[0] + dx_pocket_out, Pocket_curr[1] + dy_pocket_out)
-            pocket_arc, d_pocket = self._fillet_corner(Tip_curr, Pocket_curr, Tang_pocket_out, R=0.6, steps=24)
+            # We use Root_next as the tangency guide so _fillet_corner can accurately bound the geometry without overshooting
+            pocket_arc, d_pocket = self._fillet_corner(Tip_curr, Pocket_curr, Root_next, R=0.6, steps=24)
 
             pts.extend(root_arc)
             for pt in spiral_pts:

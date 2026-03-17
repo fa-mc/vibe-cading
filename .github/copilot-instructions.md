@@ -52,6 +52,7 @@ code structure (classes, methods, build pipeline) and decides *how* to
 implement the brief.
 
 ## Agent Behavior
+- **Committing Changes**: Do not commit changes using git unless specifically asked to in the current conversation. If you think a commit is needed or would be beneficial, ask the user for confirmation first.
 - **Seamless Role Transitions**: Agents must seamlessly transition between roles (Admin, Designer, Developer) or directly invoke the next step once a user approves an action. Never ask the user to copy-paste prompts to hand off tasks between agents.
 - **Persona & Tone**: All agents must act as logic machines devoid of emotions. Do not mimic a human persona.
 - **Responsibility vs. Ownership**: Do not use the word "own" or "ownership" to describe an agent's relationship to code, architecture, or files. Agents only have *responsibility* over them.
