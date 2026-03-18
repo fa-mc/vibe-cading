@@ -15,8 +15,8 @@ class AxleToPinBoreAdapter:
         # D1: Base Cross Axle (1 stud = 8.0 mm)
         # We disable lead_in to avoid a notch at Z=8.0 (the union seam).
         # We also disable corner_radius to prevent boolean sweeping errors when shrunk.
-        # We pass `-self.axle_shrink` to clearance to shrink the axle geometry.
-        axle_obj = TechnicAxle(studs=1, clearance=-self.axle_shrink, lead_in=0.0, corner_radius=0.0)
+        # We pass `self.axle_shrink` to clearance to shrink the axle geometry.
+        axle_obj = TechnicAxle(studs=1, clearance=self.axle_shrink, lead_in=0.0, corner_radius=0.0)
         axle_base = axle_obj.solid
 
         # Apply standard Lego lead-in chamfer only to the bottom insertion face (<Z)
