@@ -363,9 +363,9 @@ class ServoMountBase:
             .close()
         )
 
-        # Extrude vertically just enough to house the 6.0mm clamp arm (plus 0.2mm Z clearance)
-        # This prevents the socket slice from destroying the side walls/pin holes above Z=6.2.
-        socket_cutter = socket_profile.extrude(6.7).translate((0, 0, -0.5))
+        # Extrude vertically just enough to house the half-height (3.0mm) clamp pin (plus 0.2mm Z clearance)
+        # This leaves the upper half of the base's locking face intact.
+        socket_cutter = socket_profile.extrude(3.7).translate((0, 0, -0.5))
 
         # Cut on both arms (mirror exactly across X=0 plane / YZ plane)
         part = part.cut(socket_cutter)
@@ -482,7 +482,7 @@ class ServoMountClamp:
             .lineTo(center_x + tail_hw, pin_y_end)
             .lineTo(center_x - tail_hw, pin_y_end)
             .close()
-            .extrude(6.0)
+            .extrude(3.0)
         )
 
         clamp = clamp.union(pin_profile)
