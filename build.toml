@@ -83,3 +83,11 @@ output = "xlego/servos/sg90/servo_mount_half.step"
 [[build]]
 model  = "xlego.servos.sg90.servo_mount.ServoMountAssembly"
 output = "xlego/servos/sg90/servo_mount_assembly.step"
+
+# ── XLego Special Adapters ───────────────────────────────────────────────────
+
+[[build]]
+model  = "xlego.axle_to_pin_bore_adapter.AxleToPinBoreAdapter"
+output = "xlego/axle_to_pin_bore_adapter.step"
+[build.params]
+# No params required
