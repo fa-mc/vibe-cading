@@ -67,3 +67,13 @@ output = "xlego/servos/shaft_body.step"
 
 
 
+
+[[build]]
+model  = "xlego.servos.sg90.servo_mount_half.ServoCase"
+output = "xlego/servos/sg90/servo_mount_half.step"
+[build.params]
+# Uses generic default params
+
+[[build]]
+model  = "xlego.servos.sg90.servo_mount.ServoMountAssembly"
+output = "xlego/servos/sg90/servo_mount_assembly.step"
