@@ -46,9 +46,9 @@ class TechnicAxle:
         self.lead_in = lead_in
         self.corner_radius = corner_radius
 
-        # Profile dimensions used for boring holes / mating parts
-        self.tip_to_tip: float = self.TIP_TO_TIP
-        self.arm_width: float = self.ARM_WIDTH
+        # Apply clearance directly to the profile dimensions so the solid shrinks/grows
+        self.tip_to_tip: float = self.TIP_TO_TIP + clearance
+        self.arm_width: float = self.ARM_WIDTH + clearance
         self.length: float | None = (
             studs * self.LENGTH_PER_STUD if studs is not None else None
         )
@@ -61,12 +61,12 @@ class TechnicAxle:
     @property
     def bore_tip_to_tip(self) -> float:
         """Tip-to-tip with clearance applied — use this for cutting bores."""
-        return self.tip_to_tip + self.clearance
+        return self.tip_to_tip
 
     @property
     def bore_arm_width(self) -> float:
         """Arm width with clearance applied — use this for cutting bores."""
-        return self.arm_width + self.clearance
+        return self.arm_width
 
     # ── CadQuery solid ────────────────────────────────────────────────────────
     def _build(self) -> cq.Workplane:
