@@ -23,8 +23,8 @@ class TechnicAxle:
         When omitted the axle object carries profile dimensions only
         and no CadQuery solid is built.
     clearance:
-        Extra radial clearance added to the bore profile for a sliding
-        fit in printed parts.  Defaults to 0 mm.
+        Clearance deducted from the profile for a sliding fit in 
+        tight assemblies. Defaults to 0 mm.
     lead_in:
         Chamfer size on both end faces for easy sliding. Defaults to 0.3 mm.
     corner_radius:
@@ -46,9 +46,9 @@ class TechnicAxle:
         self.lead_in = lead_in
         self.corner_radius = corner_radius
 
-        # Apply clearance directly to the profile dimensions so the solid shrinks/grows
-        self.tip_to_tip: float = self.TIP_TO_TIP + clearance
-        self.arm_width: float = self.ARM_WIDTH + clearance
+        # Apply clearance directly to the profile dimensions so the solid shrinks
+        self.tip_to_tip: float = self.TIP_TO_TIP - clearance
+        self.arm_width: float = self.ARM_WIDTH - clearance
         self.length: float | None = (
             studs * self.LENGTH_PER_STUD if studs is not None else None
         )
@@ -57,15 +57,15 @@ class TechnicAxle:
         if studs is not None:
             self._solid = self._build()
 
-    # ── Clearance-adjusted bore profile ──────────────────────────────────────
+    # ── Clearance-adjusted profile ───────────────────────────────────────────
     @property
     def bore_tip_to_tip(self) -> float:
-        """Tip-to-tip with clearance applied — use this for cutting bores."""
+        """Tip-to-tip with clearance applied."""
         return self.tip_to_tip
 
     @property
     def bore_arm_width(self) -> float:
-        """Arm width with clearance applied — use this for cutting bores."""
+        """Arm width with clearance applied."""
         return self.arm_width
 
     # ── CadQuery solid ────────────────────────────────────────────────────────
