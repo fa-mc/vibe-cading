@@ -344,12 +344,12 @@ class ServoMountBase:
         """
         center_x = (self.arm_inner_x + self._half) / 2.0
 
-        # Dovetail socket parameters (includes 0.15mm clearance over pin)
-        cut_neck_hw = self.DOVETAIL_NECK_HW + 0.15
-        cut_tail_hw = self.DOVETAIL_TAIL_HW + 0.15
+        # Dovetail socket parameters (includes 0.05mm clearance over pin)
+        cut_neck_hw = self.DOVETAIL_NECK_HW + 0.05
+        cut_tail_hw = self.DOVETAIL_TAIL_HW + 0.05
         pin_y_start = 6.4
         pin_y_end = 4.4
-        cut_y_end = pin_y_end - 0.15
+        cut_y_end = pin_y_end - 0.05
         cut_y_start = pin_y_start + 2.0 # safe outside boundary
 
         socket_profile = (
@@ -439,8 +439,8 @@ class ServoMountClamp:
     def _build(self) -> cq.Workplane:
         # Base dimensions (in assembly coordinates):
         # We start the clamp deep inside the base's locking steps.
-        # Apply a 0.15 mm Y-axis clearance gap for the primary planar mating face
-        gap = 0.15
+        # Apply a 0.05 mm Y-axis clearance gap for the primary planar mating face
+        gap = 0.05
 
         w_out = self.outer_x
         w_in = self.arm_inner_x
@@ -504,6 +504,26 @@ class ServoMountClamp:
 
         assert len(clamp.solids().vals()) == 1, "Expected single solid, got multiple pieces"
         return clamp
+
+    @property
+    def solid(self) -> cq.Workplane:
+        return self._solid
+
+
+class ServoMountAssembly:
+    """Pre-arranged print plate / assembly containing both base and clamp.
+
+    Since the clamp and base are designed to sit flush on Z=0 and are spaced
+    along the Y axis, they can be exported as a single compound STEP file
+    for easy importing into slicers.
+    """
+    def __init__(self):
+        self.base = ServoMountBase()
+        self.clamp = ServoMountClamp(
+            outer_x=self.base.outer_size / 2,
+            arm_inner_x=self.base.arm_inner_x
+        )
+        self._solid = cq.Workplane("XY").add(self.base.solid).add(self.clamp.solid)
 
     @property
     def solid(self) -> cq.Workplane:
