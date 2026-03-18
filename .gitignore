@@ -11,6 +11,11 @@ tmp/
 *.stl
 *.stp
 *.step
-*.svg\.env
+*.svg
+.env
 /memories/session/ideas.md
-\n# Agent files\n.agents/
+
+# Agent files
+.agents/
+.agent/
+.agent
