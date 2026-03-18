@@ -65,6 +65,12 @@ output = "xlego/servos/shaft_body.step"
 [build.params]
 # Uses generic default params
 
+[[build]]
+model  = "xlego.servos.shaft.Shaft"
+output = "xlego/servos/shaft.step"
+[build.params]
+# Uses generic default params
+
 
 
 
