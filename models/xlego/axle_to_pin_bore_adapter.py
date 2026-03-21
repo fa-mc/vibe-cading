@@ -24,14 +24,14 @@ class AxleToPinBoreAdapter:
         self.axle = axle_base.faces("<Z").edges().chamfer(lead_in)
 
         # D2: Round Pin-Rod Extension
-        # Extends from Z=8.0 to Z=16.0
+        # Extends from Z=8.0 to Z=15.0
         # Standard pin axle socket diameter is 3.2 mm. We apply a 0.1 mm reduction
         # clearance for a smooth insertion fit, resulting in a target rod OD.
         self.rod = (
             cq.Workplane("XY")
             .workplane(offset=8.0)
             .circle(self.rod_diameter / 2)
-            .extrude(8.0)
+            .extrude(7.0)
             .faces(">Z")
             .edges()
             .chamfer(0.5)  # 0.5 mm chamfer for guiding the pin on
