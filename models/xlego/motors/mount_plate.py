@@ -8,7 +8,7 @@ class MotorMountPlate:
         self.motor_screw_size = motor_screw_size
         self.motor_hole_dist = motor_hole_dist
         self.motor_boss_clearance_d = motor_boss_clearance_d
-        
+
         self.material = material
         allowances = get_screw_allowances(self.material)
         self.radial_allowance = allowances["radial_allowance"]
