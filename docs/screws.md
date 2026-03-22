@@ -86,4 +86,35 @@ my_cutter = m4_flat.to_cutter(
     radial_allowance=0.1,
     head_recess_depth=1.0
 )
+``````
+
+### Material-Specific Print Clearances
+
+For parts intended to be 3D printed, different materials shrink or bridge differently, resulting in undersized holes (especially in PETG or ASA).
+
+Instead of hardcoding radial allowances per-class, use the global print settings module to fetch standardized offsets based on the target material string. This allows models to parametrically adapt their tolerance gaps when users configure `build.toml`.
+
+```python
+import cadquery as cq
+from models.mechanical.screws import MetricMachineScrew
+from models.print_settings import get_screw_allowances
+
+class MyPlate:
+    def __init__(self, material="PLA"):
+        # 1. Fetch material parameters
+        allowances = get_screw_allowances(material)
+        self.radial_allowance = allowances["radial_allowance"]
+        self.head_recess = allowances["head_recess_depth"]
+        
+    def _build(self):
+        screw = MetricMachineScrew("M3", length=12, head_type="flat")
+        
+        # 2. Inject parameters when generating the cutter
+        cutter = screw.to_cutter(
+            mode="clearance", 
+            radial_allowance=self.radial_allowance, 
+            head_recess_depth=self.head_recess
+        )
+        
+        # ... logic to cut plate ...
 ```

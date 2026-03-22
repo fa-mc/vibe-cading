@@ -91,3 +91,15 @@ model  = "xlego.axle_to_pin_bore_adapter.AxleToPinBoreAdapter"
 output = "xlego/axle_to_pin_bore_adapter.step"
 [build.params]
 # No params required
+
+# ── XLego Motor Mount Plates ──────────────────────────────────────────────────
+
+[[build]]
+model  = "xlego.motors.mount_plate.MotorMountPlate"
+output = "xlego/motors/mount_plate_370.step"
+[build.params]
+gearbox_screw_size     = "M2.5"
+motor_screw_size       = "M3"
+motor_hole_dist        = 17.0
+motor_boss_clearance_d = 9.0
+material               = "PETG"
