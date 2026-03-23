@@ -3,6 +3,7 @@ from .metric import MetricMachineScrew
 from .wood import WoodScrew
 from .plastics import PlasticsScrew
 from .setscrew import SetScrew
+from .imperial import ImperialMachineScrew
 
 __all__ = [
     "Screw",
@@ -10,6 +11,7 @@ __all__ = [
     "WoodScrew",
     "PlasticsScrew",
     "SetScrew",
+    "ImperialMachineScrew",
 ]
 
 __all__ = ["Screw", "MetricMachineScrew", "WoodScrew"]

@@ -16,7 +16,7 @@ PLASTIC_SCREW_SIZES = {
 class PlasticsScrew(Screw):
     """
     Self-tapping / thread-forming screws designed for plastics (e.g. PT screws).
-    
+
     The crucial difference from machine screws is the `to_cutter` method, which generates
     the correct tighter pilot bore so the aggressive threads can bite into the plastic without
     splitting the boss.
@@ -25,10 +25,10 @@ class PlasticsScrew(Screw):
         size = size.upper()
         if size not in PLASTIC_SCREW_SIZES:
             raise ValueError(f"Unsupported plastic screw size: {size}. Available: {list(PLASTIC_SCREW_SIZES.keys())}")
-            
+
         data = PLASTIC_SCREW_SIZES[size]
         self.head_type = head_type.lower()
-        
+
         if self.head_type == "flat":
             self.head_diameter = data["flat_head_dia"]
             self.head_height = data["flat_head_h"]
@@ -71,11 +71,11 @@ class PlasticsScrew(Screw):
                 .loft()
             )
             head = head_cyl.union(dome)
-            
+
         # Build shaft
         shaft_z = -self.head_height if self.head_type == "flat" else 0.0
         shaft_len = self.length - self.head_height if self.head_type == "flat" else self.length
-        
+
         # Base shaft
         shaft = (
             cq.Workplane("XY")
@@ -83,7 +83,7 @@ class PlasticsScrew(Screw):
             .circle(self.major_diameter / 2.0)
             .extrude(-shaft_len + 1.0) # leave 1mm for point
         )
-        
+
         # Self-tapping sharp point
         point = (
             cq.Workplane("XY")
@@ -93,13 +93,13 @@ class PlasticsScrew(Screw):
             .circle(0.1)
             .loft()
         )
-        
+
         return head.union(shaft).union(point)
 
     def to_cutter(self, mode: str = "tap", radial_allowance: float = 0.0, head_recess_depth: float = 0.0) -> cq.Workplane:
         """
         Generates the subtraction cutter for the plastics screw.
-        
+
         mode="tap" (default): Generates a tightly sized pilot hole so threads format plastic.
         mode="clearance": Generates a loose hole so the screw passes freely through the part.
         """
@@ -112,16 +112,16 @@ class PlasticsScrew(Screw):
 
         head_radius = (self.head_diameter / 2.0) + radial_allowance
         z_offset = -head_recess_depth
-        
+
         if self.head_type == "flat":
             angle_rad = math.radians(self.head_angle / 2.0)
             cone_height = (head_radius - shaft_radius) / math.tan(angle_rad)
-            
+
             # Recessed straight bore above the countersink (if recessing deep into part)
             upper_recess = None
             if head_recess_depth > 0:
                 upper_recess = cq.Workplane("XY").circle(head_radius).extrude(-head_recess_depth)
-                
+
             countersink = (
                 cq.Workplane("XY")
                 .transformed(offset=cq.Vector(0, 0, z_offset))
@@ -130,28 +130,28 @@ class PlasticsScrew(Screw):
                 .circle(shaft_radius)
                 .loft()
             )
-            
+
             shaft_z = z_offset - cone_height
             shaft_len = self.length - self.head_height + head_recess_depth + cone_height
-            
+
             shaft = (
                 cq.Workplane("XY")
                 .transformed(offset=cq.Vector(0, 0, shaft_z))
                 .circle(shaft_radius)
                 .extrude(-shaft_len - 5.0) # overcut
             )
-            
+
             cutter = countersink.union(shaft)
             if upper_recess:
                 cutter = upper_recess.union(cutter)
-                
+
         else: # pan
             head = (
                 cq.Workplane("XY")
                 .circle(head_radius)
                 .extrude(self.head_height + 5.0) # Extend upwards to clear any material above
             )
-            
+
             if head_recess_depth > 0:
                 recess = (
                     cq.Workplane("XY")
@@ -159,7 +159,7 @@ class PlasticsScrew(Screw):
                     .extrude(-head_recess_depth)
                 )
                 head = head.union(recess)
-                
+
             shaft = (
                 cq.Workplane("XY")
                 .transformed(offset=cq.Vector(0, 0, z_offset))
@@ -172,10 +172,10 @@ class PlasticsScrew(Screw):
 
 if __name__ == "__main__":
     from ocp_vscode import show
-    
+
     screw1 = PlasticsScrew("M3", 10, head_type="pan")
     screw2 = PlasticsScrew("M3", 10, head_type="flat")
-    
+
     show(
         screw1.solid.translate((-10, 0, 0)),
         screw1.to_cutter(mode="tap").translate((-5, 0, 0)),

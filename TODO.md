@@ -4,8 +4,12 @@ We are expanding this repository into a broader Code-CAD mechanical toolkit. Her
 
 ## 🔩 Mechanical & Hardware Utilities
 - [x] Metric Machine Screws (Flat/Socket/Hex profiles)
+- [x] Imperial Machine Screws (UNC 6-32, 4-40)
 - [x] Hex Nuts and Captive Slots
 - [x] Heat-Set Threaded Inserts (standard Voron/Ruthex specs)
+- [x] Self-Tapping Plastics Screws (PT/K-Jet thread forming geometry)
+- [x] Set Screws (Grub Screws)
+- [x] Hexagonal Standoffs (M-F/F-F Spacers)
 - [ ] Parametric Bearings (608, 623, 6702) including outer-race press-fit and inner-race shaft cutters
 - [ ] Neodymium Magnet press-fit cavities and glue pockets
 
