@@ -5,7 +5,7 @@ import cadquery as cq
 
 class DiscMagnet:
     """Standard Neodymium Disc Magnet.
-    
+
     Parameters
     ----------
     diameter : float
@@ -16,15 +16,15 @@ class DiscMagnet:
     def __init__(self, diameter: float, thickness: float) -> None:
         self.diameter = float(diameter)
         self.thickness = float(thickness)
-        
+
     @property
     def solid(self) -> cq.Workplane:
         """The CadQuery solid representing the standard magnet body."""
         return cq.Workplane("XY").circle(self.diameter / 2.0).extrude(self.thickness)
-        
+
     def pocket(self, radial_clearance: float = 0.05, depth_clearance: float = 0.1) -> cq.Workplane:
         """Cutter tool for making a press-fit or glue-in pocket.
-        
+
         Parameters
         ----------
         radial_clearance : float
@@ -55,7 +55,7 @@ class DiscMagnet:
 
 class BarMagnet:
     """Standard Neodymium Bar Magnet.
-    
+
     Parameters
     ----------
     length : float
@@ -69,14 +69,14 @@ class BarMagnet:
         self.length = float(length)
         self.width = float(width)
         self.thickness = float(thickness)
-        
+
     @property
     def solid(self) -> cq.Workplane:
         return cq.Workplane("XY").rect(self.length, self.width).extrude(self.thickness)
-        
+
     def pocket(self, clearance: float = 0.1) -> cq.Workplane:
         """Cutter for a glue-in pocket.
-        
+
         Applies a uniform clearance around the X, Y profiles, and adds Z-depth.
         """
         return (
@@ -84,7 +84,7 @@ class BarMagnet:
             .rect(self.length + clearance * 2.0, self.width + clearance * 2.0)
             .extrude(self.thickness + clearance)
         )
-        
+
     @classmethod
     def b10x5x2(cls) -> "BarMagnet":
         return cls(10.0, 5.0, 2.0)
@@ -94,9 +94,9 @@ if __name__ == "__main__":
     from ocp_vscode import show
     mag = DiscMagnet.d6x3()
     b_mag = BarMagnet.b10x5x2()
-    
+
     show(
-        mag.solid.translate((-10, 0, 0)), 
+        mag.solid.translate((-10, 0, 0)),
         mag.pocket(radial_clearance=0.1).translate((-10, 10, 0)),
         b_mag.solid.translate((10, 0, 0)),
         b_mag.pocket(clearance=0.1).translate((10, 10, 0)),

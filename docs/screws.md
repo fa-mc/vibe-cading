@@ -24,7 +24,7 @@ Instead of defining every constraint manually, use the provided subclasses with 
 from models.mechanical.screws import MetricMachineScrew
 
 # Create an M4 flat head (countersunk) screw, 12mm long
-m4_flat = MetricMachineScrew(size="M4", length=12.0, head_type="flat", drive_type="hex")
+m4_flat = MetricMachineScrew.from_size(size="M4", length=12.0, head_type="flat", drive_type="hex")
 
 # Get the basic 3D shape representing the physical screw
 solid = m4_flat.solid
@@ -65,7 +65,7 @@ from models.mechanical.screws import MetricMachineScrew
 plate = cq.Workplane("XY").box(20, 20, 10).translate((0, 0, -5)) # Surface at Z=0
 
 # 2. We want to put an M3 socket cap screw through it
-m3_screw = MetricMachineScrew("M3", length=15, head_type="socket")
+m3_screw = MetricMachineScrew.from_size("M3", length=15, head_type="socket")
 
 # 3. Generate a clearance cutter (loose fit, includes the counterbore for the socket head)
 cutter = m3_screw.to_cutter(mode="clearance")
@@ -107,7 +107,7 @@ class MyPlate:
         self.head_recess = allowances["head_recess_depth"]
         
     def _build(self):
-        screw = MetricMachineScrew("M3", length=12, head_type="flat")
+        screw = MetricMachineScrew.from_size("M3", length=12, head_type="flat")
         
         # 2. Inject parameters when generating the cutter
         cutter = screw.to_cutter(

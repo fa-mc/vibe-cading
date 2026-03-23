@@ -1,83 +1,68 @@
 import cadquery as cq
 from .base import Screw
-from .metric import METRIC_SIZES
+
+SET_SCREW_SIZES = {
+    "M2": {"major": 2.0, "tap": 1.6, "clearance": 2.2},
+    "M2.5": {"major": 2.5, "tap": 2.1, "clearance": 2.7},
+    "M3": {"major": 3.0, "tap": 2.5, "clearance": 3.2},
+    "M4": {"major": 4.0, "tap": 3.3, "clearance": 4.3},
+    "M5": {"major": 5.0, "tap": 4.2, "clearance": 5.3},
+}
 
 class SetScrew(Screw):
     """
-    Standard Metric Set Screw (grub screw) (e.g. DIN 913 flat point, DIN 916 cup point).
-    Used to lock gears, pulleys, and collars onto shafts.
-
-    It has no head, only a threaded cylindrical body.
+    Headless grub screws / set screws typically used for trapping shafts or locking gears.
     """
-    def __init__(self, size: str, length: float, drive_type: str = "hex"):
-        size = size.upper()
-        if size not in METRIC_SIZES:
-            raise ValueError(f"Unsupported metric size: {size}. Available: {list(METRIC_SIZES.keys())}")
-
-        data = METRIC_SIZES[size]
-        self.size = size
-        self.length = length
-        self.major_diameter = data["major_dia"]
+    def __init__(
+        self,
+        length: float,
+        major_diameter: float,
+        clearance_diameter: float,
+        tap_diameter: float,
+        drive_type: str = "hex"
+    ):
+        self.length = float(length)
+        self.major_diameter = float(major_diameter)
+        self.clearance_diameter = float(clearance_diameter)
+        self.tap_diameter = float(tap_diameter)
         self.drive_type = drive_type
 
-        # Hex socket sizes for grub screws are typically smaller than standard machine screws
-        self.socket_size = self.major_diameter / 2.0
+    @classmethod
+    def from_size(cls, size: str, length: float, drive_type: str = "hex") -> "SetScrew":
+        size = size.upper()
+        if size not in SET_SCREW_SIZES:
+            raise ValueError(f"Unsupported grub screw size: {size}. Available: {list(SET_SCREW_SIZES.keys())}")
+        data = SET_SCREW_SIZES[size]
+        return cls(
+            length=length,
+            major_diameter=data["major"],
+            clearance_diameter=data["clearance"],
+            tap_diameter=data["tap"],
+            drive_type=drive_type
+        )
 
     @property
     def solid(self) -> cq.Workplane:
-        """The literal 3D solid of the grub screw."""
-        # Simple threaded cylinder body
-        body = (
-            cq.Workplane("XY")
-            .circle(self.major_diameter / 2.0)
-            .extrude(-self.length)
-        )
-
-        # Hex drive socket cut into the top
-        socket_depth = min(self.length / 2.0, self.major_diameter)
-        socket = (
-            cq.Workplane("XY")
-            .polygon(6, self.socket_size * 2) # circumscribed radius
-            .extrude(-socket_depth)
-        )
-
-        # Chamfer the bottom slightly (simulating a cup or flat point)
-        chamfer_dist = self.major_diameter * 0.1
-        body = body.edges(cq.selectors.NearestToPointSelector((0,0,-self.length))).chamfer(chamfer_dist)
-
-        return body.cut(socket)
+        return cq.Workplane("XY").circle(self.major_diameter / 2).extrude(-self.length)
 
     def to_cutter(self, mode: str = "tap", radial_allowance: float = 0.0, head_recess_depth: float = 0.0) -> cq.Workplane:
-        """
-        Generates the subtraction cutter for the set screw.
-
-        mode="tap" (default): Usually grub screws are threaded into a tapped hole.
-        mode="clearance": Passes freely through material (rare for grub screws, but supported).
-        """
-
         if mode == "tap":
-            shaft_radius = (self.major_diameter / 2.0) - (self.major_diameter * 0.1) + radial_allowance
+            shaft_radius = (self.tap_diameter / 2.0) + radial_allowance
         elif mode == "clearance":
-            shaft_radius = (self.major_diameter / 2.0) + radial_allowance + 0.1
+            shaft_radius = (self.clearance_diameter / 2.0) + radial_allowance
         else:
             raise ValueError("SetScrew to_cutter mode must be 'tap' or 'clearance'")
 
-        # Head recess depth doesn't make geometric sense in the same way for a grub screw,
-        # but if provided, we just start the cutter higher up (+Z).
-        return (
-            cq.Workplane("XY")
-            .transformed(offset=cq.Vector(0, 0, head_recess_depth))
-            .circle(shaft_radius)
-            .extrude(-self.length - head_recess_depth)
-        )
+        overcut = 100.0
+        # For a grub screw, the 'head' is flush with the top, so we push the cutter all the way through the recess.
+        z_start = -head_recess_depth + overcut
+        return cq.Workplane("XY", origin=(0, 0, z_start)).circle(shaft_radius).extrude(-(self.length + overcut*2))
 
 if __name__ == "__main__":
     from ocp_vscode import show
-
-    grub = SetScrew("M3", 4)
-
+    grub = SetScrew.from_size("M3", 4)
     show(
         grub.solid.translate((-5, 0, 0)),
         grub.to_cutter(mode="tap").translate((5, 0, 0)),
-        names=["M3x4 Grub Screw", "M3 Grub Tap Hole"]
+        names=["M3 Grub", "Tap Cutter"]
     )

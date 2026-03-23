@@ -5,11 +5,11 @@ import cadquery as cq
 
 class Bearing:
     """Parametric radial ball bearing.
-    
+
     Generates representations of standard bearings and provides
-    subtractive cutter tools to create housing pockets with 
+    subtractive cutter tools to create housing pockets with
     appropriate clearances for 3D printed press-fits.
-    
+
     Parameters
     ----------
     inner_dia : float
@@ -37,7 +37,7 @@ class Bearing:
         self.flange_dia = float(flange_dia) if flange_dia else None
         self.flange_thickness = float(flange_thickness) if flange_thickness else None
         self._solid = self._build()
-        
+
     def _build(self) -> cq.Workplane:
         b = (
             cq.Workplane("XY")
@@ -62,7 +62,7 @@ class Bearing:
 
     def outer_pocket(self, radial_clearance: float = 0.05, depth_clearance: float = 0.0) -> cq.Workplane:
         """Generates a cutter for burying the outer race into a printed housing.
-        
+
         Use `radial_clearance` ~0.05mm for a tight press fit, or ~0.1mm for a looser
         slip fit on FDM printers.
         """
@@ -107,7 +107,7 @@ class Bearing:
     def f623(cls) -> "Bearing":
         """Flanged printer bearing: 3x10x4mm with 11.5x1mm flange"""
         return cls(3.0, 10.0, 4.0, flange_dia=11.5, flange_thickness=1.0)
-        
+
     @classmethod
     def b624(cls) -> "Bearing":
         """4x13x5mm"""
@@ -123,9 +123,9 @@ if __name__ == "__main__":
     from ocp_vscode import show
     brg = Bearing.f623()
     pocket = brg.outer_pocket(radial_clearance=0.1)
-    
+
     # Example housing demonstrating the cut
     housing = cq.Workplane("XY").rect(20, 20).extrude(10)
     housing = housing.cut(pocket)
-    
+
     show(brg.solid.translate((0, 0, 10)), housing, names=["F623 Bearing", "Housing"], colors=["silver", "gray"])
