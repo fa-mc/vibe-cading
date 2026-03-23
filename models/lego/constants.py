@@ -29,7 +29,7 @@ STUD_HEIGHT: float = 1.8      # Stud height above top face (mm)
 
 # ── Technic Pin Holes ─────────────────────────────────────────────────────────
 PIN_HOLE_DIAMETER: float = 4.8    # Nominal round pin hole diameter (mm)
-PIN_HOLE_PRINTED: float = 4.85    # Recommended diameter for FDM printed parts (mm)
+PIN_HOLE_PRINTED: float = float(os.getenv("PIN_HOLE_PRINTED", "4.85"))  # Recommended diameter for FDM printed parts (mm)
 HOLE_SPACING: float = 8.0         # Centre-to-centre hole spacing (mm)
 EDGE_TO_CENTRE: float = 4.0       # Distance from part edge to hole centre (mm)
 
@@ -44,5 +44,5 @@ AXLE_HOLE_TIP_TO_TIP: float = float(os.getenv("AXLE_HOLE_TIP_TO_TIP", "4.82"))  
 AXLE_HOLE_ARM_WIDTH: float = float(os.getenv("AXLE_HOLE_ARM_WIDTH", "1.64"))   # Axle hole flat-to-flat (mm)
 
 # ── Shared geometry defaults ──────────────────────────────────────────────────
-DEFAULT_CORNER_RADIUS: float = 0.4   # Inner concave corner fillet radius (mm) — TechnicAxle
-DEFAULT_LEAD_IN: float = 0.3        # End-face chamfer for easy sliding (mm)
+DEFAULT_CORNER_RADIUS: float = float(os.getenv("DEFAULT_CORNER_RADIUS", "0.4")) # Inner concave corner fillet radius (mm) — TechnicAxle
+DEFAULT_LEAD_IN: float = float(os.getenv("DEFAULT_LEAD_IN", "0.3"))             # End-face chamfer for easy sliding (mm)
