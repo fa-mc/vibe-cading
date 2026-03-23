@@ -10,8 +10,8 @@ We are expanding this repository into a broader Code-CAD mechanical toolkit. Her
 - [x] Self-Tapping Plastics Screws (PT/K-Jet thread forming geometry)
 - [x] Set Screws (Grub Screws)
 - [x] Hexagonal Standoffs (M-F/F-F Spacers)
-- [ ] Parametric Bearings (608, 623, 6702) including outer-race press-fit and inner-race shaft cutters
-- [ ] Neodymium Magnet press-fit cavities and glue pockets
+- [x] Parametric Bearings (608, 623, 6702) including outer-race press-fit and inner-race shaft cutters
+- [x] Neodymium Magnet press-fit cavities and glue pockets
 
 ## 🧩 Joints & Modular Connectors
 - [ ] Dovetail joints (Generators for matching male/female profiles with print tolerances)
