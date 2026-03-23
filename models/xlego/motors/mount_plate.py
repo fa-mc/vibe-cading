@@ -36,7 +36,7 @@ class MotorMountPlate:
 
         # 2. Corner holes (Mounts plate down to gear box)
         # Flathead screws facing down, flat on the top surface
-        gb_screw = MetricMachineScrew(size=self.gearbox_screw_size, length=self.thickness + 2.0, head_type="flat", drive_type="hex")
+        gb_screw = MetricMachineScrew.from_size(size=self.gearbox_screw_size, length=self.thickness + 2.0, head_type="flat", drive_type="hex")
         gb_cutter = gb_screw.to_cutter(mode="clearance", radial_allowance=self.radial_allowance, head_recess_depth=self.head_recess)
 
         for pt in self.corner_hole_centers:
@@ -46,7 +46,7 @@ class MotorMountPlate:
 
         # 3. Motor mounting holes (Mounts motor to the plate)
         # Flathead screws facing UP, flat on the bottom surface
-        motor_screw = MetricMachineScrew(size=self.motor_screw_size, length=self.thickness + 2.0, head_type="flat", drive_type="hex")
+        motor_screw = MetricMachineScrew.from_size(size=self.motor_screw_size, length=self.thickness + 2.0, head_type="flat", drive_type="hex")
         motor_cutter = motor_screw.to_cutter(mode="clearance", radial_allowance=self.radial_allowance, head_recess_depth=self.head_recess).rotate((0,0,0), (1,0,0), 180)
 
         motor_pts = [
