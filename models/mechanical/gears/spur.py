@@ -77,12 +77,12 @@ class SpurGear(Gear):
         r_a = self.tip_radius
         r_f = self.root_radius
 
-        inv_phi = math.tan(phi) - phi                   
-        t_tip   = math.sqrt((r_a / r_b) ** 2 - 1)      
-        inv_at_tip = t_tip - math.atan(t_tip)           
+        inv_phi = math.tan(phi) - phi
+        t_tip   = math.sqrt((r_a / r_b) ** 2 - 1)
+        inv_at_tip = t_tip - math.atan(t_tip)
 
         pitch_angle    = 2.0 * math.pi / z
-        half_base      = math.pi / (2.0 * z) + inv_phi  
+        half_base      = math.pi / (2.0 * z) + inv_phi
 
         if r_f >= r_b:
             t_root = math.sqrt((r_f / r_b) ** 2 - 1)
@@ -95,11 +95,11 @@ class SpurGear(Gear):
 
         for i in range(z):
             tc            = i * pitch_angle
-            theta_rb      = tc - half_base            
-            theta_lb      = tc + half_base            
-            theta_rt      = tc - half_base + inv_at_tip  
-            theta_lt      = tc + half_base - inv_at_tip  
-            theta_nr      = tc + pitch_angle - half_base  
+            theta_rb      = tc - half_base
+            theta_lb      = tc + half_base
+            theta_rt      = tc - half_base + inv_at_tip
+            theta_lt      = tc + half_base - inv_at_tip
+            theta_nr      = tc + pitch_angle - half_base
 
             if use_stub:
                 pts.append((r_f * math.cos(theta_rb), r_f * math.sin(theta_rb)))
