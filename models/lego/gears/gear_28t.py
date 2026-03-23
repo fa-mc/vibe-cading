@@ -4,7 +4,7 @@ import os
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), "../../.."))
 
 import cadquery as cq
-from models.mechanical.spur_gear import SpurGear
+from models.mechanical.gears import SpurGear
 from models.lego.cutters.technic_axle_hole import TechnicAxleHole
 
 class LegoGear28T:
