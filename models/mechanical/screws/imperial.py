@@ -13,17 +13,17 @@ IMPERIAL_SIZES = {
 }
 
 class ImperialMachineScrew(Screw):
-    """Standard Unified Thread Standard (UTS) Imperial machine screws 
+    """Standard Unified Thread Standard (UTS) Imperial machine screws
     (e.g., 6-32, 4-40) converted to native mm coordinates for CadQuery use.
     """
     def __init__(self, size: str, length: float, head_type: str = "socket", drive_type: str = "hex"):
         size = size.lower()
         if size not in IMPERIAL_SIZES:
             raise ValueError(f"Unsupported imperial size: {size}. Available: {list(IMPERIAL_SIZES.keys())}")
-            
+
         data = IMPERIAL_SIZES[size]
         self.head_type = head_type.lower()
-        
+
         if self.head_type == "flat":
             self.head_diameter = data["flat_head_dia"]
             self.head_height = data["flat_head_h"]
@@ -69,18 +69,18 @@ class ImperialMachineScrew(Screw):
                     .loft()
                 )
                 head = head_cyl.union(comp)
-            
+
         # Build shaft
         shaft_z = -self.head_height if self.head_type == "flat" else 0.0
         shaft_len = self.length - self.head_height if self.head_type == "flat" else self.length
-        
+
         shaft = (
             cq.Workplane("XY")
             .transformed(offset=cq.Vector(0, 0, shaft_z))
             .circle(self.major_diameter / 2.0)
             .extrude(-shaft_len)
         )
-        
+
         return head.union(shaft)
 
     def to_cutter(self, mode: str = "clearance", radial_allowance: float = 0.0, head_recess_depth: float = 0.0) -> cq.Workplane:
@@ -95,15 +95,15 @@ class ImperialMachineScrew(Screw):
 
         head_radius = (self.head_diameter / 2.0) + radial_allowance
         z_offset = -head_recess_depth
-        
+
         if self.head_type == "flat":
             angle_rad = math.radians(self.head_angle / 2.0)
             cone_height = (head_radius - shaft_radius) / math.tan(angle_rad)
-            
+
             upper_recess = None
             if head_recess_depth > 0:
                 upper_recess = cq.Workplane("XY").circle(head_radius).extrude(-head_recess_depth)
-                
+
             countersink = (
                 cq.Workplane("XY")
                 .transformed(offset=cq.Vector(0, 0, z_offset))
@@ -112,28 +112,28 @@ class ImperialMachineScrew(Screw):
                 .circle(shaft_radius)
                 .loft()
             )
-            
+
             shaft_z = z_offset - cone_height
             shaft_len = self.length - self.head_height + head_recess_depth + cone_height
-            
+
             shaft = (
                 cq.Workplane("XY")
                 .transformed(offset=cq.Vector(0, 0, shaft_z))
                 .circle(shaft_radius)
-                .extrude(-shaft_len - 5.0) 
+                .extrude(-shaft_len - 5.0)
             )
-            
+
             cutter = countersink.union(shaft)
             if upper_recess:
                 cutter = upper_recess.union(cutter)
-                
+
         else:
             head = (
                 cq.Workplane("XY")
                 .circle(head_radius)
-                .extrude(self.head_height + 5.0) 
+                .extrude(self.head_height + 5.0)
             )
-            
+
             if head_recess_depth > 0:
                 recess = (
                     cq.Workplane("XY")
@@ -141,12 +141,12 @@ class ImperialMachineScrew(Screw):
                     .extrude(-head_recess_depth)
                 )
                 head = head.union(recess)
-                
+
             shaft = (
                 cq.Workplane("XY")
                 .transformed(offset=cq.Vector(0, 0, z_offset))
                 .circle(shaft_radius)
-                .extrude(-self.length - 5.0) 
+                .extrude(-self.length - 5.0)
             )
             cutter = head.union(shaft)
 
@@ -154,10 +154,10 @@ class ImperialMachineScrew(Screw):
 
 if __name__ == "__main__":
     from ocp_vscode import show
-    
+
     # Showcase standard 6-32 flathead PC/server screw and cutter
     unc = ImperialMachineScrew("6-32", 10, head_type="flat")
-    
+
     show(
         unc.solid.translate((-5, 0, 0)),
         unc.to_cutter(mode="clearance").translate((5, 0, 0)),

@@ -12,16 +12,16 @@ import cadquery as cq
 class HeatSetInsert:
     """
     Generic tapered heat-set threaded insert.
-    
+
     Generates the optimal tapered cutter void required to melt the insert
-    cleanly into plastic. Tapered designs prevent plastic from extruding 
+    cleanly into plastic. Tapered designs prevent plastic from extruding
     over the top face during insertion.
     """
-    
+
     def __init__(self, top_dia: float, bot_dia: float, depth: float):
         """
         Create a custom insert profile based on raw geometries.
-        
+
         :param top_dia: Diameter of the void at the surface (mm).
         :param bot_dia: Diameter of the void at the bottom (mm) (usually slightly smaller for taper).
         :param depth: Total depth of the insert void (mm).
@@ -32,8 +32,8 @@ class HeatSetInsert:
 
     def to_cutter(self, through_hole: bool = False, clearance_d: float = 3.2) -> cq.Workplane:
         """Generate a boolean cutter for the insert pocket.
-        
-        :param through_hole: If true, generates an infinitely deep clearance shaft below 
+
+        :param through_hole: If true, generates an infinitely deep clearance shaft below
                              the insert so a screw can pass completely through.
         :param clearance_d:  The diameter of the optional through-hole (e.g., 3.2 for M3).
         """
@@ -45,7 +45,7 @@ class HeatSetInsert:
             .circle(self.r_bot)
             .loft()
         )
-        
+
         if through_hole:
             # Add an arbitrarily deep cylinder below it for the screw shaft clearance
             shaft = (
@@ -55,7 +55,7 @@ class HeatSetInsert:
                 .extrude(-100.0) # Extend down broadly to pass through standard assemblies
             )
             pocket = pocket.union(shaft)
-            
+
         return pocket
 
     # --- Standard Presets ---
@@ -77,7 +77,7 @@ class HeatSetInsert:
     @classmethod
     def ruthex(cls, size: str = "M3") -> HeatSetInsert:
         """
-        Ruthex / CNC Kitchen geometry standard. 
+        Ruthex / CNC Kitchen geometry standard.
         Slightly wider / longer than Voron specs.
         """
         profiles = {
@@ -98,11 +98,11 @@ if __name__ == "__main__":
 
     # 1. Custom generic insert
     custom = HeatSetInsert(top_dia=4.5, bot_dia=4.0, depth=4.0)
-    
+
     # 2. Manufacturer-specific presets
     voron_m3 = HeatSetInsert.voron("M3")
     ruthex_m4 = HeatSetInsert.ruthex("M4")
-    
+
     show(
         custom.to_cutter().translate((-10, 0, 0)),
         voron_m3.to_cutter(through_hole=True, clearance_d=3.2).translate((0, 0, 0)),
