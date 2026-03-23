@@ -1,6 +1,6 @@
 # Contributing to vibe-cading
 
-Welcome! `vibe-cading` is an open-source library for generating parametric 3D CAD models using [CadQuery](https://github.com/CadQuery/cadquery) (Python). 
+Welcome! `vibe-cading` is an open-source library for generating parametric 3D CAD models using [CadQuery](https://github.com/CadQuery/cadquery) (Python).
 
 Our primary goal is to build a robust, generic Code-CAD toolkit for mechanical design (fasteners, joints, enclosures), with practical examples showing how to interface domain-specific ecosystems like **RC (radio-controlled) components** and **Lego Technic**.
 
@@ -13,7 +13,7 @@ This project is built using an **AI-first, Agentic Workflow**. To contribute eff
 We hold our codebase to a high standard of structural quality and mathematical rigor.
 
 *   **Fundamental Geometry over Hacky Patches:**
-    Do not use arbitrary translations, clipping boxes, or brute-force boolean intersections just to "make it look right" for one specific set of parameters. Geometry should be anchored to logical origins (e.g., centering a gear on `(0, 0, 0)`) and scale cleanly via parameters. 
+    Do not use arbitrary translations, clipping boxes, or brute-force boolean intersections just to "make it look right" for one specific set of parameters. Geometry should be anchored to logical origins (e.g., centering a gear on `(0, 0, 0)`) and scale cleanly via parameters.
 *   **No Overly Specific Hardcoding (Magic Numbers):**
     Dimensions must be derived from fundamental parameters (e.g., `self.length = holes * 8.0`) or imported from centralized constants (like `models.lego.constants`).
 *   **The 8 mm Technic Standard:**
@@ -30,7 +30,7 @@ We strongly encourage contributors to use AI (GitHub Copilot) to generate code. 
 
 1.  **Admin** (`#admin`): Understands the global instruction set and helps refine requirements.
 2.  **Designer** (`#designer`): Brainstorms, digests reference material (STEP files, drawings), resolves geometric ambiguities, and writes a **Design Brief**. Focuses on *what* to build and *why*.
-3.  **Developer** (`#developer`): Owns the Python code structure. Implements the Design Brief by writing CadQuery classes and validation tooling. 
+3.  **Developer** (`#developer`): Owns the Python code structure. Implements the Design Brief by writing CadQuery classes and validation tooling.
 
 ### How to Use the Workflow
 If you are adding a complex new model:
