@@ -14,7 +14,7 @@ We are expanding this repository into a broader Code-CAD mechanical toolkit. Her
 - [x] Neodymium Magnet press-fit cavities and glue pockets
 
 ## 🧩 Joints & Modular Connectors
-- [ ] Dovetail joints (Generators for matching male/female profiles with print tolerances)
+- [x] Dovetail joints (Generators for matching male/female profiles with print tolerances)
 - [ ] Snap-fit cantilever hooks (For snapping cases and lids together)
 - [ ] Print-in-place hinges
 
