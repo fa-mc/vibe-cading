@@ -344,32 +344,34 @@ class ServoMountBase:
         """
         center_x = (self.arm_inner_x + self._half) / 2.0
 
-        # Dovetail socket parameters (includes 0.05mm clearance over pin)
-        cut_neck_hw = self.DOVETAIL_NECK_HW + 0.05
-        cut_tail_hw = self.DOVETAIL_TAIL_HW + 0.05
-        pin_y_start = 6.4
-        pin_y_end = 4.4
-        cut_y_end = pin_y_end - 0.05
-        cut_y_start = pin_y_start + 2.0 # safe outside boundary
+        from models.mechanical.joints import DovetailJoint
 
-        socket_profile = (
-            cq.Workplane("XY")
-            .moveTo(center_x - cut_neck_hw, cut_y_start)
-            .lineTo(center_x - cut_neck_hw, pin_y_start)
-            .lineTo(center_x - cut_tail_hw, cut_y_end)
-            .lineTo(center_x + cut_tail_hw, cut_y_end)
-            .lineTo(center_x + cut_neck_hw, pin_y_start)
-            .lineTo(center_x + cut_neck_hw, cut_y_start)
-            .close()
+        joint = DovetailJoint(
+            neck_width=self.DOVETAIL_NECK_HW * 2.0,
+            tail_width=self.DOVETAIL_TAIL_HW * 2.0,
+            depth=2.0,
+            length=3.7,
+            clearance=0.05
         )
+
+        socket_cutter = joint.female(overlap=2.0)
 
         # Extrude vertically just enough to house the half-height (3.0mm) clamp pin (plus 0.2mm Z clearance)
         # This leaves the upper half of the base's locking face intact.
-        socket_cutter = socket_profile.extrude(3.7).translate((0, 0, -0.5))
+        socket_right = (
+            socket_cutter
+            .rotate((0,0,0), (0,0,1), 180)
+            .translate((center_x, 6.4, -0.5))
+        )
+        socket_left = (
+            socket_cutter
+            .rotate((0,0,0), (0,0,1), 180)
+            .translate((-center_x, 6.4, -0.5))
+        )
 
-        # Cut on both arms (mirror exactly across X=0 plane / YZ plane)
-        part = part.cut(socket_cutter)
-        part = part.cut(socket_cutter.mirror("YZ"))
+        # Cut on both arms
+        part = part.cut(socket_right)
+        part = part.cut(socket_left)
         return part
 
     # ── 8. Round back corners below clamp arm ────────────────────────────────
@@ -467,26 +469,35 @@ class ServoMountClamp:
         clamp = clamp_profile.edges("|Z").filter(select_back_edges).fillet(4.0)
 
         # Add the vertical dovetail pins
+        from models.mechanical.joints import DovetailJoint
+
         center_x = self.hole_x
-        neck_hw = self.neck_hw
-        tail_hw = self.tail_hw
         pin_y_start = clamp_y_start
         pin_y_end = 4.4
 
-        pin_profile = (
-            cq.Workplane("XY")
-            .moveTo(center_x - neck_hw, pin_y_start)
-            .lineTo(center_x - neck_hw, pin_y_start + 1.0) # safely overlap clamp body
-            .lineTo(center_x + neck_hw, pin_y_start + 1.0)
-            .lineTo(center_x + neck_hw, pin_y_start)
-            .lineTo(center_x + tail_hw, pin_y_end)
-            .lineTo(center_x - tail_hw, pin_y_end)
-            .close()
-            .extrude(3.0)
+        joint = DovetailJoint(
+            neck_width=self.neck_hw * 2.0,
+            tail_width=self.tail_hw * 2.0,
+            depth=(pin_y_start - pin_y_end),
+            length=3.0,
+            clearance=0.0
         )
 
-        clamp = clamp.union(pin_profile)
-        clamp = clamp.union(pin_profile.mirror("YZ"))
+        pin_tool = joint.male(overlap=1.0)
+        
+        pin_right = (
+            pin_tool
+            .rotate((0,0,0), (0,0,1), 180)
+            .translate((center_x, pin_y_start, 0))
+        )
+        pin_left = (
+            pin_tool
+            .rotate((0,0,0), (0,0,1), 180)
+            .translate((-center_x, pin_y_start, 0))
+        )
+
+        clamp = clamp.union(pin_right)
+        clamp = clamp.union(pin_left)
 
         # (Horizontal mounting screws removed in favor of glue + vertical dovetail)
 
