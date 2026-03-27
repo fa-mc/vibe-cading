@@ -19,8 +19,8 @@ import cadquery as cq
 SPRING_OD: float          = 10.03   # spring outer diameter (mm)
 SPRING_ID: float          = 6.9     # spring inner diameter (mm)
 SPRING_FREE_HEIGHT: float = 6.0     # spring free (unloaded) height (mm)
-SPRING_PRELOAD: float     = 0.8     # assembly pre-compression (mm)
-SPRING_GAP: float         = SPRING_FREE_HEIGHT - SPRING_PRELOAD  # 5.2 mm assembled gap
+SPRING_PRELOAD: float     = 0.5     # assembly pre-compression (mm)
+SPRING_GAP: float         = SPRING_FREE_HEIGHT - SPRING_PRELOAD  # 5.5 mm assembled gap
 
 
 # ── Cam constants ─────────────────────────────────────────────────────────────
