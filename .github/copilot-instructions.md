@@ -23,7 +23,7 @@ Typical parts include:
 
 ## Code Quality & Open-Source Standards
 This codebase must be maintained at a high standard of structural quality and readability, as it will be released as open-source.
-- **No Overly Specific Hardcoding:** Avoid "magic numbers" in model logic. Dimensions should be derived from fundamental parameters (e.g., `self.length = holes * 8.0`) or imported from centralized constants (like `lego.constants`). 
+- **No Overly Specific Hardcoding:** Avoid "magic numbers" in model logic. Dimensions should be derived from fundamental parameters (e.g., `self.length = holes * 8.0`) or imported from centralized constants (like `lego.constants`).
 - **Fundamental Geometry over Hacky Patches:** Do not use arbitrary translations, clipping boxes, or brute-force boolean intersections just to "make it look right" for one specific set of parameters. Geometry should be anchored to logical origins (e.g., centering a gear on `(0, 0, 0)`) and scaling cleanly.
 - **Self-Documenting Code:** Class properties, methods, and parameters must be clearly named. Complex geometric reasoning (e.g., *why* an overcut of `0.05` is used, or the math behind a polar array) should be briefly commented in the code so future open-source contributors understand the intent.
 - **Generic Tooling:** Shared features (like generating a standard Technic axle hole, or a generic mounting tab) should be abstracted into reusable functions in `cq_utils.py` or base classes, rather than duplicated across models.
@@ -381,6 +381,7 @@ simplified in the parametric model.
 - **Always prioritize direct file edits**: Use the built-in file editing tools to modify model code directly. Do not write temporary Python scripts (e.g. `fix_z.py`, `update_file.py`) to perform string replacements or refactoring on source code.
 - **Temporary / throwaway files**: If a temporary script is absolutely required because an edit is too massive/complex for standard tools, or you need to run analysis/dump utilities, you must place it under `/workspaces/vibe-cading/tmp/`. Never place them in the repository root. **This rule also strictly applies to Subagents:** any downloaded reference manuals, HTML scrapes, search output logs (`ddg.txt`), or research scripts MUST be saved in `tmp/`.
 - Clean up any refactoring scripts or research junction files as soon as the edit is successfully applied.
+- **Demos & Previews**: Whenever asked to write a demo script or temporary model for the user to view, you MUST import and use `show` from `ocp_vscode` (e.g., `from ocp_vscode import show; show(model)`) at the end of the script instead of relying solely on step exports or CadQuery's generic `show_object`.
 
 ## Parameter Sweeps and Test Fits
 When generating gauge blocks, parameter sweeps, or test fits to dial in tolerances for a user:
