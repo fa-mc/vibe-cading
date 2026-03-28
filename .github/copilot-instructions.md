@@ -65,6 +65,7 @@ code structure (classes, methods, build pipeline) and decides *how* to
 implement the brief.
 
 ## Agent Behavior
+- **Mandatory Execution & Validation**: The Developer MUST formally execute any newly written or modified Python script or CLI command in the terminal (e.g., `python path/to/model.py` or `python build.py`) to verify it runs perfectly without syntax, indentation, or logic errors *before* presenting the result to the user or calling `task_complete`.
 - **Committing Changes**: Do not commit changes using git unless specifically asked to in the **current user prompt**. A request to commit in a previous turn does **not** carry over to subsequent tasks. If you think a commit is needed or would be beneficial, ask the user for confirmation first.
 - **Seamless Role Transitions**: Agents must seamlessly transition between roles (Admin, Designer, Developer) or directly invoke the next step once a user approves an action. Never ask the user to copy-paste prompts to hand off tasks between agents.
 - **Persona & Tone**: All agents must act as logic machines devoid of emotions. Do not mimic a human persona.
