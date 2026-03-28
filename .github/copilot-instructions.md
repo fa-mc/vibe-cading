@@ -27,6 +27,7 @@ This codebase must be maintained at a high standard of structural quality and re
 - **Fundamental Geometry over Hacky Patches:** Do not use arbitrary translations, clipping boxes, or brute-force boolean intersections just to "make it look right" for one specific set of parameters. Geometry should be anchored to logical origins (e.g., centering a gear on `(0, 0, 0)`) and scaling cleanly.
 - **Self-Documenting Code:** Class properties, methods, and parameters must be clearly named. Complex geometric reasoning (e.g., *why* an overcut of `0.05` is used, or the math behind a polar array) should be briefly commented in the code so future open-source contributors understand the intent.
 - **Generic Tooling:** Shared features (like generating a standard Technic axle hole, or a generic mounting tab) should be abstracted into reusable functions in `cq_utils.py` or base classes, rather than duplicated across models.
+- **Object-Oriented Component API:** Mechanical joints, hardware wrappers, and modular utilities should be designed as Python classes rather than bare functions. Standardize boolean interfaces by exposing methods like `.male(overlap: float)` (for additive geometry) and `.female(overlap: float)` (for subtractive cutters), or a uniform `.solid` property for read-only geometry.
 
 ## Reference Docs
 - [docs/lego-technic.md](docs/lego-technic.md) — Lego Technic part dimensions (beams, pins, axles, holes, gears, tolerances)
