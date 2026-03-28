@@ -16,7 +16,7 @@ We are expanding this repository into a broader Code-CAD mechanical toolkit. Her
 ## 🧩 Joints & Modular Connectors
 - [x] Dovetail joints (Generators for matching male/female profiles with print tolerances)
 - [x] Snap-fit cantilever hooks (For snapping cases and lids together)
-- [ ] Print-in-place hinges
+- [x] Print-in-place hinges
 
 ## 📦 Enclosures & Features
 - [ ] PCB Standoffs (Takes an array of (x,y) coordinates to generate mounting pillars with pilot holes)

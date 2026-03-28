@@ -103,3 +103,13 @@ motor_screw_size       = "M3"
 motor_hole_dist        = 17.0
 motor_boss_clearance_d = 9.0
 material               = "PETG"
+
+# ── Mechanical Utilities ──────────────────────────────────────────────────────
+[[build]]
+model  = "mechanical.hinge.PrintInPlaceHinge"
+output = "mechanical/hinge_print_in_place.step"
+[build.params]
+length = 30.0
+width = 20.0
+thickness = 4.0
+knuckle_diameter = 10.0
