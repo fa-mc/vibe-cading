@@ -19,3 +19,6 @@ tmp/
 .agents/
 .agent/
 .agent
+
+# Local machine tolerances
+machine_profiles.json

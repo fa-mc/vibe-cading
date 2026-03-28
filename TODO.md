@@ -23,3 +23,6 @@ We are expanding this repository into a broader Code-CAD mechanical toolkit. Her
 - [ ] Zip-tie anchor points (Unionable loops for cable management)
 - [ ] Parametric ventilation grilles (Hexagonal matrices and slotted grilles for motor covers)
 - [ ] Knurled knobs and grip surfaces
+
+## 🛠️ Architecture Refactors
+- [ ] Refactor primitive classes (Joints, Screws, Bearings, Axles) to seamlessly support `models.print_settings.ToleranceProfile` injections instead of hardcoded float parameters.
