@@ -9,7 +9,7 @@ class ToleranceProfile:
     depth_clearance: float
     screw_radial_allowance: float
     screw_head_recess: float
-    
+
     @classmethod
     def default_fdm(cls) -> "ToleranceProfile":
         return cls(
@@ -19,7 +19,7 @@ class ToleranceProfile:
             screw_radial_allowance=0.10,
             screw_head_recess=0.15,
         )
-        
+
     @classmethod
     def default_resin(cls) -> "ToleranceProfile":
         return cls(
@@ -29,7 +29,7 @@ class ToleranceProfile:
             screw_radial_allowance=0.02,
             screw_head_recess=0.05,
         )
-        
+
     @classmethod
     def default_cnc(cls) -> "ToleranceProfile":
         return cls(
@@ -52,7 +52,7 @@ def get_screw_allowances(material_or_profile: str) -> dict:
         prof = ToleranceProfile.default_fdm()
     else:
         prof = ToleranceProfile.default_fdm()
-        
+
     return {
         "radial_allowance": prof.screw_radial_allowance,
         "head_recess_depth": prof.screw_head_recess

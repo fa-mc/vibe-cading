@@ -33,7 +33,7 @@ The OCP viewer backend runs on port **3939** and is forwarded to your host autom
 
 ### Workspace Initialization
 
-Since this repository is managed via a three-role AI Agentic Workflow, you should initialize your local settings upon cloning the repository. 
+Since this repository is managed via a three-role AI Agentic Workflow, you should initialize your local settings upon cloning the repository.
 
 Open GitHub Copilot Chat and type:
 ```
