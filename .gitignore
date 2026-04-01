@@ -22,3 +22,9 @@ tmp/
 
 # Local machine tolerances
 machine_profiles.json
+
+# Python Packaging
+*.egg-info/
+build/
+dist/
+.eggs/
