@@ -32,5 +32,5 @@ We are expanding this repository into a broader Code-CAD mechanical toolkit. Her
 Based on the ***REMOVED***, this repository (`vibe-cading`) will act as the public core engine for the `***REMOVED***`. We need to prepare it for external consumption:
 - [x] **License Audit:** Ensure the AGPLv3 `LICENSE` file is at the repository root and applied to all headers if necessary.
 - [x] **CLA Implementation:** Set up CLA-Assistant (or similar) on GitHub Actions to require contributors to sign a Contributor License Agreement before merging PRs.
-- [ ] **Dependency Hygiene:** Ensure the `pyproject.toml`/`requirements.txt` is strictly limited to geometry (CadQuery/OCP) and testing. Remove any extraneous web/API dependencies.
-- [ ] **Packaging:** Convert the directory structure into an installable pip package (e.g., `pip install .`) so the separate ***REMOVED*** can import the classes dynamically.
+- [x] **Dependency Hygiene:** Ensure the `pyproject.toml`/`requirements.txt` is strictly limited to geometry (CadQuery/OCP) and testing. Remove any extraneous web/API dependencies.
+- [x] **Packaging:** Convert the directory structure into an installable pip package (e.g., `pip install .`) so the separate ***REMOVED*** can import the classes dynamically.
