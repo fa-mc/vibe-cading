@@ -1,0 +1,19 @@
+[build-system]
+requires = ["setuptools>=61.0"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "vibe-cading"
+version = "0.1.0"
+description = "Parametric 3D CAD models built with CadQuery"
+readme = "README.md"
+requires-python = ">=3.11"
+license = {text = "AGPL-3.0-or-later"}
+dependencies = [
+    "cadquery",
+    "ocp-vscode"
+]
+
+[tool.setuptools.packages.find]
+where = ["."]
+include = ["models*", "tools*"]
