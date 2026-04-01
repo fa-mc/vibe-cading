@@ -8,17 +8,18 @@ from .base import Nut
 class TNut(Nut):
     """Standard sliding/hammer T-Nut for 2020 V-Slot Aluminum Extrusions."""
     DIMENSIONS = {
-        "M3": {"length": 10.0, "width": 6.0, "thickness": 4.0, "step_width": 4.0, "step_height": 1.5},
-        "M4": {"length": 10.0, "width": 6.0, "thickness": 4.0, "step_width": 4.0, "step_height": 1.5},
-        "M5": {"length": 10.0, "width": 6.0, "thickness": 4.0, "step_width": 4.0, "step_height": 1.5},
+        "M3": {"thread_diameter": 3.0, "length": 10.0, "width": 6.0, "thickness": 4.0, "step_width": 4.0, "step_height": 1.5},
+        "M4": {"thread_diameter": 4.0, "length": 10.0, "width": 6.0, "thickness": 4.0, "step_width": 4.0, "step_height": 1.5},
+        "M5": {"thread_diameter": 5.0, "length": 10.0, "width": 6.0, "thickness": 4.0, "step_width": 4.0, "step_height": 1.5},
     }
 
-    def __init__(self, length: float, width: float, thickness: float, step_width: float, step_height: float):
+    def __init__(self, length: float, width: float, thickness: float, step_width: float, step_height: float, thread_diameter: float = 0.0):
         self.length = float(length)
         self.width = float(width)
         self.thickness = float(thickness)
         self.step_width = float(step_width)
         self.step_height = float(step_height)
+        self.thread_diameter = float(thread_diameter)
         self.base_thickness = self.thickness - self.step_height
 
     @classmethod
@@ -31,7 +32,8 @@ class TNut(Nut):
             width=dims["width"],
             thickness=dims["thickness"],
             step_width=dims["step_width"],
-            step_height=dims["step_height"]
+            step_height=dims["step_height"],
+            thread_diameter=dims.get("thread_diameter", float(size[1:]))
         )
 
     @property
@@ -39,7 +41,12 @@ class TNut(Nut):
         base = cq.Workplane("XY").rect(self.width, self.length).extrude(self.base_thickness)
         step = (cq.Workplane("XY").transformed(offset=cq.Vector(0, 0, self.base_thickness))
                 .rect(self.step_width, self.length).extrude(self.step_height))
-        return base.union(step)
+        solid = base.union(step)
+        if self.thread_diameter > 0.0:
+            hole_cutter = cq.Workplane("XY").circle(self.thread_diameter / 2.0).extrude(self.thickness + 2.0)
+            hole_cutter = hole_cutter.translate((0, 0, -1.0))
+            solid = solid.cut(hole_cutter)
+        return solid
 
     def to_cutter(self, radial_allowance: float = 0.15, depth_allowance: float = 0.2) -> cq.Workplane:
         w_allow = self.width + (radial_allowance * 2)

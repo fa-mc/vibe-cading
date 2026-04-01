@@ -19,10 +19,18 @@ We are expanding this repository into a broader Code-CAD mechanical toolkit. Her
 - [x] Print-in-place hinges
 
 ## 📦 Enclosures & Features
-- [ ] PCB Standoffs (Takes an array of (x,y) coordinates to generate mounting pillars with pilot holes)
-- [ ] Zip-tie anchor points (Unionable loops for cable management)
-- [ ] Parametric ventilation grilles (Hexagonal matrices and slotted grilles for motor covers)
-- [ ] Knurled knobs and grip surfaces
+- [x] PCB Standoffs (Takes an array of (x,y) coordinates to generate mounting pillars with pilot holes)
+- [x] Zip-tie anchor points (Unionable loops for cable management)
+- [x] Parametric ventilation grilles (Hexagonal matrices and slotted grilles for motor covers)
+- [x] Knurled knobs and grip surfaces
 
 ## 🛠️ Architecture Refactors
 - [ ] Refactor primitive classes (Joints, Screws, Bearings, Axles) to seamlessly support `models.print_settings.ToleranceProfile` injections instead of hardcoded float parameters.
+- [ ] Explore true 3D helical thread generation for screws/nuts (behind a `render_threads: bool` flag), carefully evaluating AGPL compliance, performance regressions, and OCCT boolean stability.
+
+## 🚀 Transition to "Open Core" Engine
+Based on the ***REMOVED***, this repository (`vibe-cading`) will act as the public core engine for the `***REMOVED***`. We need to prepare it for external consumption:
+- [ ] **License Audit:** Ensure the AGPLv3 `LICENSE` file is at the repository root and applied to all headers if necessary.
+- [ ] **CLA Implementation:** Set up CLA-Assistant (or similar) on GitHub Actions to require contributors to sign a Contributor License Agreement before merging PRs.
+- [ ] **Dependency Hygiene:** Ensure the `pyproject.toml`/`requirements.txt` is strictly limited to geometry (CadQuery/OCP) and testing. Remove any extraneous web/API dependencies.
+- [ ] **Packaging:** Convert the directory structure into an installable pip package (e.g., `pip install .`) so the separate ***REMOVED*** can import the classes dynamically.

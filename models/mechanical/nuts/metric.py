@@ -9,18 +9,19 @@ from .base import Nut
 class MetricHexNut(Nut):
     """Standard Metric Hex Nut generator (ISO 4032 / DIN 934)."""
     DIMENSIONS = {
-        "M2": {"width_flats": 4.0, "thickness": 1.6},
-        "M2.5": {"width_flats": 5.0, "thickness": 2.0},
-        "M3": {"width_flats": 5.5, "thickness": 2.4},
-        "M4": {"width_flats": 7.0, "thickness": 3.2},
-        "M5": {"width_flats": 8.0, "thickness": 4.7},
-        "M6": {"width_flats": 10.0, "thickness": 5.2},
-        "M8": {"width_flats": 13.0, "thickness": 6.8},
+        "M2": {"thread_diameter": 2.0, "width_flats": 4.0, "thickness": 1.6},
+        "M2.5": {"thread_diameter": 2.5, "width_flats": 5.0, "thickness": 2.0},
+        "M3": {"thread_diameter": 3.0, "width_flats": 5.5, "thickness": 2.4},
+        "M4": {"thread_diameter": 4.0, "width_flats": 7.0, "thickness": 3.2},
+        "M5": {"thread_diameter": 5.0, "width_flats": 8.0, "thickness": 4.7},
+        "M6": {"thread_diameter": 6.0, "width_flats": 10.0, "thickness": 5.2},
+        "M8": {"thread_diameter": 8.0, "width_flats": 13.0, "thickness": 6.8},
     }
 
-    def __init__(self, width_flats: float, thickness: float):
+    def __init__(self, width_flats: float, thickness: float, thread_diameter: float = 0.0):
         self.width_flats = float(width_flats)
         self.thickness = float(thickness)
+        self.thread_diameter = float(thread_diameter)
         self.radius = self.width_flats / 1.7320508075688772
 
     @classmethod
@@ -28,11 +29,16 @@ class MetricHexNut(Nut):
         if size not in cls.DIMENSIONS:
             raise ValueError(f"Unknown nut size {size}. Supported: {list(cls.DIMENSIONS.keys())}")
         dims = cls.DIMENSIONS[size]
-        return cls(width_flats=dims["width_flats"], thickness=dims["thickness"])
+        return cls(width_flats=dims["width_flats"], thickness=dims["thickness"], thread_diameter=dims.get("thread_diameter", float(size[1:])))
 
     @property
     def solid(self) -> cq.Workplane:
-        return cq.Workplane("XY").polygon(6, self.radius * 2).extrude(self.thickness)
+        base = cq.Workplane("XY").polygon(6, self.radius * 2).extrude(self.thickness)
+        if self.thread_diameter > 0.0:
+            hole_cutter = cq.Workplane("XY").circle(self.thread_diameter / 2.0).extrude(self.thickness + 2.0)
+            hole_cutter = hole_cutter.translate((0, 0, -1.0))
+            base = base.cut(hole_cutter)
+        return base
 
     def to_cutter(self, radial_allowance: float = 0.15, depth_allowance: float = 0.2) -> cq.Workplane:
         r = self.radius + radial_allowance
@@ -51,39 +57,45 @@ class MetricHexNut(Nut):
 class MetricNylocNut(MetricHexNut):
     """Standard Metric Nyloc Nut generator (DIN 985)."""
     DIMENSIONS = {
-        "M2.5": {"width_flats": 5.0, "thickness": 3.8},
-        "M3": {"width_flats": 5.5, "thickness": 4.0},
-        "M4": {"width_flats": 7.0, "thickness": 5.0},
-        "M5": {"width_flats": 8.0, "thickness": 5.0},
-        "M6": {"width_flats": 10.0, "thickness": 6.0},
-        "M8": {"width_flats": 13.0, "thickness": 8.0},
+        "M2.5": {"thread_diameter": 2.5, "width_flats": 5.0, "thickness": 3.8},
+        "M3": {"thread_diameter": 3.0, "width_flats": 5.5, "thickness": 4.0},
+        "M4": {"thread_diameter": 4.0, "width_flats": 7.0, "thickness": 5.0},
+        "M5": {"thread_diameter": 5.0, "width_flats": 8.0, "thickness": 5.0},
+        "M6": {"thread_diameter": 6.0, "width_flats": 10.0, "thickness": 6.0},
+        "M8": {"thread_diameter": 8.0, "width_flats": 13.0, "thickness": 8.0},
     }
 
 class MetricSquareNut(Nut):
     """Standard Metric Square Nut generator (DIN 562)."""
     DIMENSIONS = {
-        "M2": {"width_flats": 4.0, "thickness": 1.2},
-        "M2.5": {"width_flats": 5.0, "thickness": 1.6},
-        "M3": {"width_flats": 5.5, "thickness": 1.8},
-        "M4": {"width_flats": 7.0, "thickness": 2.2},
-        "M5": {"width_flats": 8.0, "thickness": 2.7},
-        "M6": {"width_flats": 10.0, "thickness": 3.2},
+        "M2": {"thread_diameter": 2.0, "width_flats": 4.0, "thickness": 1.2},
+        "M2.5": {"thread_diameter": 2.5, "width_flats": 5.0, "thickness": 1.6},
+        "M3": {"thread_diameter": 3.0, "width_flats": 5.5, "thickness": 1.8},
+        "M4": {"thread_diameter": 4.0, "width_flats": 7.0, "thickness": 2.2},
+        "M5": {"thread_diameter": 5.0, "width_flats": 8.0, "thickness": 2.7},
+        "M6": {"thread_diameter": 6.0, "width_flats": 10.0, "thickness": 3.2},
     }
 
-    def __init__(self, width_flats: float, thickness: float):
+    def __init__(self, width_flats: float, thickness: float, thread_diameter: float = 0.0):
         self.width_flats = float(width_flats)
         self.thickness = float(thickness)
+        self.thread_diameter = float(thread_diameter)
 
     @classmethod
     def from_size(cls, size: str) -> "MetricSquareNut":
         if size not in cls.DIMENSIONS:
             raise ValueError(f"Unknown nut size {size}. Supported: {list(cls.DIMENSIONS.keys())}")
         dims = cls.DIMENSIONS[size]
-        return cls(width_flats=dims["width_flats"], thickness=dims["thickness"])
+        return cls(width_flats=dims["width_flats"], thickness=dims["thickness"], thread_diameter=dims.get("thread_diameter", float(size[1:])))
 
     @property
     def solid(self) -> cq.Workplane:
-        return cq.Workplane("XY").rect(self.width_flats, self.width_flats).extrude(self.thickness)
+        base = cq.Workplane("XY").rect(self.width_flats, self.width_flats).extrude(self.thickness)
+        if self.thread_diameter > 0.0:
+            hole_cutter = cq.Workplane("XY").circle(self.thread_diameter / 2.0).extrude(self.thickness + 2.0)
+            hole_cutter = hole_cutter.translate((0, 0, -1.0))
+            base = base.cut(hole_cutter)
+        return base
 
     def to_cutter(self, radial_allowance: float = 0.15, depth_allowance: float = 0.2) -> cq.Workplane:
         w = self.width_flats + (radial_allowance * 2)
