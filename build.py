@@ -82,4 +82,10 @@ def main() -> None:
 
 
 if __name__ == "__main__":
+    import subprocess
+    import sys
+    print("Checking license headers...")
+    res = subprocess.run(["python3", "tools/check_license_headers.py"])
+    if res.returncode != 0:
+        sys.exit(res.returncode)
     main()
