@@ -107,3 +107,58 @@ class PhillipsDrive(FastenerDrive):
         
         return arm1.union(arm2).union(center)
 
+
+
+class TorxDrive(FastenerDrive):
+    """
+    Torx (6-point star) drive geometry for socket head screws.
+    Standard sizes follow ISO 10664 / DIN 3391 specifications.
+    Modeled as a 6-pointed star with tapered extrusion (8 degrees).
+    """
+    
+    # Standard Torx sizes: name -> (point-to-point diameter mm, depth mm)
+    TORX_SIZES = {
+        "T5":   (1.42, 1.0),
+        "T6":   (1.70, 1.2),
+        "T8":   (2.31, 1.6),
+        "T10":  (2.74, 2.0),
+        "T15":  (3.27, 2.3),
+        "T20":  (3.86, 2.5),
+        "T25":  (4.43, 3.0),
+        "T30":  (5.52, 3.5),
+    }
+
+    def __init__(self, point_to_point_diameter: float, depth: float, taper_angle: float = 8.0):
+        self.point_to_point_diameter = float(point_to_point_diameter)
+        self.depth = float(depth)
+        self.taper_angle = float(taper_angle)
+
+    @classmethod
+    def from_size(cls, size: str) -> "TorxDrive":
+        size = size.upper()
+        if size not in cls.TORX_SIZES:
+            raise ValueError(f"Unknown Torx size: {size}. Available sizes: {list(cls.TORX_SIZES.keys())}")
+        diameter, depth = cls.TORX_SIZES[size]
+        return cls(point_to_point_diameter=diameter, depth=depth)
+
+    def _build_star_profile(self) -> list:
+        points = []
+        radius_outer = self.point_to_point_diameter / 2.0
+        radius_inner = radius_outer * 0.7  # inner valley
+        
+        for i in range(12):
+            angle_deg = i * 30.0
+            angle_rad = math.radians(angle_deg)
+            r = radius_outer if i % 2 == 0 else radius_inner
+            x = r * math.cos(angle_rad)
+            y = r * math.sin(angle_rad)
+            points.append((x, y))
+        return points
+
+    @property
+    def cutter(self) -> cq.Workplane:
+        star_points = self._build_star_profile()
+        wp = cq.Workplane("XY", origin=(0, 0, 0.1))
+        wp = wp.polyline(star_points).close()
+        depth_val = -(self.depth + 0.1)
+        return wp.extrude(depth_val, taper=self.taper_angle)

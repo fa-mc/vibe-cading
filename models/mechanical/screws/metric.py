@@ -16,14 +16,14 @@
 import cadquery as cq
 import math
 from models.mechanical.screws.base import Screw
-from models.mechanical.screws.drives import FastenerDrive, HexDrive, PhillipsDrive, SlottedDrive
+from models.mechanical.screws.drives import FastenerDrive, HexDrive, PhillipsDrive, SlottedDrive, TorxDrive
 
 METRIC_SIZES = {
-    "M2":   {"drive_size": 1.5, "drive_depth": 1.0, "major": 2.0, "clearance": 2.2, "tap": 1.6, "flat_head_dia": 3.8,  "flat_head_h": 1.2, "socket_head_dia": 3.8,  "socket_head_h": 2.0, "pan_head_dia": 4.0, "pan_head_h": 1.6},
-    "M2.5": {"drive_size": 2.0, "drive_depth": 1.3, "major": 2.5, "clearance": 2.7, "tap": 2.1, "flat_head_dia": 4.7,  "flat_head_h": 1.5, "socket_head_dia": 4.5,  "socket_head_h": 2.5, "pan_head_dia": 5.0, "pan_head_h": 2.1},
-    "M3":   {"drive_size": 2.5, "drive_depth": 1.5, "major": 3.0, "clearance": 3.2, "tap": 2.5, "flat_head_dia": 5.5,  "flat_head_h": 1.7, "socket_head_dia": 5.5,  "socket_head_h": 3.0, "pan_head_dia": 5.6, "pan_head_h": 2.4},
-    "M4":   {"drive_size": 3.0, "drive_depth": 2.0, "major": 4.0, "clearance": 4.3, "tap": 3.3, "flat_head_dia": 8.4,  "flat_head_h": 2.7, "socket_head_dia": 7.0,  "socket_head_h": 4.0, "pan_head_dia": 8.0, "pan_head_h": 3.1},
-    "M5":   {"drive_size": 4.0, "drive_depth": 2.5, "major": 5.0, "clearance": 5.3, "tap": 4.2, "flat_head_dia": 9.3,  "flat_head_h": 2.7, "socket_head_dia": 8.5,  "socket_head_h": 5.0, "pan_head_dia": 9.5, "pan_head_h": 3.7},
+    "M2":   {"drive_size": 1.5, "drive_depth": 1.0, "torx_size": "T6", "major": 2.0, "clearance": 2.2, "tap": 1.6, "flat_head_dia": 3.8,  "flat_head_h": 1.2, "socket_head_dia": 3.8,  "socket_head_h": 2.0, "pan_head_dia": 4.0, "pan_head_h": 1.6},
+    "M2.5": {"drive_size": 2.0, "drive_depth": 1.3, "torx_size": "T8", "major": 2.5, "clearance": 2.7, "tap": 2.1, "flat_head_dia": 4.7,  "flat_head_h": 1.5, "socket_head_dia": 4.5,  "socket_head_h": 2.5, "pan_head_dia": 5.0, "pan_head_h": 2.1},
+    "M3":   {"drive_size": 2.5, "drive_depth": 1.5, "torx_size": "T10", "major": 3.0, "clearance": 3.2, "tap": 2.5, "flat_head_dia": 5.5,  "flat_head_h": 1.7, "socket_head_dia": 5.5,  "socket_head_h": 3.0, "pan_head_dia": 5.6, "pan_head_h": 2.4},
+    "M4":   {"drive_size": 3.0, "drive_depth": 2.0, "torx_size": "T20", "major": 4.0, "clearance": 4.3, "tap": 3.3, "flat_head_dia": 8.4,  "flat_head_h": 2.7, "socket_head_dia": 7.0,  "socket_head_h": 4.0, "pan_head_dia": 8.0, "pan_head_h": 3.1},
+    "M5":   {"drive_size": 4.0, "drive_depth": 2.5, "torx_size": "T25", "major": 5.0, "clearance": 5.3, "tap": 4.2, "flat_head_dia": 9.3,  "flat_head_h": 2.7, "socket_head_dia": 8.5,  "socket_head_h": 5.0, "pan_head_dia": 9.5, "pan_head_h": 3.7},
 }
 
 class MetricMachineScrew(Screw):
@@ -82,6 +82,11 @@ class MetricMachineScrew(Screw):
                 drive = PhillipsDrive(diameter=data["drive_size"] * 1.5, width=data["drive_size"] * 0.4, depth=data["drive_depth"])
             elif drive_type == "slotted":
                 drive = SlottedDrive(length=head_dia * 0.8, width=1.0, depth=data["drive_depth"] * 0.8)
+            elif drive_type == "torx":
+                if "torx_size" in data:
+                    drive = TorxDrive.from_size(data["torx_size"])
+                else:
+                    raise ValueError(f"Torx drive requested but no 'torx_size' defined for {size}")
 
         return cls(
             length=length,
@@ -158,4 +163,5 @@ if __name__ == "__main__":
     from ocp_vscode import show
     screw1 = MetricMachineScrew.from_size("M3", length=10, head_type="socket", drive_type="hex")
     screw2 = MetricMachineScrew.from_size("M3", length=10, head_type="flat", drive_type="phillips")
-    show(screw1.solid.translate((-5, 0, 0)), screw2.solid.translate((5, 0, 0)), names=["Socket (Hex)", "Flat (Phillips)"])
+    screw3 = MetricMachineScrew.from_size("M3", length=10, head_type="pan", drive_type="torx")
+    show(screw1.solid.translate((-5, 0, 0)), screw2.solid.translate((5, 0, 0)), screw3.solid.translate((0, -5, 0)), names=["Socket (Hex)", "Flat (Phillips)", "Pan (Torx)"])
