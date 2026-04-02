@@ -75,7 +75,19 @@ class MotorMountPlate:
             plate = plate.cut(cutter_shifted)
 
         # 4. Central bore hole for the motor front boss
-        plate = plate.faces(">Z").workplane().hole(self.motor_boss_clearance_d)
+        from models.mechanical.holes import ClearanceHole
+        from models.print_settings import ToleranceProfile
+        prof = ToleranceProfile(
+            name="legacy",
+            radial_clearance=0, # Built into motor_boss_clearance_d size natively here
+            depth_clearance=0,
+            screw_radial_allowance=0,
+            screw_head_recess=0
+        )
+        boss_hole = ClearanceHole(self.motor_boss_clearance_d, self.thickness, prof)
+        # Position at top surface Z=thickness, going down
+        cutter = boss_hole.to_cutter(overcut=2.0).translate((0, 0, self.thickness))
+        plate = plate.cut(cutter)
 
         self.solid = plate
 
