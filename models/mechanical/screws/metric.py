@@ -15,14 +15,15 @@
 
 import cadquery as cq
 import math
-from .base import Screw
+from models.mechanical.screws.base import Screw
+from models.mechanical.screws.drives import FastenerDrive, HexDrive, PhillipsDrive, SlottedDrive
 
 METRIC_SIZES = {
-    "M2":   {"major": 2.0, "clearance": 2.2, "tap": 1.6, "flat_head_dia": 3.8,  "flat_head_h": 1.2, "socket_head_dia": 3.8,  "socket_head_h": 2.0, "pan_head_dia": 4.0, "pan_head_h": 1.6},
-    "M2.5": {"major": 2.5, "clearance": 2.7, "tap": 2.1, "flat_head_dia": 4.7,  "flat_head_h": 1.5, "socket_head_dia": 4.5,  "socket_head_h": 2.5, "pan_head_dia": 5.0, "pan_head_h": 2.1},
-    "M3":   {"major": 3.0, "clearance": 3.2, "tap": 2.5, "flat_head_dia": 5.5,  "flat_head_h": 1.7, "socket_head_dia": 5.5,  "socket_head_h": 3.0, "pan_head_dia": 5.6, "pan_head_h": 2.4},
-    "M4":   {"major": 4.0, "clearance": 4.3, "tap": 3.3, "flat_head_dia": 8.4,  "flat_head_h": 2.7, "socket_head_dia": 7.0,  "socket_head_h": 4.0, "pan_head_dia": 8.0, "pan_head_h": 3.1},
-    "M5":   {"major": 5.0, "clearance": 5.3, "tap": 4.2, "flat_head_dia": 9.3,  "flat_head_h": 2.7, "socket_head_dia": 8.5,  "socket_head_h": 5.0, "pan_head_dia": 9.5, "pan_head_h": 3.7},
+    "M2":   {"drive_size": 1.5, "drive_depth": 1.0, "major": 2.0, "clearance": 2.2, "tap": 1.6, "flat_head_dia": 3.8,  "flat_head_h": 1.2, "socket_head_dia": 3.8,  "socket_head_h": 2.0, "pan_head_dia": 4.0, "pan_head_h": 1.6},
+    "M2.5": {"drive_size": 2.0, "drive_depth": 1.3, "major": 2.5, "clearance": 2.7, "tap": 2.1, "flat_head_dia": 4.7,  "flat_head_h": 1.5, "socket_head_dia": 4.5,  "socket_head_h": 2.5, "pan_head_dia": 5.0, "pan_head_h": 2.1},
+    "M3":   {"drive_size": 2.5, "drive_depth": 1.5, "major": 3.0, "clearance": 3.2, "tap": 2.5, "flat_head_dia": 5.5,  "flat_head_h": 1.7, "socket_head_dia": 5.5,  "socket_head_h": 3.0, "pan_head_dia": 5.6, "pan_head_h": 2.4},
+    "M4":   {"drive_size": 3.0, "drive_depth": 2.0, "major": 4.0, "clearance": 4.3, "tap": 3.3, "flat_head_dia": 8.4,  "flat_head_h": 2.7, "socket_head_dia": 7.0,  "socket_head_h": 4.0, "pan_head_dia": 8.0, "pan_head_h": 3.1},
+    "M5":   {"drive_size": 4.0, "drive_depth": 2.5, "major": 5.0, "clearance": 5.3, "tap": 4.2, "flat_head_dia": 9.3,  "flat_head_h": 2.7, "socket_head_dia": 8.5,  "socket_head_h": 5.0, "pan_head_dia": 9.5, "pan_head_h": 3.7},
 }
 
 class MetricMachineScrew(Screw):
@@ -37,7 +38,8 @@ class MetricMachineScrew(Screw):
         tap_diameter: float,
         head_type: str = "socket",
         drive_type: str = "hex",
-        head_angle: float = 90.0
+        head_angle: float = 90.0,
+        drive: FastenerDrive = None
     ):
         self.length = float(length)
         self.major_diameter = float(major_diameter)
@@ -48,6 +50,7 @@ class MetricMachineScrew(Screw):
         self.head_type = head_type.lower()
         self.drive_type = drive_type
         self.head_angle = float(head_angle)
+        self.drive = drive
 
     @classmethod
     def from_size(cls, size: str, length: float, head_type: str = "socket", drive_type: str = "hex") -> "MetricMachineScrew":
@@ -55,10 +58,10 @@ class MetricMachineScrew(Screw):
         size = size.upper()
         if size not in METRIC_SIZES:
             raise ValueError(f"Unsupported metric size: {size}. Available: {list(METRIC_SIZES.keys())}")
-            
+
         data = METRIC_SIZES[size]
         head_type = head_type.lower()
-        
+
         if head_type == "flat":
             head_dia = data["flat_head_dia"]
             head_h = data["flat_head_h"]
@@ -70,7 +73,16 @@ class MetricMachineScrew(Screw):
             head_h = data["pan_head_h"]
         else:
             raise ValueError(f"Unknown head type: {head_type}")
-            
+
+        drive = None
+        if drive_type and "drive_size" in data:
+            if drive_type == "hex":
+                drive = HexDrive(across_flats=data["drive_size"], depth=data["drive_depth"])
+            elif drive_type == "phillips":
+                drive = PhillipsDrive(diameter=data["drive_size"] * 1.5, width=data["drive_size"] * 0.4, depth=data["drive_depth"])
+            elif drive_type == "slotted":
+                drive = SlottedDrive(length=head_dia * 0.8, width=1.0, depth=data["drive_depth"] * 0.8)
+
         return cls(
             length=length,
             major_diameter=data["major"],
@@ -81,21 +93,25 @@ class MetricMachineScrew(Screw):
             head_type=head_type,
             drive_type=drive_type,
             head_angle=90.0,
+            drive=drive
         )
 
     @property
     def solid(self) -> cq.Workplane:
         """Generates the positive physical model of the metric screw."""
         shaft = cq.Workplane("XY").circle(self.major_diameter / 2).extrude(-self.length)
-        
+
         if self.head_type == "flat":
             r1 = self.head_diameter / 2.0
             r2 = self.major_diameter / 2.0
             angle_rad = math.radians(self.head_angle / 2.0)
             physical_cone_height = (r1 - r2) / math.tan(angle_rad)
             head = cq.Workplane("XY", origin=(0,0,-physical_cone_height)).circle(r2).workplane(offset=physical_cone_height).circle(r1).loft()
-            return shaft.union(head)
-            
+            res = shaft.union(head)
+            if self.drive is not None:
+                res = res.cut(self.drive.cutter)
+            return res
+
         else:
             if self.head_type == "socket":
                 head = cq.Workplane("XY").circle(self.head_diameter / 2.0).extrude(self.head_height)
@@ -105,6 +121,8 @@ class MetricMachineScrew(Screw):
                     head = head.edges(">Z").fillet(self.head_height * 0.4)
                 except:
                     pass
+            if self.drive is not None:
+                head = head.cut(self.drive.cutter.translate((0, 0, self.head_height)))
             return shaft.union(head)
 
     def to_cutter(self, mode: str = "clearance", radial_allowance: float = 0.0, head_recess_depth: float = 0.0) -> cq.Workplane:
@@ -120,10 +138,10 @@ class MetricMachineScrew(Screw):
 
         overcut = 100.0
         shaft_cutter = cq.Workplane("XY", origin=(0,0, -(self.length + overcut))).circle(shaft_radius).extrude(self.length + overcut + 1)
-        
+
         head_radius = (self.head_diameter / 2.0) + max(0.0, radial_allowance)
         z_offset = -head_recess_depth
-        
+
         if self.head_type == "flat":
             angle_rad = math.radians(self.head_angle / 2.0)
             cone_height = (head_radius - shaft_radius) / math.tan(angle_rad)
@@ -133,11 +151,11 @@ class MetricMachineScrew(Screw):
             head_cutter = cone.union(head_overcut)
         else:
             head_cutter = cq.Workplane("XY", origin=(0, 0, z_offset)).circle(head_radius).extrude(max(self.head_height, overcut))
-            
+
         return shaft_cutter.union(head_cutter)
 
 if __name__ == "__main__":
     from ocp_vscode import show
-    screw1 = MetricMachineScrew.from_size("M3", length=10, head_type="socket")
-    screw2 = MetricMachineScrew.from_size("M3", length=10, head_type="flat")
-    show(screw1.solid.translate((-5, 0, 0)), screw2.solid.translate((5, 0, 0)), names=["Socket", "Flat"])
+    screw1 = MetricMachineScrew.from_size("M3", length=10, head_type="socket", drive_type="hex")
+    screw2 = MetricMachineScrew.from_size("M3", length=10, head_type="flat", drive_type="phillips")
+    show(screw1.solid.translate((-5, 0, 0)), screw2.solid.translate((5, 0, 0)), names=["Socket (Hex)", "Flat (Phillips)"])
