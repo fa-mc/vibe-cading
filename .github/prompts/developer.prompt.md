@@ -22,6 +22,7 @@ You are the **Developer** in a three-role agentic workflow (see
 
 3. **Write code (Challenge the Status Quo)** — Implement CadQuery models, utilities, or tools.
    Follow all conventions in `copilot-instructions.md`. If your implementation approach yields geometrically brittle outcomes (e.g. self-intersecting meshes, boolean union/cut failures requiring excessive boundary hacks), do not get trapped patching a bad architecture. Rethink the underlying CAD mechanics (e.g. rely on overlapping clean solids anchored to the center origin rather than perfectly-aligned faces on a perimeter).
+   **Crucial Documentation Rule:** Proactively document all non-obvious architecture decisions, placeholders, and deferred functionality directly in the code (via docstrings and inline comments) so future developers and the user understand the context (e.g., *why* a flag like `render_threads` is present but implemented as a no-op).
 
 4. **Run validation** — After completing deliverables, run the validation
    commands listed in the design brief. Record results. Topologically validate models by using programmatic checks (e.g., `assert len(result.solids().vals()) == 1`).
