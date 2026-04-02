@@ -40,7 +40,13 @@ Open GitHub Copilot Chat and type:
 @workspace #admin please initialize the project
 ```
 
-The AI Admin agent will automatically configure your local `tmp/` folders for tool analysis and copy the default `machine_profiles.json.example` to `machine_profiles.json`. This JSON file allows you to customize the global clearances and tolerances of the entire mechanical library to perfectly match your specific 3D printer (e.g. FDM vs Resin shrinkages).
+The AI Admin agent will automatically configure your local `tmp/` folders for tool analysis and set up your manufacturing tolerance profiles. 
+
+**Manufacturing & Tolerance Profiles:**
+This repository uses a global tolerance configuration system to ensure parts fit together correctly based on your specific manufacturing method (e.g. FDM vs Resin 3D printing). 
+- **`machine_profiles.json`**: Checked into version control. Contains defaults (like `fdm_standard`, `resin_precise`).
+- **`machine_profiles_user.json`**: Untracked (gitignored). Use this to override specific keys in the default profiles or define entirely new profiles without creating a dirty git history. Your keys will be merged into the defaults.
+- **`.env`**: Untracked. You can set `VIBE_MACHINE_PROFILE=your_profile_name` here to define the global fallback profile used across all CAD scripts.
 
 ---
 

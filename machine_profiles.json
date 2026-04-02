@@ -1,0 +1,26 @@
+{
+    "fdm_standard": {
+        "radial_clearance": 0.15,
+        "depth_clearance": 0.20,
+        "screw_radial_allowance": 0.10,
+        "screw_head_recess": 0.15,
+        "axle_hole_tip_to_tip": 5.08,
+        "axle_hole_arm_width": 1.92
+    },
+    "resin_precise": {
+        "radial_clearance": 0.05,
+        "depth_clearance": 0.05,
+        "screw_radial_allowance": 0.02,
+        "screw_head_recess": 0.05,
+        "axle_hole_tip_to_tip": 4.82,
+        "axle_hole_arm_width": 1.64
+    },
+    "cnc": {
+        "radial_clearance": 0.02,
+        "depth_clearance": 0.00,
+        "screw_radial_allowance": 0.00,
+        "screw_head_recess": 0.00,
+        "axle_hole_tip_to_tip": 4.80,
+        "axle_hole_arm_width": 1.83
+    }
+}
