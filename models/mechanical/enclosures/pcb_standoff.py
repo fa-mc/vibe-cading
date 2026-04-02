@@ -41,13 +41,26 @@ class PcbStandoffs:
         # Create the base pillars
         result = cq.Workplane("XY").pushPoints(self.positions).circle(self.outer_diameter / 2).extrude(self.height)
 
-        # Create the pilot holes
-        result = (
-            result.faces(">Z")
-            .workplane()
-            .pushPoints(self.positions)
-            .hole(self.hole_diameter, self.hole_depth)
+        from models.mechanical.holes import ClearanceHole
+        from models.print_settings import ToleranceProfile
+        prof = ToleranceProfile(
+            name="legacy",
+            radial_clearance=0,
+            depth_clearance=0,
+            screw_radial_allowance=0,
+            screw_head_recess=0
         )
+        
+        # hole_diameter is already the intended size including clearances for pilot.
+        # But we create a ClearanceHole going down into the standoff.
+        # It's at Z=self.height.
+        hole_def = ClearanceHole(self.hole_diameter, self.hole_depth, prof)
+        # Note: the ClearanceHole points into -Z.
+        # Translate to height and apply at all positions
+        hole_cutter = hole_def.to_cutter(overcut=1.0).translate((0, 0, self.height))
+        
+        for pos in self.positions:
+            result = result.cut(hole_cutter.translate((pos[0], pos[1], 0)))
         return result
 
 if __name__ == "__main__":
