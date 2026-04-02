@@ -103,30 +103,35 @@ class PlasticsScrew(Screw):
                 pass
             return core.union(shaft.edges("<Z").fillet(0.2)).union(head)
 
-    def to_cutter(self, mode: str = "tap", radial_allowance: float = 0.0, head_recess_depth: float = 0.0) -> cq.Workplane:
+    def to_cutter(self, mode: str = "tap", radial_allowance: float = 0.0, head_recess_depth: float = 0.0):
         if mode == "tap":
-            shaft_radius = (self.pilot_diameter / 2.0) + radial_allowance
+            shaft_dia = (self.pilot_diameter) + radial_allowance * 2
         elif mode == "clearance":
-            shaft_radius = (self.major_diameter / 2.0) + 0.1 + radial_allowance
+            shaft_dia = (self.major_diameter) + (0.1 + radial_allowance) * 2
         else:
             raise ValueError("PlasticsScrew to_cutter mode must be 'tap' or 'clearance'")
 
-        overcut = 100.0
-        shaft_cutter = cq.Workplane("XY", origin=(0,0, -(self.length + overcut))).circle(shaft_radius).extrude(self.length + overcut + 1)
-        head_radius = (self.head_diameter / 2.0) + max(0.0, radial_allowance)
-        z_offset = -head_recess_depth
+        from models.mechanical.holes import CounterboreHole
+        from models.print_settings import ToleranceProfile
         
-        if self.head_type == "flat":
-            angle_rad = math.radians(self.head_angle / 2.0)
-            cone_height = (head_radius - shaft_radius) / math.tan(angle_rad)
-            cone = (cq.Workplane("XY", origin=(0, 0, z_offset - cone_height))
-                    .circle(shaft_radius).workplane(offset=cone_height).circle(head_radius).loft())
-            head_overcut = cq.Workplane("XY", origin=(0, 0, z_offset)).circle(head_radius).extrude(overcut)
-            head_cutter = cone.union(head_overcut)
-        else:
-            head_cutter = cq.Workplane("XY", origin=(0, 0, z_offset)).circle(head_radius).extrude(max(self.head_height, overcut))
-            
-        return shaft_cutter.union(head_cutter)
+        custom_prof = ToleranceProfile(
+            name="legacy_override",
+            radial_clearance=0.0,
+            depth_clearance=0.0,
+            screw_radial_allowance=radial_allowance,
+            screw_head_recess=head_recess_depth
+        )
+        
+        hole = CounterboreHole(
+            shaft_diameter=shaft_dia,
+            shaft_depth=self.length,
+            head_diameter=self.head_diameter,
+            head_depth=self.head_height,
+            head_type="cylinder" if self.head_type != "flat" else "cone",
+            head_angle=self.head_angle if self.head_type == "flat" else 90.0,
+            profile=custom_prof
+        )
+        return hole.to_cutter()
 
 if __name__ == "__main__":
     from ocp_vscode import show
