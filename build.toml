@@ -109,7 +109,8 @@ material               = "PETG"
 model  = "mechanical.hinge.PrintInPlaceHinge"
 output = "mechanical/hinge_print_in_place.step"
 [build.params]
-length = 30.0
+leaf_a_length = 20.0
+leaf_b_length = 20.0
 width = 20.0
 thickness = 4.0
 knuckle_diameter = 10.0

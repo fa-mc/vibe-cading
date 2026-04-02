@@ -12,7 +12,6 @@ tmp/
 *.stp
 *.step
 *.svg
-.env
 /memories/session/ideas.md
 
 # Agent files
@@ -21,7 +20,8 @@ tmp/
 .agent
 
 # Local machine tolerances
-machine_profiles.json
+machine_profiles_user.json
+.env
 
 # Python Packaging
 *.egg-info/
