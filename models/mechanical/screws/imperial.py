@@ -100,47 +100,35 @@ class ImperialMachineScrew(Screw):
 
         return head.union(shaft)
 
-    def to_cutter(self, mode: str = "clearance", radial_allowance: float = 0.0, head_recess_depth: float = 0.0) -> cq.Workplane:
+    def to_cutter(self, mode: str = "clearance", radial_allowance: float = 0.0, head_recess_depth: float = 0.0):
         if mode == "clearance":
-            shaft_radius = (self.major_diameter / 2.0) + radial_allowance + 0.15
+            shaft_dia = (self.major_diameter) + (radial_allowance + 0.15) * 2
         elif mode == "tap":
-            shaft_radius = (self.major_diameter / 2.0) - 0.15 + radial_allowance
+            shaft_dia = (self.major_diameter) + (-0.15 + radial_allowance) * 2
         elif mode == "interference":
-            shaft_radius = (self.major_diameter / 2.0) - 0.3 + radial_allowance
+            shaft_dia = (self.major_diameter) + (-0.3 + radial_allowance) * 2
         else:
             raise ValueError("Unsupported cutter mode")
 
-        head_radius = (self.head_diameter / 2.0) + radial_allowance
-        z_offset = -head_recess_depth
+        from models.mechanical.holes import CounterboreHole
+        from models.print_settings import ToleranceProfile
+        
+        custom_prof = ToleranceProfile(
+            name="legacy_override",
+            radial_clearance=0.0,
+            depth_clearance=0.0,
+            screw_radial_allowance=radial_allowance,
+            screw_head_recess=head_recess_depth
+        )
+        
+        hole = CounterboreHole(
+            shaft_diameter=shaft_dia,
+            shaft_depth=self.length,
+            head_diameter=self.head_diameter,
+            head_depth=self.head_height,
+            head_type="cylinder" if self.head_type != "flat" else "cone",
+            head_angle=self.head_angle if self.head_type == "flat" else 90.0,
+            profile=custom_prof
+        )
+        return hole.to_cutter()
 
-        if self.head_type == "flat":
-            angle_rad = math.radians(self.head_angle / 2.0)
-            cone_height = (head_radius - shaft_radius) / math.tan(angle_rad)
-
-            upper_recess = None
-            if head_recess_depth > 0:
-                upper_recess = cq.Workplane("XY").circle(head_radius).extrude(-head_recess_depth)
-            countersink = (cq.Workplane("XY").transformed(offset=cq.Vector(0, 0, z_offset))
-                           .circle(head_radius).workplane(offset=-cone_height).circle(shaft_radius).loft())
-
-            shaft_z = z_offset - cone_height
-            shaft_len = self.length - self.head_height + head_recess_depth + cone_height
-            shaft = cq.Workplane("XY").transformed(offset=cq.Vector(0, 0, shaft_z)).circle(shaft_radius).extrude(-shaft_len - 5.0)
-
-            cutter = countersink.union(shaft)
-            if upper_recess:
-                cutter = upper_recess.union(cutter)
-        else:
-            head = cq.Workplane("XY").circle(head_radius).extrude(self.head_height + 5.0)
-            if head_recess_depth > 0:
-                recess = cq.Workplane("XY").circle(head_radius).extrude(-head_recess_depth)
-                head = head.union(recess)
-            shaft = cq.Workplane("XY").transformed(offset=cq.Vector(0, 0, z_offset)).circle(shaft_radius).extrude(-self.length - 5.0)
-            cutter = head.union(shaft)
-
-        return cutter
-
-if __name__ == "__main__":
-    from ocp_vscode import show
-    unc = ImperialMachineScrew.from_size("6-32", 10, head_type="flat")
-    show(unc.solid.translate((-5, 0, 0)), unc.to_cutter(mode="clearance").translate((5, 0, 0)), names=["6-32", "6-32 Cutter"])

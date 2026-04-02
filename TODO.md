@@ -6,7 +6,7 @@ We are expanding this repository into a broader Code-CAD mechanical toolkit. Her
 - [x] Add fastener drive types: Support generating drive sockets (hex, phillips, slotted, torx) into screw heads for accurate visual rendering and modeling.
 
 ## 🛠️ Architecture Refactors
-- [ ] Refactor hole generation: Extract hole logic from fastener `.to_cutter()` methods into dedicated feature classes (e.g. `ClearanceHole`, `CounterboreHole`, `TeardropHole`) to handle tolerance injections and specialized print profiles independently.
+- [x] Refactor hole generation: Extract hole logic from fastener `.to_cutter()` methods into dedicated feature classes (e.g. `ClearanceHole`, `CounterboreHole`, `TeardropHole`) to handle tolerance injections and specialized print profiles independently.
 - [ ] Refactor primitive classes (Joints, Screws, Bearings, Axles) to seamlessly support `models.print_settings.ToleranceProfile` injections instead of hardcoded float parameters.
 - [ ] Explore true 3D helical thread generation for screws/nuts (behind a `render_threads: bool` flag), carefully evaluating AGPL compliance, performance regressions, and OCCT boolean stability.
 
