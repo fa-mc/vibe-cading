@@ -60,18 +60,34 @@ class SetScrew(Screw):
     def solid(self) -> cq.Workplane:
         return cq.Workplane("XY").circle(self.major_diameter / 2).extrude(-self.length)
 
-    def to_cutter(self, mode: str = "tap", radial_allowance: float = 0.0, head_recess_depth: float = 0.0) -> cq.Workplane:
+    def to_cutter(self, mode: str = "tap", radial_allowance: float = 0.0, head_recess_depth: float = 0.0):
         if mode == "tap":
-            shaft_radius = (self.tap_diameter / 2.0) + radial_allowance
+            shaft_dia = (self.tap_diameter) + radial_allowance * 2
         elif mode == "clearance":
-            shaft_radius = (self.clearance_diameter / 2.0) + radial_allowance
+            shaft_dia = (self.clearance_diameter) + radial_allowance * 2
         else:
             raise ValueError("SetScrew to_cutter mode must be 'tap' or 'clearance'")
 
-        overcut = 100.0
-        # For a grub screw, the 'head' is flush with the top, so we push the cutter all the way through the recess.
-        z_start = -head_recess_depth + overcut
-        return cq.Workplane("XY", origin=(0, 0, z_start)).circle(shaft_radius).extrude(-(self.length + overcut*2))
+        from models.mechanical.holes import ClearanceHole
+        from models.print_settings import ToleranceProfile
+        
+        custom_prof = ToleranceProfile(
+            name="legacy_override",
+            radial_clearance=0.0,
+            depth_clearance=0.0,
+            screw_radial_allowance=radial_allowance,
+            screw_head_recess=head_recess_depth
+        )
+        
+        hole = ClearanceHole(
+            diameter=shaft_dia,
+            depth=self.length,
+            profile=custom_prof
+        )
+        
+        # We need to translate the hole cutter down by head_recess_depth to match old behavior
+        # where it started at -head_recess_depth
+        return hole.to_cutter().translate((0, 0, -head_recess_depth))
 
 if __name__ == "__main__":
     from ocp_vscode import show
