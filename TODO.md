@@ -3,7 +3,7 @@
 We are expanding this repository into a broader Code-CAD mechanical toolkit. Here are the components planned for future development:
 
 ## 🔩 Mechanical & Hardware Utilities
-- [ ] Add fastener drive types: Support generating drive sockets (hex, phillips, slotted, torx) into screw heads for accurate visual rendering and modeling.
+- [x] Add fastener drive types: Support generating drive sockets (hex, phillips, slotted, torx) into screw heads for accurate visual rendering and modeling.
 
 ## 🛠️ Architecture Refactors
 - [ ] Refactor hole generation: Extract hole logic from fastener `.to_cutter()` methods into dedicated feature classes (e.g. `ClearanceHole`, `CounterboreHole`, `TeardropHole`) to handle tolerance injections and specialized print profiles independently.
