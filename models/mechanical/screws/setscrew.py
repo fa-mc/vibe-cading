@@ -60,7 +60,11 @@ class SetScrew(Screw):
     def solid(self) -> cq.Workplane:
         return cq.Workplane("XY").circle(self.major_diameter / 2).extrude(-self.length)
 
-    def to_cutter(self, mode: str = "tap", radial_allowance: float = 0.0, head_recess_depth: float = 0.0):
+    def to_cutter(self, mode: str = "tap", profile = None):
+        from models.print_settings import get_profile
+        prof = profile or get_profile()
+        radial_allowance = prof.free_fit
+        head_recess_depth = prof.z_clearance
         if mode == "tap":
             shaft_dia = (self.tap_diameter) + radial_allowance * 2
         elif mode == "clearance":

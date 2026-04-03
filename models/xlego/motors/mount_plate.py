@@ -15,7 +15,7 @@
 
 import cadquery as cq
 from models.mechanical.screws import MetricMachineScrew
-from models.print_settings import get_screw_allowances
+from models.print_settings import get_profile
 
 class MotorMountPlate:
     def __init__(self, gearbox_screw_size="M2.5", motor_screw_size="M3", motor_hole_dist=17.0, motor_boss_clearance_d=9.0, material="PLA"):
@@ -25,9 +25,7 @@ class MotorMountPlate:
         self.motor_boss_clearance_d = motor_boss_clearance_d
 
         self.material = material
-        allowances = get_screw_allowances(self.material)
-        self.radial_allowance = allowances["radial_allowance"]
-        self.head_recess = allowances["head_recess_depth"]
+        self.profile = get_profile(self.material)
 
         self.width = 24.0
         self.height = 24.0
@@ -52,7 +50,7 @@ class MotorMountPlate:
         # 2. Corner holes (Mounts plate down to gear box)
         # Flathead screws facing down, flat on the top surface
         gb_screw = MetricMachineScrew.from_size(size=self.gearbox_screw_size, length=self.thickness + 2.0, head_type="flat", drive_type="hex")
-        gb_cutter = gb_screw.to_cutter(mode="clearance", radial_allowance=self.radial_allowance, head_recess_depth=self.head_recess)
+        gb_cutter = gb_screw.to_cutter(mode="clearance", profile=self.profile)
 
         for pt in self.corner_hole_centers:
             # Shift cutting tool to the top face (Z = thickness)
@@ -62,7 +60,7 @@ class MotorMountPlate:
         # 3. Motor mounting holes (Mounts motor to the plate)
         # Flathead screws facing UP, flat on the bottom surface
         motor_screw = MetricMachineScrew.from_size(size=self.motor_screw_size, length=self.thickness + 2.0, head_type="flat", drive_type="hex")
-        motor_cutter = motor_screw.to_cutter(mode="clearance", radial_allowance=self.radial_allowance, head_recess_depth=self.head_recess).rotate((0,0,0), (1,0,0), 180)
+        motor_cutter = motor_screw.to_cutter(mode="clearance", profile=self.profile).rotate((0,0,0), (1,0,0), 180)
 
         motor_pts = [
             (self.motor_hole_dist/2, 0.0),
