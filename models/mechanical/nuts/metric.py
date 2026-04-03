@@ -55,16 +55,13 @@ class MetricHexNut(Nut):
             base = base.cut(hole_cutter)
         return base
 
-    def to_cutter(self, radial_allowance: float = 0.15, depth_allowance: float = 0.2) -> cq.Workplane:
+    def to_cutter(self, profile = None) -> cq.Workplane:
+        from models.print_settings import get_profile
+        prof = profile or get_profile()
+        radial_allowance = prof.free_fit
+        depth_allowance = prof.z_clearance
         from models.mechanical.holes import CaptiveNutPocket
         from models.print_settings import ToleranceProfile
-        prof = ToleranceProfile(
-            name="legacy_override",
-            free_fit=radial_allowance,
-            z_clearance=0.0,  # thickness handled directly
-            free_fit=0,
-            z_clearance=0
-        , press_fit=0.0, slip_fit=0.0)
         pocket = CaptiveNutPocket(self.width_flats, self.thickness + depth_allowance, prof)
         # The pocket translates down by `-thickness` internally, so to match old behaviour (extruding UP from XY):
         # We need to translate the cut tool up by its thickness so it sits at Z=0 and goes to +h
@@ -122,7 +119,11 @@ class MetricSquareNut(Nut):
             base = base.cut(hole_cutter)
         return base
 
-    def to_cutter(self, radial_allowance: float = 0.15, depth_allowance: float = 0.2) -> cq.Workplane:
+    def to_cutter(self, profile = None) -> cq.Workplane:
+        from models.print_settings import get_profile
+        prof = profile or get_profile()
+        radial_allowance = prof.free_fit
+        depth_allowance = prof.z_clearance
         w = self.width_flats + (radial_allowance * 2)
         h = self.thickness + depth_allowance
         return cq.Workplane("XY").rect(w, w).extrude(h)

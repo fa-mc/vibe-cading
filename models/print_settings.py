@@ -109,11 +109,3 @@ def get_profile(name: str | None = None) -> ToleranceProfile:
         free_fit=fallback_data["free_fit"]
     )
 
-# Legacy support for screws wrapper
-def get_screw_allowances(material_or_profile: str) -> dict:
-    """Return clearance adjustments for screw holes based on material or machine profile."""
-    prof = get_profile(material_or_profile)
-    return {
-        "radial_allowance": prof.free_fit,
-        "head_recess_depth": prof.z_clearance
-    }

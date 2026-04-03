@@ -42,14 +42,9 @@ class PcbStandoffs:
         result = cq.Workplane("XY").pushPoints(self.positions).circle(self.outer_diameter / 2).extrude(self.height)
 
         from models.mechanical.holes import ClearanceHole
-        from models.print_settings import ToleranceProfile
-        prof = ToleranceProfile(
-            name="legacy",
-            free_fit=0,
-            z_clearance=0,
-            free_fit=0,
-            z_clearance=0
-        , press_fit=0.0, slip_fit=0.0)
+        from models.print_settings import get_profile
+        prof = get_profile()
+        
         
         # hole_diameter is already the intended size including clearances for pilot.
         # But we create a ClearanceHole going down into the standoff.

@@ -75,7 +75,11 @@ class Bearing:
         """The CadQuery solid representing the exact bearing geometry."""
         return self._solid
 
-    def outer_pocket(self, radial_clearance: float = 0.05, depth_clearance: float = 0.0) -> cq.Workplane:
+    def outer_pocket(self, profile=None) -> cq.Workplane:
+        from models.print_settings import get_profile
+        prof = profile or get_profile()
+        radial_clearance = prof.press_fit
+        depth_clearance = prof.z_clearance
         """Generates a cutter for burying the outer race into a printed housing.
 
         Use `radial_clearance` ~0.05mm for a tight press fit, or ~0.1mm for a looser
@@ -95,7 +99,10 @@ class Bearing:
             p = p.union(flange)
         return p
 
-    def shaft_cutter(self, radial_clearance: float = 0.1) -> cq.Workplane:
+    def shaft_cutter(self, profile=None) -> cq.Workplane:
+        from models.print_settings import get_profile
+        prof = profile or get_profile()
+        radial_clearance = prof.slip_fit
         """Generates a basic inner cylinder to cut an axis hole through the housing
         so a shaft can freely pass through the bearing without binding.
         """
@@ -137,7 +144,7 @@ class Bearing:
 if __name__ == "__main__":
     from ocp_vscode import show
     brg = Bearing.f623()
-    pocket = brg.outer_pocket(radial_clearance=0.1)
+    pocket = brg.outer_pocket()
 
     # Example housing demonstrating the cut
     housing = cq.Workplane("XY").rect(20, 20).extrude(10)
