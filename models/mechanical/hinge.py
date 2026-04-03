@@ -56,8 +56,8 @@ class PrintInPlaceHinge:
         self.knuckle_diameter = knuckle_diameter
         self.knuckle_count = max(2, knuckle_count)
         self.angle = angle
-        self.clearance = profile.radial_clearance
-        self.face_gap = profile.radial_clearance
+        self.clearance = profile.free_fit
+        self.face_gap = profile.free_fit
         
         # Calculate knuckle segments
         self.total_gaps = (self.knuckle_count - 1) * self.face_gap
