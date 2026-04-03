@@ -74,7 +74,9 @@ class ToleranceGauge:
 
             # 2. Row 2 (y_coords[1]): MR85 Bearing outer pocket (8mm OD, 2.5mm thick)
             brg = Bearing(inner_dia=5.0, outer_dia=8.0, thickness=2.5)
-            brg_pocket = brg.outer_pocket(radial_clearance=offset)
+            from models.print_settings import ToleranceProfile
+            p = ToleranceProfile("test", z_clearance=0, press_fit=offset, slip_fit=0, free_fit=0)
+            brg_pocket = brg.outer_pocket(profile=p)
             # Pocket goes from Z=0 to 2.5. Translate to top surface.
             pocket_z = self.base_thickness - 2.5
             brg_pocket = brg_pocket.translate((x, y_coords[1], pocket_z))

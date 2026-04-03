@@ -91,7 +91,11 @@ class WoodScrew(Screw):
                 pass
             return shaft.union(head)
 
-    def to_cutter(self, mode: str = "clearance", radial_allowance: float = 0.0, head_recess_depth: float = 0.0):
+    def to_cutter(self, mode: str = "clearance", profile = None):
+        from models.print_settings import get_profile
+        prof = profile or get_profile()
+        radial_allowance = prof.free_fit
+        head_recess_depth = prof.z_clearance
         if mode == "clearance":
             shaft_dia = (self.clearance_diameter) + radial_allowance * 2
         elif mode == "tap":

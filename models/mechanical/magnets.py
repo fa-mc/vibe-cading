@@ -37,7 +37,11 @@ class DiscMagnet:
         """The CadQuery solid representing the standard magnet body."""
         return cq.Workplane("XY").circle(self.diameter / 2.0).extrude(self.thickness)
 
-    def pocket(self, radial_clearance: float = 0.05, depth_clearance: float = 0.1) -> cq.Workplane:
+    def pocket(self, profile=None) -> cq.Workplane:
+        from models.print_settings import get_profile
+        prof = profile or get_profile()
+        radial_clearance = prof.slip_fit
+        depth_clearance = prof.z_clearance
         """Cutter tool for making a press-fit or glue-in pocket.
 
         Parameters
@@ -89,7 +93,11 @@ class BarMagnet:
     def solid(self) -> cq.Workplane:
         return cq.Workplane("XY").rect(self.length, self.width).extrude(self.thickness)
 
-    def pocket(self, clearance: float = 0.1) -> cq.Workplane:
+    def pocket(self, profile=None) -> cq.Workplane:
+        from models.print_settings import get_profile
+        prof = profile or get_profile()
+        clearance = prof.slip_fit
+        z_clearance = prof.z_clearance
         """Cutter for a glue-in pocket.
 
         Applies a uniform clearance around the X, Y profiles, and adds Z-depth.
@@ -97,7 +105,7 @@ class BarMagnet:
         return (
             cq.Workplane("XY")
             .rect(self.length + clearance * 2.0, self.width + clearance * 2.0)
-            .extrude(self.thickness + clearance)
+            .extrude(self.thickness + z_clearance)
         )
 
     @classmethod
@@ -112,7 +120,7 @@ if __name__ == "__main__":
 
     show(
         mag.solid.translate((-10, 0, 0)),
-        mag.pocket(radial_clearance=0.1).translate((-10, 10, 0)),
+        mag.pocket().translate((-10, 10, 0)),
         b_mag.solid.translate((10, 0, 0)),
         b_mag.pocket(clearance=0.1).translate((10, 10, 0)),
         names=["D6x3", "D6x3 Pocket", "B10x5x2", "B10x5 Pocket"]
