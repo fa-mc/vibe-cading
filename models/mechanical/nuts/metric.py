@@ -60,11 +60,11 @@ class MetricHexNut(Nut):
         from models.print_settings import ToleranceProfile
         prof = ToleranceProfile(
             name="legacy_override",
-            radial_clearance=radial_allowance,
-            depth_clearance=0.0,  # thickness handled directly
-            screw_radial_allowance=0,
-            screw_head_recess=0
-        )
+            free_fit=radial_allowance,
+            z_clearance=0.0,  # thickness handled directly
+            free_fit=0,
+            z_clearance=0
+        , press_fit=0.0, slip_fit=0.0)
         pocket = CaptiveNutPocket(self.width_flats, self.thickness + depth_allowance, prof)
         # The pocket translates down by `-thickness` internally, so to match old behaviour (extruding UP from XY):
         # We need to translate the cut tool up by its thickness so it sits at Z=0 and goes to +h

@@ -45,11 +45,11 @@ class PcbStandoffs:
         from models.print_settings import ToleranceProfile
         prof = ToleranceProfile(
             name="legacy",
-            radial_clearance=0,
-            depth_clearance=0,
-            screw_radial_allowance=0,
-            screw_head_recess=0
-        )
+            free_fit=0,
+            z_clearance=0,
+            free_fit=0,
+            z_clearance=0
+        , press_fit=0.0, slip_fit=0.0)
         
         # hole_diameter is already the intended size including clearances for pilot.
         # But we create a ClearanceHole going down into the standoff.

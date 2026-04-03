@@ -106,11 +106,11 @@ class WoodScrew(Screw):
         
         custom_prof = ToleranceProfile(
             name="legacy_override",
-            radial_clearance=0.0,
-            depth_clearance=0.0,
-            screw_radial_allowance=radial_allowance,
-            screw_head_recess=head_recess_depth
-        )
+            
+            
+            free_fit=radial_allowance,
+            z_clearance=head_recess_depth
+        , press_fit=0.0, slip_fit=0.0)
         
         hole = CounterboreHole(
             shaft_diameter=shaft_dia,

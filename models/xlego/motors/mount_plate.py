@@ -79,10 +79,10 @@ class MotorMountPlate:
         from models.print_settings import ToleranceProfile
         prof = ToleranceProfile(
             name="legacy",
-            radial_clearance=0, # Built into motor_boss_clearance_d size natively here
-            depth_clearance=0,
-            screw_radial_allowance=0,
-            screw_head_recess=0
+            free_fit=0.0,
+            z_clearance=0.0,
+            press_fit=0.0,
+            slip_fit=0.0
         )
         boss_hole = ClearanceHole(self.motor_boss_clearance_d, self.thickness, prof)
         # Position at top surface Z=thickness, going down
