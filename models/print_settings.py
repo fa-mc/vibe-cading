@@ -38,15 +38,15 @@ def get_default_profile_name() -> str:
 @dataclass
 class ToleranceProfile:
     name: str
-    radial_clearance: float
-    depth_clearance: float
-    screw_radial_allowance: float
-    screw_head_recess: float
+    z_clearance: float
+    press_fit: float
+    slip_fit: float
+    free_fit: float
 
 def _load_json_profiles() -> dict:
     """Loads profiles from machine_profiles.json and machine_profiles_user.json."""
     profiles = {}
-    
+
     # 1. Load repository defaults
     repo_file = Path(__file__).parent.parent / "machine_profiles.json"
     if repo_file.exists():
@@ -55,7 +55,7 @@ def _load_json_profiles() -> dict:
                 profiles.update(json.load(f))
         except Exception as e:
             print(f"Warning: Could not parse machine_profiles.json - {e}")
-            
+
     # 2. Load user overrides (takes precedence)
     user_file = Path(__file__).parent.parent / "machine_profiles_user.json"
     if user_file.exists():
@@ -69,44 +69,44 @@ def _load_json_profiles() -> dict:
                         profiles[k] = v
         except Exception as e:
             print(f"Warning: Could not parse machine_profiles_user.json - {e}")
-            
+
     return profiles
 
 def get_profile(name: str | None = None) -> ToleranceProfile:
     """Load a specific manufacturing tolerance profile."""
     name = name or get_default_profile_name()
-    
+
     profiles = _load_json_profiles()
-    
+
     if name in profiles:
         data = profiles[name]
         return ToleranceProfile(
             name=name,
-            radial_clearance=data.get("radial_clearance", 0.15),
-            depth_clearance=data.get("depth_clearance", 0.20),
-            screw_radial_allowance=data.get("screw_radial_allowance", 0.10),
-            screw_head_recess=data.get("screw_head_recess", 0.15),
+            z_clearance=data.get("z_clearance", data.get("z_clearance", 0.20)),
+            press_fit=data.get("press_fit", 0.04),
+            slip_fit=data.get("slip_fit", 0.05),
+            free_fit=data.get("free_fit", data.get("radial_clearance", 0.15)),
         )
         
     # Hardcoded safety fallback if JSON is entirely broken
     fallback_data = {
-        "radial_clearance": 0.15,
-        "depth_clearance": 0.20,
-        "screw_radial_allowance": 0.10,
-        "screw_head_recess": 0.15
+        "z_clearance": 0.20,
+        "press_fit": 0.04,
+        "slip_fit": 0.05,
+        "free_fit": 0.15
     }
     name_lower = name.lower()
     if "resin" in name_lower:
-        fallback_data = {"radial_clearance": 0.05, "depth_clearance": 0.05, "screw_radial_allowance": 0.02, "screw_head_recess": 0.05}
+        fallback_data = {"z_clearance": 0.05, "press_fit": 0.02, "slip_fit": 0.03, "free_fit": 0.05}
     elif "cnc" in name_lower or "machined" in name_lower:
-        fallback_data = {"radial_clearance": 0.02, "depth_clearance": 0.0, "screw_radial_allowance": 0.0, "screw_head_recess": 0.0}
+        fallback_data = {"z_clearance": 0.0, "press_fit": 0.0, "slip_fit": 0.01, "free_fit": 0.02}
 
     return ToleranceProfile(
         name=name,
-        radial_clearance=fallback_data["radial_clearance"],
-        depth_clearance=fallback_data["depth_clearance"],
-        screw_radial_allowance=fallback_data["screw_radial_allowance"],
-        screw_head_recess=fallback_data["screw_head_recess"]
+        z_clearance=fallback_data["z_clearance"],
+        press_fit=fallback_data["press_fit"],
+        slip_fit=fallback_data["slip_fit"],
+        free_fit=fallback_data["free_fit"]
     )
 
 # Legacy support for screws wrapper
@@ -114,6 +114,6 @@ def get_screw_allowances(material_or_profile: str) -> dict:
     """Return clearance adjustments for screw holes based on material or machine profile."""
     prof = get_profile(material_or_profile)
     return {
-        "radial_allowance": prof.screw_radial_allowance,
-        "head_recess_depth": prof.screw_head_recess
+        "radial_allowance": prof.free_fit,
+        "head_recess_depth": prof.z_clearance
     }

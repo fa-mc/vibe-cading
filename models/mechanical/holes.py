@@ -42,7 +42,7 @@ class ClearanceHole:
     @property
     def solid(self) -> cq.Workplane:
         """Returns the positive hole geometry."""
-        r = (self.diameter / 2.0) + self.tolerance.radial_clearance
+        r = (self.diameter / 2.0) + self.tolerance.free_fit
         return cq.Workplane("XY", origin=(0, 0, -self.depth)).circle(r).extrude(self.depth)
 
     def to_cutter(self, overcut: float = 100.0) -> cq.Workplane:
@@ -50,7 +50,7 @@ class ClearanceHole:
         Tool for boolean subtraction.
         Z extrudes from `-(depth + overcut)` all the way up through the Z=0 boundary `+ overcut`.
         """
-        r = (self.diameter / 2.0) + self.tolerance.radial_clearance
+        r = (self.diameter / 2.0) + self.tolerance.free_fit
         return cq.Workplane("XY", origin=(0, 0, -(self.depth + overcut))).circle(r).extrude(self.depth + 2 * overcut)
 
 class CounterboreHole:
@@ -87,11 +87,11 @@ class CounterboreHole:
     @property
     def solid(self) -> cq.Workplane:
         """Positive representation of the hole, anchored at Z=0."""
-        shaft_r = (self.shaft_diameter / 2.0) + self.tolerance.radial_clearance
+        shaft_r = (self.shaft_diameter / 2.0) + self.tolerance.free_fit
         shaft = cq.Workplane("XY", origin=(0, 0, -self.shaft_depth)).circle(shaft_r).extrude(self.shaft_depth)
 
-        head_r = (self.head_diameter / 2.0) + max(0.0, self.tolerance.screw_radial_allowance)
-        z_recess = -self.tolerance.screw_head_recess
+        head_r = (self.head_diameter / 2.0) + max(0.0, self.tolerance.free_fit)
+        z_recess = -self.tolerance.z_clearance
 
         if self.head_type == "cone":
             angle_rad = math.radians(self.head_angle / 2.0)
@@ -105,11 +105,11 @@ class CounterboreHole:
 
     def to_cutter(self, overcut: float = 100.0) -> cq.Workplane:
         """Boolean subtraction tool with infinite overhang for clean cuts."""
-        shaft_r = (self.shaft_diameter / 2.0) + self.tolerance.radial_clearance
+        shaft_r = (self.shaft_diameter / 2.0) + self.tolerance.free_fit
         shaft = cq.Workplane("XY", origin=(0, 0, -(self.shaft_depth + overcut))).circle(shaft_r).extrude(self.shaft_depth + overcut + 1)
 
-        head_r = (self.head_diameter / 2.0) + max(0.0, self.tolerance.screw_radial_allowance)
-        z_recess = -self.tolerance.screw_head_recess
+        head_r = (self.head_diameter / 2.0) + max(0.0, self.tolerance.free_fit)
+        z_recess = -self.tolerance.z_clearance
 
         if self.head_type == "cone":
             angle_rad = math.radians(self.head_angle / 2.0)
@@ -149,7 +149,7 @@ class TeardropHole:
 
     def _get_teardrop_wire(self) -> cq.Workplane:
         """Generates the 2D footprint."""
-        r = (self.diameter / 2.0) + self.tolerance.radial_clearance
+        r = (self.diameter / 2.0) + self.tolerance.free_fit
         # A simple teardrop polygon combined with an arc
         # We'll just trace half the circle into a point
         return cq.Workplane("XY").polyline([
@@ -193,13 +193,13 @@ class SlottedHole:
 
     @property
     def solid(self) -> cq.Workplane:
-        r = (self.diameter / 2.0) + self.tolerance.radial_clearance
+        r = (self.diameter / 2.0) + self.tolerance.free_fit
         # CadQuery slot2D takes overall length and diameter
         l = max(self.length, self.diameter) # Prevent invalid slots where length < diameter
         return cq.Workplane("XY", origin=(0, 0, -self.depth)).slot2D(l, r * 2).extrude(self.depth)
 
     def to_cutter(self, overcut: float = 100.0) -> cq.Workplane:
-        r = (self.diameter / 2.0) + self.tolerance.radial_clearance
+        r = (self.diameter / 2.0) + self.tolerance.free_fit
         l = max(self.length, self.diameter)
         return cq.Workplane("XY", origin=(0, 0, -(self.depth + overcut))).slot2D(l, r * 2).extrude(self.depth + 2 * overcut)
 
@@ -231,16 +231,16 @@ class TaperedHole:
 
     @property
     def solid(self) -> cq.Workplane:
-        top_r = (self.top_diameter / 2.0) + self.tolerance.radial_clearance
-        bot_r = (self.bottom_diameter / 2.0) + self.tolerance.radial_clearance
+        top_r = (self.top_diameter / 2.0) + self.tolerance.free_fit
+        bot_r = (self.bottom_diameter / 2.0) + self.tolerance.free_fit
         return (cq.Workplane("XY", origin=(0, 0, -self.depth))
                 .circle(bot_r).workplane(offset=self.depth).circle(top_r).loft())
 
     def to_cutter(self, overcut: float = 100.0) -> cq.Workplane:
         # For the cutter, we must extend the top and bottom cones straight out
         # rather than just lofting the overcuts, to avoid unintended scaling
-        top_r = (self.top_diameter / 2.0) + self.tolerance.radial_clearance
-        bot_r = (self.bottom_diameter / 2.0) + self.tolerance.radial_clearance
+        top_r = (self.top_diameter / 2.0) + self.tolerance.free_fit
+        bot_r = (self.bottom_diameter / 2.0) + self.tolerance.free_fit
         
         main_cone = (cq.Workplane("XY", origin=(0, 0, -self.depth))
                      .circle(bot_r).workplane(offset=self.depth).circle(top_r).loft())
@@ -278,8 +278,8 @@ class Keyhole:
         return self._profile
 
     def _get_keyhole_wire(self) -> cq.Workplane:
-        head_r = (self.head_diameter / 2.0) + self.tolerance.radial_clearance
-        shaft_r = (self.shaft_diameter / 2.0) + self.tolerance.radial_clearance
+        head_r = (self.head_diameter / 2.0) + self.tolerance.free_fit
+        shaft_r = (self.shaft_diameter / 2.0) + self.tolerance.free_fit
         
         # Base circular entry for the head
         entry = cq.Workplane("XY").circle(head_r)
@@ -328,13 +328,13 @@ class CaptiveNutPocket:
         # In CadQuery, polygon(6, diameter) defines a circumscribed circle diameter.
         # Width Across Flats (WAF) = Inscribed Circle Diameter
         # circumscribed diameter = WAF / cos(30 degrees)
-        r_inscribed = (self.width_across_flats / 2.0) + self.tolerance.radial_clearance
+        r_inscribed = (self.width_across_flats / 2.0) + self.tolerance.free_fit
         r_circumscribed = r_inscribed / math.cos(math.radians(30))
         
         return cq.Workplane("XY", origin=(0, 0, -self.thickness)).polygon(6, r_circumscribed * 2).extrude(self.thickness)
 
     def to_cutter(self, overcut: float = 100.0) -> cq.Workplane:
-        r_inscribed = (self.width_across_flats / 2.0) + self.tolerance.radial_clearance
+        r_inscribed = (self.width_across_flats / 2.0) + self.tolerance.free_fit
         r_circumscribed = r_inscribed / math.cos(math.radians(30))
         
         # A trapped nut usually only cuts down into the object (not infinitely out the back), 

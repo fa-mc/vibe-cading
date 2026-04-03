@@ -1,14 +1,14 @@
 {
     "my_custom_ender3": {
-        "radial_clearance": 0.20,
-        "depth_clearance": 0.25,
-        "screw_radial_allowance": 0.15,
-        "screw_head_recess": 0.2
+        "z_clearance": 0.25,
+        "press_fit": 0.04,
+        "slip_fit": 0.05,
+        "free_fit": 0.15
     },
     "my_saturn_resin": {
-        "radial_clearance": 0.05,
-        "depth_clearance": 0.05,
-        "screw_radial_allowance": 0.02,
-        "screw_head_recess": 0.05
+        "z_clearance": 0.05,
+        "press_fit": 0.02,
+        "slip_fit": 0.03,
+        "free_fit": 0.05
     }
 }
