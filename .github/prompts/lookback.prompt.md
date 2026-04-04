@@ -32,6 +32,7 @@ Work through these questions to generate the feedback:
 - Did you run a long sequence of commands that could be a single tool?
 - Did you wish you could query the geometry in a way no existing tool
   supports?
+- Did you create a throwaway script in `tmp/` during this task that proved continuously useful and should be promoted to a permanent tool in `tools/` with a proper CLI layout?
 
 ### Plan deficiencies
 - Were any deliverables underspecified?
