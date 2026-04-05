@@ -6,9 +6,9 @@ This project uses a structured workflow for complex tasks, divided into **Contri
 
 | Role | Type | Responsibility |
 |---|---|---|
-| **Admin** | Maintainer | Owns the instruction set (`copilot-instructions.md`). Works with the user to clarify requirements. Reviews lookback reports and decides corrective actions. Open-source contributors act as the Admin. |
+| **Admin** | Maintainer | Owns the instruction set (`copilot-instructions.md`). Works with the user to clarify requirements. Open-source contributors act as the Admin. |
 | **Designer** | Contributor | Domain reasoning and brainstorming. Pre-digests reference material, resolves design ambiguity, chooses dimensions and constraints. Produces a design brief — *what* to build and *why*. Reviews Developer output against acceptance criteria. |
-| **Developer** | Contributor | Owns code structure (classes, methods, build pipeline). Implements the design brief, runs analysis tools, validates output. Escalates design blockers to the Designer. Produces a lookback report at the end. |
+| **Developer** | Contributor | Owns code structure (classes, methods, build pipeline). Implements the design brief, runs analysis tools, validates output. Escalates design blockers to the Designer. |
 | **TL (Ad-hoc)** | Maintainer | Auxiliary software architecture role. Invoked *only* for major codebase refactors, rewriting CLI tools, or planning shared base classes (`cq_utils.py`). Not involved in everyday 3D CAD part creation. |
 
 ## Phases
@@ -36,22 +36,17 @@ This project uses a structured workflow for complex tasks, divided into **Contri
 │  4. REVIEW                Designer validates output              │
 │     Designer checks deliverables against acceptance criteria.   │
 │     If criteria not met → back to phase 3 with corrections.     │
-├─────────────────────────────────────────────────────────────────┤
-│  5. LOOKBACK              Developer → User (Admin role)         │
-│     Developer (or Designer) writes a structured lookback report.              │
-│     User reviews, decides actions.                              │
 └─────────────────────────────────────────────────────────────────┘
 ```
 
 ## Invoking Roles
 
-Each role is mapped to a designated prompt file. Note that `#admin` and `#tl` are considered **Mainainer Roles** and their global configuration files are intentionally omitted from this repository. Open source contributors will drive the requirements and architecture manually, or bring their own custom platform agents to fulfill these roles.
+Each role is mapped to a designated prompt file. Note that `#admin` and `#tl` are considered **Maintainer Roles** and their global configuration files are intentionally omitted from this repository. Open source contributors will drive the requirements and architecture manually, or bring their own custom platform agents to fulfill these roles.
 
 | Prompt file | Location | How to invoke |
 |---|---|---|
 | `designer.prompt.md` | `.github/prompts/` | Type `#designer` in Copilot Chat |
 | `developer.prompt.md` | `.github/prompts/` | Type `#developer` in Copilot Chat |
-| `lookback.prompt.md` | `.github/prompts/` | Type `#lookback` in Copilot Chat |
 
 ## Design Brief Format
 
@@ -93,26 +88,3 @@ When the Developer encounters a design blocker during execution:
 4. **Invoke the Designer** (`#designer`) to resolve the escalation.
 5. The Designer updates the brief and the Developer resumes.
 
-## Lookback Report
-
-Lookback reports are stored in `.agents/lookback/` (git-ignored).  See
-[docs/templates/lookback-template.md](templates/lookback-template.md) for
-the required format.
-
-Feedback is categorised into four buckets:
-
-| Category | Description | Routed to |
-|---|---|---|
-| **Instruction gap** | A class of error or edge case not covered by `copilot-instructions.md` | Admin |
-| **Missing tool** | A capability that would have saved significant time or avoided errors | Designer (to spec) → Developer (to build) |
-| **Design deficiency** | Ambiguity, missing detail, or incorrect assumption in the design brief | Designer |
-| **Tooling bug** | An existing tool produced incorrect output or crashed | Developer (to fix) |
-
-The Admin reviews the lookback and takes one or more actions:
-
-- **Update instructions** — amend `copilot-instructions.md` to close the gap.
-- **Commission a tool** — ask the Designer to spec a new tool, then the
-  Developer to implement it.
-- **No action** — the feedback is noted but no change is warranted.
-- **Discuss with user** — the feedback raises a design question that needs
-  human input.
