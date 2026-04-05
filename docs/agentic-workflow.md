@@ -2,15 +2,16 @@
 
 This project uses a structured three-role workflow for complex tasks.  The
 roles are **Admin**, **Designer**, and **Developer**, each with a distinct
-responsibility and recommended model tier.
+responsibility.
 
 ## Roles
 
-| Role | Model | Responsibility |
-|---|---|---|
-| **Admin** | Claude Opus 4.6 | Owns the instruction set (`copilot-instructions.md`). Works with the user to clarify requirements. Reviews lookback reports and decides corrective actions. |
-| **Designer** | Claude Opus 4.6 | Domain reasoning and brainstorming. Pre-digests reference material, resolves design ambiguity, chooses dimensions and constraints. Produces a design brief — *what* to build and *why*. Reviews Developer output against acceptance criteria. |
-| **Developer** | Claude Sonnet 4.6 | Owns code structure (classes, methods, build pipeline). Implements the design brief, runs analysis tools, validates output. Escalates design blockers to the Designer. Produces a lookback report at the end. |
+| Role | Responsibility |
+|---|---|
+| **Admin** | Owns the instruction set (`copilot-instructions.md`). Works with the user to clarify requirements. Reviews lookback reports and decides corrective actions. |
+| **Designer** | Domain reasoning and brainstorming. Pre-digests reference material, resolves design ambiguity, chooses dimensions and constraints. Produces a design brief — *what* to build and *why*. Reviews Developer output against acceptance criteria. |
+| **Developer** | Owns code structure (classes, methods, build pipeline). Implements the design brief, runs analysis tools, validates output. Escalates design blockers to the Designer. Produces a lookback report at the end. |
+| **TL (Ad-hoc)** | Auxiliary software architecture role. Invoked *only* for major codebase refactors, rewriting CLI tools, or planning shared base classes (`cq_utils.py`). Not involved in everyday 3D CAD part creation. |
 
 ## Phases
 
@@ -28,7 +29,7 @@ responsibility and recommended model tier.
 │  3. EXECUTION             Developer (autonomous)                │
 │     Developer designs code structure, then implements.          │
 │     On design blockers → escalate to Designer (phase 3a).       │
-│     On completion → produce lookback report (phase 4).          │
+│     On completion → proceed to Review (phase 4).          │
 ├ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─┤
 │  3a. ESCALATION           Developer → Designer                  │
 │     Developer pauses, documents the blocker in the brief.       │
@@ -39,24 +40,22 @@ responsibility and recommended model tier.
 │     If criteria not met → back to phase 3 with corrections.     │
 ├─────────────────────────────────────────────────────────────────┤
 │  5. LOOKBACK              Developer → Admin → User              │
-│     Developer writes a structured lookback report.              │
+│     Developer (or Designer) writes a structured lookback report.              │
 │     Admin reviews, decides actions, reports to user.            │
 └─────────────────────────────────────────────────────────────────┘
 ```
 
 ## Invoking Roles
 
-Each role has a prompt file in `.github/prompts/`:
+Each role is mapped to a designated prompt file. Note that `#admin` and `#tl` are handled by globally installed platform agents.
 
-| Prompt file | How to invoke |
-|---|---|
-| `admin.prompt.md` | Type `#admin` in Copilot Chat |
-| `designer.prompt.md` | Type `#designer` in Copilot Chat |
-| `developer.prompt.md` | Type `#developer` in Copilot Chat |
-| `lookback.prompt.md` | Type `#lookback` in Copilot Chat |
-
-Switch models in the VS Code Copilot model picker to match the
-recommended tier for each role.
+| Prompt file | Location | How to invoke |
+|---|---|---|
+| `admin.prompt.md` | `~/.vscode-server/data/User/prompts/` | Type `#admin` in Copilot Chat |
+| `tl.prompt.md` | `~/.vscode-server/data/User/prompts/` | Type `#tl` in Copilot Chat (Major refactoring only) |
+| `designer.prompt.md` | `.github/prompts/` | Type `#designer` in Copilot Chat |
+| `developer.prompt.md` | `.github/prompts/` | Type `#developer` in Copilot Chat |
+| `lookback.prompt.md` | `.github/prompts/` | Type `#lookback` in Copilot Chat |
 
 ## Design Brief Format
 
