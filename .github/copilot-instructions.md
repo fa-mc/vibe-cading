@@ -35,7 +35,7 @@ This workspace utilizes a structured, multi-role agentic workflow.
     - `#designer`: Domain reasoning, brainstorming, and design briefs.
     - `#developer`: Code structure, implementation, frameworks, and validation.
   - **Maintainer Roles (Human or Bring-Your-Own-Agent):**
-    - `Admin`: Requirements, instruction maintenance, session lookbacks, and unblocking execution loops. (For open-source users, the human contributor acts as the Admin).
+    - `Admin`: Requirements, instruction maintenance, and unblocking execution loops. (For open-source users, the human contributor acts as the Admin).
     - `TL`: Architecture for global CLI utilities and shared refactors.
 - **Artefact Management:**
   - **Design Briefs & Plans:** Tracked in `.agents/plans/`
@@ -97,17 +97,15 @@ specification.
 **Prompt files**:
 - `#designer` — brainstorming, design briefs, reference analysis, domain decisions (Local in `.github/prompts/`)
 - `#developer` — code structure, implementation, tools, validation, escalation (Local in `.github/prompts/`)
-- `#lookback` — end-of-task reflection and feedback (Local in `.github/prompts/`)
 - *Note: `#admin` and `#tl` are intentionally omitted from this repository. Maintainers use their own global prompt files, while contributors drive these phases manually.*
 
 **Workspace Initialization**:
 When initializing the project or workspace, you must:
-1. Create local `.gitignore`d directories if they don't exist (`tmp/`, `.agents/plans/`, `.agents/lookback/`).
+1. Create local `.gitignore`d directories if they don't exist (`tmp/`, `.agents/plans/`).
 2. Copy `machine_profiles.json.example` to `machine_profiles_user.json` so the user can configure their specific 3D printer tolerances.
 
 **Artefact locations** (git-ignored):
 - Design briefs: `.agents/plans/`
-- Lookback reports: `.agents/lookback/`
 - Session backlog / Parking lot: `/memories/session/ideas.md` (Store ideas, refactures, or tooling improvements that emerge during the session but should not be acted upon immediately).
 
 **Key rule:** The Developer must not interpret ambiguous reference material
