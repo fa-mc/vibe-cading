@@ -4,23 +4,23 @@
         "press_fit": 0.04,
         "slip_fit": 0.05,
         "free_fit": 0.15,
-        "axle_hole_tip_to_tip": 5.08,
-        "axle_hole_arm_width": 1.92
+        
+        
     },
     "resin_precise": {
         "z_clearance": 0.05,
         "press_fit": 0.02,
         "slip_fit": 0.03,
         "free_fit": 0.05,
-        "axle_hole_tip_to_tip": 4.82,
-        "axle_hole_arm_width": 1.64
+        
+        
     },
     "cnc": {
         "z_clearance": 0.00,
         "press_fit": 0.00,
         "slip_fit": 0.01,
         "free_fit": 0.02,
-        "axle_hole_tip_to_tip": 4.80,
-        "axle_hole_arm_width": 1.83
+        
+        
     }
 }
