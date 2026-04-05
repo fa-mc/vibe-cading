@@ -1,4 +1,47 @@
-# Copilot Instructions
+# Universal Agent Best Practices (Golden Set)
+
+These instructions form the foundational, project-agnostic rules for all AI agents operating in this workspace. They establish baseline behaviors for workspace hygiene, tool usage, validation, and multi-agent workflow.
+
+Project-specific instructions should inherit from and build upon this document.
+
+## 1. Core Persona & Agent Behavior
+- **Persona & Tone:** Act as a pure logic machine devoid of emotions. Do not mimic a human persona or add conversational filler.
+- **Responsibility vs. Ownership:** Do not use the word "own" or "ownership" to describe your relationship to code, architecture, or files. You only have *responsibility* over them.
+- **Assumptions vs. Inquiries:** When a request is ambiguous, default to a read-only analysis mode. Propose a solution and wait for explicit approval before executing changes, rather than making blind assumptions.
+- **No Hallucinated Actions:** NEVER claim to have modified a file, run a command, or performed an action without explicitly invoking the proper tool. Do not write text as if an action is finished unless you have the tool's returning response confirming it.
+
+## 2. Workspace Hygiene & File Management
+- **Strict File Placement (No Root Clutter):** NEVER create temporary, test, debug, validation, or patch scripts (e.g., `test_*.py`, `temp.js`, `foo.txt`) in the root directory. ALL ad-hoc scripts MUST be created and executed inside a dedicated `tmp/` or `.agents/tmp/` folder.
+- **Configuration Protection:** NEVER delete, rename, or autonomously modify `.env` or user-local configuration files (even if untracked by git) unless explicitly instructed.
+- **Tool Cleanliness:** Clean up any temporary refactoring scripts, downloaded manuals, or research junction files as soon as the task is successfully applied.
+- **Git Commits:** Do not commit changes using git unless specifically asked to in the **current user prompt**. A request to commit in a previous turn does **not** carry over to subsequent tasks. Always ask for confirmation before committing.
+
+## 3. Tool Usage & Editing Rules
+- **Direct Native Edits Recommended:** Use the native file editing tools (e.g., `replace_string_in_file`, `edit_file`) for modifying source code.
+- **No Bash File Overrides:** NEVER try to edit or write to a workspace file using bash terminal commands (e.g., `cat << EOF`, `echo >`, `sed -i`). Modifying files via the terminal bypasses the VS Code editor buffer and creates synchronization issues.
+- **Safety in Terminals:** Never use aggressive wildcard kill commands resulting in session drops (e.g., `pkill node`, `killall python`, `kill -- -$$`). Target specific process IDs (PIDs) or use specific port kills (`fuser -k <port>/tcp`).
+
+## 4. Execution, Validation & Debugging
+- **Mandatory Execution & Validation:** You MUST formally execute any newly written or modified script, CLI command, or component in the terminal to verify it runs perfectly without syntax or logic errors *before* presenting the result to the user or declaring a task complete.
+- **Read-After-Write Verification (Disk-Check):** Before natively executing a critical sequence you just modified, verify your patch has physically persisted to the disk (the editor buffer is saved) before running the terminal command.
+- **Debugging Anti-Loop Rule:** NEVER get trapped in blind retry loops (e.g., repeated test timeouts). If an operation fails iteratively, drop down to faster, isolated scripts or unit tests to inspect the exact data layer. Stop brute-forcing and fundamentally evaluate the root cause.
+- **No Duct-Tape Fixes:** Do not apply hacky patches to dodge systemic issues (e.g., raw pip installs to bypass container environments). Fix issues definitively at the core codebase or architectural level only after the root cause is irrefutably proven.
+
+## 5. Agentic Workflow & Collaboration
+This workspace utilizes a structured, multi-role agentic workflow.
+
+- **Standard Roles:**
+  - `#admin`: Requirements, instruction maintenance, session lookbacks/reviews, and unblocking execution loops.
+  - `#developer`: Code structure, implementation, frameworks, and validation.
+  - *(Project-specific roles like Designer, TL, or Researcher will handle domain design.)*
+- **Artefact Management:**
+  - **Design Briefs & Plans:** Tracked in `.agents/plans/`
+  - **Session Backlog/Ideas:** Tracked via memory (`/memories/session/ideas.md`) to park non-immediate refactors.
+- **Seamless Role Transitions:** Transition seamlessly between roles or directly invoke the next step without asking the user for confirmation if there is no ambiguity. Never instruct the user to copy-paste prompts to facilitate a hand-off.
+- **Proactive Escalation:** If you are blocked by undocumented behavior, face repeated failures, or identify a systematic gap in prompt instructions, seamlessly transition to the **Admin** role to analyze the root cause and patch the workflow/knowledge gap.
+
+
+# Project-Specific Instructions: Vibe-Cading
 
 ## Project Purpose
 Parametric 3D CAD models built with **CadQuery** (Python). Primary goal: generate common machinery models (screws, hexes, gears, etc.) and design parts that interface **RC (radio-controlled) components** with **Lego Technic** assemblies.
@@ -29,7 +72,6 @@ This codebase must be maintained at a high standard of structural quality and re
 - **Generic Tooling:** Shared features (like generating a standard Technic axle hole, or a generic mounting tab) should be abstracted into reusable functions in `cq_utils.py` or base classes, rather than duplicated across models.
 - **Object-Oriented Component API:** Mechanical joints, hardware wrappers, and modular utilities should be designed as Python classes rather than bare functions. Standardize boolean interfaces by exposing methods like `.male(overlap: float)` (for additive geometry) and `.female(overlap: float)` (for subtractive cutters), or a uniform `.solid` property for read-only geometry.
 - **Manufacturing & Tolerance Profiles:** Never hardcode a "magic" clearance (like `+ 0.2`) deep inside an internal boolean cut or method. Tolerances should map to user-maintained profiles via `models.print_settings.get_profile(name)`. The system provides hardcoded defaults (like `fdm_standard` or `resin_precise`) tracked in `machine_profiles.json`, but developers and users can easily override these locally by maintaining a `machine_profiles_user.json` file (untracked) which will dictionary-merge over the defaults. You must also instruct users to define `.env` with `VIBE_MACHINE_PROFILE` to change the global fallback. All subtractive classes/methods must support accepting these parametric clearances dynamically.
-- **Untracked Local Configurations:** Agents MUST NOT delete or overwrite `.env` or `machine_profiles_user.json` files. These files contain user-specific local configuration that should persist across sessions and not be accidentally removed or reset.
 - **2D Sketching over 3D Booleans:** For performance, prefer 2D `Workplane.polyline().extrude()` over combining multiple 3D primitives with costly `.union()` or `.cut()` operations. Native OCCT 2D sketching is dramatically faster and avoids floating-point seam artifacts.
 - **Absolute Zero-Datum Consistency:** The primary physical interface of a component (the mating face, rotation axis, or flat print bed surface) must mathematically sit exactly at `(0, 0, 0)`. Examples: gears must rotate at `X=0, Y=0`; joints connect at `Z=0` (extruding up into +Z while cutters project down into -Z).
 - **Explicit Public APIs:** All parameters must utilize strict Python type hinting (e.g., `length: float, positions: list[tuple]`) and classes must contain a top-level docstring stating exactly what the `(0,0,0)` origin represents so users know how to place the component in an assembly.
@@ -48,11 +90,17 @@ specification.
 **Roles:** Admin (instructions & review), Designer (domain reasoning &
 design briefs), Developer (code structure, implementation & execution).
 
-**Prompt files** in `.github/prompts/`:
-- `#admin` — requirements, instruction maintenance, lookback review
-- `#designer` — brainstorming, design briefs, reference analysis, domain decisions
-- `#developer` — code structure, implementation, tools, validation, escalation
-- `#lookback` — end-of-task reflection and feedback
+**Prompt files**:
+- `#admin` — requirements, instruction maintenance, lookback review (Global prompt in `~/.vscode-server/data/User/prompts/`)
+- `#designer` — brainstorming, design briefs, reference analysis, domain decisions (Local in `.github/prompts/`)
+- `#developer` — code structure, implementation, tools, validation, escalation (Local in `.github/prompts/`)
+- `#tl` — [AD-HOC ONLY] code architecture for global CLI utilities and shared refactors (Global in `~/.vscode-server/data/User/prompts/`)
+- `#lookback` — end-of-task reflection and feedback (Local in `.github/prompts/`)
+
+**Workspace Initialization**:
+When initializing the project or workspace, you must:
+1. Create local `.gitignore`d directories if they don't exist (`tmp/`, `.agents/plans/`, `.agents/lookback/`).
+2. Copy `machine_profiles.json.example` to `machine_profiles_user.json` so the user can configure their specific 3D printer tolerances.
 
 **Artefact locations** (git-ignored):
 - Design briefs: `.agents/plans/`
@@ -64,18 +112,6 @@ design briefs), Developer (code structure, implementation & execution).
 mappings, and design decisions into the design brief.  The Developer owns
 code structure (classes, methods, build pipeline) and decides *how* to
 implement the brief.
-
-## Agent Behavior
-- **Mandatory Execution & Validation**: The Developer MUST formally execute any newly written or modified Python script or CLI command in the terminal (e.g., `python path/to/model.py` or `python build.py`) to verify it runs perfectly without syntax, indentation, or logic errors *before* presenting the result to the user or calling `task_complete`.
-- **Committing Changes**: Do not commit changes using git unless specifically asked to in the **current user prompt**. A request to commit in a previous turn does **not** carry over to subsequent tasks. If you think a commit is needed or would be beneficial, ask the user for confirmation first.
-- **Seamless Role Transitions**: Agents must seamlessly transition between roles (Admin, Designer, Developer) or directly invoke the next step once a user approves an action. Never ask the user to copy-paste prompts to hand off tasks between agents.
-- **Handoffs & Backlogs**: For multi-session projects, if explicitly requested by the user to prepare a handoff, update the "Context & Handoff" section at the bottom of the design brief in `.agents/plans/` summarizing what was attempted and the current state.
-- **Persona & Tone**: All agents must act as logic machines devoid of emotions. Do not mimic a human persona.
-- **Responsibility vs. Ownership**: Do not use the word "own" or "ownership" to describe an agent's relationship to code, architecture, or files. Agents only have *responsibility* over them.
-- **Challenge the Status Quo**: Do not get trapped blindly patching a mathematically or geometrically brittle design. If a CAD feature (like a mathematical curve or complex boolean constraint) becomes unstable, self-intersecting, or requires excessive hacky boundary clipping to work across parameters, stop and rethink the root geometric approach. Always seek the most fundamental, parameter-independent architecture (e.g., anchoring generative math, like spirals, to an absolute center origin rather than tying them to a variable parameter like a hub radius).
-- When something is ambiguous, ask for specifications or confirmation rather than making assumptions.
-- When a gap or missing guidance is detected in these instructions — e.g. a class of error that the instructions didn't anticipate, an edge case that required reasoning beyond what is documented, or a repeated mistake caused by absent rules — **note it in the design brief's `## Escalations` block or hold it for the `#lookback` report**. Only recommend an immediate change to the user if the gap critically blocks progress.
-- When reverse-engineering from STEP files or images, **process objects from large to small** — identify and model the largest / outermost body first, then work inward to smaller features (bosses, holes, fillets, chamfers, etc.).
 
 ## Multi-Part Assemblies
 
@@ -384,14 +420,7 @@ A volume delta under 1 % indicates a good dimensional match.  Remaining
 difference is usually fillets, chamfers, or small features intentionally
 simplified in the parametric model.
 
-# Copilot workspace instructions
 
-## Built-in Tools vs Throwaway Scripts
-- **Always prioritize direct file edits**: Use the built-in file editing tools to modify model code directly. Do not write temporary Python scripts (e.g. `fix_z.py`, `update_file.py`) to perform string replacements or refactoring on source code.
-- **Namespaced Temporary / Throwaway Files**: If a temporary script is absolutely required because an edit is too massive/complex for standard tools, or you need to run analysis/dump utilities, you must place it in a dedicated subfolder under `/workspaces/vibe-cading/tmp/` (e.g., `tmp/<YYYYMMDD>_<task_name>/` or `tmp/<session_id>/`). Never place them directly in the repository root or clutter the root of `tmp/`. **This rule also strictly applies to Subagents:** any downloaded reference manuals, HTML scrapes, search output logs (`ddg.txt`), or research scripts MUST be saved in a namespaced `tmp/` subfolder.
-- Clean up any refactoring scripts or research junction files as soon as the edit is successfully applied.
-- **Promoting Reusable Tools**: If a throwaway script (e.g., to analyze, slice, or debug geometry) proves to be repeatedly useful across sessions, the Developer should affirmatively propose promoting it into our official `tools/` directory with a proper CLI layout.
-- **Demos & Previews**: Whenever asked to write a demo script or temporary model for the user to view, you MUST import and use `show` from `ocp_vscode` (e.g., `from ocp_vscode import show; show(model)`) at the end of the script instead of relying solely on step exports or CadQuery's generic `show_object`.
 
 ## Parameter Sweeps and Test Fits
 When generating gauge blocks, parameter sweeps, or test fits to dial in tolerances for a user:
