@@ -1,17 +1,15 @@
 # Agentic Workflow
 
-This project uses a structured three-role workflow for complex tasks.  The
-roles are **Admin**, **Designer**, and **Developer**, each with a distinct
-responsibility.
+This project uses a structured workflow for complex tasks, divided into **Contributor Roles** (included in the repository) and **Maintainer Roles** (handled by the human user or their own custom agents).
 
 ## Roles
 
-| Role | Responsibility |
-|---|---|
-| **Admin** | Owns the instruction set (`copilot-instructions.md`). Works with the user to clarify requirements. Reviews lookback reports and decides corrective actions. |
-| **Designer** | Domain reasoning and brainstorming. Pre-digests reference material, resolves design ambiguity, chooses dimensions and constraints. Produces a design brief — *what* to build and *why*. Reviews Developer output against acceptance criteria. |
-| **Developer** | Owns code structure (classes, methods, build pipeline). Implements the design brief, runs analysis tools, validates output. Escalates design blockers to the Designer. Produces a lookback report at the end. |
-| **TL (Ad-hoc)** | Auxiliary software architecture role. Invoked *only* for major codebase refactors, rewriting CLI tools, or planning shared base classes (`cq_utils.py`). Not involved in everyday 3D CAD part creation. |
+| Role | Type | Responsibility |
+|---|---|---|
+| **Admin** | Maintainer | Owns the instruction set (`copilot-instructions.md`). Works with the user to clarify requirements. Reviews lookback reports and decides corrective actions. Open-source contributors act as the Admin. |
+| **Designer** | Contributor | Domain reasoning and brainstorming. Pre-digests reference material, resolves design ambiguity, chooses dimensions and constraints. Produces a design brief — *what* to build and *why*. Reviews Developer output against acceptance criteria. |
+| **Developer** | Contributor | Owns code structure (classes, methods, build pipeline). Implements the design brief, runs analysis tools, validates output. Escalates design blockers to the Designer. Produces a lookback report at the end. |
+| **TL (Ad-hoc)** | Maintainer | Auxiliary software architecture role. Invoked *only* for major codebase refactors, rewriting CLI tools, or planning shared base classes (`cq_utils.py`). Not involved in everyday 3D CAD part creation. |
 
 ## Phases
 
@@ -39,20 +37,18 @@ responsibility.
 │     Designer checks deliverables against acceptance criteria.   │
 │     If criteria not met → back to phase 3 with corrections.     │
 ├─────────────────────────────────────────────────────────────────┤
-│  5. LOOKBACK              Developer → Admin → User              │
+│  5. LOOKBACK              Developer → User (Admin role)         │
 │     Developer (or Designer) writes a structured lookback report.              │
-│     Admin reviews, decides actions, reports to user.            │
+│     User reviews, decides actions.                              │
 └─────────────────────────────────────────────────────────────────┘
 ```
 
 ## Invoking Roles
 
-Each role is mapped to a designated prompt file. Note that `#admin` and `#tl` are handled by globally installed platform agents.
+Each role is mapped to a designated prompt file. Note that `#admin` and `#tl` are considered **Mainainer Roles** and their global configuration files are intentionally omitted from this repository. Open source contributors will drive the requirements and architecture manually, or bring their own custom platform agents to fulfill these roles.
 
 | Prompt file | Location | How to invoke |
 |---|---|---|
-| `admin.prompt.md` | `~/.vscode-server/data/User/prompts/` | Type `#admin` in Copilot Chat |
-| `tl.prompt.md` | `~/.vscode-server/data/User/prompts/` | Type `#tl` in Copilot Chat (Major refactoring only) |
 | `designer.prompt.md` | `.github/prompts/` | Type `#designer` in Copilot Chat |
 | `developer.prompt.md` | `.github/prompts/` | Type `#developer` in Copilot Chat |
 | `lookback.prompt.md` | `.github/prompts/` | Type `#lookback` in Copilot Chat |

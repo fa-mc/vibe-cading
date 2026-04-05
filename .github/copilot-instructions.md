@@ -31,14 +31,17 @@ Project-specific instructions should inherit from and build upon this document.
 This workspace utilizes a structured, multi-role agentic workflow.
 
 - **Standard Roles:**
-  - `#admin`: Requirements, instruction maintenance, session lookbacks/reviews, and unblocking execution loops.
-  - `#developer`: Code structure, implementation, frameworks, and validation.
-  - *(Project-specific roles like Designer, TL, or Researcher will handle domain design.)*
+  - **Contributor Roles (Included in repo):**
+    - `#designer`: Domain reasoning, brainstorming, and design briefs.
+    - `#developer`: Code structure, implementation, frameworks, and validation.
+  - **Maintainer Roles (Human or Bring-Your-Own-Agent):**
+    - `Admin`: Requirements, instruction maintenance, session lookbacks, and unblocking execution loops. (For open-source users, the human contributor acts as the Admin).
+    - `TL`: Architecture for global CLI utilities and shared refactors.
 - **Artefact Management:**
   - **Design Briefs & Plans:** Tracked in `.agents/plans/`
   - **Session Backlog/Ideas:** Tracked via memory (`/memories/session/ideas.md`) to park non-immediate refactors.
-- **Seamless Role Transitions:** Transition seamlessly between roles or directly invoke the next step without asking the user for confirmation if there is no ambiguity. Never instruct the user to copy-paste prompts to facilitate a hand-off.
-- **Proactive Escalation:** If you are blocked by undocumented behavior, face repeated failures, or identify a systematic gap in prompt instructions, seamlessly transition to the **Admin** role to analyze the root cause and patch the workflow/knowledge gap.
+- **Seamless Role Transitions:** Transition seamlessly between included roles (or invoke the next step) without asking the user for confirmation if there is no ambiguity. Never instruct the user to copy-paste prompts to facilitate a hand-off.
+- **Proactive Escalation:** If you are blocked by undocumented behavior, face repeated failures, or identify a systematic gap in prompt instructions, seamlessly halt and escalate to the **User (Admin)** for clarification and to patch the workflow/knowledge gap. Do not guess.
 
 
 # Project-Specific Instructions: Vibe-Cading
@@ -83,19 +86,19 @@ This codebase must be maintained at a high standard of structural quality and re
 
 ## Agentic Workflow
 
-This project uses a structured three-role workflow for complex tasks.
+This project uses a structured workflow.
 See [docs/agentic-workflow.md](docs/agentic-workflow.md) for the full
 specification.
 
-**Roles:** Admin (instructions & review), Designer (domain reasoning &
-design briefs), Developer (code structure, implementation & execution).
+**Roles:**
+- **Contributor Roles (Included):** Designer (domain reasoning & design briefs), Developer (code structure, implementation & execution).
+- **Maintainer Roles (Bring-Your-Own / Human):** Admin (requirements & review), TL (architecture & refactors). Open-source contributors act as the Admin and guide the workflow manually unless they supply their own custom agents.
 
 **Prompt files**:
-- `#admin` — requirements, instruction maintenance, lookback review (Global prompt in `~/.vscode-server/data/User/prompts/`)
 - `#designer` — brainstorming, design briefs, reference analysis, domain decisions (Local in `.github/prompts/`)
 - `#developer` — code structure, implementation, tools, validation, escalation (Local in `.github/prompts/`)
-- `#tl` — [AD-HOC ONLY] code architecture for global CLI utilities and shared refactors (Global in `~/.vscode-server/data/User/prompts/`)
 - `#lookback` — end-of-task reflection and feedback (Local in `.github/prompts/`)
+- *Note: `#admin` and `#tl` are intentionally omitted from this repository. Maintainers use their own global prompt files, while contributors drive these phases manually.*
 
 **Workspace Initialization**:
 When initializing the project or workspace, you must:
