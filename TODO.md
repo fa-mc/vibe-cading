@@ -10,6 +10,7 @@ We are expanding this repository into a broader Code-CAD mechanical toolkit. Her
 - [x] Establish initial FDM Tolerance baselines: Run grid searches to find the optimal global values for `radial_clearance` and `screw_radial_allowance` to dial-in a standard Bambu Studio hardware profile with `XY Hole Compensation = 0.0mm`.
 - [x] Refactor primitive classes (Joints, Screws, Bearings, Axles) to seamlessly support `models.print_settings.ToleranceProfile` injections instead of hardcoded float parameters.
 - [ ] Explore true 3D helical thread generation for screws/nuts (behind a `render_threads: bool` flag), carefully evaluating AGPL compliance, performance regressions, and OCCT boolean stability.
+- [ ] Revisit Technic axle hole clearance tuning (concave radius sweep failed). Issue may be systemic to the base `AXLE_TIP_TO_TIP` or `AXLE_ARM_WIDTH` parameters or FDM corner blowout rather than just the corner fillet.
 
 ## 🚀 Transition to "Open Core" Engine
 Based on the new SaaS strategy, this repository (`vibe-cading`) will act as the public core engine for the `vibe-cading-platform`. We need to prepare it for external consumption:
