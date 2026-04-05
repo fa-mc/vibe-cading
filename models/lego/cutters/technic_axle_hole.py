@@ -14,9 +14,10 @@
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
 import cadquery as cq
+from models.print_settings import ToleranceProfile, get_profile
 from models.lego.constants import (
-    AXLE_HOLE_TIP_TO_TIP,
-    AXLE_HOLE_ARM_WIDTH,
+    AXLE_TIP_TO_TIP,
+    AXLE_ARM_WIDTH,
 )
 
 
@@ -29,13 +30,17 @@ class TechnicAxleHole:
 
         from models.lego.cutters.technic_axle_hole import TechnicAxleHole
 
-        hole = TechnicAxleHole(depth=my_thickness, fit="tight")
+        hole = TechnicAxleHole(depth=my_thickness, fit="slip")
         part = part.cut(hole.solid)
 
     Parameters
     ----------
     depth:
         Axial depth of the hole (mm).
+    fit:
+        Tolerance fit type: "press", "slip", or "free".
+    profile:
+        Manufacturing tolerance profile. Defaults to global profile.
     convex_radius:
         Fillet radius on the 8 outer convex junction edges — where the
         curved arm tip meets the flat arm side (mm).  Set to 0 to skip.
@@ -51,6 +56,8 @@ class TechnicAxleHole:
     def __init__(
         self,
         depth: float,
+        fit: str = "slip",
+        profile: ToleranceProfile | None = None,
         convex_radius: float = DEFAULT_CONVEX_RADIUS,
         concave_radius: float = DEFAULT_CONCAVE_RADIUS,
     ):
@@ -58,8 +65,13 @@ class TechnicAxleHole:
         self.convex_radius = convex_radius
         self.concave_radius = concave_radius
 
-        self.TIP_TO_TIP = AXLE_HOLE_TIP_TO_TIP
-        self.ARM_WIDTH = AXLE_HOLE_ARM_WIDTH
+        profile = profile or get_profile()
+        clearance = getattr(profile, f"{fit}_fit")
+
+        # The profile tolerance is a radial clearance, so diametrical/width
+        # features expand by 2 * clearance.
+        self.TIP_TO_TIP = AXLE_TIP_TO_TIP + (2 * clearance)
+        self.ARM_WIDTH = AXLE_ARM_WIDTH + (2 * clearance)
 
         self._solid = self._build()
     def _build(self) -> cq.Workplane:

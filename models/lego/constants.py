@@ -49,14 +49,10 @@ HOLE_SPACING: float = 8.0         # Centre-to-centre hole spacing (mm)
 EDGE_TO_CENTRE: float = 4.0       # Distance from part edge to hole centre (mm)
 
 # ── Technic Axle (cross profile) ─────────────────────────────────────────────
-AXLE_TIP_TO_TIP: float = 4.75    # Axle outer + tip-to-tip diameter (mm)
-AXLE_ARM_WIDTH: float = 1.78     # Axle arm width / flat-to-flat (mm)
+AXLE_TIP_TO_TIP: float = 4.78    # Based on reference drawing
+AXLE_ARM_WIDTH: float = 1.79     # Based on reference drawing
 AXLE_ARM_PROTRUSION: float = 1.50  # Arm protrusion past flat face (mm)
 AXLE_LENGTH_PER_STUD: float = 8.0  # Axle length per stud unit (mm)
-
-# ── Technic Axle Hole (cross profile) ────────────────────────────────────────
-AXLE_HOLE_TIP_TO_TIP: float = float(os.getenv("AXLE_HOLE_TIP_TO_TIP", "5.08"))
-AXLE_HOLE_ARM_WIDTH: float = float(os.getenv("AXLE_HOLE_ARM_WIDTH", "1.92"))
 
 # ── Shared geometry defaults ──────────────────────────────────────────────────
 DEFAULT_CORNER_RADIUS: float = float(os.getenv("DEFAULT_CORNER_RADIUS", "0.4")) # Inner concave corner fillet radius (mm) — TechnicAxle
