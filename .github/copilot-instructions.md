@@ -23,7 +23,9 @@ Project-specific instructions should inherit from and build upon this document.
 
 ## 4. Execution, Validation & Debugging
 - **Mandatory Execution & Validation:** You MUST formally execute any newly written or modified script, CLI command, or component in the terminal to verify it runs perfectly without syntax or logic errors *before* presenting the result to the user or declaring a task complete.
+- **Run Basic Linters:** After code modifications, proactively run static linters (e.g. `flake8`) or language server syntax validation tools to catch shadow-imports, indentation errors, and redefinition issues before dispatching execution.
 - **Read-After-Write Verification (Disk-Check):** Before natively executing a critical sequence you just modified, verify your patch has physically persisted to the disk (the editor buffer is saved) before running the terminal command.
+- **Full Matrix Dry-Runs:** If maintaining multi-architecture or multi-environment pipelines and modifying the core dispatcher, dry run the system against *all* backwards-compatible target configurations, not just the currently active experiment.
 - **Debugging Anti-Loop Rule:** NEVER get trapped in blind retry loops (e.g., repeated test timeouts). If an operation fails iteratively, drop down to faster, isolated scripts or unit tests to inspect the exact data layer. Stop brute-forcing and fundamentally evaluate the root cause.
 - **No Duct-Tape Fixes:** Do not apply hacky patches to dodge systemic issues (e.g., raw pip installs to bypass container environments). Fix issues definitively at the core codebase or architectural level only after the root cause is irrefutably proven.
 
