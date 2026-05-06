@@ -6,7 +6,8 @@
     "customizations": {
         "vscode": {
             "extensions": [
-                "bernhard-42.ocp-cad-viewer"
+                "bernhard-42.ocp-cad-viewer",
+                "Anthropic.claude-code"
             ]
         }
     },

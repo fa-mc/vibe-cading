@@ -25,6 +25,19 @@ length           = 3.0
 flange_od        = 10.5
 flange_thickness = 1.0
 
+# ── RC hex tire hubs ──────────────────────────────────────────────────────────
+
+[[build]]
+model  = "rc.hex_wheel_hub.HexWheelHub"
+output = "rc/hex_wheel_hub_12mm.step"
+[build.params]
+hex_across_flats = 12.0
+height           = 16.0
+bearing_od       = 8.0
+bearing_width    = 2.5
+bore_dia         = 6.0
+hex_chamfer      = 0.5
+
 # ── Arrma Vorteks 223S ────────────────────────────────────────────────────────
 
 [[build]]
