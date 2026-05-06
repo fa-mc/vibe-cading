@@ -1,0 +1,50 @@
+{
+  "$schema": "https://json.schemastore.org/claude-code-settings.json",
+  "permissions": {
+    "allow": [
+      "Bash(python3 build.py:*)",
+      "Bash(python3 tools/preview.py:*)",
+      "Bash(python3 tools/view.py:*)",
+      "Bash(python3 tools/step_summary.py:*)",
+      "Bash(python3 tools/step_preview.py:*)",
+      "Bash(python3 tools/face_catalog.py:*)",
+      "Bash(python3 tools/face_distances.py:*)",
+      "Bash(python3 tools/hole_finder.py:*)",
+      "Bash(python3 tools/section_slicer.py:*)",
+      "Bash(python3 tools/boolean_diff.py:*)",
+      "Bash(python3 tools/check_polar_monotonicity.py:*)",
+      "Bash(python3 -c:*)",
+      "Bash(python3 -m flake8:*)",
+      "Bash(python3 -m py_compile:*)",
+      "Bash(flake8:*)",
+      "Bash(ls:*)",
+      "Bash(find tmp:*)",
+      "Bash(find models:*)",
+      "Bash(find tools:*)",
+      "Bash(find docs:*)",
+      "Bash(find .agents:*)",
+      "Bash(grep:*)",
+      "Bash(rg:*)",
+      "Bash(git status)",
+      "Bash(git status:*)",
+      "Bash(git diff:*)",
+      "Bash(git log:*)",
+      "Bash(git show:*)",
+      "Bash(git branch:*)",
+      "Bash(git blame:*)",
+      "Bash(mkdir -p tmp:*)",
+      "Bash(mkdir -p .agents/plans:*)",
+      "Bash(rm tmp/*)",
+      "Bash(rm -r tmp/*)",
+      "Bash(cp machine_profiles.json.example machine_profiles_user.json)"
+    ],
+    "deny": [
+      "Bash(rm -rf:*)",
+      "Bash(git push --force:*)",
+      "Bash(git push -f:*)",
+      "Bash(git reset --hard:*)",
+      "Bash(git clean -f:*)",
+      "Bash(git branch -D:*)"
+    ]
+  }
+}

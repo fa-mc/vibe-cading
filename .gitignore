@@ -14,10 +14,25 @@ tmp/
 *.svg
 /memories/session/ideas.md
 
-# Agent files
+# Agent files (legacy + Copilot prompt scratch space)
 .agents/
 .agent/
 .agent
+
+# Claude Code — keep project agents/commands/settings tracked, ignore user-local state.
+# Personal "core-agents" (admin persona, custom skills) live in the user's
+# ~/.claude/ dotfile and are mounted into the dev container at runtime; they
+# are intentionally never checked into this repo.
+.claude/settings.local.json
+.claude/cache/
+.claude/sessions/
+.claude/shell-snapshots/
+.claude/file-history/
+.claude/session-env/
+.claude/projects/
+.claude/telemetry/
+.claude/history.jsonl
+.claude/.credentials.json
 
 # Local machine tolerances
 machine_profiles_user.json

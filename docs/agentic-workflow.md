@@ -6,9 +6,9 @@ This project uses a structured workflow for complex tasks, divided into **Contri
 
 | Role | Type | Responsibility |
 |---|---|---|
-| **Admin** | Maintainer | Owns the instruction set (`copilot-instructions.md`). Works with the user to clarify requirements. Open-source contributors act as the Admin. |
+| **Admin** | Maintainer | Has responsibility for the instruction set (`CLAUDE.md`). Works with the user to clarify requirements. Open-source contributors act as the Admin manually; maintainers may supply their own personal admin agent (loaded from `~/.claude/`). |
 | **Designer** | Contributor | Domain reasoning and brainstorming. Pre-digests reference material, resolves design ambiguity, chooses dimensions and constraints. Produces a design brief — *what* to build and *why*. Reviews Developer output against acceptance criteria. |
-| **Developer** | Contributor | Owns code structure (classes, methods, build pipeline). Implements the design brief, runs analysis tools, validates output. Escalates design blockers to the Designer. |
+| **Developer** | Contributor | Has responsibility for code structure (classes, methods, build pipeline). Implements the design brief, runs analysis tools, validates output. Escalates design blockers to the Designer. |
 | **TL (Ad-hoc)** | Maintainer | Auxiliary software architecture role. Invoked *only* for major codebase refactors, rewriting CLI tools, or planning shared base classes (`cq_utils.py`). Not involved in everyday 3D CAD part creation. |
 
 ## Phases
@@ -41,12 +41,12 @@ This project uses a structured workflow for complex tasks, divided into **Contri
 
 ## Invoking Roles
 
-Each role is mapped to a designated prompt file. Note that `#admin` and `#tl` are considered **Maintainer Roles** and their global configuration files are intentionally omitted from this repository. Open source contributors will drive the requirements and architecture manually, or bring their own custom platform agents to fulfill these roles.
+Each contributor role ships as a Claude Code subagent under `.claude/agents/`. Note that `Admin` and `TL` are considered **Maintainer Roles** and their global configuration files are intentionally omitted from this repository. Open source contributors will drive the requirements and architecture manually, or bring their own custom platform agents (e.g. loaded from a personal `~/.claude/` dotfile) to fulfill these roles.
 
-| Prompt file | Location | How to invoke |
+| Role | Subagent | How to invoke |
 |---|---|---|
-| `designer.prompt.md` | `.github/prompts/` | Type `#designer` in Copilot Chat |
-| `developer.prompt.md` | `.github/prompts/` | Type `#developer` in Copilot Chat |
+| Designer | `.claude/agents/designer.md` | Ask Claude Code *"use the designer agent to ..."*, or invoke directly via the `Agent` tool with `subagent_type: "designer"` |
+| Developer | `.claude/agents/developer.md` | Ask Claude Code *"use the developer agent to ..."*, or invoke directly via the `Agent` tool with `subagent_type: "developer"` |
 
 ## Design Brief Format
 
@@ -85,6 +85,6 @@ When the Developer encounters a design blocker during execution:
    - What failed or is ambiguous
    - What decision is needed
 3. **Continue** with unblocked deliverables if possible.
-4. **Invoke the Designer** (`#designer`) to resolve the escalation.
+4. **Invoke the Designer** (the `designer` subagent) to resolve the escalation.
 5. The Designer updates the brief and the Developer resumes.
 
