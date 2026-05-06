@@ -129,6 +129,35 @@ reference looks like a single mesh (e.g. a pre-assembled STL), the
 Designer must still identify the logical part boundaries in the design
 brief, and the Developer must implement each part as a separate class.
 
+## build.toml — Explicit Registration Only
+
+**Never add a new `[[build]]` entry to `build.toml` without explicit user approval.**
+
+When a new model class is implemented, do NOT automatically register it.
+Instead, present the proposed TOML block to the user and ask for confirmation
+before touching `build.toml`.  This keeps the build manifest intentional and
+prevents untested or intermediate models from polluting the output tree.
+
+## OCP Viewer — Dedicated Entry Point
+
+Model class files must **not** contain `ocp_vscode` imports or
+`if __name__ == "__main__":` viewer blocks.  Keep class files as pure class
+definitions.
+
+Use the dedicated `tools/view.py` entry point instead:
+
+    python3 tools/view.py <module.path.ClassName> [--params key=value ...]
+    python3 tools/view.py rc.servo.sg90.Sg90Servo
+    python3 tools/view.py rc.servo.sg90.Sg90Servo --params body_width=23.0
+
+For assemblies that need multiple parts shown with positional offsets, create a
+dedicated assembly module (e.g. `models/xlego/servos/shaft_saver_assembly.py`)
+that exposes a top-level `assemble()` function returning a list of
+`(solid, name, color)` tuples.  `tools/view.py` will call `assemble()` when
+`--assembly` is passed:
+
+    python3 tools/view.py --assembly xlego.servos.shaft_saver_assembly
+
 ## Known Modelling Pitfalls
 
 ### Chord-vs-arc ring (polygonal boolean cutters on cylinders)
