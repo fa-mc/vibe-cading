@@ -16,7 +16,8 @@
     ],
     "remoteUser": "root",
     "mounts": [
-        "source=${localEnv:HOME}/.ssh,target=/tmp/host-ssh,type=bind,readonly"
+        "source=${localEnv:HOME}/.ssh,target=/tmp/host-ssh,type=bind,readonly",
+        "source=${localEnv:HOME}${localEnv:USERPROFILE}/.claude,target=/root/.claude,type=bind,consistency=cached"
     ],
     "remoteEnv": {
         "SSH_AUTH_SOCK": "/ssh-agent",
