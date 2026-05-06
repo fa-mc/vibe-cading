@@ -4,7 +4,8 @@ A robust, AI-friendly, parametric Code-CAD library written in Python using [CadQ
 
 The purpose of this repository is to provide a universal toolkit of reusable mechanical components (screws, heat-set inserts, hex nuts, joints, bearings, and enclosures). It also features practical examples demonstrating how to use these primitives to build parts that interface **RC (radio-controlled) components** with **Lego Technic** assemblies (motor mounts, ESC holders, axle adapters, etc.).
 
-Models are built with AI assistance via [GitHub Copilot](https://github.com/features/copilot).
+Models are built with AI assistance via [Claude Code](https://claude.com/claude-code). The project
+ships project-level subagents under `.claude/agents/` and slash commands under `.claude/commands/`.
 
 ---
 
@@ -27,7 +28,7 @@ This project runs in a **VS Code Dev Container** — no manual installation requ
 
 1. Clone the repo and open it in VS Code.
 2. When prompted, click **Reopen in Container** (or run `Dev Containers: Reopen in Container` from the command palette).
-3. The container builds automatically with Python 3.11, CadQuery, and the [OCP CAD Viewer](https://github.com/bernhard-42/vscode-ocp-cad-viewer) extension.
+3. The container builds automatically with Python 3.11, CadQuery, the [OCP CAD Viewer](https://github.com/bernhard-42/vscode-ocp-cad-viewer) extension, and the [Claude Code](https://marketplace.visualstudio.com/items?itemName=Anthropic.claude-code) extension. Your host `~/.claude/` is mounted into the container so any personal Claude Code agents, skills, or settings travel with you.
 
 The OCP viewer backend runs on port **3939** and is forwarded to your host automatically.
 
@@ -35,12 +36,14 @@ The OCP viewer backend runs on port **3939** and is forwarded to your host autom
 
 Since this repository is managed via a three-role AI Agentic Workflow, you should initialize your local settings upon cloning the repository.
 
-Open GitHub Copilot Chat and type:
+Open Claude Code in this workspace and ask it to initialize the project, e.g.:
 ```
-@workspace #admin please initialize the project
+please initialize the project
 ```
 
-The AI Admin agent will automatically configure your local `tmp/` folders for tool analysis and set up your manufacturing tolerance profiles. 
+Claude Code will read `CLAUDE.md`, create the local `tmp/` and `.agents/plans/` folders for tool analysis, and copy `machine_profiles.json.example` → `machine_profiles_user.json` so you can configure your manufacturing tolerance profiles.
+
+> Maintainers who run their own personal `admin` persona / skills (loaded from `~/.claude/`) can invoke that workflow directly. Open-source contributors act as the Admin themselves — Claude Code drives the rest of the workflow via the included `designer` and `developer` subagents.
 
 **Manufacturing & Tolerance Profiles:**
 This repository uses a global tolerance configuration system to ensure parts fit together correctly based on your specific manufacturing method (e.g. FDM vs Resin 3D printing). 

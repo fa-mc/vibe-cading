@@ -26,19 +26,19 @@ We hold our codebase to a high standard of structural quality and mathematical r
 
 ## 🤖 2. The Agentic AI Workflow
 
-We strongly encourage contributors to use AI (GitHub Copilot) to generate code. To manage the complexity of CAD, we use a three-role prompt system:
+We strongly encourage contributors to use [Claude Code](https://claude.com/claude-code) to generate code. To manage the complexity of CAD, we use a three-role system:
 
-1.  **Admin** (`#admin`): Understands the global instruction set and helps refine requirements.
-2.  **Designer** (`#designer`): Brainstorms, digests reference material (STEP files, drawings), resolves geometric ambiguities, and writes a **Design Brief**. Focuses on *what* to build and *why*.
-3.  **Developer** (`#developer`): Owns the Python code structure. Implements the Design Brief by writing CadQuery classes and validation tooling.
+1.  **Admin**: Understands the global instruction set (`CLAUDE.md`) and helps refine requirements. Open-source contributors act as the Admin manually, or supply their own personal `admin` agent loaded from `~/.claude/`.
+2.  **Designer** (`designer` subagent): Brainstorms, digests reference material (STEP files, drawings), resolves geometric ambiguities, and writes a **Design Brief**. Focuses on *what* to build and *why*.
+3.  **Developer** (`developer` subagent): Has responsibility over the Python code structure. Implements the Design Brief by writing CadQuery classes and validation tooling.
 
 ### How to Use the Workflow
 If you are adding a complex new model:
-1. Provide the reference material (STEP files, specs) and ask the **Designer** to analyze it and produce a Design Brief (saved to `.agents/plans/`).
-2. Once the brief is clear, hand it over to the **Developer** to write the code.
+1. Provide the reference material (STEP files, specs) and ask the **Designer** to analyze it and produce a Design Brief (saved to `.agents/plans/`). In Claude Code: *"use the designer agent to analyze ref.step and produce a brief"*.
+2. Once the brief is clear, hand it over to the **Developer** to write the code (Claude Code will normally transition automatically once the brief is approved).
 3. The Developer must run the validation tools before considering the task complete.
 
-*(Note: `.agents/` and `.github/prompts/` are used locally to manage the AI context. See `docs/agentic-workflow.md` for deep details on this protocol).*
+*(Note: `.agents/` is used locally to manage AI artefacts (design briefs, lookbacks). The shared agent definitions live in `.claude/agents/` and slash commands in `.claude/commands/`. See `docs/agentic-workflow.md` for deep details on this protocol).*
 
 ---
 

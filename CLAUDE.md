@@ -2,7 +2,7 @@
 
 These instructions form the foundational, project-agnostic rules for all AI agents operating in this workspace. They establish baseline behaviors for workspace hygiene, tool usage, validation, and multi-agent workflow.
 
-Project-specific instructions should inherit from and build upon this document.
+Project-specific instructions further down inherit from and build upon this section.
 
 ## 1. Core Persona & Agent Behavior
 - **Persona & Tone:** Act as a pure logic machine devoid of emotions. Do not mimic a human persona or add conversational filler.
@@ -17,8 +17,8 @@ Project-specific instructions should inherit from and build upon this document.
 - **Git Commits:** Do not commit changes using git unless specifically asked to in the **current user prompt**. A request to commit in a previous turn does **not** carry over to subsequent tasks. Always ask for confirmation before committing.
 
 ## 3. Tool Usage & Editing Rules
-- **Direct Native Edits Recommended:** Use the native file editing tools (e.g., `replace_string_in_file`, `edit_file`) for modifying source code.
-- **No Bash File Overrides:** NEVER try to edit or write to a workspace file using bash terminal commands (e.g., `cat << EOF`, `echo >`, `sed -i`). Modifying files via the terminal bypasses the VS Code editor buffer and creates synchronization issues.
+- **Direct Native Edits Recommended:** Use the native file editing tools (Claude Code `Edit` / `Write`) for modifying source code.
+- **No Bash File Overrides:** NEVER try to edit or write to a workspace file using bash terminal commands (e.g., `cat << EOF`, `echo >`, `sed -i`). Modifying files via the terminal bypasses the editor buffer and creates synchronization issues.
 - **Safety in Terminals:** Never use aggressive wildcard kill commands resulting in session drops (e.g., `pkill node`, `killall python`, `kill -- -$$`). Target specific process IDs (PIDs) or use specific port kills (`fuser -k <port>/tcp`).
 
 ## 4. Execution, Validation & Debugging
@@ -33,15 +33,15 @@ Project-specific instructions should inherit from and build upon this document.
 This workspace utilizes a structured, multi-role agentic workflow.
 
 - **Standard Roles:**
-  - **Contributor Roles (Included in repo):**
-    - `#designer`: Domain reasoning, brainstorming, and design briefs.
-    - `#developer`: Code structure, implementation, frameworks, and validation.
+  - **Contributor Roles (Included in repo, run as Claude Code subagents):**
+    - `designer`: Domain reasoning, brainstorming, and design briefs.
+    - `developer`: Code structure, implementation, frameworks, and validation.
   - **Maintainer Roles (Human or Bring-Your-Own-Agent):**
-    - `Admin`: Requirements, instruction maintenance, and unblocking execution loops. (For open-source users, the human contributor acts as the Admin).
+    - `Admin`: Requirements, instruction maintenance, and unblocking execution loops. (For open-source users, the human contributor acts as the Admin, or supplies their own admin persona.)
     - `TL`: Architecture for global CLI utilities and shared refactors.
 - **Artefact Management:**
-  - **Design Briefs & Plans:** Tracked in `.agents/plans/`
-  - **Session Backlog/Ideas:** Tracked via memory (`/memories/session/ideas.md`) to park non-immediate refactors.
+  - **Design Briefs & Plans:** Tracked in `.agents/plans/` (git-ignored).
+  - **Session Backlog/Ideas:** Parked under `/memories/session/ideas.md` to defer non-immediate refactors.
 - **Seamless Role Transitions:** Transition seamlessly between included roles (or invoke the next step) without asking the user for confirmation if there is no ambiguity. Never instruct the user to copy-paste prompts to facilitate a hand-off.
 - **Proactive Escalation:** If you are blocked by undocumented behavior, face repeated failures, or identify a systematic gap in prompt instructions, seamlessly halt and escalate to the **User (Admin)** for clarification and to patch the workflow/knowledge gap. Do not guess.
 
@@ -93,13 +93,13 @@ See [docs/agentic-workflow.md](docs/agentic-workflow.md) for the full
 specification.
 
 **Roles:**
-- **Contributor Roles (Included):** Designer (domain reasoning & design briefs), Developer (code structure, implementation & execution).
-- **Maintainer Roles (Bring-Your-Own / Human):** Admin (requirements & review), TL (architecture & refactors). Open-source contributors act as the Admin and guide the workflow manually unless they supply their own custom agents.
+- **Contributor Roles (Included as Claude Code subagents in `.claude/agents/`):** `designer` (domain reasoning & design briefs), `developer` (code structure, implementation & execution).
+- **Maintainer Roles (Bring-Your-Own / Human):** Admin (requirements & review), TL (architecture & refactors). Open-source contributors act as the Admin and guide the workflow manually unless they supply their own custom agents (e.g., loaded via personal `~/.claude/` config).
 
-**Prompt files**:
-- `#designer` — brainstorming, design briefs, reference analysis, domain decisions (Local in `.github/prompts/`)
-- `#developer` — code structure, implementation, tools, validation, escalation (Local in `.github/prompts/`)
-- *Note: `#admin` and `#tl` are intentionally omitted from this repository. Maintainers use their own global prompt files, while contributors drive these phases manually.*
+**Invocation in Claude Code**:
+- Delegate domain/design work via the `designer` subagent (`Agent` tool with `subagent_type: "designer"`), or by user request `use the designer agent to ...`.
+- Delegate implementation/execution via the `developer` subagent.
+- *Note: `admin` and `tl` are intentionally not shipped in this repository. Maintainers use their own personal Claude Code agents/skills, while open-source contributors drive these phases manually.*
 
 **Workspace Initialization**:
 When initializing the project or workspace, you must:
@@ -108,7 +108,7 @@ When initializing the project or workspace, you must:
 
 **Artefact locations** (git-ignored):
 - Design briefs: `.agents/plans/`
-- Session backlog / Parking lot: `/memories/session/ideas.md` (Store ideas, refactures, or tooling improvements that emerge during the session but should not be acted upon immediately).
+- Session backlog / Parking lot: `/memories/session/ideas.md` (Store ideas, refactors, or tooling improvements that emerge during the session but should not be acted upon immediately).
 
 **Key rule:** The Developer must not interpret ambiguous reference material
 (drawings, STEP files).  The Designer pre-digests all dimensions, coordinate
@@ -352,7 +352,7 @@ Do this for every view in the reference before extracting a single dimension:
 1. Choose views that match the orthographic projections shown in the
    reference (e.g. top/front/left for a standard three-view drawing).
 2. Run the preview tool immediately after building the model.
-3. Read back each SVG with `read_file` — SVG is plain XML.  Path
+3. Read back each SVG with the `Read` tool — SVG is plain XML.  Path
    coordinates are in mm-scale model space.
 4. Compare each view against the corresponding projection in the reference.
    Check: overall bounding-box dimensions, feature positions, holes.
