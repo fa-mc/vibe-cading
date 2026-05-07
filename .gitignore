@@ -19,20 +19,14 @@ tmp/
 .agent/
 .agent
 
-# Claude Code — keep project agents/commands/settings tracked, ignore user-local state.
-# Personal "core-agents" (admin persona, custom skills) live in the user's
-# ~/.claude/ dotfile and are mounted into the dev container at runtime; they
-# are intentionally never checked into this repo.
-.claude/settings.local.json
-.claude/cache/
-.claude/sessions/
-.claude/shell-snapshots/
-.claude/file-history/
-.claude/session-env/
-.claude/projects/
-.claude/telemetry/
-.claude/history.jsonl
-.claude/.credentials.json
+# Claude Code — entire .claude/ tree is per-clone scratch (untracked) except
+# for the project's settings.json. Canonical project personas and slash
+# commands live under vibe/agents/ and vibe/commands/ (tracked); each clone's
+# .claude/ holds untracked wrappers that delegate to either vibe/ (for
+# project-shared content) or per-host user-level resources loaded from
+# ~/.claude/ (for shared persona stacks not intended to live in this repo).
+.claude/
+!.claude/settings.json
 
 # Local machine tolerances
 machine_profiles_user.json
