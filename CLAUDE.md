@@ -105,6 +105,7 @@ specification.
 When initializing the project or workspace, you must:
 1. Create local `.gitignore`d directories if they don't exist (`tmp/`, `.agents/plans/`).
 2. Copy `machine_profiles.json.example` to `machine_profiles_user.json` so the user can configure their specific 3D printer tolerances.
+3. Seed the per-clone `.claude/` runtime aliases by running `tools/init-claude-runtime.sh`. The script regenerates `.claude/agents/<name>.md` and `.claude/commands/<name>.md` from the canonical content under `vibe/agents/` and `vibe/commands/`; the `.claude/` tree itself is git-ignored. Re-run the script after editing any file under `vibe/agents/` or `vibe/commands/` so the runtime aliases stay in sync.
 
 **Artefact locations** (git-ignored):
 - Design briefs: `.agents/plans/`
