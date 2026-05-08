@@ -38,7 +38,9 @@ If you are adding a complex new model:
 2. Once the brief is clear, hand it over to the **Developer** to write the code (Claude Code will normally transition automatically once the brief is approved).
 3. The Developer must run the validation tools before considering the task complete.
 
-*(Note: `.agents/` is used locally to manage AI artefacts (design briefs, lookbacks). The shared agent definitions live in `.claude/agents/` and slash commands in `.claude/commands/`. See `docs/agentic-workflow.md` for deep details on this protocol).*
+*(Note: `.agents/` is gitignored and used locally to stage AI artefacts (design briefs in `.agents/plans/`, lookbacks). The canonical agent personas and slash-command definitions live under `vibe/agents/` and `vibe/commands/` (tracked, tool-neutral); Claude Code picks them up via per-clone runtime aliases under `.claude/` populated by `tools/init-claude-runtime.sh`. See `docs/agentic-workflow.md` for deep details on this protocol).*
+
+> Maintainer-style roles (Admin, TL, PM) are not shipped with this repository. Maintainers who want them as slash commands should install the [core-agents](https://github.com/fa-mc/core-agents) Claude Code plugin per-host and either invoke its bare `/core-agents-admin`, `/core-agents-tl`, `/core-agents-pm` commands or drop personal wrappers into `~/.claude/`. Open-source contributors act as the Admin manually.
 
 ---
 

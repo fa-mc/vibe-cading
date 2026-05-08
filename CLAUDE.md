@@ -20,10 +20,14 @@ surfaced through Claude Code's subagent mechanism:
   to ..."*.
 - Delegate implementation/execution via the `developer` subagent —
   `subagent_type: "developer"`.
-- *Note:* `admin` and `tl` are intentionally not shipped as tracked
-  subagents in this repository. Maintainers use their own personal Claude
-  Code agents/skills, while open-source contributors drive these phases
-  manually.
+- *Note:* `admin`, `tl`, and `pm` are intentionally not shipped as tracked
+  subagents or slash commands in this repository. Maintainers who want them
+  install the [core-agents](https://github.com/fa-mc/core-agents) Claude
+  Code plugin per-host (`/plugin marketplace add` + `/plugin install
+  core-agents@core-agents`) and either invoke its bare
+  `/core-agents-admin`, `/core-agents-tl`, `/core-agents-pm` commands or
+  drop personal wrappers into `~/.claude/`. Open-source contributors act
+  as the Admin manually.
 
 ## `.claude/` runtime aliases
 
