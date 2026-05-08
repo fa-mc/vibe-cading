@@ -14,7 +14,6 @@
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
 import cadquery as cq
-import math
 from models.print_settings import ToleranceProfile
 
 class PrintInPlaceHinge:

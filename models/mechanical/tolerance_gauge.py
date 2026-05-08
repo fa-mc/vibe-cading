@@ -91,15 +91,9 @@ class ToleranceGauge:
             # Tested diameter = 5.0 - 2 * offset
             peg_radius = (5.0 - 2 * offset) / 2.0
             peg = cylinder(radius=peg_radius, height=4.0, center=(0, 0, 0)).translate((x, y_coords[2], self.base_thickness))
-            
-            # Sub-cut a tiny chamfer on the peg so bearings slide on easily
-            peg_chamfer = (
-                cq.Workplane("XY", origin=(x, y_coords[2], self.base_thickness + 4.0))
-                .circle(peg_radius).circle(peg_radius - 0.5)
-                .extrude(-0.5)
-            )
-            # Actually, standard cadquery chamfer is better:
-            # We'll just keep it simple as a cylinder for now to test raw diameter tolerance.
+
+            # Standard cadquery chamfer is better, but we'll keep it simple as a
+            # plain cylinder for now to test raw diameter tolerance.
             pegs.append(peg)
 
             # 4. Row 4 (y_coords[3]): Lego Technic pins (4.8mm hole)

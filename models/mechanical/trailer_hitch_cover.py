@@ -1,6 +1,5 @@
 # vibe-cading is free software: you can redistribute it and/or modify
 import cadquery as cq
-import os
 
 class TrailerHitchCover:
     """

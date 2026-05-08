@@ -14,7 +14,7 @@
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
 import cadquery as cq
-from dataclasses import dataclass, field
+from dataclasses import dataclass
 from typing import List, Tuple
 
 @dataclass
