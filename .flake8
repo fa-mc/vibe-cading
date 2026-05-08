@@ -1,0 +1,19 @@
+[flake8]
+max-line-length = 120
+# E203, W503: black-style false positives (PEP 8 disagreement, see
+#   https://black.readthedocs.io/en/stable/the_black_code_style/current_style.html)
+# E1, E2, E3, E4, E5, W1, W2, W3, W5: pycodestyle classes deferred to a
+#   v2 cleanup task (see .agents/plans/2026-05-08-ci-baseline_design.md
+#   §"Pyflakes-strict, pycodestyle-deferred"). DO NOT remove without
+#   re-running flake8 against the full tree and confirming the
+#   resulting violation count is fixable within the >20-line rule.
+# E722 (bare except) is the highest-value class to re-enable in v2 — it
+#   hides real exception-type bugs. Spec'd as the v2 entry point.
+extend-ignore = E1, E2, E3, E4, E5, E7, W1, W2, W3, W5, W6
+exclude =
+    tmp,
+    build,
+    .agents,
+    .git,
+    __pycache__,
+    *.egg-info
