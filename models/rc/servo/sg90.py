@@ -487,9 +487,8 @@ class Sg90Servo:
         
         # Gear boss
         # For the cutter, unify the gear boss height with the collar height.
-        # Although physically 0.3mm shorter (3.9 vs 4.2), preserving this as a negative 
+        # Although physically 0.3mm shorter (3.9 vs 4.2), preserving this as a negative
         # cavity leaves an unprintable 0.3mm stair-step crescent on the ceiling of the mount.
-        gear_boss_h = self._GEAR_BOSS_HEIGHT + clearance + 0.1
         gear_boss = cylinder(
             self._GEAR_BOSS_R + clearance,
             collar_h,  # Override to match collar_h (eliminates micro-ceiling step)

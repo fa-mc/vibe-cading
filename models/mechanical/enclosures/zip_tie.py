@@ -45,18 +45,6 @@ class ZipTieAnchor:
         # This means the profile on XZ plane is an inverted 'U' if the slot is flush with the ground.
         # Let's create an outer rectangle and subtract an inner rectangle, then extrude.
         
-        leg_length = (self.length - self.slot_width) / 2
-        
-        result = (
-            cq.Workplane("XZ")
-            # Outer boundary
-            .rect(self.length, self.height, centered=(True, False))
-            # Inner slot boundary
-            .rect(self.length + 0.1, self.slot_height, centered=(True, False))
-            .extrude(self.width, both=True)
-            .intersect(cq.Workplane("XY").box(self.length, self.width, self.height, centered=(True,True,False)))
-        )
-        
         # Simpler 2D pure sketch:
         w = self.length / 2
         sw = self.slot_width / 2
