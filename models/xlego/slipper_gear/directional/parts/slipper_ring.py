@@ -272,7 +272,6 @@ class SlipperRing:
             Root_next = (ramp_start_r * math.cos(theta_next), ramp_start_r * math.sin(theta_next))
 
             # The 'prev' values are used to compute the incoming fillet for Root_curr
-            Tip_prev  = (ramp_end_r * math.cos(theta_prev_end), ramp_end_r * math.sin(theta_prev_end))
             Pocket_prev = (ramp_start_r * math.cos(theta_pocket_prev), ramp_start_r * math.sin(theta_pocket_prev))
 
             dx_start = b * math.cos(theta_start) - ramp_start_r * math.sin(theta_start)

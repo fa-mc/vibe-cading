@@ -58,10 +58,8 @@ class MetricHexNut(Nut):
     def to_cutter(self, profile = None) -> cq.Workplane:
         from models.print_settings import get_profile
         prof = profile or get_profile()
-        radial_allowance = prof.free_fit
         depth_allowance = prof.z_clearance
         from models.mechanical.holes import CaptiveNutPocket
-        from models.print_settings import ToleranceProfile
         pocket = CaptiveNutPocket(self.width_flats, self.thickness + depth_allowance, prof)
         # The pocket translates down by `-thickness` internally, so to match old behaviour (extruding UP from XY):
         # We need to translate the cut tool up by its thickness so it sits at Z=0 and goes to +h

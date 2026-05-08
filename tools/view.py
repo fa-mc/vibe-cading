@@ -163,7 +163,6 @@ def view_multiple(model_paths: list[str], params: dict, reset: bool = True,
     Parts are separated by their combined bounding-box width plus a small gap
     so they never overlap in the viewer.
     """
-    import cadquery as cq
     from ocp_vscode import show, reset_show  # noqa: PLC0415
 
     solids: list      = []
@@ -194,7 +193,6 @@ def view_multiple(model_paths: list[str], params: dict, reset: bool = True,
 
     if export:
         # For multi-model exports, union all parts and write a single STEP.
-        import cadquery as cq
         merged = solids[0]
         for s in solids[1:]:
             merged = merged.union(s)
@@ -234,7 +232,6 @@ def view_assembly(module_path: str, reset: bool = True,
     colors = [p[2] for p in parts]
 
     if export:
-        import cadquery as cq
         merged = solids[0]
         for s in solids[1:]:
             merged = merged.union(s)
