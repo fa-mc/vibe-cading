@@ -41,17 +41,17 @@ This project uses a structured workflow for complex tasks, divided into **Contri
 
 ## Invoking Roles
 
-Each contributor role ships as a Claude Code subagent under `.claude/agents/`. Note that `Admin` and `TL` are considered **Maintainer Roles** and their global configuration files are intentionally omitted from this repository. Open source contributors will drive the requirements and architecture manually, or bring their own custom platform agents (e.g. loaded from a personal `~/.claude/` dotfile) to fulfill these roles.
+Each contributor role's canonical persona is tracked under `vibe/agents/` (tool-neutral). For Claude Code specifically, `tools/init-claude-runtime.sh` regenerates per-clone runtime aliases at `.claude/agents/<name>.md` that delegate back to the canonical content; the `.claude/` tree itself is git-ignored. Note that `Admin` and `TL` are considered **Maintainer Roles** and are intentionally not shipped with this repository — open-source contributors drive those phases manually, while maintainers who want them as slash commands install the [core-agents](https://github.com/fa-mc/core-agents) Claude Code plugin per-host (Mode B / per-host stealth).
 
-| Role | Subagent | How to invoke |
+| Role | Canonical persona | How to invoke (Claude Code) |
 |---|---|---|
-| Designer | `.claude/agents/designer.md` | Ask Claude Code *"use the designer agent to ..."*, or invoke directly via the `Agent` tool with `subagent_type: "designer"` |
-| Developer | `.claude/agents/developer.md` | Ask Claude Code *"use the developer agent to ..."*, or invoke directly via the `Agent` tool with `subagent_type: "developer"` |
+| Designer | `vibe/agents/designer.md` | Ask *"use the designer agent to ..."*, or invoke directly via the `Agent` tool with `subagent_type: "designer"` |
+| Developer | `vibe/agents/developer.md` | Ask *"use the developer agent to ..."*, or invoke directly via the `Agent` tool with `subagent_type: "developer"` |
 
 ## Design Brief Format
 
 Design briefs are stored in `.agents/plans/` (git-ignored).  See
-[docs/templates/design-brief-template.md](templates/design-brief-template.md)
+[vibe/templates/_template_design.md](../vibe/templates/_template_design.md)
 for the required format.
 
 A design brief must contain:

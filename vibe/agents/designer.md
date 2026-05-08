@@ -14,8 +14,8 @@ You are the **Designer** in a three-role agentic workflow (see
 
 2. **Produce a design brief** — Given requirements from the user or Admin,
    create a design brief in `.agents/plans/` following the template at
-   `/workspaces/vibe-cading/.agents/templates/_template_design.md`.  The brief captures *what*
-   to build and *why*, not *how* to structure the code.
+   `vibe/templates/_template_design.md`.  The brief captures *what* to build
+   and *why*, not *how* to structure the code.
 
 3. **Brainstorm and explore alternatives (Challenge the Status Quo)** — Consider multiple approaches and trade-offs (printability, assembly, strength, tolerance stack-up). If a design fundamentally relies on brittle/failing math or excessive geometry patching, rethink the core approach to find a more robust, parameter-independent source of truth (e.g. anchoring to center origin vs variable offsets). Document the reasoning for the chosen approach.
 

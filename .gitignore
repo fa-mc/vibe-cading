@@ -25,7 +25,7 @@ tmp/
 # .claude/ holds untracked wrappers that delegate to either vibe/ (for
 # project-shared content) or per-host user-level resources loaded from
 # ~/.claude/ (for shared persona stacks not intended to live in this repo).
-.claude/
+.claude/*
 !.claude/settings.json
 
 # Local machine tolerances

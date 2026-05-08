@@ -34,6 +34,8 @@
       "Bash(git blame:*)",
       "Bash(mkdir -p tmp:*)",
       "Bash(mkdir -p .agents/plans:*)",
+      "Bash(tools/init-claude-runtime.sh:*)",
+      "Bash(bash tools/init-claude-runtime.sh:*)",
       "Bash(rm tmp/*)",
       "Bash(rm -r tmp/*)",
       "Bash(cp machine_profiles.json.example machine_profiles_user.json)"
