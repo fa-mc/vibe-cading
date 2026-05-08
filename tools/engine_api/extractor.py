@@ -55,6 +55,7 @@ Field derivation rules (brief §2)
 from __future__ import annotations
 
 import ast
+import sys
 from dataclasses import dataclass, field
 from pathlib import Path
 
@@ -81,6 +82,26 @@ _MM_SUFFIXES: tuple[str, ...] = (
     "_tolerance",
     "_width",
 )
+
+
+# Bare parameter names that imply mm. The suffix matcher below only fires
+# on ``_<suffix>`` forms (e.g. ``flange_thickness``); bare names like
+# ``thickness`` need an exact-match table to avoid emitting ``units: null``
+# for genuinely length-like params. ``module`` (gear-module ratio) and
+# ``teeth`` (count) are deliberately excluded.
+_MM_BARE_NAMES: frozenset[str] = frozenset({
+    "bore",
+    "depth",
+    "diameter",
+    "height",
+    "length",
+    "pitch",
+    "radius",
+    "size",
+    "thickness",
+    "tolerance",
+    "width",
+})
 
 
 @dataclass
@@ -177,10 +198,16 @@ def extract_classes(roots: list[Path]) -> list[ClassRecord]:
             module = _module_path(py_path, repo_root)
             try:
                 tree = ast.parse(py_path.read_text(encoding="utf-8"))
-            except SyntaxError:
+            except SyntaxError as exc:
                 # Skip files that don't parse — they would also fail at
                 # import time, which is a separate problem to fix in the
-                # offending file rather than in the extractor.
+                # offending file rather than in the extractor. Emit to
+                # stderr so a typo'd model file does not silently vanish
+                # from the artifact.
+                print(
+                    f"[engine_api] skipped {py_path}: {exc}",
+                    file=sys.stderr,
+                )
                 continue
             # Index top-level classes in this file by name so subclasses
             # can inherit constructors from a same-module ancestor when
@@ -377,6 +404,12 @@ def _extract_params(func: ast.FunctionDef, *, kind: str) -> list[Param]:
     targets concrete user-facing parameters, and no current model uses
     var-args in a public constructor.
     """
+    # ``func.args.kwonlyargs`` is intentionally out of scope for v1 — no
+    # current model exposes keyword-only constructor params.
+    # TODO: revisit if a future model needs them; will require pairing
+    # against ``func.args.kw_defaults`` (which uses None as a sentinel
+    # for "no default", not "default is None") and emitting them after
+    # the positional-or-keyword params here.
     args = list(func.args.args)
     if args:
         leading = args[0].arg
@@ -498,9 +531,15 @@ def _is_classvar(annotation: ast.expr | None) -> bool:
 
 
 def _units_for_param(name: str) -> str | None:
-    """Suffix-inferred unit per brief §9.1."""
-    if name.endswith("_angle"):
+    """Suffix-inferred unit per brief §9.1.
+
+    Resolution order: angle (bare or ``_angle``-suffix) → bare-name table
+    (``_MM_BARE_NAMES``) → mm-suffix table (``_MM_SUFFIXES``) → ``None``.
+    """
+    if name == "angle" or name.endswith("_angle"):
         return "deg"
+    if name in _MM_BARE_NAMES:
+        return "mm"
     for suffix in _MM_SUFFIXES:
         if name.endswith(suffix):
             return "mm"
