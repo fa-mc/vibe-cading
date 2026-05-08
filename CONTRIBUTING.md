@@ -73,3 +73,29 @@ We provide several CLI utilities in the `tools/` folder:
 *   Use the system `python3` binary directly inside the container. We do not use isolated virtual environments (`venv`) for this project, as the container itself provides the isolation.
 
 We look forward to your contributions!
+
+---
+
+## 📦 6. Engine API artifact
+
+`engine_api.json` at the repo root is a machine-readable index of every public model class in `models/**`. Downstream LLM code-gen tooling (e.g. the platform's `query_engine_api` MCP) consumes it to call engine classes deterministically. It is generated, not hand-written, and **must stay in sync with `models/**`**.
+
+**Regenerate after editing any model class:**
+
+    python3 tools/gen_engine_api.py
+
+That walks `models/**` with a pure-`ast` extractor (no CadQuery import) and rewrites the file in place. Commit the regenerated artifact alongside your model changes.
+
+**CI gate.** `.github/workflows/engine-api.yml` runs on any PR or push to `main` that touches `models/**`, `tools/engine_api/**`, `tools/gen_engine_api.py`, `tools/validate_engine_api.py`, or `engine_api.json`. The gate executes:
+
+1. `python3 tools/gen_engine_api.py --check` — regenerates in memory and exits non-zero if the on-disk file differs.
+2. `python3 tools/validate_engine_api.py` — asserts the schema invariants documented in `tools/engine_api/extractor.py`.
+
+If the gate fails on your PR, run `gen_engine_api.py` locally and commit the diff.
+
+**Bumping `schema_version`.** The extractor pins `SCHEMA_VERSION` in `tools/engine_api/extractor.py`; the validator imports the same constant. Bump it whenever the schema shape changes:
+
+- **Major** (`1.0` → `2.0`) for breaking changes — renaming or removing a field, dropping a previously-listed class, narrowing a `type` annotation, making an optional param required.
+- **Minor** (`1.0` → `1.1`) for additive changes — a new top-level field with a sensible default, a new class, a previously-omitted optional param, a new `constructors[].kind` value.
+
+The validator hard-fails on a `schema_version` mismatch so the bump is forced to be intentional.

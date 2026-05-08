@@ -1,0 +1,42 @@
+name: engine-api
+
+# Guards `engine_api.json` against drift from `models/**`. The artifact is a
+# tracked file at the repo root that the platform's MCP `query_engine_api`
+# tool consumes; if it falls out of sync, downstream LLM code-gen breaks.
+#
+# See `.agents/plans/engine-api-json.md` §6 for design notes.
+
+on:
+  pull_request:
+    paths:
+      - "models/**"
+      - "tools/engine_api/**"
+      - "tools/gen_engine_api.py"
+      - "tools/validate_engine_api.py"
+      - "engine_api.json"
+      - ".github/workflows/engine-api.yml"
+  push:
+    branches: [main]
+    paths:
+      - "models/**"
+      - "tools/engine_api/**"
+      - "tools/gen_engine_api.py"
+      - "tools/validate_engine_api.py"
+      - "engine_api.json"
+      - ".github/workflows/engine-api.yml"
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          # Matches the dev container (.devcontainer/Dockerfile uses
+          # python:3.11-slim). Pin a single recent 3.x — the extractor is
+          # pure stdlib so we do not need a matrix.
+          python-version: "3.11"
+      - name: Regenerate engine_api.json (in memory) and diff against tree
+        run: python3 tools/gen_engine_api.py --check
+      - name: Validate engine_api.json against schema invariants
+        run: python3 tools/validate_engine_api.py
