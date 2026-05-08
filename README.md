@@ -4,8 +4,11 @@ A robust, AI-friendly, parametric Code-CAD library written in Python using [CadQ
 
 The purpose of this repository is to provide a universal toolkit of reusable mechanical components (screws, heat-set inserts, hex nuts, joints, bearings, and enclosures). It also features practical examples demonstrating how to use these primitives to build parts that interface **RC (radio-controlled) components** with **Lego Technic** assemblies (motor mounts, ESC holders, axle adapters, etc.).
 
-Models are built with AI assistance via [Claude Code](https://claude.com/claude-code). The project
-ships project-level subagents under `.claude/agents/` and slash commands under `.claude/commands/`.
+Models are built with AI assistance via [Claude Code](https://claude.com/claude-code). Project
+agent personas and slash commands live under [vibe/agents/](vibe/agents/) and
+[vibe/commands/](vibe/commands/) (tracked, tool-neutral); the runtime
+`.claude/` tree is per-clone scratch, populated by
+[tools/init-claude-runtime.sh](tools/init-claude-runtime.sh).
 
 ---
 
@@ -41,9 +44,9 @@ Open Claude Code in this workspace and ask it to initialize the project, e.g.:
 please initialize the project
 ```
 
-Claude Code will read `CLAUDE.md`, create the local `tmp/` and `.agents/plans/` folders for tool analysis, and copy `machine_profiles.json.example` → `machine_profiles_user.json` so you can configure your manufacturing tolerance profiles.
+Claude Code will read `CLAUDE.md`, create the local `tmp/` and `.agents/plans/` folders for tool analysis, copy `machine_profiles.json.example` → `machine_profiles_user.json` so you can configure your manufacturing tolerance profiles, and run `tools/init-claude-runtime.sh` to populate the per-clone `.claude/` runtime aliases that Claude Code uses to discover the project's `designer`/`developer` subagents and slash commands.
 
-> Maintainers who run their own personal `admin` persona / skills (loaded from `~/.claude/`) can invoke that workflow directly. Open-source contributors act as the Admin themselves — Claude Code drives the rest of the workflow via the included `designer` and `developer` subagents.
+> Maintainer-style roles (Admin, TL, PM) are not shipped with this repository. Maintainers who want them install the [core-agents](https://github.com/fa-mc/core-agents) Claude Code plugin per-host and invoke `/core-agents-admin`, `/core-agents-tl`, `/core-agents-pm` (or personal wrappers under `~/.claude/`). Open-source contributors act as the Admin themselves — Claude Code drives the rest of the workflow via the included `designer` and `developer` subagents.
 
 **Manufacturing & Tolerance Profiles:**
 This repository uses a global tolerance configuration system to ensure parts fit together correctly based on your specific manufacturing method (e.g. FDM vs Resin 3D printing). 
