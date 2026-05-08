@@ -42,6 +42,11 @@ if str(_REPO_ROOT) not in sys.path:
 from tools.engine_api.extractor import SCHEMA_VERSION  # noqa: E402
 
 _VALID_KINDS = {"init", "classmethod", "factory"}
+# Allowed values for a param's ``units`` field. ``None`` means "no unit
+# inferred"; any string must be one of the canonical short codes below.
+# Constrained defensively to catch typos in the extractor's inference
+# table (e.g. a stray ``"mmm"`` would otherwise pass schema validation).
+_VALID_UNIT_STRINGS = {"mm", "deg"}
 
 
 def _fail(errors: list[str], msg: str) -> None:
@@ -71,6 +76,12 @@ def _validate_param(
         units = param["units"]
         if units is not None and not isinstance(units, str):
             _fail(errors, f"{ctor_label}.{name}: 'units' must be string or null")
+        elif isinstance(units, str) and units not in _VALID_UNIT_STRINGS:
+            _fail(
+                errors,
+                f"{ctor_label}.{name}: 'units' must be one of "
+                f"{sorted(_VALID_UNIT_STRINGS)} or null (got {units!r})",
+            )
 
     required = param.get("required")
     has_default_key = "default" in param
