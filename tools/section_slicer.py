@@ -36,7 +36,6 @@ from __future__ import annotations
 
 import argparse
 import math
-import re
 from pathlib import Path
 
 import cadquery as cq
@@ -53,8 +52,6 @@ from OCP.GeomAbs import (
     GeomAbs_BSplineCurve,
     GeomAbs_BezierCurve,
 )
-from OCP.Bnd import Bnd_Box
-from OCP.BRepBndLib import BRepBndLib
 
 
 # Axis label → (normal direction, projection axes for 2D SVG)
@@ -204,7 +201,7 @@ def _polylines_to_svg(
     The SVG uses mm-scale coordinates with a viewBox fitted to the content.
     """
     if not polylines:
-        return f'<svg xmlns="http://www.w3.org/2000/svg"><text x="10" y="20">No section geometry</text></svg>'
+        return '<svg xmlns="http://www.w3.org/2000/svg"><text x="10" y="20">No section geometry</text></svg>'
 
     # Compute bounding box
     all_u = [p[0] for poly in polylines for p in poly]

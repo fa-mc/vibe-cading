@@ -51,8 +51,7 @@ import OCP.BRepAdaptor as ba
 import OCP.BRepGProp as bgp
 import OCP.GeomAbs as ga
 import OCP.GProp as gprop
-from OCP.BRep import BRep_Tool
-from OCP.TopAbs import TopAbs_FORWARD, TopAbs_REVERSED
+from OCP.TopAbs import TopAbs_REVERSED
 
 
 def _vec3(gp_obj) -> dict:

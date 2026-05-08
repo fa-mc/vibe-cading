@@ -71,7 +71,6 @@ from models.lego.cutters.technic_pin_hole import TechnicPinHole
 from models.xlego.servos.shaft import Shaft
 from models.rc.servo.sg90 import Sg90Servo
 from models.cq_utils import (
-    rounded_box,
     countersunk_hole,
     orient_to_neg_x,
     orient_to_pos_x,

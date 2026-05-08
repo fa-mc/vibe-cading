@@ -59,7 +59,6 @@ class LegoGear28T:
         # Let's add 4 round holes of 4.8mm to match technic pins, at radius 8mm (1 stud).
         # Actually 28T is 14mm radius.
 
-        hole_radius = 8.0
         pin_hole_dia = 4.8
 
         # Cut 4 pin holes at X/Y grid positions to be compatible with other lego.

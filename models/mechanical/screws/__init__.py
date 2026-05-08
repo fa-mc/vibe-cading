@@ -28,5 +28,3 @@ __all__ = [
     "SetScrew",
     "ImperialMachineScrew",
 ]
-
-__all__ = ["Screw", "MetricMachineScrew", "WoodScrew"]

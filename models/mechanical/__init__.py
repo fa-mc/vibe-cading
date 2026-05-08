@@ -15,3 +15,9 @@
 
 # models/mechanical
 from .holes import ClearanceHole, CounterboreHole, TeardropHole
+
+__all__ = [
+    "ClearanceHole",
+    "CounterboreHole",
+    "TeardropHole",
+]

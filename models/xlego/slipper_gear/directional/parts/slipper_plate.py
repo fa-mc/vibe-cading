@@ -16,18 +16,12 @@
 """SlipperPlate — base disc + central hub + independent spiral leaf springs."""
 
 from __future__ import annotations
-import math
 import cadquery as cq
 
 import sys
 import os
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), "../../../.."))
 from models.lego.cutters.technic_axle_hole import TechnicAxleHole
-
-try:
-    from .slipper_spring import SlipperSpring
-except ImportError:
-    from slipper_spring import SlipperSpring
 
 class SlipperPlate:
     """A Slipper Plate assembly consisting of a base disk, a central cross-axle hub,
