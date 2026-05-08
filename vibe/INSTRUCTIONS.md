@@ -45,6 +45,7 @@ This workspace utilizes a structured, multi-role agentic workflow.
   - **Design Briefs & Plans:** Tracked in `.agents/plans/` (git-ignored).
   - **Session Backlog/Ideas:** Parked under `/memories/session/ideas.md` to defer non-immediate refactors.
 - **Seamless Role Transitions:** Transition seamlessly between included roles (or invoke the next step) without asking the user for confirmation if there is no ambiguity. Never instruct the user to copy-paste prompts to facilitate a hand-off.
+- **Drafted External Comments — Post in One Step:** When a role drafts a GitHub issue or PR comment to address a user-directed task, post it in the same turn rather than gating on a separate *"approve to post"* step. Drafting and posting are one action; the user keeps revert authority via the GitHub UI. Still requires explicit approval: opening a new issue or PR, mentioning users not already in the thread, comments touching security-sensitive content, or any post to a destination the user has not already pointed the role at.
 - **Proactive Escalation:** If you are blocked by undocumented behavior, face repeated failures, or identify a systematic gap in prompt instructions, seamlessly halt and escalate to the **User (Admin)** for clarification and to patch the workflow/knowledge gap. Do not guess.
 
 
