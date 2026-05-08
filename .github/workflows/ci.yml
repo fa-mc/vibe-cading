@@ -1,0 +1,41 @@
+name: ci
+
+# Baseline lint + import-check. See
+# .agents/plans/2026-05-08-ci-baseline_design.md.
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+      - name: Install flake8
+        run: pip install flake8
+      - name: Lint (flake8)
+        run: flake8 .
+      - name: Import-check (py_compile)
+        run: |
+          set -euo pipefail
+          mapfile -t files < <(
+            find models tools -type f -name '*.py' \
+              ! -path '*/tmp/*' \
+              ! -path '*/__pycache__/*'
+          )
+          empty=0
+          checked=0
+          for f in "${files[@]}"; do
+            if [[ "$(basename "$f")" == "__init__.py" && ! -s "$f" ]]; then
+              empty=$((empty + 1))
+              continue
+            fi
+            python -m py_compile "$f"
+            checked=$((checked + 1))
+          done
+          echo "py_compile: $checked file(s) checked, $empty empty __init__.py skipped"
