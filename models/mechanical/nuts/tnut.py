@@ -85,7 +85,11 @@ class TNut(Nut):
                      .rect(step_w_allow, slot_length).extrude(step_h))
         return pocket.union(chan_base).union(chan_step)
 
-if __name__ == "__main__":
-    from ocp_vscode import show
-    tnut = TNut.from_size("M4")
-    show(tnut.solid.translate((-10, 0, 0)), tnut.to_captive_slot(15).translate((10, 0, 0)))
+    @classmethod
+    def demo(cls, **kwargs) -> list[tuple[cq.Workplane, str, str]]:
+        """Show an M4 T-nut beside its 15 mm captive-slot cutter."""
+        tnut = cls.from_size("M4")
+        return [
+            (tnut.solid.translate((-10, 0, 0)),              "M4 TNut",       "royalblue"),
+            (tnut.to_captive_slot(15).translate((10, 0, 0)), "Captive Slot",  "gold"),
+        ]

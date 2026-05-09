@@ -331,9 +331,3 @@ class ServoCase:
     @property
     def solid(self) -> cq.Workplane:
         return self._solid
-
-
-if __name__ == "__main__":
-    from ocp_vscode import show
-    case = ServoCase()
-    show(case.solid)

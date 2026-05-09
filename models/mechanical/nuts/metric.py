@@ -74,6 +74,19 @@ class MetricHexNut(Nut):
                    .rect(chan_width, slot_length).extrude(h))
         return base.union(channel)
 
+    @classmethod
+    def demo(cls, **kwargs) -> list[tuple[cq.Workplane, str, str]]:
+        """Show M3 hex / nyloc / square nuts side-by-side."""
+        hex_nut = cls.from_size("M3")
+        nyloc_nut = MetricNylocNut.from_size("M3")
+        square_nut = MetricSquareNut.from_size("M3")
+        return [
+            (hex_nut.solid.translate((-10, 0, 0)),    "M3 Hex Nut",    "royalblue"),
+            (nyloc_nut.solid.translate((0, 0, 0)),    "M3 Nyloc Nut",  "gold"),
+            (square_nut.solid.translate((10, 0, 0)),  "M3 Square Nut", "tomato"),
+        ]
+
+
 class MetricNylocNut(MetricHexNut):
     """Standard Metric Nyloc Nut generator (DIN 985)."""
     DIMENSIONS = {
@@ -133,10 +146,3 @@ class MetricSquareNut(Nut):
         channel = (cq.Workplane("XY").transformed(offset=cq.Vector(0, -slot_length/2, 0))
                    .rect(w, slot_length).extrude(h))
         return base.union(channel)
-
-if __name__ == "__main__":
-    from ocp_vscode import show
-    hex_nut = MetricHexNut.from_size("M3")
-    nyloc_nut = MetricNylocNut.from_size("M3")
-    square_nut = MetricSquareNut.from_size("M3")
-    show(hex_nut.solid.translate((-10, 0, 0)), nyloc_nut.solid.translate((0, 0, 0)), square_nut.solid.translate((10, 0, 0)))

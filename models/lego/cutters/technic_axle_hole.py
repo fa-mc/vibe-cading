@@ -125,14 +125,11 @@ class TechnicAxleHole:
         """The + cross solid — cut this from any part to bore an axle hole."""
         return self._solid
 
-
-if __name__ == "__main__":
-    from ocp_vscode import show
-    import cadquery as cq
-
-    depth = 8.0
-    hole_cutter = TechnicAxleHole(depth=depth).solid
-    main_body = cq.Workplane("XY").circle(8.0 / 2).extrude(depth)
-    part = main_body.cut(hole_cutter)
-    cq.exporters.export(part, "tmp/technic_axle_hole.step")
-    show(part)
+    @classmethod
+    def demo(cls, **kwargs) -> list[tuple[cq.Workplane, str, str]]:
+        """Show a depth-8 axle hole cut into a small Ø8 cylinder."""
+        depth = 8.0
+        hole_cutter = cls(depth=depth).solid
+        main_body = cq.Workplane("XY").circle(8.0 / 2).extrude(depth)
+        part = main_body.cut(hole_cutter)
+        return [(part, "TechnicAxleHole demo", "tan")]

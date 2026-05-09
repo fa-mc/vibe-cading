@@ -73,8 +73,12 @@ class HexStandoff:
         r = self.radius + radial_allowance
         return cq.Workplane("XY").polygon(6, r * 2).extrude(self.length + depth_allowance)
 
-if __name__ == "__main__":
-    from ocp_vscode import show
-    ff = HexStandoff.from_size("M3", 15, "F-F")
-    mf = HexStandoff.from_size("M3", 15, "M-F", thread_length=6.0)
-    show(ff.solid.translate((-10, 0, 0)), mf.solid.translate((10, 0, 0)), names=["M3 15mm F-F", "M3 15mm M-F"])
+    @classmethod
+    def demo(cls, **kwargs) -> list[tuple[cq.Workplane, str, str]]:
+        """Show an M3 15 mm F-F standoff next to an M3 15 mm M-F standoff."""
+        ff = cls.from_size("M3", 15, "F-F")
+        mf = cls.from_size("M3", 15, "M-F", thread_length=6.0)
+        return [
+            (ff.solid.translate((-10, 0, 0)), "M3 15mm F-F", "royalblue"),
+            (mf.solid.translate(( 10, 0, 0)), "M3 15mm M-F", "gold"),
+        ]

@@ -99,7 +99,8 @@ class RackGear:
         
         return rack.intersect(trim_box)
 
-if __name__ == "__main__":
-    from ocp_vscode import show
-    r = RackGear(module=2, length=50, face_width=10, thickness=5)
-    show(r.solid, names=["RackGear"], colors=["silver"])
+    @classmethod
+    def demo(cls, **kwargs) -> list[tuple[cq.Workplane, str, str]]:
+        """Show a m=2, length=50, fw=10, thickness=5 rack gear."""
+        r = cls(module=2, length=50, face_width=10, thickness=5)
+        return [(r.solid, "RackGear", "silver")]

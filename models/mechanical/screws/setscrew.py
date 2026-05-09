@@ -93,11 +93,11 @@ class SetScrew(Screw):
         # where it started at -head_recess_depth
         return hole.to_cutter().translate((0, 0, -head_recess_depth))
 
-if __name__ == "__main__":
-    from ocp_vscode import show
-    grub = SetScrew.from_size("M3", 4)
-    show(
-        grub.solid.translate((-5, 0, 0)),
-        grub.to_cutter(mode="tap").translate((5, 0, 0)),
-        names=["M3 Grub", "Tap Cutter"]
-    )
+    @classmethod
+    def demo(cls, **kwargs) -> list[tuple[cq.Workplane, str, str]]:
+        """Show an M3 grub screw beside its tap cutter."""
+        grub = cls.from_size("M3", 4)
+        return [
+            (grub.solid.translate((-5, 0, 0)),                "M3 Grub",    "royalblue"),
+            (grub.to_cutter(mode="tap").translate((5, 0, 0)), "Tap Cutter", "gold"),
+        ]

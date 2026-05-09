@@ -18,9 +18,6 @@
 from __future__ import annotations
 import cadquery as cq
 
-import sys
-import os
-sys.path.insert(0, os.path.join(os.path.dirname(__file__), "../../../.."))
 from models.lego.cutters.technic_axle_hole import TechnicAxleHole
 
 class SlipperPlate:
@@ -94,11 +91,3 @@ class SlipperPlate:
         core = core.cut(axle_tool)
 
         return core
-
-if __name__ == "__main__":
-    import sys, os
-    sys.path.insert(0, os.path.join(os.path.dirname(__file__), "../../../.."))
-    from ocp_vscode import show
-
-    p = SlipperPlate()
-    show(p.solid, names=["SlipperPlate Stack"])

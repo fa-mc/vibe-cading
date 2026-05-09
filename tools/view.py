@@ -35,6 +35,23 @@ Multiple classes at once (shown side-by-side with automatic X offset)
     python3 tools/view.py rc.servo.sg90.Sg90Servo \\
                           xlego.servos.shaft_crown.ShaftCrown
 
+Class-scoped demos
+------------------
+A class may opt into a richer demonstration by defining::
+
+    @classmethod
+    def demo(cls, **kwargs) -> list[tuple[cq.Workplane, str, str]]:
+        ...
+
+Each returned tuple is ``(solid, name, color)`` — same shape as
+``assemble()``.  Trigger via ``--demo``::
+
+    python3 tools/view.py mechanical.screws.metric.MetricMachineScrew --demo
+
+``--params key=value`` is forwarded as ``**kwargs``; demos that don't read
+parameters simply ignore them.  See ``vibe/INSTRUCTIONS.md`` § "OCP Viewer
+— Dedicated Entry Point" for the convention contract.
+
 Assembly modules
 ----------------
 Assembly modules live alongside the models they compose and expose a single
@@ -81,6 +98,7 @@ MODELS_DIR = REPO_ROOT / "models"
 sys.path.insert(0, str(REPO_ROOT))
 from tools.model_loader import (  # noqa: E402
     instantiate,
+    load_class,
     parse_params,
     resolve_solid,
 )
@@ -176,6 +194,60 @@ def view_multiple(model_paths: list[str], params: dict, reset: bool = True,
     print(f"Showing  {', '.join(names)}")
 
 
+def view_demo(model_path: str, params: dict, reset: bool = True,
+              export: Path | None = None) -> None:
+    """Invoke ``<ClassName>.demo()`` and render the returned tuples.
+
+    The class must define::
+
+        @classmethod
+        def demo(cls, **kwargs) -> list[tuple[cq.Workplane, str, str]]:
+            ...
+
+    Each tuple is ``(solid, name, color)`` — the same shape consumed by
+    :func:`view_assembly`.  ``--params key=value`` is forwarded as ``**kwargs``
+    so demos that don't read parameters simply ignore the keyword arguments.
+
+    Like :func:`view_assembly`, this function shares ``_export_step`` and
+    ``_PALETTE`` with the rest of the module but keeps its dispatch path
+    parallel — class-scoped demos and module-scoped assemblies have
+    different ownership shapes (see design doc R-B / *Alternatives rejected
+    #2*).
+    """
+    from ocp_vscode import show, reset_show  # noqa: PLC0415
+
+    cls = load_class(model_path)
+    if not hasattr(cls, "demo"):
+        raise AttributeError(
+            f"{model_path} has no demo() classmethod. "
+            "Run without --demo for a single-solid view, "
+            "or add a `@classmethod def demo(cls, **kwargs)` to the class."
+        )
+
+    parts = cls.demo(**(params or {}))
+    if not parts:
+        raise ValueError(
+            f"{model_path}.demo() returned no parts; expected "
+            "list[tuple[Workplane, str, str]]."
+        )
+
+    solids = [p[0] for p in parts]
+    names  = [p[1] for p in parts]
+    colors = [p[2] for p in parts]
+
+    if export:
+        merged = solids[0]
+        for s in solids[1:]:
+            merged = merged.union(s)
+        _export_step(merged, export)
+
+    if reset:
+        reset_show()
+
+    show(*solids, names=names, colors=colors)
+    print(f"Showing demo  {model_path}  ({len(parts)} parts)")
+
+
 def view_assembly(module_path: str, reset: bool = True,
                   export: Path | None = None) -> None:
     """Call ``assemble()`` on an assembly module and display the result.
@@ -261,6 +333,16 @@ def main() -> None:
         ),
     )
     parser.add_argument(
+        "--demo",
+        action="store_true",
+        help=(
+            "Invoke <ClassName>.demo(**params) on the single positional "
+            "model and render the returned [(solid, name, color), ...] "
+            "tuples.  Class must define a `@classmethod def demo(cls, "
+            "**kwargs)`.  See vibe/INSTRUCTIONS.md."
+        ),
+    )
+    parser.add_argument(
         "--export",
         metavar="PATH",
         default=None,
@@ -277,7 +359,13 @@ def main() -> None:
     if args.assembly:
         if args.models:
             parser.error("Cannot combine positional model paths with --assembly.")
+        if args.demo:
+            parser.error("--demo cannot be combined with --assembly.")
         view_assembly(args.assembly, reset=args.reset, export=export_path)
+    elif args.demo:
+        if len(args.models) != 1:
+            parser.error("--demo requires exactly one positional model path.")
+        view_demo(args.models[0], params, reset=args.reset, export=export_path)
     elif len(args.models) == 1:
         view_single(args.models[0], params, reset=args.reset, export=export_path)
     elif len(args.models) > 1:

@@ -39,3 +39,23 @@ jobs:
             checked=$((checked + 1))
           done
           echo "py_compile: $checked file(s) checked, $empty empty __init__.py skipped"
+      - name: Check no __main__ blocks under models/ (AST)
+        run: python tools/check_no_main_blocks.py
+      - name: Check no __main__ blocks under models/ (grep belt-and-braces)
+        run: |
+          set -euo pipefail
+          if grep -rlE 'if __name__ == "__main__"' models/; then
+            echo "Forbidden __main__ block found in models/" >&2
+            exit 1
+          fi
+      - name: Check no ocp_vscode imports outside tools/view.py
+        run: |
+          set -euo pipefail
+          matches=$(grep -rlE 'from ocp_vscode' models/ tools/ || true)
+          # Allow exactly tools/view.py and nothing else.
+          unexpected=$(echo "$matches" | grep -vE '^tools/view\.py$' || true)
+          if [ -n "$unexpected" ]; then
+            echo "Unexpected ocp_vscode importers:" >&2
+            echo "$unexpected" >&2
+            exit 1
+          fi

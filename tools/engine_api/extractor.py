@@ -351,6 +351,13 @@ def _collect_constructors(
             continue
         if child.name.startswith("_"):
             continue
+        # ``demo`` is a viewer-only convention surfaced by ``tools/view.py
+        # --demo`` — see ``vibe/INSTRUCTIONS.md`` § "OCP Viewer".  It is not
+        # a class constructor and MUST be excluded from the engine_api wire
+        # contract so the post-Wave-B sweep keeps the JSON byte-identical
+        # vs. pre-sweep output.
+        if child.name == "demo":
+            continue
         if _has_decorator(child, "classmethod"):
             constructors.append(_build_constructor(child, kind="classmethod"))
 

@@ -171,13 +171,63 @@ prevents untested or intermediate models from polluting the output tree.
 
 Model class files must **not** contain `ocp_vscode` imports or
 `if __name__ == "__main__":` viewer blocks.  Keep class files as pure class
-definitions.
+definitions.  This rule is **CI-enforced** via `tools/check_no_main_blocks.py`
+(AST walker, runs in `.github/workflows/ci.yml`); a violating commit fails
+the lint step.  No `models/**/*.py` file may import `ocp_vscode` either —
+`tools/view.py` is the only sanctioned `ocp_vscode` consumer.
 
 Use the dedicated `tools/view.py` entry point instead:
 
     python3 tools/view.py <module.path.ClassName> [--params key=value ...]
     python3 tools/view.py rc.servo.sg90.Sg90Servo
     python3 tools/view.py rc.servo.sg90.Sg90Servo --params body_width=23.0
+
+### Class-scoped demos via `--demo` and `demo()` classmethod
+
+A class may opt into a richer multi-shape demonstration (multi-instance
+side-by-side, factory variations, helper-Workplane construction with
+`to_cutter()` overlays) by defining a single classmethod:
+
+```python
+@classmethod
+def demo(cls, **kwargs) -> list[tuple[cq.Workplane, str, str]]:
+    """One-line summary of what the demo demonstrates."""
+    instance_a = cls.from_size("M3", length=10, head_type="socket")
+    instance_b = cls.from_size("M3", length=10, head_type="flat")
+    return [
+        (instance_a.solid.translate((-5, 0, 0)), "Socket", "royalblue"),
+        (instance_b.solid.translate(( 5, 0, 0)), "Flat",   "gold"),
+    ]
+```
+
+Trigger it with `--demo`:
+
+    python3 tools/view.py mechanical.screws.metric.MetricMachineScrew --demo
+    python3 tools/view.py mechanical.joints.snap_fit.CantileverSnapFit --demo
+    python3 tools/view.py <Class> --demo --export tmp/demo.step
+
+Each returned tuple is `(solid, name, color)` — the same triple shape that
+`assemble()` returns; `tools/view.py` reuses the assembly path's palette
+and positioning logic.  `--params key=value` is forwarded as `**kwargs`;
+demos that don't read parameters simply ignore them.
+
+**When to add a `demo()` classmethod:** add one only when a single-instance
+`tools/view.py <ClassName>` invocation is *insufficient* — i.e. the
+demonstration genuinely needs a multi-instance comparison, a factory-built
+non-default configuration, helper-Workplane construction (e.g.
+`cq.Workplane().box(...).cut(joint.female())`), or a `to_cutter()` overlay
+beside its corresponding `.solid`.  Trivial single-instance demos do **not**
+earn a `demo()` — `tools/view.py <ClassName> [--params …]` already covers
+them, and adding a classmethod with one line of `cls()` ceremony is dead
+weight.
+
+**Signature contract:** `demo` MUST be a `@classmethod` with the exact
+signature `def demo(cls, **kwargs) -> list[tuple[cq.Workplane, str, str]]`.
+A class lacking `demo()` raises a helpful `AttributeError` from
+`view.py --demo`.  The name `demo` is reserved by `tools/engine_api/extractor.py`
+and is excluded from the engine_api wire contract.
+
+### Assembly modules
 
 For assemblies that need multiple parts shown with positional offsets, create a
 dedicated assembly module (e.g. `models/xlego/servos/shaft_saver_assembly.py`)
@@ -186,6 +236,10 @@ that exposes a top-level `assemble()` function returning a list of
 `--assembly` is passed:
 
     python3 tools/view.py --assembly xlego.servos.shaft_saver_assembly
+
+`assemble()` is module-level (cross-class compositions); `demo()` is
+class-scoped (single-class demonstrations).  Use whichever ownership shape
+matches the demonstration.
 
 ## Known Modelling Pitfalls
 
