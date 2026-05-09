@@ -11,18 +11,25 @@ Usage
 
 import sys
 import argparse
-import importlib
 import tomllib
 from pathlib import Path
 
 import cadquery as cq
 
+# Shared model-class loader.  ``ensure_models_on_path`` inserts BOTH the
+# repo root (for ``from models.X.Y import Z`` style imports inside model
+# modules) and the ``models/`` directory (for bare-import dotted paths
+# like ``technic_ball_bearing.axle_sleeve.AxleSleeve`` used by the
+# ``[[build]] model = …`` entries below).  See ``tools/model_loader.py``
+# for the full sys.path contract.
+sys.path.insert(0, str(Path(__file__).resolve().parent))  # for tools.* import
+from tools.model_loader import ensure_models_on_path, load_solid  # noqa: E402
+
 REPO_ROOT  = Path(__file__).parent
 MODELS_DIR = REPO_ROOT / "models"
 OUTPUT_DIR = REPO_ROOT / "output"
 
-# Make all model packages importable (e.g. "technic_ball_bearing.axle_sleeve")
-sys.path.insert(0, str(MODELS_DIR))
+ensure_models_on_path()
 
 
 def _load_config(config_path: Path) -> list[dict]:
@@ -35,20 +42,17 @@ def build_all(config_path: Path) -> None:
     OUTPUT_DIR.mkdir(exist_ok=True)
 
     for entry in entries:
-        module_path, class_name = entry["model"].rsplit(".", 1)
-        output_rel  = entry["output"]
-        params      = entry.get("params", {})
+        output_rel = entry["output"]
+        params     = entry.get("params", {})
 
         output_path = OUTPUT_DIR / output_rel
         output_path.parent.mkdir(parents=True, exist_ok=True)
 
         print(f"  building  {output_rel} ...", end=" ", flush=True)
 
-        module   = importlib.import_module(module_path)
-        cls      = getattr(module, class_name)
-        instance = cls(**params)
+        _, solid = load_solid(entry["model"], params)
 
-        cq.exporters.export(instance.solid, str(output_path))
+        cq.exporters.export(solid, str(output_path))
         print("ok")
 
 

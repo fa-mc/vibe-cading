@@ -15,7 +15,14 @@
 
 import sys
 import math
-import importlib
+from pathlib import Path
+
+# tools/model_loader.py owns sys.path management.  Add REPO_ROOT here so the
+# ``from tools.model_loader import …`` resolves; ``load_class`` then inserts
+# REPO_ROOT + MODELS_DIR idempotently for the model imports below.
+sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
+from tools.model_loader import load_class  # noqa: E402
+
 
 def analyze_profile(pts, tolerance=-0.01):
     print(f"Analyzing {len(pts)} points...")
@@ -48,11 +55,13 @@ if __name__ == "__main__":
         sys.exit(1)
         
     target = sys.argv[1]
-    module_path, class_name, method_name = target.rsplit(".", 2)
-    
+    # Tool target shape: module.path.ClassName.method (one trailing rsplit
+    # for the method name; the rest is a normal dotted ``module.ClassName``
+    # path that the loader resolves).
+    class_dotted, method_name = target.rsplit(".", 1)
+
     try:
-        mod = importlib.import_module(module_path)
-        cls = getattr(mod, class_name)
+        cls = load_class(class_dotted)
         obj = cls()
         pts = getattr(obj, method_name)()
         analyze_profile(pts)
