@@ -65,8 +65,3 @@ class TrailerHitchCover:
         body = body.cut(pin_hole_cutter)
         
         return body
-
-if __name__ == "__main__":
-    from ocp_vscode import show
-    model = TrailerHitchCover().solid
-    show(model)

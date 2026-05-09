@@ -29,11 +29,6 @@ Run directly to preview in OCP Viewer::
 
 from __future__ import annotations
 
-import sys
-import os
-
-sys.path.insert(0, os.path.join(os.path.dirname(__file__), "../../.."))
-
 import cadquery as cq
 
 from models.xlego.servos.cam_utils import (  # noqa: F401 — re-exported
@@ -246,15 +241,13 @@ class ShaftCrown:
     def solid(self) -> cq.Workplane:
         return self._solid
 
+    @classmethod
+    def demo(cls, **kwargs) -> list[tuple[cq.Workplane, str, str]]:
+        """Show a default ShaftCrown (top cam half of the servo-saver assembly).
 
-# ── Standalone OCP preview ────────────────────────────────────────────────────
-
-if __name__ == "__main__":
-    from ocp_vscode import show
-
-    crown = ShaftCrown()
-    bb = crown._solid.val().BoundingBox()
-    print(f"ShaftCrown  Z[{bb.zmin:.2f}, {bb.zmax:.2f}]  "
-          f"X[{bb.xmin:.2f}, {bb.xmax:.2f}]  Y[{bb.ymin:.2f}, {bb.ymax:.2f}]")
-
-    show(crown.solid, names=["ShaftCrown"], colors=["gold"])
+        Note: the prior `__main__` printed the bounding box for diagnostics;
+        that print is dropped here — reproduce with a one-line
+        `python3 -c` against `cls().solid.val().BoundingBox()` if needed.
+        """
+        crown = cls()
+        return [(crown.solid, "ShaftCrown", "gold")]

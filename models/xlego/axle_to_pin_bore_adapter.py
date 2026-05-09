@@ -62,9 +62,3 @@ class AxleToPinBoreAdapter:
     @property
     def solid(self) -> cq.Workplane:
         return self._solid
-
-if __name__ == "__main__":
-    from ocp_vscode import show
-
-    adapter = AxleToPinBoreAdapter()
-    show(adapter.solid)

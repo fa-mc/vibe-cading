@@ -13,9 +13,6 @@
 # You should have received a copy of the GNU Affero General Public License
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
-import sys
-import os
-sys.path.insert(0, os.path.join(os.path.dirname(__file__), ".."))
 
 import cadquery as cq
 
@@ -88,10 +85,3 @@ class AxleSleeve:
     @property
     def solid(self) -> cq.Workplane:
         return self._solid
-
-
-if __name__ == "__main__":
-    from ocp_vscode import show
-
-    sleeve = AxleSleeve()
-    show(sleeve.solid)

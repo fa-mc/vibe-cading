@@ -88,10 +88,3 @@ class MotorMountPlate:
         plate = plate.cut(cutter)
 
         self.solid = plate
-
-if __name__ == "__main__":
-    from ocp_vscode import show
-
-    # Preview configuration
-    model = MotorMountPlate()
-    show(model.solid, names=["Mount Plate - Default 370"])

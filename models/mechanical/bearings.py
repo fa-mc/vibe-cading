@@ -140,14 +140,17 @@ class Bearing:
         """Thin-section 15x21x4mm"""
         return cls(15.0, 21.0, 4.0)
 
+    @classmethod
+    def demo(cls, **kwargs) -> list[tuple[cq.Workplane, str, str]]:
+        """Show an F623 bearing above a square housing with the pocket cut."""
+        brg = cls.f623()
+        pocket = brg.outer_pocket()
 
-if __name__ == "__main__":
-    from ocp_vscode import show
-    brg = Bearing.f623()
-    pocket = brg.outer_pocket()
+        # Example housing demonstrating the cut
+        housing = cq.Workplane("XY").rect(20, 20).extrude(10)
+        housing = housing.cut(pocket)
 
-    # Example housing demonstrating the cut
-    housing = cq.Workplane("XY").rect(20, 20).extrude(10)
-    housing = housing.cut(pocket)
-
-    show(brg.solid.translate((0, 0, 10)), housing, names=["F623 Bearing", "Housing"], colors=["silver", "gray"])
+        return [
+            (brg.solid.translate((0, 0, 10)), "F623 Bearing", "silver"),
+            (housing,                          "Housing",      "gray"),
+        ]

@@ -222,21 +222,17 @@ class PrintInPlaceHinge:
         comp.add(self.leaf_a, name="leaf_a")
         comp.add(self.leaf_b, name="leaf_b")
         return comp.toCompound()
-    
-# Boilerplate for preview and build pipeline
-if __name__ == "__main__":
-    hinge = PrintInPlaceHinge(
-        width=40,
-        knuckle_count=5,
-        leaf_a_width=20,
-        leaf_b_width=60,
-        leaf_a_length=25,
-        leaf_b_length=25,
-        angle=30
-    )
-    
-    try:
-        from ocp_vscode import show
-        show(hinge.solid)
-    except ImportError:
-        pass
+
+    @classmethod
+    def demo(cls, **kwargs) -> list[tuple[cq.Workplane, str, str]]:
+        """Show a 5-knuckle, 30°-open print-in-place hinge."""
+        hinge = cls(
+            width=40,
+            knuckle_count=5,
+            leaf_a_width=20,
+            leaf_b_width=60,
+            leaf_a_length=25,
+            leaf_b_length=25,
+            angle=30,
+        )
+        return [(hinge.solid, "PrintInPlaceHinge", "lightsteelblue")]

@@ -137,15 +137,15 @@ class PlasticsScrew(Screw):
         )
         return hole.to_cutter()
 
-if __name__ == "__main__":
-    from ocp_vscode import show
-    screw1 = PlasticsScrew.from_size("M3", 10, head_type="pan")
-    screw2 = PlasticsScrew.from_size("M3", 10, head_type="flat")
-    
-    show(
-        screw1.solid.translate((-5, 0, 0)),
-        screw1.to_cutter(mode="tap").translate((-5, 10, 0)),
-        screw2.solid.translate((5, 0, 0)),
-        screw2.to_cutter(mode="tap").translate((5, 10, 0)),
-        names=["M3 Pan", "Pan Cutter", "M3 Flat", "Flat Cutter"]
-    )
+    @classmethod
+    def demo(cls, **kwargs) -> list[tuple[cq.Workplane, str, str]]:
+        """Show M3-10 pan/flat plastics screws each with their tap cutter."""
+        screw1 = cls.from_size("M3", 10, head_type="pan")
+        screw2 = cls.from_size("M3", 10, head_type="flat")
+
+        return [
+            (screw1.solid.translate((-5, 0, 0)),                "M3 Pan",      "royalblue"),
+            (screw1.to_cutter(mode="tap").translate((-5, 10, 0)), "Pan Cutter",  "gold"),
+            (screw2.solid.translate(( 5, 0, 0)),                "M3 Flat",     "tomato"),
+            (screw2.to_cutter(mode="tap").translate(( 5, 10, 0)), "Flat Cutter", "seagreen"),
+        ]

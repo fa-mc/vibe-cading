@@ -71,6 +71,22 @@ class DiscMagnet:
     def d10x3(cls) -> "DiscMagnet":
         return cls(10.0, 3.0)
 
+    @classmethod
+    def demo(cls, **kwargs) -> list[tuple[cq.Workplane, str, str]]:
+        """Show a D6x3 disc and a B10x5x2 bar magnet, each with their pocket."""
+        mag = cls.d6x3()
+        b_mag = BarMagnet.b10x5x2()
+
+        return [
+            (mag.solid.translate((-10, 0, 0)),                   "D6x3",         "silver"),
+            (mag.pocket().translate((-10, 10, 0)),               "D6x3 Pocket",  "lightgray"),
+            (b_mag.solid.translate((10, 0, 0)),                  "B10x5x2",      "silver"),
+            # Note: original block called `pocket(clearance=0.1)` but the
+            # method signature is `pocket(profile=None)` — `clearance=` was
+            # a bug.  Demo uses the default profile.
+            (b_mag.pocket().translate((10, 10, 0)), "B10x5 Pocket", "lightgray"),
+        ]
+
 
 class BarMagnet:
     """Standard Neodymium Bar Magnet.
@@ -111,17 +127,3 @@ class BarMagnet:
     @classmethod
     def b10x5x2(cls) -> "BarMagnet":
         return cls(10.0, 5.0, 2.0)
-
-
-if __name__ == "__main__":
-    from ocp_vscode import show
-    mag = DiscMagnet.d6x3()
-    b_mag = BarMagnet.b10x5x2()
-
-    show(
-        mag.solid.translate((-10, 0, 0)),
-        mag.pocket().translate((-10, 10, 0)),
-        b_mag.solid.translate((10, 0, 0)),
-        b_mag.pocket(clearance=0.1).translate((10, 10, 0)),
-        names=["D6x3", "D6x3 Pocket", "B10x5x2", "B10x5 Pocket"]
-    )

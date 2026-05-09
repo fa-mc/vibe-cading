@@ -57,14 +57,3 @@ class PcbStandoffs:
         for pos in self.positions:
             result = result.cut(hole_cutter.translate((pos[0], pos[1], 0)))
         return result
-
-if __name__ == "__main__":
-    standoffs = PcbStandoffs(
-        positions=[(0, 0), (50, 0), (50, 30), (0, 30)],
-        height=8.0,
-        outer_diameter=6.0,
-        hole_diameter=2.5,
-        hole_depth=6.0
-    )
-    from ocp_vscode import show
-    show(standoffs.solid)

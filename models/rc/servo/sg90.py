@@ -506,9 +506,3 @@ class Sg90Servo:
         part = part.union(shaft_stub)
         
         return part
-
-
-if __name__ == "__main__":
-    from ocp_vscode import show
-    servo = Sg90Servo()
-    show(servo.solid)

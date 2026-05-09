@@ -368,14 +368,11 @@ class SlipperRing:
 
         return ring
 
-
-if __name__ == "__main__":
-    import sys, os
-    sys.path.insert(0, os.path.join(os.path.dirname(__file__), "../../../.."))
-    from ocp_vscode import show
-
-    r = SlipperRing(
-        module=2.0, teeth=24, face_width=8.0, pressure_angle=20.0,
-        n_flank=32, ramp_end_r=18.5, ramp_start_r=16.5, ramp_count=12
-    )
-    show(r.solid, names=["SlipperRing Directional"])
+    @classmethod
+    def demo(cls, **kwargs) -> list[tuple[cq.Workplane, str, str]]:
+        """Show a SlipperRing with explicit non-default ramp parameters."""
+        r = cls(
+            module=2.0, teeth=24, face_width=8.0, pressure_angle=20.0,
+            n_flank=32, ramp_end_r=18.5, ramp_start_r=16.5, ramp_count=12,
+        )
+        return [(r.solid, "SlipperRing Directional", "royalblue")]

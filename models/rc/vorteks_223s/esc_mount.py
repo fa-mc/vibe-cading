@@ -135,10 +135,3 @@ class EscMount:
     def solid(self) -> cq.Workplane:
         """The CadQuery solid."""
         return self._solid
-
-
-if __name__ == "__main__":
-    from ocp_vscode import show
-
-    mount = EscMount()
-    show(mount.solid)

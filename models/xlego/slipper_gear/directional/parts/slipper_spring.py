@@ -20,9 +20,6 @@ from __future__ import annotations
 import math
 import cadquery as cq
 
-import sys
-import os
-sys.path.insert(0, os.path.join(os.path.dirname(__file__), "../../../.."))
 from models.lego.cutters.technic_axle_hole import TechnicAxleHole
 from models.cq_utils import tapered_arm_profile
 
@@ -149,11 +146,3 @@ class SlipperSpring:
         hub = fillet_z_edges(hub, self.hub_r - 0.5, self.hub_r + 1.5, 0.8)
 
         return hub
-
-if __name__ == "__main__":
-    import sys, os
-    sys.path.insert(0, os.path.join(os.path.dirname(__file__), "../../../.."))
-    from ocp_vscode import show
-
-    p = SlipperSpring()
-    show(p.solid, names=["Spiral SlipperSpring"])

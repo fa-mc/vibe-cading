@@ -16,10 +16,7 @@
 import cadquery as cq
 import math
 
-try:
-    from .base import BaseJoint
-except ImportError:
-    from base import BaseJoint
+from .base import BaseJoint
 
 class CantileverSnapFit(BaseJoint):
     """Parametric Cantilever Snap-Fit joint.
@@ -128,21 +125,21 @@ class CantileverSnapFit(BaseJoint):
         )
         return cavity
 
-if __name__ == "__main__":
-    from ocp_vscode import show
+    @classmethod
+    def demo(cls, **kwargs) -> list[tuple[cq.Workplane, str, str]]:
+        """Show a male hook beside a block with the female cavity cut into it."""
+        joint = cls(length=12, hook_depth=1.5)
 
-    joint = CantileverSnapFit(length=12, hook_depth=1.5)
+        # Show the hook
+        male_hook = joint.male()
 
-    # Show the hook
-    male_hook = joint.male()
+        # Create a base block and cut the female cavity into it
+        female_base = cq.Workplane("XY").box(
+            10, 10, 20, centered=(False, True, False)
+        ).translate((-4, 0, 0))
+        female_cut = female_base.cut(joint.female(overlap=2.0))
 
-    # Create a base block and cut the female cavity into it
-    female_base = cq.Workplane("XY").box(10, 10, 20, centered=(False, True, False)).translate((-4, 0, 0))
-    female_cut = female_base.cut(joint.female(overlap=2.0))
-
-    show(
-        male_hook,
-        female_cut.translate((15, 0, 0)),
-        names=["Male Hook", "Female Cavity"],
-        colors=["lightblue", "lightgreen"]
-    )
+        return [
+            (male_hook,                         "Male Hook",     "lightblue"),
+            (female_cut.translate((15, 0, 0)),  "Female Cavity", "lightgreen"),
+        ]
