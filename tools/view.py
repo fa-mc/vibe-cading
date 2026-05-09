@@ -97,6 +97,7 @@ MODELS_DIR = REPO_ROOT / "models"
 # inserts MODELS_DIR + REPO_ROOT idempotently for downstream model imports.
 sys.path.insert(0, str(REPO_ROOT))
 from tools.model_loader import (  # noqa: E402
+    ensure_models_on_path,
     instantiate,
     load_class,
     parse_params,
@@ -267,6 +268,7 @@ def view_assembly(module_path: str, reset: bool = True,
     """
     from ocp_vscode import show, reset_show  # noqa: PLC0415
 
+    ensure_models_on_path()
     module = importlib.import_module(module_path)
     if not hasattr(module, "assemble"):
         raise AttributeError(
