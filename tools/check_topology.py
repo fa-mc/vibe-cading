@@ -22,44 +22,45 @@ Detects disconnected geometric bodies (floating artifacts, un-merged unions).
 import sys
 import os
 import argparse
-import importlib
 import cadquery as cq
+
+# tools/model_loader.py owns sys.path management.  Add REPO_ROOT here so the
+# ``from tools.model_loader import …`` resolves; the loader then inserts
+# REPO_ROOT + MODELS_DIR idempotently for the model imports below.
+sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), "..")))
+from tools.model_loader import instantiate, parse_params  # noqa: E402
+
 
 def load_target(target: str, kwargs: dict) -> cq.Workplane:
     if target.lower().endswith(('.step', '.stp')):
         return cq.importers.importStep(target)
-        
+
     parts = target.split(".")
     if len(parts) < 2:
         print("Error: Target must be a .step file or a python module path (e.g. models.lego.gears.Gear)", file=sys.stderr)
         sys.exit(1)
-        
+
     class_name = parts[-1]
-    module_path = ".".join(parts[:-1])
-    
+
     try:
-        module = importlib.import_module(module_path)
+        instance = instantiate(target, kwargs)
     except ModuleNotFoundError as e:
-        print(f"Error loading module {module_path}: {e}", file=sys.stderr)
+        print(f"Error loading module {'.'.join(parts[:-1])}: {e}", file=sys.stderr)
         sys.exit(1)
-        
-    if not hasattr(module, class_name):
-        print(f"Error: Class {class_name} not found in {module_path}", file=sys.stderr)
+    except AttributeError:
+        print(f"Error: Class {class_name} not found in {'.'.join(parts[:-1])}", file=sys.stderr)
         sys.exit(1)
-        
-    model_cls = getattr(module, class_name)
-    try:
-        instance = model_cls(**kwargs)
-        if hasattr(instance, "solid"):
-            return instance.solid
-        elif isinstance(instance, cq.Workplane):
-            return instance
-        else:
-            print(f"Error: Instance of {class_name} has no '.solid' property and is not a Workplane.", file=sys.stderr)
-            sys.exit(1)
     except Exception as e:
         print(f"Error instantiating {target}: {e}", file=sys.stderr)
         raise e
+
+    if hasattr(instance, "solid"):
+        return instance.solid
+    elif isinstance(instance, cq.Workplane):
+        return instance
+    else:
+        print(f"Error: Instance of {class_name} has no '.solid' property and is not a Workplane.", file=sys.stderr)
+        sys.exit(1)
 
 def main() -> None:
     parser = argparse.ArgumentParser(description="Check CAD topology for disconnected floating bodies.")
@@ -69,27 +70,15 @@ def main() -> None:
     parser.add_argument("--ignore", type=int, default=0, help="Allow exactly N disconnected bodies if intentional (default: 0)")
     
     args = parser.parse_args()
-    
-    # Parse kwargs
-    kwargs = {}
-    for p in args.params:
-        if "=" not in p:
-            continue
-        k, v = p.split("=", 1)
-        try:
-            if "." in v:
-                v = float(v)
-            else:
-                v = int(v)
-        except ValueError:
-            if v.lower() == "true": v = True
-            elif v.lower() == "false": v = False
-        kwargs[k] = v
 
-    # Add project root to sys.path
-    project_root = os.path.abspath(os.path.join(os.path.dirname(__file__), ".."))
-    if project_root not in sys.path:
-        sys.path.insert(0, project_root)
+    # Parse kwargs.  ``tools.model_loader.parse_params`` skips entries with
+    # no ``=`` by raising; preserve the legacy "skip silently" behavior here
+    # by filtering before delegating, since the legacy parser used
+    # ``continue`` on missing ``=``.
+    kwargs = parse_params([p for p in args.params if "=" in p])
+
+    # ``tools.model_loader.instantiate`` calls ``ensure_models_on_path``
+    # internally, so no explicit sys.path mutation is needed here.
 
     print(f"Loading '{args.target}'...")
     workplane = load_target(args.target, kwargs)
