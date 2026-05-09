@@ -52,13 +52,15 @@ from __future__ import annotations
 
 import argparse
 import json
+import sys
 from pathlib import Path
 
-import cadquery as cq
 import OCP.BRepGProp as bgp
 import OCP.GProp as gprop
 from OCP.TopAbs import TopAbs_FACE, TopAbs_EDGE, TopAbs_VERTEX, TopAbs_WIRE
 from OCP.TopExp import TopExp_Explorer
+
+from tools.step_primitives import StepLoadError, load_step
 
 
 def _count_shapes(occ_shape, shape_type) -> int:
@@ -95,11 +97,12 @@ def summarise_step(path: str | Path) -> dict:
         Per-body info: ``{index, volume, bbox}`` sorted largest-first.
     """
     path = Path(path)
-    wp = cq.importers.importStep(str(path))
+    loaded = load_step(path)
+    wp = loaded.wp
+    occ_compound = loaded.occ_compound
 
     solids = wp.solids().vals()
     shells = wp.shells().vals()
-    occ_compound = wp.val().wrapped
 
     n_faces = _count_shapes(occ_compound, TopAbs_FACE)
     n_edges = _count_shapes(occ_compound, TopAbs_EDGE)
@@ -226,7 +229,11 @@ def main() -> None:
     )
     args = parser.parse_args()
 
-    info = summarise_step(args.step_file)
+    try:
+        info = summarise_step(args.step_file)
+    except StepLoadError as exc:
+        print(f"error: {exc}", file=sys.stderr)
+        sys.exit(1)
 
     if args.json:
         print(json.dumps(info, indent=2))
