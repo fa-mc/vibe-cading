@@ -44,24 +44,14 @@ from __future__ import annotations
 import argparse
 import json
 import math
+import sys
 from pathlib import Path
 
-import cadquery as cq
 import OCP.BRepAdaptor as ba
-import OCP.BRepGProp as bgp
 import OCP.GeomAbs as ga
-import OCP.GProp as gprop
 from OCP.TopAbs import TopAbs_REVERSED
 
-
-def _vec3(gp_obj) -> dict:
-    return {"x": round(gp_obj.X(), 4), "y": round(gp_obj.Y(), 4), "z": round(gp_obj.Z(), 4)}
-
-
-def _face_area(occ_face) -> float:
-    props = gprop.GProp_GProps()
-    bgp.BRepGProp.SurfaceProperties_s(occ_face, props)
-    return props.Mass()
+from tools.step_primitives import StepLoadError, face_area, load_step, vec3
 
 
 def _coaxial(a_loc, a_dir, b_loc, b_dir, tol: float = 0.1, ang_tol: float = 0.01) -> bool:
@@ -100,8 +90,7 @@ def find_cylindrical_features(path: str | Path, grid: float | None = None) -> li
         ``center``, ``feature_type`` ("hole" or "boss"), ``face_indices``,
         ``area``.  If *grid* is set, adds ``grid_offset``.
     """
-    wp = cq.importers.importStep(str(path))
-    all_faces = wp.faces().vals()
+    all_faces = load_step(path).wp.faces().vals()
 
     # Collect cylindrical faces with geometry
     cyl_faces: list[dict] = []
@@ -111,7 +100,7 @@ def find_cylindrical_features(path: str | Path, grid: float | None = None) -> li
             continue
         cyl = adaptor.Cylinder()
         orientation = f.wrapped.Orientation()
-        area = _face_area(f.wrapped)
+        area = face_area(f.wrapped)
         # Skip tiny fillet cylinders
         if area < 0.5:
             continue
@@ -193,7 +182,7 @@ def find_cylindrical_features(path: str | Path, grid: float | None = None) -> li
             "diameter": round(2 * radius, 4),
             "radius": round(radius, 4),
             "depth": round(depth, 4),
-            "axis": _vec3(axis_dir),
+            "axis": vec3(axis_dir),
             "center": {"x": round(cx, 4), "y": round(cy, 4), "z": round(cz, 4)},
             "feature_type": feature_type,
             "face_count": len(group),
@@ -268,7 +257,11 @@ def main() -> None:
     parser.add_argument("--json", action="store_true", help="Output JSON")
     args = parser.parse_args()
 
-    features = find_cylindrical_features(args.step_file, grid=args.grid)
+    try:
+        features = find_cylindrical_features(args.step_file, grid=args.grid)
+    except StepLoadError as exc:
+        print(f"error: {exc}", file=sys.stderr)
+        sys.exit(1)
 
     if args.type == "holes":
         features = [f for f in features if f["feature_type"] == "hole"]

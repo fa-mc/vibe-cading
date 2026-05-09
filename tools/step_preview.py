@@ -45,6 +45,7 @@ REPO_ROOT = Path(__file__).resolve().parent.parent
 sys.path.insert(0, str(REPO_ROOT / "tools"))
 
 from preview import NAMED_VIEWS, DEFAULT_VIEWS, _fix_svg_viewport
+from tools.step_primitives import StepLoadError, load_step
 
 
 def export_step_previews(
@@ -86,8 +87,7 @@ def export_step_previews(
             f"Unknown view(s): {unknown}.  Available: {list(NAMED_VIEWS.keys())}"
         )
 
-    wp = cq.importers.importStep(str(step_path))
-    shape: cq.Shape = wp.val()
+    shape: cq.Shape = load_step(step_path).shape
 
     out_dir.mkdir(parents=True, exist_ok=True)
     stem = step_path.stem
@@ -156,12 +156,16 @@ def main() -> None:
         return
 
     out_dir = Path(args.out) if args.out else None
-    export_step_previews(
-        args.step_file,
-        out_dir=out_dir,
-        views=args.views,
-        stroke_width=args.stroke_width,
-    )
+    try:
+        export_step_previews(
+            args.step_file,
+            out_dir=out_dir,
+            views=args.views,
+            stroke_width=args.stroke_width,
+        )
+    except StepLoadError as exc:
+        print(f"error: {exc}", file=sys.stderr)
+        sys.exit(1)
 
 
 if __name__ == "__main__":

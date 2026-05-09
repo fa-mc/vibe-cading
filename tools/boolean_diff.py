@@ -56,6 +56,8 @@ REPO_ROOT = Path(__file__).resolve().parent.parent
 MODELS_DIR = REPO_ROOT / "models"
 sys.path.insert(0, str(MODELS_DIR))
 
+from tools.step_primitives import StepLoadError, load_step  # noqa: E402
+
 
 def _volume(occ_shape) -> float:
     """Compute volume of an OCC shape."""
@@ -68,11 +70,6 @@ def _has_solid(occ_shape) -> bool:
     """Check if a shape contains at least one solid."""
     explorer = TopExp_Explorer(occ_shape, TopAbs_SOLID)
     return explorer.More()
-
-
-def _load_step(path: str | Path) -> cq.Shape:
-    wp = cq.importers.importStep(str(path))
-    return wp.val()
 
 
 def _load_model(model_path: str, params: dict[str, float] | None = None) -> cq.Shape:
@@ -194,16 +191,20 @@ def main() -> None:
     parser.add_argument("--json", action="store_true", help="Output JSON")
     args = parser.parse_args()
 
-    ref_shape = _load_step(args.reference)
+    try:
+        ref_shape = load_step(args.reference).shape
 
-    if args.model:
-        params = {}
-        for item in args.params:
-            k, v = item.split("=", 1)
-            params[k.strip()] = float(v.strip())
-        cand_shape = _load_model(args.candidate, params)
-    else:
-        cand_shape = _load_step(args.candidate)
+        if args.model:
+            params = {}
+            for item in args.params:
+                k, v = item.split("=", 1)
+                params[k.strip()] = float(v.strip())
+            cand_shape = _load_model(args.candidate, params)
+        else:
+            cand_shape = load_step(args.candidate).shape
+    except StepLoadError as exc:
+        print(f"error: {exc}", file=sys.stderr)
+        sys.exit(1)
 
     info = boolean_diff(ref_shape, cand_shape, align_bbox=args.align_bbox)
 

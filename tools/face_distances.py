@@ -39,23 +39,13 @@ from __future__ import annotations
 
 import argparse
 import json
+import sys
 from pathlib import Path
 
-import cadquery as cq
 import OCP.BRepAdaptor as ba
-import OCP.BRepGProp as bgp
 import OCP.GeomAbs as ga
-import OCP.GProp as gprop
 
-
-def _vec3(gp_obj) -> dict:
-    return {"x": round(gp_obj.X(), 4), "y": round(gp_obj.Y(), 4), "z": round(gp_obj.Z(), 4)}
-
-
-def _face_area(occ_face) -> float:
-    props = gprop.GProp_GProps()
-    bgp.BRepGProp.SurfaceProperties_s(occ_face, props)
-    return props.Mass()
+from tools.step_primitives import StepLoadError, face_area, load_step, vec3
 
 
 def _dot(a: dict, b: dict) -> float:
@@ -99,8 +89,7 @@ def find_face_distances(
     list[dict]
         Each dict: ``{face_a, face_b, normal, distance, area_a, area_b, axis}``.
     """
-    wp = cq.importers.importStep(str(path))
-    all_faces = wp.faces().vals()
+    all_faces = load_step(path).wp.faces().vals()
 
     # Collect planar faces
     planes: list[dict] = []
@@ -109,9 +98,9 @@ def find_face_distances(
         if adaptor.GetType() != ga.GeomAbs_SurfaceType.GeomAbs_Plane:
             continue
         pln = adaptor.Plane()
-        normal = _vec3(pln.Axis().Direction())
-        origin = _vec3(pln.Location())
-        area = _face_area(f.wrapped)
+        normal = vec3(pln.Axis().Direction())
+        origin = vec3(pln.Location())
+        area = face_area(f.wrapped)
 
         # Skip tiny faces (fillets etc.)
         if area < 0.1:
@@ -252,7 +241,11 @@ def main() -> None:
     parser.add_argument("--json", action="store_true", help="Output JSON")
     args = parser.parse_args()
 
-    pairs = find_face_distances(args.step_file, max_dist=args.max_dist, axis_filter=args.axis)
+    try:
+        pairs = find_face_distances(args.step_file, max_dist=args.max_dist, axis_filter=args.axis)
+    except StepLoadError as exc:
+        print(f"error: {exc}", file=sys.stderr)
+        sys.exit(1)
 
     if args.unique:
         uniq = unique_distances(pairs)
