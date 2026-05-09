@@ -40,13 +40,13 @@ from __future__ import annotations
 
 import argparse
 import json
+import sys
 from pathlib import Path
 
-import cadquery as cq
 import OCP.BRepAdaptor as ba
-import OCP.BRepGProp as bgp
 import OCP.GeomAbs as ga
-import OCP.GProp as gprop
+
+from tools.step_primitives import StepLoadError, face_area, load_step, vec3
 
 # ── Surface-type names ────────────────────────────────────────────────────────
 
@@ -63,21 +63,6 @@ _SURFACE_TYPE_MAP = {
     ga.GeomAbs_SurfaceType.GeomAbs_OffsetSurface: "Offset",
     ga.GeomAbs_SurfaceType.GeomAbs_OtherSurface: "Other",
 }
-
-
-def _vec3(gp_pt_or_dir) -> dict:
-    """Convert gp_Pnt, gp_Dir, or gp_Vec to ``{x, y, z}`` dict."""
-    return {
-        "x": round(gp_pt_or_dir.X(), 4),
-        "y": round(gp_pt_or_dir.Y(), 4),
-        "z": round(gp_pt_or_dir.Z(), 4),
-    }
-
-
-def _face_area(occ_face) -> float:
-    props = gprop.GProp_GProps()
-    bgp.BRepGProp.SurfaceProperties_s(occ_face, props)
-    return props.Mass()
 
 
 def _face_bbox(cq_face) -> dict:
@@ -102,15 +87,14 @@ def catalog_faces(path: str | Path) -> list[dict]:
     - **Sphere**: ``radius``, ``center``
     - **Torus**: ``major_radius``, ``minor_radius``, ``axis``, ``location``
     """
-    wp = cq.importers.importStep(str(path))
-    faces = wp.faces().vals()
+    faces = load_step(path).wp.faces().vals()
 
     result: list[dict] = []
     for i, f in enumerate(faces):
         adaptor = ba.BRepAdaptor_Surface(f.wrapped)
         st = adaptor.GetType()
         type_name = _SURFACE_TYPE_MAP.get(st, str(st))
-        area = round(_face_area(f.wrapped), 4)
+        area = round(face_area(f.wrapped), 4)
 
         entry: dict = {
             "index": i,
@@ -121,33 +105,33 @@ def catalog_faces(path: str | Path) -> list[dict]:
 
         if st == ga.GeomAbs_SurfaceType.GeomAbs_Plane:
             pln = adaptor.Plane()
-            entry["normal"] = _vec3(pln.Axis().Direction())
-            entry["origin"] = _vec3(pln.Location())
+            entry["normal"] = vec3(pln.Axis().Direction())
+            entry["origin"] = vec3(pln.Location())
 
         elif st == ga.GeomAbs_SurfaceType.GeomAbs_Cylinder:
             cyl = adaptor.Cylinder()
             entry["radius"] = round(cyl.Radius(), 4)
-            entry["axis"] = _vec3(cyl.Axis().Direction())
-            entry["location"] = _vec3(cyl.Location())
+            entry["axis"] = vec3(cyl.Axis().Direction())
+            entry["location"] = vec3(cyl.Location())
 
         elif st == ga.GeomAbs_SurfaceType.GeomAbs_Cone:
             cone = adaptor.Cone()
             entry["radius"] = round(cone.RefRadius(), 4)
             entry["semi_angle"] = round(cone.SemiAngle(), 6)
-            entry["axis"] = _vec3(cone.Axis().Direction())
-            entry["location"] = _vec3(cone.Location())
+            entry["axis"] = vec3(cone.Axis().Direction())
+            entry["location"] = vec3(cone.Location())
 
         elif st == ga.GeomAbs_SurfaceType.GeomAbs_Sphere:
             sph = adaptor.Sphere()
             entry["radius"] = round(sph.Radius(), 4)
-            entry["center"] = _vec3(sph.Location())
+            entry["center"] = vec3(sph.Location())
 
         elif st == ga.GeomAbs_SurfaceType.GeomAbs_Torus:
             tor = adaptor.Torus()
             entry["major_radius"] = round(tor.MajorRadius(), 4)
             entry["minor_radius"] = round(tor.MinorRadius(), 4)
-            entry["axis"] = _vec3(tor.Axis().Direction())
-            entry["location"] = _vec3(tor.Location())
+            entry["axis"] = vec3(tor.Axis().Direction())
+            entry["location"] = vec3(tor.Location())
 
         result.append(entry)
 
@@ -206,7 +190,11 @@ def main() -> None:
     parser.add_argument("--summary", action="store_true", help="Print only a type-count summary")
     args = parser.parse_args()
 
-    faces = catalog_faces(args.step_file)
+    try:
+        faces = catalog_faces(args.step_file)
+    except StepLoadError as exc:
+        print(f"error: {exc}", file=sys.stderr)
+        sys.exit(1)
 
     # Filter by type
     if args.type:

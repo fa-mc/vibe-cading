@@ -36,9 +36,9 @@ from __future__ import annotations
 
 import argparse
 import math
+import sys
 from pathlib import Path
 
-import cadquery as cq
 from OCP.BRepAlgoAPI import BRepAlgoAPI_Section
 from OCP.gp import gp_Pln, gp_Pnt, gp_Dir
 from OCP.TopExp import TopExp_Explorer
@@ -52,6 +52,8 @@ from OCP.GeomAbs import (
     GeomAbs_BSplineCurve,
     GeomAbs_BezierCurve,
 )
+
+from tools.step_primitives import StepLoadError, load_step
 
 
 # Axis label → (normal direction, projection axes for 2D SVG)
@@ -294,9 +296,9 @@ def slice_step(
     out_dir = Path(out_dir)
     out_dir.mkdir(parents=True, exist_ok=True)
 
-    wp = cq.importers.importStep(str(path))
-    solid = wp.val().wrapped
-    bb = wp.val().BoundingBox()
+    loaded = load_step(path)
+    solid = loaded.occ_compound
+    bb = loaded.shape.BoundingBox()
 
     # Determine slice positions
     axis = axis.upper()
@@ -387,14 +389,18 @@ def main() -> None:
     if args.at and args.sweep:
         parser.error("--at and --sweep are mutually exclusive")
 
-    slice_step(
-        args.step_file,
-        axis=args.axis,
-        positions=args.at,
-        sweep=args.sweep,
-        out_dir=args.out,
-        report=args.report,
-    )
+    try:
+        slice_step(
+            args.step_file,
+            axis=args.axis,
+            positions=args.at,
+            sweep=args.sweep,
+            out_dir=args.out,
+            report=args.report,
+        )
+    except StepLoadError as exc:
+        print(f"error: {exc}", file=sys.stderr)
+        sys.exit(1)
 
 
 if __name__ == "__main__":
