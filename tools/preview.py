@@ -59,7 +59,6 @@ dimensions in an attached reference image.
 from __future__ import annotations
 
 import argparse
-import importlib
 import re
 import sys
 from pathlib import Path
@@ -69,8 +68,11 @@ import cadquery as cq
 REPO_ROOT  = Path(__file__).resolve().parent.parent
 MODELS_DIR = REPO_ROOT / "models"
 
-# Make all model packages importable exactly as build.py does.
-sys.path.insert(0, str(MODELS_DIR))
+# tools/model_loader.py owns sys.path management for both REPO_ROOT and
+# MODELS_DIR — see its module docstring for the contract.  Add REPO_ROOT here
+# so the ``from tools.model_loader import …`` line below resolves.
+sys.path.insert(0, str(REPO_ROOT))
+from tools.model_loader import instantiate, parse_params  # noqa: E402
 
 # ── Named view registry ───────────────────────────────────────────────────────
 # Each entry is (projection_direction_vector,).  The direction points FROM the
@@ -161,26 +163,6 @@ def _fix_svg_viewport(svg_path: Path) -> None:
     svg_path.write_text(text, encoding="utf-8")
 
 
-def _parse_params(raw: list[str]) -> dict[str, any]:
-    result: dict[str, any] = {}
-    for item in raw:
-        if "=" not in item:
-            raise ValueError(f"--params entries must be key=value, got: {item!r}")
-        k, v = item.split("=", 1)
-        k = k.strip()
-        v = v.strip()
-        # Try returning an integer, then a float, otherwise leave as string.
-        try:
-            val = int(v)
-        except ValueError:
-            try:
-                val = float(v)
-            except ValueError:
-                val = v
-        result[k] = val
-    return result
-
-
 def export_previews(
     model_path: str,
     out_dir: Path,
@@ -219,10 +201,8 @@ def export_previews(
             f"Available: {list(NAMED_VIEWS.keys())}"
         )
 
-    module_str, class_name = model_path.rsplit(".", 1)
-    module   = importlib.import_module(module_str)
-    cls      = getattr(module, class_name)
-    instance = cls(**(params or {}))
+    class_name = model_path.rsplit(".", 1)[-1]
+    instance = instantiate(model_path, params)
 
     shape: cq.Shape = instance.solid.val()
 
@@ -303,7 +283,7 @@ def main() -> None:
     if not args.model:
         parser.error("the following arguments are required: model")
 
-    params = _parse_params(args.params) if args.params else {}
+    params = parse_params(args.params) if args.params else {}
     export_previews(args.model, Path(args.out), params, views=args.views)
 
 

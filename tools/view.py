@@ -75,8 +75,15 @@ from pathlib import Path
 REPO_ROOT  = Path(__file__).resolve().parent.parent
 MODELS_DIR = REPO_ROOT / "models"
 
-# Make all model packages importable exactly as build.py does.
-sys.path.insert(0, str(MODELS_DIR))
+# tools/model_loader.py owns sys.path management.  Add REPO_ROOT here so the
+# ``from tools.model_loader import …`` line below resolves; the loader then
+# inserts MODELS_DIR + REPO_ROOT idempotently for downstream model imports.
+sys.path.insert(0, str(REPO_ROOT))
+from tools.model_loader import (  # noqa: E402
+    instantiate,
+    parse_params,
+    resolve_solid,
+)
 
 # ── Default display colours for multi-model side-by-side view ─────────────────
 _PALETTE = [
@@ -89,42 +96,6 @@ _PALETTE = [
     "steelblue",
     "khaki",
 ]
-
-
-def _parse_params(raw: list[str]) -> dict[str, float | int | str]:
-    result: dict[str, float | int | str] = {}
-    for item in raw:
-        if "=" not in item:
-            raise ValueError(f"--params entries must be key=value, got: {item!r}")
-        k, v = item.split("=", 1)
-        k = k.strip()
-        v = v.strip()
-        try:
-            result[k] = int(v)
-        except ValueError:
-            try:
-                result[k] = float(v)
-            except ValueError:
-                result[k] = v
-    return result
-
-
-def _load_class(dotted: str):
-    """Import and return the class at a dotted ``module.ClassName`` path."""
-    module_str, class_name = dotted.rsplit(".", 1)
-    module = importlib.import_module(module_str)
-    return getattr(module, class_name)
-
-
-def _solid_from_instance(instance):
-    """Return the CadQuery solid for a model instance.
-
-    Tries ``.solid`` first (the standard vibe-cading API), then falls back
-    to returning the instance itself (for bare ``cq.Workplane`` factories).
-    """
-    if hasattr(instance, "solid"):
-        return instance.solid
-    return instance
 
 
 def _export_step(solid, out_path: Path) -> None:
@@ -141,9 +112,10 @@ def view_single(model_path: str, params: dict, reset: bool = True,
     """Instantiate one model class and push it to the OCP viewer."""
     from ocp_vscode import show, reset_show  # noqa: PLC0415
 
-    cls      = _load_class(model_path)
-    instance = cls(**params)
-    solid    = _solid_from_instance(instance)
+    instance = instantiate(model_path, params)
+    # ``missing='instance'`` preserves the bare-``cq.Workplane`` fallback
+    # documented in this tool's history.
+    solid    = resolve_solid(instance, missing="instance")
     class_name = model_path.rsplit(".", 1)[-1]
 
     if export:
@@ -173,9 +145,8 @@ def view_multiple(model_paths: list[str], params: dict, reset: bool = True,
     gap      = 5.0   # mm gap between adjacent parts
 
     for i, path in enumerate(model_paths):
-        cls        = _load_class(path)
-        instance   = cls(**params)
-        solid      = _solid_from_instance(instance)
+        instance   = instantiate(path, params)
+        solid      = resolve_solid(instance, missing="instance")
         class_name = path.rsplit(".", 1)[-1]
 
         # Compute bounding box to determine x-offset for the next part.
@@ -215,6 +186,12 @@ def view_assembly(module_path: str, reset: bool = True,
             ...
 
     Each tuple is ``(solid, name, color)``.
+
+    Note: this path intentionally does NOT delegate to
+    ``tools.model_loader``.  The loader's contract is single-class
+    instantiation returning ``(instance, solid)``; assembly modules return
+    a list of labelled tuples and have no class.  Promoting this to
+    ``model_loader.load_assembly`` is reversible — see design risk R-E.
     """
     from ocp_vscode import show, reset_show  # noqa: PLC0415
 
@@ -294,7 +271,7 @@ def main() -> None:
     )
 
     args        = parser.parse_args()
-    params      = _parse_params(args.params or [])
+    params      = parse_params(args.params or [])
     export_path = Path(args.export) if args.export else None
 
     if args.assembly:
