@@ -13,10 +13,6 @@
 # You should have received a copy of the GNU Affero General Public License
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
-import sys
-import os
-sys.path.insert(0, os.path.join(os.path.dirname(__file__), ".."))
-
 import cadquery as cq
 from models.lego.constants import PIN_HOLE_DIAMETER
 from models.cq_utils import cylinder
@@ -108,15 +104,11 @@ class TechnicPinHole:
         """The cutter solid — subtract from any part to bore a pin hole."""
         return self._solid
 
-
-if __name__ == "__main__":
-    from ocp_vscode import show
-    import cadquery as cq
-
-    depth = 8.0
-    hole_cutter = TechnicPinHole.standard(depth=8.0).solid
-    main_body = cq.Workplane("XY").circle(8.0 / 2).extrude(depth)
-    part = main_body.cut(hole_cutter)
-
-    cq.exporters.export(part, "tmp/technic_pin_hole.step")
-    show(part)
+    @classmethod
+    def demo(cls, **kwargs) -> list[tuple[cq.Workplane, str, str]]:
+        """Show a depth-8 standard pin hole cut into a small Ø8 cylinder."""
+        depth = 8.0
+        hole_cutter = cls.standard(depth=depth).solid
+        main_body = cq.Workplane("XY").circle(8.0 / 2).extrude(depth)
+        part = main_body.cut(hole_cutter)
+        return [(part, "TechnicPinHole demo", "tan")]

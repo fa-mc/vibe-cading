@@ -170,9 +170,14 @@ class MetricMachineScrew(Screw):
         )
         return hole.to_cutter()
 
-if __name__ == "__main__":
-    from ocp_vscode import show
-    screw1 = MetricMachineScrew.from_size("M3", length=10, head_type="socket", drive_type="hex")
-    screw2 = MetricMachineScrew.from_size("M3", length=10, head_type="flat", drive_type="phillips")
-    screw3 = MetricMachineScrew.from_size("M3", length=10, head_type="pan", drive_type="torx")
-    show(screw1.solid.translate((-5, 0, 0)), screw2.solid.translate((5, 0, 0)), screw3.solid.translate((0, -5, 0)), names=["Socket (Hex)", "Flat (Phillips)", "Pan (Torx)"])
+    @classmethod
+    def demo(cls, **kwargs) -> list[tuple[cq.Workplane, str, str]]:
+        """Show three M3-10 screws: socket/hex, flat/phillips, pan/torx."""
+        screw1 = cls.from_size("M3", length=10, head_type="socket", drive_type="hex")
+        screw2 = cls.from_size("M3", length=10, head_type="flat", drive_type="phillips")
+        screw3 = cls.from_size("M3", length=10, head_type="pan", drive_type="torx")
+        return [
+            (screw1.solid.translate((-5, 0, 0)), "Socket (Hex)",     "royalblue"),
+            (screw2.solid.translate(( 5, 0, 0)), "Flat (Phillips)",  "gold"),
+            (screw3.solid.translate(( 0,-5, 0)), "Pan (Torx)",       "tomato"),
+        ]

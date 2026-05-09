@@ -15,10 +15,7 @@
 
 import cadquery as cq
 
-try:
-    from .base import BaseJoint
-except ImportError:
-    from base import BaseJoint
+from .base import BaseJoint
 
 class DovetailJoint(BaseJoint):
     """Parametil jont generator for 3D printing.
@@ -80,17 +77,23 @@ class DovetailJoint(BaseJoint):
         )
         return profile.extrude(self.length)
 
-if __name__ == "__main__":
-    from ocp_vscode import show
+    @classmethod
+    def demo(cls, **kwargs) -> list[tuple[cq.Workplane, str, str]]:
+        """Show a male pin (block + male overlap) and female socket (block - female cavity)."""
+        joint = cls(
+            neck_width=4.0, tail_width=6.0, depth=4.0,
+            length=10.0, clearance=0.1,
+        )
 
-    joint = DovetailJoint(neck_width=4.0, tail_width=6.0, depth=4.0, length=10.0, clearance=0.1)
+        base = cq.Workplane("XY").rect(20, 10).extrude(10).translate((0, -5, 0))
+        pin = joint.male(overlap=2.0)
+        male_part = base.union(pin)
 
-    base = cq.Workplane("XY").rect(20, 10).extrude(10).translate((0, -5, 0))
-    pin = joint.male(overlap=2.0)
-    male_part = base.union(pin)
+        receiver = cq.Workplane("XY").rect(20, 10).extrude(10).translate((0, 5, 0))
+        socket = joint.female(overlap=2.0)
+        female_part = receiver.cut(socket)
 
-    receiver = cq.Workplane("XY").rect(20, 10).extrude(10).translate((0, 5, 0))
-    socket = joint.female(overlap=2.0)
-    female_part = receiver.cut(socket)
-
-    show(male_part, female_part.translate((0, 2, 0)), names=["Male Pin", "Female Socket (Offset)"], colors=["lightblue", "lightgreen"])
+        return [
+            (male_part,                         "Male Pin",               "lightblue"),
+            (female_part.translate((0, 2, 0)),  "Female Socket (Offset)", "lightgreen"),
+        ]

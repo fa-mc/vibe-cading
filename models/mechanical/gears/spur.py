@@ -166,19 +166,18 @@ class SpurGear(Gear):
 
         return gear
 
-if __name__ == "__main__":
-    from ocp_vscode import show
+    @classmethod
+    def demo(cls, **kwargs) -> list[tuple[cq.Workplane, str, str]]:
+        """Show a m=2, z=20, fw=8, bore=5 spur gear.
 
-    g = SpurGear(module=2, teeth=20, face_width=8, bore=5)
+        Note: the prior `__main__` printed pitch/tip/root/base radii and the
+        bounding box for diagnostic purposes.  That print is intentionally
+        dropped here — `demo()` returns shape triples, not console text.
+        Reproduce with::
 
-    bb = g.solid.val().BoundingBox()
-    print(
-        f"SpurGear(m=2, z=20, fw=8, bore=5)\n"
-        f"  pitch_r={g.pitch_radius:.3f}  tip_r={g.tip_radius:.3f}  "
-        f"root_r={g.root_radius:.3f}  base_r={g.base_radius:.3f}\n"
-        f"  bb X=[{bb.xmin:.3f}, {bb.xmax:.3f}]  "
-        f"Y=[{bb.ymin:.3f}, {bb.ymax:.3f}]  "
-        f"Z=[{bb.zmin:.3f}, {bb.zmax:.3f}]"
-    )
-
-    show(g.solid, names=["SpurGear"], colors=["gold"])
+            python3 -c "from models.mechanical.gears.spur import SpurGear; \\
+                g = SpurGear(module=2, teeth=20, face_width=8, bore=5); \\
+                print(g.pitch_radius, g.tip_radius, g.root_radius)"
+        """
+        g = cls(module=2, teeth=20, face_width=8, bore=5)
+        return [(g.solid, "SpurGear", "gold")]

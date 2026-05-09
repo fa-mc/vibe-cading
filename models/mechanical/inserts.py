@@ -107,20 +107,21 @@ class HeatSetInsert:
             raise ValueError(f"Unknown Ruthex size '{size}'. Available: {list(profiles.keys())}")
         return cls(**profiles[size])
 
+    @classmethod
+    def demo(cls, **kwargs) -> list[tuple[cq.Workplane, str, str]]:
+        """Show a generic insert next to Voron M3 and Ruthex M4 cutters."""
+        # 1. Custom generic insert
+        custom = cls(top_dia=4.5, bot_dia=4.0, depth=4.0)
 
-if __name__ == "__main__":
-    from ocp_vscode import show
+        # 2. Manufacturer-specific presets
+        voron_m3 = cls.voron("M3")
+        ruthex_m4 = cls.ruthex("M4")
 
-    # 1. Custom generic insert
-    custom = HeatSetInsert(top_dia=4.5, bot_dia=4.0, depth=4.0)
-
-    # 2. Manufacturer-specific presets
-    voron_m3 = HeatSetInsert.voron("M3")
-    ruthex_m4 = HeatSetInsert.ruthex("M4")
-
-    show(
-        custom.to_cutter().translate((-10, 0, 0)),
-        voron_m3.to_cutter(through_hole=True, clearance_d=3.2).translate((0, 0, 0)),
-        ruthex_m4.to_cutter().translate((15, 0, 0)),
-        names=["Custom 4.5x4 Insert", "Voron M3 (Through-hole)", "Ruthex M4"]
-    )
+        return [
+            (custom.to_cutter().translate((-10, 0, 0)),
+             "Custom 4.5x4 Insert", "royalblue"),
+            (voron_m3.to_cutter(through_hole=True, clearance_d=3.2).translate((0, 0, 0)),
+             "Voron M3 (Through-hole)", "gold"),
+            (ruthex_m4.to_cutter().translate((15, 0, 0)),
+             "Ruthex M4", "tomato"),
+        ]

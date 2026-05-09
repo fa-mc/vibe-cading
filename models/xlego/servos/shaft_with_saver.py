@@ -49,10 +49,7 @@ For the assembled preview:
 
 from __future__ import annotations
 
-import sys
-import os
 
-sys.path.insert(0, os.path.join(os.path.dirname(__file__), "../../.."))
 
 from models.xlego.servos.shaft_crown import ShaftCrown  # noqa: F401
 from models.xlego.servos.cam_utils import (  # noqa: F401
@@ -62,21 +59,3 @@ from models.xlego.servos.cam_utils import (  # noqa: F401
 from models.xlego.servos.shaft_body import ShaftBody  # noqa: F401
 
 __all__ = ["ShaftCrown", "ShaftBody"]
-
-if __name__ == "__main__":
-    from ocp_vscode import show
-
-    # You can configure the servo profile here: "SG90" (default) or "SPMSA370"
-    crown = ShaftCrown(servo_profile="SPMSA370")
-    body  = ShaftBody()
-
-    # ShaftBody Z=0 aligns with ShaftCrown top of disc (Z=2.0)
-    # The crown cam ramp (Z 2.0→4.5) engages the body valley (underside of flange)
-    offset = ShaftCrown.DISC_HEIGHT  # 2.0 mm
-
-    show(
-        crown.solid,
-        body.solid.translate((0, 0, offset)),
-        names=["ShaftCrown", "ShaftBody"],
-        colors=["gold", "royalblue"],
-    )

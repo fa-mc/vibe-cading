@@ -77,8 +77,3 @@ class ZipTieAnchor:
             pass # Failsafe
             
         return anchor
-
-if __name__ == "__main__":
-    anchor = ZipTieAnchor()
-    from ocp_vscode import show
-    show(anchor.solid)

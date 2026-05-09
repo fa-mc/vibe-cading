@@ -33,11 +33,6 @@ Run directly to preview in OCP Viewer::
 
 from __future__ import annotations
 
-import sys
-import os
-
-sys.path.insert(0, os.path.join(os.path.dirname(__file__), "../../.."))
-
 import cadquery as cq
 
 from models.xlego.servos.cam_utils import (
@@ -235,15 +230,16 @@ class ShaftBody:
     def solid(self) -> cq.Workplane:
         return self._solid
 
+    @classmethod
+    def demo(cls, **kwargs) -> list[tuple[cq.Workplane, str, str]]:
+        """Show a default ShaftBody (lower half of the servo-saver assembly).
 
-# ── Standalone OCP preview ────────────────────────────────────────────────────
+        Note: the prior `__main__` printed the bounding box for diagnostics;
+        that print is dropped here.  Reproduce with::
 
-if __name__ == "__main__":
-    from ocp_vscode import show
-
-    body = ShaftBody()
-    bb = body._solid.val().BoundingBox()
-    print(f"ShaftBody  Z[{bb.zmin:.2f}, {bb.zmax:.2f}]  "
-          f"X[{bb.xmin:.2f}, {bb.xmax:.2f}]  Y[{bb.ymin:.2f}, {bb.ymax:.2f}]")
-
-    show(body.solid, names=["ShaftBody"], colors=["royalblue"])
+            python3 -c "from models.xlego.servos.shaft_body import ShaftBody; \\
+                bb = ShaftBody().solid.val().BoundingBox(); \\
+                print(bb.xmin, bb.xmax, bb.ymin, bb.ymax, bb.zmin, bb.zmax)"
+        """
+        body = cls()
+        return [(body.solid, "ShaftBody", "royalblue")]

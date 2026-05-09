@@ -13,9 +13,6 @@
 # You should have received a copy of the GNU Affero General Public License
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
-import sys
-import os
-sys.path.insert(0, os.path.join(os.path.dirname(__file__), ".."))
 
 import cadquery as cq
 from models.lego.constants import (
@@ -132,10 +129,3 @@ class TechnicAxle:
                 "No solid: create TechnicAxle with a studs argument to build geometry."
             )
         return self._solid
-
-
-if __name__ == "__main__":
-    from ocp_vscode import show
-
-    axle = TechnicAxle(studs=3)
-    show(axle.solid)

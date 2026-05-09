@@ -431,6 +431,19 @@ class ServoMountBase:
     def solid(self) -> cq.Workplane:
         return self._solid
 
+    @classmethod
+    def demo(cls, **kwargs) -> list[tuple[cq.Workplane, str, str]]:
+        """Show a default ServoMountBase + matched ServoMountClamp."""
+        base = cls()
+        clamp = ServoMountClamp(
+            outer_x=base.outer_size / 2,
+            arm_inner_x=base.arm_inner_x,
+        )
+        return [
+            (base.solid,  "ServoMountBase",  "royalblue"),
+            (clamp.solid, "ServoMountClamp", "gold"),
+        ]
+
 
 class ServoMountClamp:
     """Clamp arm for the full servo mount.
@@ -555,8 +568,3 @@ class ServoMountAssembly:
         return self._solid
 
 
-if __name__ == "__main__":
-    from ocp_vscode import show
-    base = ServoMountBase()
-    clamp = ServoMountClamp(outer_x=base.outer_size/2, arm_inner_x=base.arm_inner_x)
-    show(base.solid, clamp.solid)

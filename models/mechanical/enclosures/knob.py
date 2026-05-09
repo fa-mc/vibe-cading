@@ -108,8 +108,3 @@ class RibbedKnob:
             shaft_cutter = shaft_cutter - d_flat_cutter
             
         return knob - shaft_cutter
-
-if __name__ == "__main__":
-    knob = RibbedKnob()
-    from ocp_vscode import show
-    show(knob.solid)

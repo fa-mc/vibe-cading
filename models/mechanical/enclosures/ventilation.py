@@ -28,7 +28,19 @@ class HexVentilationGrille:
     thickness: float = 2.0
     hex_radius: float = 4.0   # Circumradius of the hexagon
     spacing: float = 2.0      # Material width between hexagons
-    
+
+    @classmethod
+    def demo(cls, **kwargs) -> list[tuple[cq.Workplane, str, str]]:
+        """Show a hex grille beside a slotted grille (50x50 each, side-by-side)."""
+        hex_grille = cls(hex_radius=4.0, spacing=2.0)
+        slot_grille = SlottedVentilationGrille(
+            width=50, length=50, slot_width=3, slot_length=35, spacing=3
+        )
+        return [
+            (hex_grille.solid,                          "Hex Grille",     "steelblue"),
+            (slot_grille.solid.translate((60, 0, 0)),   "Slotted Grille", "khaki"),
+        ]
+
     @property
     def solid(self) -> cq.Workplane:
         """
@@ -135,10 +147,3 @@ class SlottedVentilationGrille:
             .extrude(thickness + 2 * overcut)
         )
         return cutter
-
-if __name__ == "__main__":
-    hex_grille = HexVentilationGrille(hex_radius=4.0, spacing=2.0)
-    slot_grille = SlottedVentilationGrille(width=50, length=50, slot_width=3, slot_length=35, spacing=3)
-    
-    from ocp_vscode import show
-    show(hex_grille.solid, slot_grille.solid.translate((60, 0, 0)))

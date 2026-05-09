@@ -14,9 +14,6 @@
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
 """28T gear lego compatible with 1 stud width."""
-import sys
-import os
-sys.path.insert(0, os.path.join(os.path.dirname(__file__), "../../.."))
 
 import cadquery as cq
 from models.mechanical.gears import SpurGear
@@ -72,8 +69,3 @@ class LegoGear28T:
     @property
     def solid(self) -> cq.Workplane:
         return self._solid
-
-if __name__ == "__main__":
-    from ocp_vscode import show
-    g = LegoGear28T()
-    show(g.solid, names=["LegoGear28T"])

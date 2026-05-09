@@ -103,7 +103,8 @@ class HelicalGear(SpurGear):
 
         return gear
 
-if __name__ == "__main__":
-    from ocp_vscode import show
-    g = HelicalGear(module=2, teeth=20, face_width=15, helix_angle=30, bore=5)
-    show(g.solid, names=["HelicalGear"], colors=["gold"])
+    @classmethod
+    def demo(cls, **kwargs) -> list[tuple[cq.Workplane, str, str]]:
+        """Show a m=2, z=20, fw=15, helix=30°, bore=5 helical gear."""
+        g = cls(module=2, teeth=20, face_width=15, helix_angle=30, bore=5)
+        return [(g.solid, "HelicalGear", "gold")]

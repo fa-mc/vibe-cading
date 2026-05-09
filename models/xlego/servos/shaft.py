@@ -32,11 +32,6 @@ No supports needed.
 
 from __future__ import annotations
 
-import sys
-import os
-
-sys.path.insert(0, os.path.join(os.path.dirname(__file__), "../../.."))
-
 import cadquery as cq
 
 from models.xlego.servos.cam_utils import SPRING_OD
@@ -126,13 +121,8 @@ class Shaft:
             .extrude(self.height + 0.2 + extend_up + extend_down)
         )
 
-
-if __name__ == "__main__":
-    from ocp_vscode import show
-
-    shaft = Shaft()
-    bb = shaft.solid.val().BoundingBox()
-    print(f"Rigid Shaft: Z[{bb.zmin:.2f}, {bb.zmax:.2f}]  "
-          f"R: {shaft.outer_r:.3f} mm")
-
-    show(shaft.solid, names=["Rigid Shaft"], colors=["silver"])
+    @classmethod
+    def demo(cls, **kwargs) -> list[tuple[cq.Workplane, str, str]]:
+        """Show a default rigid Shaft (servo-to-Lego axle adapter)."""
+        shaft = cls()
+        return [(shaft.solid, "Rigid Shaft", "silver")]

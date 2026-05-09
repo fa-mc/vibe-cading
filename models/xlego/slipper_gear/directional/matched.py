@@ -81,9 +81,3 @@ class SlipperGearMatched(SlipperGearBase):
         plate_p.setdefault("plate_r", default_sag_r - 0.2)
 
         super().__init__(ring_params=ring_p, spring_params=spring_p, plate_params=plate_p, **kwargs)
-
-if __name__ == "__main__":
-    from ocp_vscode import show
-    # Set to False to easily see inside the mechanism during interactive preview
-    g_matched = SlipperGearMatched(show_top_plate=False, teeth=20)
-    show(g_matched.solid, names=["Matched (Option A)"])
