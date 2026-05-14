@@ -62,7 +62,7 @@ This workspace utilizes a structured, multi-role agentic workflow.
     - `Admin`: Requirements, instruction maintenance, and unblocking execution loops. (For open-source users, the human contributor acts as the Admin, or supplies their own admin persona.)
     - `TL`: Architecture for global CLI utilities and shared refactors.
 - **Artefact Management:**
-  - **Design Briefs & Plans:** Tracked in `.agents/plans/` (whitelisted in `.gitignore`; committed to the repo). Rationale: this project is OSS-bound, and design briefs are load-bearing rationale artifacts for contributor-locality. The rest of `.agents/` remains scratch (untracked).
+  - **Design Briefs & Plans:** Tracked in `.agents/plans/` (git-ignored).
   - **Session Backlog/Ideas:** Parked under `/memories/session/ideas.md` to defer non-immediate refactors.
 - **Knowledge Base First:** Before assuming Lego-Technic dimensions, screw conventions, agentic-workflow shape, or other domain context, consult the workspace's `docs/` tree (especially `docs/lego-technic.md`, `docs/screws.md`, `docs/agentic-workflow.md`, and `docs/knowledge_base/`). The knowledge base is the source of truth; do not infer from memory or surface pattern-matching.
 - **Meta-Investigation First:** When asked to investigate agent behavior, update instructions, or modify prompts/personas/skills, read the currently active instruction files (this file, `vibe/agents/<role>.md`, `docs/agentic-workflow.md`) before proposing changes.
@@ -130,9 +130,9 @@ specification.
 - **Contributor Roles (canonical persona content under `vibe/agents/`):** `designer` (domain reasoning & design briefs), `developer` (code structure, implementation & execution).
 - **Maintainer Roles (Bring-Your-Own / Human):** Admin (requirements & review), TL (architecture & refactors). Open-source contributors act as the Admin and guide the workflow manually unless they supply their own personal agent platform configuration.
 
-**Artefact locations:**
-- Design briefs: `.agents/plans/` — **tracked** (whitelisted in `.gitignore`; committed to the repo as load-bearing rationale artifacts).
-- Session backlog / Parking lot: `/memories/session/ideas.md` (git-ignored — store ideas, refactors, or tooling improvements that emerge during the session but should not be acted upon immediately).
+**Artefact locations** (git-ignored):
+- Design briefs: `.agents/plans/`
+- Session backlog / Parking lot: `/memories/session/ideas.md` (Store ideas, refactors, or tooling improvements that emerge during the session but should not be acted upon immediately).
 
 **Key rule:** The Developer must not interpret ambiguous reference material
 (drawings, STEP files).  The Designer pre-digests all dimensions, coordinate
@@ -142,7 +142,7 @@ implement the brief.
 
 **Workspace Initialization:**
 When initializing the project or workspace, you must:
-1. Create local scratch / working directories if they don't exist (`tmp/` is gitignored; `.agents/plans/` is now tracked but a fresh clone may not have any plan files yet — create the directory placeholder if empty).
+1. Create local `.gitignore`d directories if they don't exist (`tmp/`, `.agents/plans/`).
 2. Copy `machine_profiles.json.example` to `machine_profiles_user.json` so the user can configure their specific 3D printer tolerances.
 3. Run any host-platform-specific runtime scaffolder if your agent host requires one (e.g., for Claude Code: `tools/init-claude-runtime.sh` — see the host's own instruction file for details).
 
