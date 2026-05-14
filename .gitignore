@@ -14,12 +14,8 @@ tmp/
 *.svg
 /memories/session/ideas.md
 
-# Agent files (legacy + Copilot prompt scratch space).
-# Design briefs in .agents/plans/ ARE tracked — they are
-# load-bearing rationale artifacts for an OSS-bound project.
-# Other .agents/ contents (lookback, scratch, etc.) stay untracked.
-.agents/*
-!.agents/plans/
+# Agent files (legacy + Copilot prompt scratch space)
+.agents/
 .agent/
 .agent
 
