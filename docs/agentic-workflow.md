@@ -50,7 +50,7 @@ Each contributor role's canonical persona is tracked under `vibe/agents/` (tool-
 
 ## Design Brief Format
 
-Design briefs are stored in `.agents/plans/` (git-ignored).  See
+Design briefs are stored in `.agents/plans/` — tracked in the repo (whitelisted in `.gitignore` so the rationale travels with the code). See
 [vibe/templates/_template_design.md](../vibe/templates/_template_design.md)
 for the required format.
 
