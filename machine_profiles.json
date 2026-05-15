@@ -1,26 +1,17 @@
 {
     "fdm_standard": {
-        "z_clearance": 0.20,
-        "press_fit": 0.04,
-        "slip_fit": 0.05,
-        "free_fit": 0.15,
-        
-        
+        "free":  {"radial": 0.15, "axial": 0.20},
+        "slip":  {"radial": 0.05, "axial": 0.20},
+        "press": {"radial": 0.04, "axial": 0.20}
     },
     "resin_precise": {
-        "z_clearance": 0.05,
-        "press_fit": 0.02,
-        "slip_fit": 0.03,
-        "free_fit": 0.05,
-        
-        
+        "free":  {"radial": 0.05, "axial": 0.05},
+        "slip":  {"radial": 0.03, "axial": 0.05},
+        "press": {"radial": 0.02, "axial": 0.05}
     },
     "cnc": {
-        "z_clearance": 0.00,
-        "press_fit": 0.00,
-        "slip_fit": 0.01,
-        "free_fit": 0.02,
-        
-        
+        "free":  {"radial": 0.02, "axial": 0.00},
+        "slip":  {"radial": 0.01, "axial": 0.00},
+        "press": {"radial": 0.00, "axial": 0.00}
     }
 }
