@@ -43,23 +43,13 @@ Public API
 sys.path contract
 -----------------
 
-``ensure_models_on_path()`` inserts BOTH paths because the call-sites split:
-
-- ``REPO_ROOT`` (the repo root, parent of ``models/``) enables imports like
-  ``from models.lego.constants import …``.  Today there are 53 such imports
-  inside ``models/`` (verified via ``grep -rn '^from models\\.' models/``);
-  removing ``REPO_ROOT`` from ``sys.path`` would break every one of them
-  the moment a tool tries to instantiate a model that uses one.  This is
-  the today-behavior of ``tools/check_topology.py`` (which inserts the
-  repo root).
-- ``MODELS_DIR`` (the ``models/`` directory) enables bare-import paths like
-  ``technic_ball_bearing.axle_sleeve.AxleSleeve`` — the form every
-  ``[[build]] model = …`` entry in ``build.toml`` uses, and the today-
-  behavior of ``build.py``, ``tools/preview.py``, and ``tools/view.py``.
-
-Inserting both paths is the strict union of today-behavior across the four
-tools that previously mutated ``sys.path``; no today-import shape is
-removed.
+``ensure_models_on_path()`` inserts a single path — the repo root — on
+``sys.path`` so that fully-qualified dotted paths resolve.  After the
+Phase 1 rename (`.agents/plans/2026-05-13-pre-oss-models-structure_design.md`)
+every ``[[build]] model = …`` entry in ``build.toml`` is fully namespaced
+(``vibe_cading.*``, ``parts.*``, or ``experiments.*``) — bare imports like
+``technic_ball_bearing.axle_sleeve.AxleSleeve`` are no longer used and the
+old ``MODELS_DIR`` insertion would only act as a shadow-import hazard.
 
 ``--params`` cast order
 -----------------------
@@ -97,30 +87,23 @@ from pathlib import Path
 from typing import Any
 
 REPO_ROOT = Path(__file__).resolve().parent.parent
-MODELS_DIR = REPO_ROOT / "models"
 
 
 def ensure_models_on_path() -> None:
-    """Insert REPO_ROOT and MODELS_DIR at ``sys.path[0]`` if not already present.
+    """Insert ``REPO_ROOT`` at ``sys.path[0]`` if not already present.
 
-    Idempotent: calling repeatedly has no effect once both paths are on the
-    path.  Comparison is on the resolved string form so a duplicate insertion
-    via a different relative spelling is still detected.
+    Idempotent: calling repeatedly has no effect once the path is on
+    ``sys.path``.  Comparison is on the resolved string form so a duplicate
+    insertion via a different relative spelling is still detected.
 
-    BOTH paths are required — see the module docstring's ``sys.path contract``
-    section for the empirical justification (53 ``from models.X`` imports
-    in ``models/`` need REPO_ROOT; every ``build.toml`` entry needs
-    MODELS_DIR).
+    Only the repo root is inserted — the post-Phase-1 ``build.toml`` exclusively
+    uses fully-qualified namespaces (``vibe_cading.*``, ``parts.*``,
+    ``experiments.*``), all of which resolve from the repo root alone.  No
+    bare-import ``models/`` shadow needs to be on the path.
     """
     repo_str = str(REPO_ROOT)
-    models_str = str(MODELS_DIR)
-    # Insert in reverse order so MODELS_DIR ends up at index 0 (matching the
-    # historical behavior of build.py / preview.py / view.py, which inserted
-    # MODELS_DIR at sys.path[0]).
     if repo_str not in sys.path:
         sys.path.insert(0, repo_str)
-    if models_str not in sys.path:
-        sys.path.insert(0, models_str)
 
 
 def parse_params(raw: list[str]) -> dict[str, Any]:

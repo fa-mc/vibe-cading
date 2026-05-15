@@ -16,17 +16,15 @@ from pathlib import Path
 
 import cadquery as cq
 
-# Shared model-class loader.  ``ensure_models_on_path`` inserts BOTH the
-# repo root (for ``from models.X.Y import Z`` style imports inside model
-# modules) and the ``models/`` directory (for bare-import dotted paths
-# like ``technic_ball_bearing.axle_sleeve.AxleSleeve`` used by the
-# ``[[build]] model = …`` entries below).  See ``tools/model_loader.py``
-# for the full sys.path contract.
+# Shared model-class loader.  ``ensure_models_on_path`` inserts the repo root
+# on ``sys.path`` so that fully-qualified dotted paths in ``build.toml``
+# (e.g. ``vibe_cading.mechanical.hinge.PrintInPlaceHinge`` or
+# ``parts.arrma_vorteks_223s.esc_mount.EscMount``) resolve.  See
+# ``tools/model_loader.py`` for the full sys.path contract.
 sys.path.insert(0, str(Path(__file__).resolve().parent))  # for tools.* import
 from tools.model_loader import ensure_models_on_path, load_solid  # noqa: E402
 
 REPO_ROOT  = Path(__file__).parent
-MODELS_DIR = REPO_ROOT / "models"
 OUTPUT_DIR = REPO_ROOT / "output"
 
 ensure_models_on_path()
