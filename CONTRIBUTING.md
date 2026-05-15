@@ -15,11 +15,11 @@ We hold our codebase to a high standard of structural quality and mathematical r
 *   **Fundamental Geometry over Hacky Patches:**
     Do not use arbitrary translations, clipping boxes, or brute-force boolean intersections just to "make it look right" for one specific set of parameters. Geometry should be anchored to logical origins (e.g., centering a gear on `(0, 0, 0)`) and scale cleanly via parameters.
 *   **No Overly Specific Hardcoding (Magic Numbers):**
-    Dimensions must be derived from fundamental parameters (e.g., `self.length = holes * 8.0`) or imported from centralized constants (like `models.lego.constants`).
+    Dimensions must be derived from fundamental parameters (e.g., `self.length = holes * 8.0`) or imported from centralized constants (like `vibe_cading.lego.constants`).
 *   **The 8 mm Technic Standard:**
     All Lego-compatible models must align with the 8 mm stud grid. Use standard values for Technic pins (4.8 mm diameter) and axles (5.0 mm clearance). See `docs/lego-technic.md` for exact values.
 *   **Generic Tooling:**
-    Shared features (like standard Technic axle holes, generic mounting tabs, or fillets) should be abstracted into reusable functions in `models/cq_utils.py` or base classes. Do not copy-paste raw boolean cuts across different models.
+    Shared features (like standard Technic axle holes, generic mounting tabs, or fillets) should be abstracted into reusable functions in `vibe_cading/cq_utils.py` or base classes. Do not copy-paste raw boolean cuts across different models.
 *   **All units are in millimeters (mm).**
 
 ---
@@ -49,8 +49,8 @@ If you are adding a complex new model:
 CAD development requires extensive trial and error, parameter sweeping, and visual debugging.
 
 *   **The `tmp/` Directory:** All throwaway metric checks (`check_gap.py`), specific parameter tests, boolean visualizers, and debug scripts **must** be placed in the `tmp/` folder.
-*   **No Clutter:** Do not pollute the main `models/` tree or the repository root with `test.py` or isolated `.step` exports. The `.gitignore` is set up to ignore `tmp/` and `output/` automatically.
-*   The `models/` tree must remain clean, purely declarative, and strictly contain the reusable CadQuery classes.
+*   **No Clutter:** Do not pollute the `vibe_cading/` library tree, the `parts/` tree, or the repository root with `test.py` or isolated `.step` exports. The `.gitignore` is set up to ignore `tmp/` and `output/` automatically.
+*   The `vibe_cading/` (library) and `parts/` (project-specific) trees must remain clean, purely declarative, and strictly contain reusable CadQuery classes — library-generic in the former, project-specific in the latter.
 
 ---
 
@@ -78,15 +78,15 @@ We look forward to your contributions!
 
 ## 📦 6. Engine API artifact
 
-`engine_api.json` at the repo root is a machine-readable index of every public model class in `models/**`. Downstream LLM code-gen tooling (e.g. the platform's `***REMOVED***` MCP) consumes it to call engine classes deterministically. It is generated, not hand-written, and **must stay in sync with `models/**`**.
+`engine_api.json` at the repo root is a machine-readable index of every public model class in `vibe_cading/**` and `parts/**`. Downstream LLM code-gen tooling (e.g. the platform's `***REMOVED***` MCP) consumes it to call engine classes deterministically. It is generated, not hand-written, and **must stay in sync with `vibe_cading/**` + `parts/**`**.
 
 **Regenerate after editing any model class:**
 
     python3 tools/gen_engine_api.py
 
-That walks `models/**` with a pure-`ast` extractor (no CadQuery import) and rewrites the file in place. Commit the regenerated artifact alongside your model changes.
+That walks `vibe_cading/**` and `parts/**` with a pure-`ast` extractor (no CadQuery import) and rewrites the file in place. Commit the regenerated artifact alongside your model changes.
 
-**CI gate.** `.github/workflows/engine-api.yml` runs on any PR or push to `main` that touches `models/**`, `tools/engine_api/**`, `tools/gen_engine_api.py`, `tools/validate_engine_api.py`, or `engine_api.json`. The gate executes:
+**CI gate.** `.github/workflows/engine-api.yml` runs on any PR or push to `main` that touches `vibe_cading/**`, `parts/**`, `tools/engine_api/**`, `tools/gen_engine_api.py`, `tools/validate_engine_api.py`, or `engine_api.json`. The gate executes:
 
 1. `python3 tools/gen_engine_api.py --check` — regenerates in memory and exits non-zero if the on-disk file differs.
 2. `python3 tools/validate_engine_api.py` — asserts the schema invariants documented in `tools/engine_api/extractor.py`.
