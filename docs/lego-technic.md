@@ -198,7 +198,7 @@ Common bent beam angles are **90°** and **53.13°** (3–4–5 triangle geometr
 
 ## Tuning Tolerances
 
-Because different 3D printers and materials (FDM vs Resin) shrink differently, the default clearance provided in `models/lego/constants.py` might result in holes that are too tight or too loose on your specific machine.
+Because different 3D printers and materials (FDM vs Resin) shrink differently, the default clearance provided in `vibe_cading/lego/constants.py` might result in holes that are too tight or too loose on your specific machine.
 
 To solve this, this repository supports local overrides:
 1. Copy the `.env.example` file in the root directory to `.env`.
