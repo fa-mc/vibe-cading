@@ -76,17 +76,17 @@ Exact commands to run after all deliverables are complete:
 
 ```bash
 # Example: visual preview
-python3 tools/preview.py models.module.ClassName --views top front left
+python3 tools/preview.py vibe_cading.module.ClassName --views top front left
 
 # Example: internal geometry check (vital for blind holes/snap rings)
 python3 tools/section_slicer.py tmp/output.step --axis Z --at 4.0 --report
 # Example: topological validation for single contiguous solid
 # # Run this for individual monolithic parts (not multi-part assemblies)
-python3 tools/check_topology.py models.module.ClassName --export
+python3 tools/check_topology.py vibe_cading.module.ClassName --export
 
 
 # Example: volume comparison against reference STEP
-python3 tools/boolean_diff.py reference.step models.module.ClassName --model --align-bbox
+python3 tools/boolean_diff.py reference.step vibe_cading.module.ClassName --model --align-bbox
 ```
 
 ## Escalations

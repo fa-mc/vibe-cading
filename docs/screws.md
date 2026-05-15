@@ -1,4 +1,4 @@
-# Screw Base Class and Standard Fasteners
+# Screws and Standard Fasteners
 
 This document explains how to use the procedural screw models to generate hardware and boolean cutting tools (holes) in your CadQuery designs.
 
@@ -21,7 +21,7 @@ Instead of defining every constraint manually, use the provided subclasses with 
 ### Metric Machine Screws
 
 ```python
-from models.mechanical.screws import MetricMachineScrew
+from vibe_cading.mechanical.screws import MetricMachineScrew
 
 # Create an M4 flat head (countersunk) screw, 12mm long
 m4_flat = MetricMachineScrew.from_size(size="M4", length=12.0, head_type="flat", drive_type="hex")
@@ -33,7 +33,7 @@ solid = m4_flat.solid
 ### Wood / Self-Tapping Screws
 
 ```python
-from models.mechanical.screws import WoodScrew
+from vibe_cading.mechanical.screws import WoodScrew
 
 # Create a 3/16" pan head wood screw, 1 inch (25.4mm) long
 wood_screw = WoodScrew(size="3/16", length=25.4, head_type="pan", drive_type="phillips")
@@ -48,18 +48,19 @@ A cutter automatically includes:
 *   The head volume (to recess the head via a countersink or counterbore).
 *   **Overcuts:** Infinite vertical extensions at the ends of the cutter so that boolean subtractions don't leave thin, non-manifold skins of material.
 
-### Modes
+### Fits
 
-The `mode` parameter determines how tight the hole is:
+The `fit` parameter determines how tight the hole is:
 
-1.  **`mode='clearance'`**: A loose hole meant for the screw to pass straight through. The hole diameter is larger than the thread's major diameter (e.g., 4.2mm or 4.4mm for an M4).
-2.  **`mode='tap'`**: A tighter hole meant for the threads to bite into the material. The hole diameter is equal to the root (minor) diameter of the thread (e.g., ~3.3mm for an M4).
+1.  **`fit="clearance"`**: A loose hole meant for the screw to pass straight through. The hole diameter is larger than the thread's major diameter (e.g., 4.2mm or 4.4mm for an M4).
+2.  **`fit="tap"`**: A tighter hole meant for the threads to bite into the material. The hole diameter is equal to the root (minor) diameter of the thread (e.g., ~3.3mm for an M4).
+3.  **`fit="interference"`**: An interference fit (slightly under the major diameter) for press-in applications.
 
 ### Examples
 
 ```python
 import cadquery as cq
-from models.mechanical.screws import MetricMachineScrew
+from vibe_cading.mechanical.screws import MetricMachineScrew
 
 # 1. We have a 10mm thick plate
 plate = cq.Workplane("XY").box(20, 20, 10).translate((0, 0, -5)) # Surface at Z=0
@@ -68,53 +69,49 @@ plate = cq.Workplane("XY").box(20, 20, 10).translate((0, 0, -5)) # Surface at Z=
 m3_screw = MetricMachineScrew.from_size("M3", length=15, head_type="socket")
 
 # 3. Generate a clearance cutter (loose fit, includes the counterbore for the socket head)
-cutter = m3_screw.to_cutter(mode="clearance")
+cutter = m3_screw.to_cutter(fit="clearance")
 
 # 4. Subtract the cutter from the plate
 plate_with_hole = plate.cut(cutter)
 ```
 
-### Advanced Cutters: Fits and Extra Depth
-
-If you have specific 3D printing tolerance needs, you can override the default allowances:
-
-```python
-# Create an M4 tapped hole, but make it slightly looser than standard (+0.1mm radius)
-# and sink the head an extra 1mm deep into the plate.
-my_cutter = m4_flat.to_cutter(
-    mode="tap",
-    radial_allowance=0.1,
-    head_recess_depth=1.0
-)
-``````
-
-### Material-Specific Print Clearances
+### Material-Specific Print Clearances via ToleranceProfile
 
 For parts intended to be 3D printed, different materials shrink or bridge differently, resulting in undersized holes (especially in PETG or ASA).
 
-Instead of hardcoding radial allowances per-class, use the global print settings module to fetch standardized offsets based on the target material string. This allows models to parametrically adapt their tolerance gaps when users configure `build.toml`.
+`to_cutter()` accepts a `profile` keyword that carries the radial and axial allowances together.  Pass a named profile from `machine_profiles.json` (the global default is configured via the `VIBE_MACHINE_PROFILE` env var) or construct a `ToleranceProfile` literal in code.  The profile's `free.radial` slot drives shaft inflation and `free.axial` drives the head recess depth — no separate `radial_allowance` / `head_recess_depth` floats are required.
 
 ```python
 import cadquery as cq
-from models.mechanical.screws import MetricMachineScrew
-from models.print_settings import get_screw_allowances
+from vibe_cading.mechanical.screws import MetricMachineScrew
+from vibe_cading.print_settings import get_profile
 
 class MyPlate:
-    def __init__(self, material="PLA"):
-        # 1. Fetch material parameters
-        allowances = get_screw_allowances(material)
-        self.radial_allowance = allowances["radial_allowance"]
-        self.head_recess = allowances["head_recess_depth"]
-        
-    def _build(self):
+    def __init__(self, material: str = "PLA") -> None:
+        # 1. Resolve the tolerance profile for the target material.  The
+        #    profile encapsulates all radial / axial allowances; no need
+        #    to thread individual floats through call sites.
+        self.profile = get_profile(material)
+
+    def _build(self) -> cq.Workplane:
         screw = MetricMachineScrew.from_size("M3", length=12, head_type="flat")
-        
-        # 2. Inject parameters when generating the cutter
-        cutter = screw.to_cutter(
-            mode="clearance", 
-            radial_allowance=self.radial_allowance, 
-            head_recess_depth=self.head_recess
-        )
-        
+
+        # 2. Pass the profile straight to to_cutter().
+        cutter = screw.to_cutter(profile=self.profile, fit="clearance")
+
         # ... logic to cut plate ...
+```
+
+For a one-off override, construct a `ToleranceProfile` directly:
+
+```python
+from vibe_cading.print_settings import ToleranceProfile, FitGrade
+
+snug = ToleranceProfile(
+    name="snug",
+    free=FitGrade(radial=0.05, axial=0.05),
+    slip=FitGrade(radial=0.02, axial=0.0),
+    press=FitGrade(radial=-0.02, axial=0.0),
+)
+cutter = screw.to_cutter(profile=snug, fit="clearance")
 ```

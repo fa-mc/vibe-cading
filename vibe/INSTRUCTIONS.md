@@ -17,9 +17,9 @@ Project-specific instructions further down inherit from and build upon the unive
 - **Strict File Placement (No Root Clutter):** NEVER create temporary, test, debug, validation, or patch scripts (e.g., `test_*.py`, `temp.js`, `foo.txt`) in the root directory. ALL ad-hoc scripts MUST be created and executed inside a dedicated `tmp/` or `.agents/tmp/` folder.
 - **No Inline-Code-in-Shell Workflows:** Treat inline-code execution via shell flags (e.g. `python3 -c`, `node -e`, `bash -c` with embedded script bodies) as disallowed for normal agent workflows. Write a full script into `tmp/` first and run it cleanly. Do not combine inline code with pipes, shell redirects, or complex quoting — these are a reliable source of quoting bugs, partial execution, and silently truncated logic.
 - **Configuration Protection:** NEVER delete, rename, or autonomously modify `.env` or user-local configuration files (even if untracked by git) unless explicitly instructed.
-- **No Agent Memory Stash:** Do not store user-requested files, deliverables, or repository assets in internal agent memory paths. Put requested outputs in the workspace paths the user asked for (typically under `tmp/`, `models/`, or `tools/`).
+- **No Agent Memory Stash:** Do not store user-requested files, deliverables, or repository assets in internal agent memory paths. Put requested outputs in the workspace paths the user asked for (typically under `tmp/`, `vibe_cading/`, `parts/`, or `tools/`).
 - **Tool Cleanliness:** Clean up any temporary refactoring scripts, downloaded manuals, or research junction files as soon as the task is successfully applied.
-- **Utility Reuse:** Before writing a new helper, validation script, or geometric primitive, inspect the workspace for an existing reusable utility. The canonical locations are `tools/` (CLI utilities — preview, section_slicer, hole_finder, etc.) and `models/cq_utils.py` (CadQuery primitives shared across model classes). Save frequently-needed helpers there rather than duplicating them inline in model files or leaving them under `tmp/`.
+- **Utility Reuse:** Before writing a new helper, validation script, or geometric primitive, inspect the workspace for an existing reusable utility. The canonical locations are `tools/` (CLI utilities — preview, section_slicer, hole_finder, etc.) and `vibe_cading/cq_utils.py` (CadQuery primitives shared across model classes). Save frequently-needed helpers there rather than duplicating them inline in model files or leaving them under `tmp/`.
 - **Git Commits:** Do not commit changes using git unless specifically asked to in the **current user prompt**. A request to commit in a previous turn does **not** carry over to subsequent tasks. Always ask for confirmation before committing.
 - **Scoped Staging:** NEVER use `git add .`, `git add -A`, or `git commit -a` unless explicitly instructed. Always stage with `git add <specific_file_path>` for only the files modified for the current task. Broad staging sweeps accidentally capture sensitive files (`.env`, `machine_profiles_user.json`), large binaries (STEP / STL outputs under `build/`), or unrelated in-progress work from parallel streams.
 
@@ -109,7 +109,7 @@ This codebase must be maintained at a high standard of structural quality and re
 - **Self-Documenting Code:** Class properties, methods, and parameters must be clearly named. Complex geometric reasoning (e.g., *why* an overcut of `0.05` is used, or the math behind a polar array) should be briefly commented in the code so future open-source contributors understand the intent.
 - **Generic Tooling:** Shared features (like generating a standard Technic axle hole, or a generic mounting tab) should be abstracted into reusable functions in `cq_utils.py` or base classes, rather than duplicated across models.
 - **Object-Oriented Component API:** Mechanical joints, hardware wrappers, and modular utilities should be designed as Python classes rather than bare functions. Standardize boolean interfaces by exposing methods like `.male(overlap: float)` (for additive geometry) and `.female(overlap: float)` (for subtractive cutters), or a uniform `.solid` property for read-only geometry.
-- **Manufacturing & Tolerance Profiles:** Never hardcode a "magic" clearance (like `+ 0.2`) deep inside an internal boolean cut or method. Tolerances should map to user-maintained profiles via `models.print_settings.get_profile(name)`. The system provides hardcoded defaults (like `fdm_standard` or `resin_precise`) tracked in `machine_profiles.json`, but developers and users can easily override these locally by maintaining a `machine_profiles_user.json` file (untracked) which will dictionary-merge over the defaults. You must also instruct users to define `.env` with `VIBE_MACHINE_PROFILE` to change the global fallback. All subtractive classes/methods must support accepting these parametric clearances dynamically.
+- **Manufacturing & Tolerance Profiles:** Never hardcode a "magic" clearance (like `+ 0.2`) deep inside an internal boolean cut or method. Tolerances should map to user-maintained profiles via `vibe_cading.print_settings.get_profile(name)`. The system provides hardcoded defaults (like `fdm_standard` or `resin_precise`) tracked in `machine_profiles.json`, but developers and users can easily override these locally by maintaining a `machine_profiles_user.json` file (untracked) which will dictionary-merge over the defaults. You must also instruct users to define `.env` with `VIBE_MACHINE_PROFILE` to change the global fallback. All subtractive classes/methods must support accepting these parametric clearances dynamically.
 - **2D Sketching over 3D Booleans:** For performance, prefer 2D `Workplane.polyline().extrude()` over combining multiple 3D primitives with costly `.union()` or `.cut()` operations. Native OCCT 2D sketching is dramatically faster and avoids floating-point seam artifacts.
 - **Absolute Zero-Datum Consistency:** The primary physical interface of a component (the mating face, rotation axis, or flat print bed surface) must mathematically sit exactly at `(0, 0, 0)`. Examples: gears must rotate at `X=0, Y=0`; joints connect at `Z=0` (extruding up into +Z while cutters project down into -Z).
 - **Explicit Public APIs:** All parameters must utilize strict Python type hinting (e.g., `length: float, positions: list[tuple]`) and classes must contain a top-level docstring stating exactly what the `(0,0,0)` origin represents so users know how to place the component in an assembly.
@@ -174,14 +174,15 @@ Model class files must **not** contain `ocp_vscode` imports or
 `if __name__ == "__main__":` viewer blocks.  Keep class files as pure class
 definitions.  This rule is **CI-enforced** via `tools/check_no_main_blocks.py`
 (AST walker, runs in `.github/workflows/ci.yml`); a violating commit fails
-the lint step.  No `models/**/*.py` file may import `ocp_vscode` either —
-`tools/view.py` is the only sanctioned `ocp_vscode` consumer.
+the lint step.  No `vibe_cading/**/*.py` or `parts/**/*.py` file may import
+`ocp_vscode` either — `tools/view.py` is the only sanctioned `ocp_vscode`
+consumer.
 
 Use the dedicated `tools/view.py` entry point instead:
 
     python3 tools/view.py <module.path.ClassName> [--params key=value ...]
-    python3 tools/view.py rc.servo.sg90.Sg90Servo
-    python3 tools/view.py rc.servo.sg90.Sg90Servo --params body_width=23.0
+    python3 tools/view.py vibe_cading.rc.servo.sg90.Sg90Servo
+    python3 tools/view.py vibe_cading.rc.servo.sg90.Sg90Servo --params body_width=23.0
 
 ### Class-scoped demos via `--demo` and `demo()` classmethod
 
@@ -203,8 +204,8 @@ def demo(cls, **kwargs) -> list[tuple[cq.Workplane, str, str]]:
 
 Trigger it with `--demo`:
 
-    python3 tools/view.py mechanical.screws.metric.MetricMachineScrew --demo
-    python3 tools/view.py mechanical.joints.snap_fit.CantileverSnapFit --demo
+    python3 tools/view.py vibe_cading.mechanical.screws.metric.MetricMachineScrew --demo
+    python3 tools/view.py vibe_cading.mechanical.joints.snap_fit.CantileverSnapFit --demo
     python3 tools/view.py <Class> --demo --export tmp/demo.step
 
 Each returned tuple is `(solid, name, color)` — the same triple shape that
@@ -231,12 +232,12 @@ and is excluded from the engine_api wire contract.
 ### Assembly modules
 
 For assemblies that need multiple parts shown with positional offsets, create a
-dedicated assembly module (e.g. `models/xlego/servos/shaft_saver_assembly.py`)
+dedicated assembly module (e.g. `vibe_cading/lego_adapters/servos/sg90/servo_mount.py`)
 that exposes a top-level `assemble()` function returning a list of
 `(solid, name, color)` tuples.  `tools/view.py` will call `assemble()` when
 `--assembly` is passed:
 
-    python3 tools/view.py --assembly xlego.servos.shaft_saver_assembly
+    python3 tools/view.py --assembly vibe_cading.lego_adapters.servos.sg90.servo_mount
 
 `assemble()` is module-level (cross-class compositions); `demo()` is
 class-scoped (single-class demonstrations).  Use whichever ownership shape
@@ -545,9 +546,9 @@ When generating gauge blocks, parameter sweeps, or test fits to dial in toleranc
 
 ## Constants & Tolerances
 
-- When modifying or creating constants in `models/lego/constants.py` that describe 3D printed friction fits or clearances (e.g. hole diameters, axle thickness), you must wrap the hardcoded default in `os.getenv("VARIABLE_NAME", "default")` and cast it to float. This allows users to tweak dimensions in a `.env` file without modifying source tracked code.
+- When modifying or creating constants in `vibe_cading/lego/constants.py` that describe 3D printed friction fits or clearances (e.g. hole diameters, axle thickness), you must wrap the hardcoded default in `os.getenv("VARIABLE_NAME", "default")` and cast it to float. This allows users to tweak dimensions in a `.env` file without modifying source tracked code.
 - Avoid introducing third-party pip dependencies like `python-dotenv` for this. The `constants.py` file should implement its own simple standard library file parser (e.g. reading lines that contain `=`).
-- **Material-Specific Screw Tolerances:** When designing an object that mounts using generic screws, the implementation's `__init__` should accept a `material` string keyword argument (default `"PLA"`). It should use `from models.print_settings import get_screw_allowances` to retrieve the `radial_allowance` and `head_recess_depth` parameters, and pass those explicitly to any screw `.to_cutter()` methods. Do not hardcode fixed manual clearance float values.
+- **Material-Specific Screw Tolerances:** When designing an object that mounts using generic screws, the implementation's `__init__` should accept a `material` (or `profile`) string keyword argument (default `"PLA"` / `"fdm_standard"`). It should use `from vibe_cading.print_settings import get_profile` to resolve a `ToleranceProfile`, and pass it as `profile=...` to any screw `.to_cutter()` method.  The profile carries radial and axial allowances per fit grade — do not hardcode fixed manual clearance float values or thread separate `radial_allowance` / `head_recess_depth` parameters through call sites (those legacy helpers are gone).
 
 ## Licensing & Open Source
-- **AGPLv3 Headers:** Any new Python file created in the `models/` or `tools/` directories MUST include the AGPLv3 header at the very top. Look at an existing file for the exact text containing "vibe-cading is free software: you can redistribute it and/or modify". Empty `__init__.py` files are exempt.
+- **AGPLv3 Headers:** Any new Python file created in the `vibe_cading/`, `parts/`, or `tools/` directories MUST include the AGPLv3 header at the very top. Look at an existing file for the exact text containing "vibe-cading is free software: you can redistribute it and/or modify". Empty `__init__.py` files are exempt.
