@@ -13,6 +13,8 @@ extend-ignore = E1, E2, E3, E4, E5, E7, W1, W2, W3, W5, W6
 exclude =
     tmp,
     build,
+    output,
+    experiments,
     .agents,
     .git,
     __pycache__,

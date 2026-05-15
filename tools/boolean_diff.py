@@ -53,8 +53,7 @@ from OCP.TopExp import TopExp_Explorer
 from OCP.TopAbs import TopAbs_SOLID
 
 REPO_ROOT = Path(__file__).resolve().parent.parent
-MODELS_DIR = REPO_ROOT / "models"
-sys.path.insert(0, str(MODELS_DIR))
+sys.path.insert(0, str(REPO_ROOT))
 
 from tools.step_primitives import StepLoadError, load_step  # noqa: E402
 

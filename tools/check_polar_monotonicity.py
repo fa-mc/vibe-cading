@@ -51,7 +51,7 @@ def analyze_profile(pts, tolerance=-0.01):
 
 if __name__ == "__main__":
     if len(sys.argv) < 2:
-        print("Usage: python3 check_polar_monotonicity.py models.module.ClassName._method")
+        print("Usage: python3 check_polar_monotonicity.py vibe_cading.module.ClassName._method")
         sys.exit(1)
         
     target = sys.argv[1]

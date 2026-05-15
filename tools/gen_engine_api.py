@@ -14,9 +14,9 @@
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
 #!/usr/bin/env python3
-"""Generate ``engine_api.json`` from ``models/**``.
+"""Generate ``engine_api.json`` from ``vibe_cading/**`` and ``parts/**``.
 
-Walks ``models/**`` with the AST extractor in
+Walks ``vibe_cading/**`` and ``parts/**`` with the AST extractor in
 ``tools/engine_api/extractor.py`` and writes a deterministic JSON artifact
 at the repo root (or the path supplied via ``--out``).
 
@@ -57,7 +57,15 @@ from tools.engine_api.extractor import (  # noqa: E402  (import after sys.path t
 
 
 def _build_payload(repo_root: Path) -> dict:
-    records = extract_classes([repo_root / "models"])
+    # Walk both the library tree (``vibe_cading/``) and the project-specific
+    # end-products tree (``parts/``).  ``experiments/`` is excluded — it is
+    # R&D, not a contract-bearing surface.
+    roots = [
+        d
+        for d in (repo_root / "vibe_cading", repo_root / "parts")
+        if d.exists()
+    ]
+    records = extract_classes(roots)
     return {
         "schema_version": SCHEMA_VERSION,
         "classes": [r.to_dict() for r in records],
@@ -77,7 +85,7 @@ def _serialize(payload: dict) -> str:
 
 def main(argv: list[str] | None = None) -> int:
     parser = argparse.ArgumentParser(
-        description="Generate engine_api.json from models/**.",
+        description="Generate engine_api.json from vibe_cading/** and parts/**.",
     )
     parser.add_argument(
         "--out",

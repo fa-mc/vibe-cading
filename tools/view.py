@@ -25,15 +25,15 @@ Single-class usage
 ------------------
     python3 tools/view.py <module.path.ClassName> [--params key=value ...]
 
-    python3 tools/view.py rc.servo.sg90.Sg90Servo
-    python3 tools/view.py rc.servo.sg90.Sg90Servo --params body_width=23.0
-    python3 tools/view.py technic_ball_bearing.axle_sleeve.AxleSleeve \\
-                          --params bearing_id=8.0 length=3.0
+    python3 tools/view.py vibe_cading.rc.servo.sg90.Sg90Servo
+    python3 tools/view.py vibe_cading.rc.servo.sg90.Sg90Servo --params body_width=23.0
+    python3 tools/view.py vibe_cading.mechanical.bearings.Bearing \\
+                          --params inner_diameter=8.0 outer_diameter=22.0 thickness=7.0
 
 Multiple classes at once (shown side-by-side with automatic X offset)
 ----------------------------------------------------------------------
-    python3 tools/view.py rc.servo.sg90.Sg90Servo \\
-                          xlego.servos.shaft_crown.ShaftCrown
+    python3 tools/view.py vibe_cading.rc.servo.sg90.Sg90Servo \\
+                          vibe_cading.lego_adapters.servos.shaft_crown.ShaftCrown
 
 Class-scoped demos
 ------------------
@@ -46,7 +46,7 @@ A class may opt into a richer demonstration by defining::
 Each returned tuple is ``(solid, name, color)`` — same shape as
 ``assemble()``.  Trigger via ``--demo``::
 
-    python3 tools/view.py mechanical.screws.metric.MetricMachineScrew --demo
+    python3 tools/view.py vibe_cading.mechanical.screws.metric.MetricMachineScrew --demo
 
 ``--params key=value`` is forwarded as ``**kwargs``; demos that don't read
 parameters simply ignore them.  See ``vibe/INSTRUCTIONS.md`` § "OCP Viewer
@@ -58,7 +58,7 @@ Assembly modules live alongside the models they compose and expose a single
 top-level ``assemble()`` function that returns a list of
 ``(solid, name, color)`` tuples.  Pass ``--assembly`` instead of a class path:
 
-    python3 tools/view.py --assembly xlego.servos.shaft_saver_assembly
+    python3 tools/view.py --assembly vibe_cading.lego_adapters.servos.sg90.servo_mount
 
 The module is imported and its ``assemble()`` function is called.  No class
 instantiation is performed.
@@ -66,7 +66,8 @@ instantiation is performed.
 Arguments
 ---------
 model [model ...]
-    One or more dotted module.ClassName paths relative to ``models/``.
+    One or more dotted module.ClassName paths under the
+    ``vibe_cading.`` or ``parts.`` packages.
 
 --assembly
     Treat the sole positional argument as an assembly module path whose
@@ -90,11 +91,10 @@ import sys
 from pathlib import Path
 
 REPO_ROOT  = Path(__file__).resolve().parent.parent
-MODELS_DIR = REPO_ROOT / "models"
 
 # tools/model_loader.py owns sys.path management.  Add REPO_ROOT here so the
 # ``from tools.model_loader import …`` line below resolves; the loader then
-# inserts MODELS_DIR + REPO_ROOT idempotently for downstream model imports.
+# inserts REPO_ROOT idempotently for downstream model imports.
 sys.path.insert(0, str(REPO_ROOT))
 from tools.model_loader import (  # noqa: E402
     ensure_models_on_path,
