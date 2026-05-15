@@ -37,7 +37,7 @@ def load_target(target: str, kwargs: dict) -> cq.Workplane:
 
     parts = target.split(".")
     if len(parts) < 2:
-        print("Error: Target must be a .step file or a python module path (e.g. models.lego.gears.Gear)", file=sys.stderr)
+        print("Error: Target must be a .step file or a python module path (e.g. vibe_cading.lego.gears.Gear)", file=sys.stderr)
         sys.exit(1)
 
     class_name = parts[-1]
@@ -64,7 +64,7 @@ def load_target(target: str, kwargs: dict) -> cq.Workplane:
 
 def main() -> None:
     parser = argparse.ArgumentParser(description="Check CAD topology for disconnected floating bodies.")
-    parser.add_argument("target", help="Module path (models.pkg.Class) or .step file")
+    parser.add_argument("target", help="Module path (vibe_cading.pkg.Class) or .step file")
     parser.add_argument("--params", nargs="*", help="key=value constructor args for python classes", default=[])
     parser.add_argument("--export", action="store_true", help="Export floating bodies to tmp/ as STEP files if found")
     parser.add_argument("--ignore", type=int, default=0, help="Allow exactly N disconnected bodies if intentional (default: 0)")

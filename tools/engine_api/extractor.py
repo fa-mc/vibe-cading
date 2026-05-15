@@ -13,7 +13,7 @@
 # You should have received a copy of the GNU Affero General Public License
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
-"""AST walker that extracts engine API records from ``models/**``.
+"""AST walker that extracts engine API records from ``vibe_cading/**`` and ``parts/**``.
 
 Pure stdlib: imports nothing from CadQuery or the model packages themselves
 so it runs deterministically in CI without needing the geometry stack.
@@ -69,7 +69,6 @@ SCHEMA_VERSION = "1.0"
 _MM_SUFFIXES: tuple[str, ...] = (
     "_clearance",
     "_depth",
-    "_dia",
     "_diameter",
     "_height",
     "_length",
@@ -122,7 +121,7 @@ class Param:
         }
         if not self.required:
             # Schema requires `default` present iff `required is false`. We
-            # carry None through verbatim (e.g. ``flange_dia: float | None
+            # carry None through verbatim (e.g. ``flange_diameter: float | None
             # = None`` -> default="None").
             out["default"] = self.default
         out["units"] = self.units
@@ -180,8 +179,9 @@ def extract_classes(roots: list[Path]) -> list[ClassRecord]:
     Each root is treated as a directory; ``*.py`` files beneath it are
     parsed with ``ast.parse``. The repo root (used to compute the dotted
     module path) is inferred as the parent of the first root — for the
-    standard call ``extract_classes([Path("models")])`` this resolves to
-    the current working directory, which the CLI sets to the repo root.
+    standard call ``extract_classes([Path("vibe_cading"), Path("parts")])``
+    this resolves to the current working directory, which the CLI sets to
+    the repo root.
 
     Records are returned in deterministic order (FQN ascending) so the
     JSON output is stable across runs and platforms.
@@ -264,8 +264,19 @@ def _is_discoverable(node: ast.ClassDef) -> bool:
     if node.name.startswith("_"):
         return False
     # Exclude classes whose declared base reads as ``ABC`` or ``abc.ABC``.
+    # Mirror exclusion for ``typing.Protocol`` (PEP 544 structural-typing
+    # contracts) — Phase 5 introduces ``ScrewProtocol`` / ``NutProtocol`` /
+    # ``JointProtocol`` / ``CutterProtocol`` as contract-only types; they
+    # are never instantiated, declare no constructor, and must NOT leak
+    # into the engine_api wire JSON (gate test asserts zero ``*Protocol``
+    # leaks).  CPython sets a private ``_is_protocol = True`` attribute on
+    # Protocol subclasses at runtime, but the extractor walks AST without
+    # importing modules, so we identify protocols by inspecting their
+    # declared bases instead.
     for base in node.bases:
         if _base_is_abc(base):
+            return False
+        if _base_is_protocol(base):
             return False
     # Exclude classes that declare any ``@abstractmethod`` method. This
     # also catches ABCs that subclass ``object`` but use the decorator
@@ -286,6 +297,27 @@ def _base_is_abc(base: ast.expr) -> bool:
         and base.attr == "ABC"
         and isinstance(base.value, ast.Name)
         and base.value.id == "abc"
+    ):
+        return True
+    return False
+
+
+def _base_is_protocol(base: ast.expr) -> bool:
+    """True if a class base node reads as ``Protocol`` or ``typing.Protocol``.
+
+    Matches both forms commonly seen in this codebase: bare
+    ``class Foo(Protocol):`` (when the user has done
+    ``from typing import Protocol``) and the qualified
+    ``class Foo(typing.Protocol):`` form.  Mirrors the AST shape of
+    ``_base_is_abc`` so the two exclusions stay symmetric.
+    """
+    if isinstance(base, ast.Name) and base.id == "Protocol":
+        return True
+    if (
+        isinstance(base, ast.Attribute)
+        and base.attr == "Protocol"
+        and isinstance(base.value, ast.Name)
+        and base.value.id == "typing"
     ):
         return True
     return False

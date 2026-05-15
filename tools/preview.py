@@ -66,11 +66,10 @@ from pathlib import Path
 import cadquery as cq
 
 REPO_ROOT  = Path(__file__).resolve().parent.parent
-MODELS_DIR = REPO_ROOT / "models"
 
-# tools/model_loader.py owns sys.path management for both REPO_ROOT and
-# MODELS_DIR — see its module docstring for the contract.  Add REPO_ROOT here
-# so the ``from tools.model_loader import …`` line below resolves.
+# tools/model_loader.py owns sys.path management — see its module docstring
+# for the contract.  Add REPO_ROOT here so the
+# ``from tools.model_loader import …`` line below resolves.
 sys.path.insert(0, str(REPO_ROOT))
 from tools.model_loader import instantiate, parse_params  # noqa: E402
 

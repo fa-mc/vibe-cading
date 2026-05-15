@@ -1,14 +1,16 @@
 # ── Build configuration ───────────────────────────────────────────────────────
 # Each [[build]] entry generates one STEP file under output/.
-# "model"  : dotted import path to the class (relative to models/)
+# "model"  : full dotted import path to the class (e.g. vibe_cading.<sub>.<Class>
+#            for library content, or parts.<vehicle>.<file>.<Class> for
+#            project-specific end-products).
 # "output" : path under output/ for the generated STEP file
 # "params" : keyword arguments passed to the class __init__
 # ─────────────────────────────────────────────────────────────────────────────
 
-# ── Technic ball bearing axle sleeves ─────────────────────────────────────────
+# ── Technic axle → bearing sleeve adapters (Lego↔non-Lego bridge) ─────────────
 
 [[build]]
-model  = "technic_ball_bearing.axle_sleeve.AxleSleeve"
+model  = "vibe_cading.lego_adapters.technic_axle_to_bearing_sleeve.TechnicAxleToBearingSleeve"
 output = "technic_ball_bearing/axle_sleeve_5mm_id.step"
 [build.params]
 bearing_id       = 5.0
@@ -17,7 +19,7 @@ flange_od        = 7.0
 flange_thickness = 0.8
 
 [[build]]
-model  = "technic_ball_bearing.axle_sleeve.AxleSleeve"
+model  = "vibe_cading.lego_adapters.technic_axle_to_bearing_sleeve.TechnicAxleToBearingSleeve"
 output = "technic_ball_bearing/axle_sleeve_8mm_id.step"
 [build.params]
 bearing_id       = 8.0
@@ -28,20 +30,20 @@ flange_thickness = 1.0
 # ── RC hex tire hubs ──────────────────────────────────────────────────────────
 
 [[build]]
-model  = "rc.hex_wheel_hub.HexWheelHub"
+model  = "vibe_cading.rc.freespin_hex_hub.FreespinHexHub"
 output = "rc/hex_wheel_hub_12mm.step"
 [build.params]
 hex_across_flats = 12.0
 height           = 16.0
 bearing_od       = 8.0
 bearing_width    = 2.5
-bore_dia         = 6.0
+bore_diameter    = 6.0
 hex_chamfer      = 0.5
 
-# ── Arrma Vorteks 223S ────────────────────────────────────────────────────────
+# ── Arrma Vorteks 223S (project-specific end-products) ────────────────────────
 
 [[build]]
-model  = "rc.vorteks_223s.esc_mount.EscMount"
+model  = "parts.arrma_vorteks_223s.esc_mount.EscMount"
 output = "rc/vorteks_223s/esc_mount.step"
 [build.params]
 # all defaults — explicit here for reference
@@ -49,77 +51,76 @@ length           = 57.0
 width            = 38.0
 height           = 4.0
 
-# ── XLego slipper gear assemblies (20T, 24T, 28T) ─────────────────────────────
-
-
 [[build]]
-model  = "xlego.slipper_gear.directional.steep.SlipperGearSteep"
-output = "xlego/slipper_gear/slipper_gear_20t_assembly.step"
-[build.params]
-teeth          = 20
-
-# ── XLego Servo Saver (Generic SG90 and Spektrum A370) ───────────────────────
-
-[[build]]
-model  = "xlego.servos.shaft_crown.ShaftCrown"
-output = "xlego/servos/shaft_crown_sg90.step"
-[build.params]
-servo_profile = "SG90"
-
-[[build]]
-model  = "xlego.servos.shaft_crown.ShaftCrown"
-output = "xlego/servos/shaft_crown_spmsa370.step"
-[build.params]
-servo_profile = "SPMSA370"
-
-[[build]]
-model  = "xlego.servos.shaft_body.ShaftBody"
-output = "xlego/servos/shaft_body.step"
-[build.params]
-# Uses generic default params
-
-[[build]]
-model  = "xlego.servos.shaft.Shaft"
-output = "xlego/servos/shaft.step"
-[build.params]
-# Uses generic default params
-
-
-
-
-[[build]]
-model  = "xlego.servos.sg90.servo_mount_half.ServoCase"
-output = "xlego/servos/sg90/servo_mount_half.step"
-[build.params]
-# Uses generic default params
-
-[[build]]
-model  = "xlego.servos.sg90.servo_mount.ServoMountAssembly"
-output = "xlego/servos/sg90/servo_mount_assembly.step"
-
-# ── XLego Special Adapters ───────────────────────────────────────────────────
-
-[[build]]
-model  = "xlego.axle_to_pin_bore_adapter.AxleToPinBoreAdapter"
-output = "xlego/axle_to_pin_bore_adapter.step"
-[build.params]
-# No params required
-
-# ── XLego Motor Mount Plates ──────────────────────────────────────────────────
-
-[[build]]
-model  = "xlego.motors.mount_plate.MotorMountPlate"
+model  = "parts.arrma_vorteks_223s.motor_mount_plate.MotorMountPlate"
 output = "xlego/motors/mount_plate_370.step"
 [build.params]
 gearbox_screw_size     = "M2.5"
 motor_screw_size       = "M3"
 motor_hole_dist        = 17.0
-motor_boss_clearance_d = 9.0
+motor_boss_clearance_diameter = 9.0
 material               = "PETG"
+
+# ── Slipper gear assemblies (R&D — sourced from experiments/) ─────────────────
+# Slipper gear designs are R&D experiments retained in repo for personal
+# iteration.  Not part of the OSS library surface; see
+# `.agents/plans/2026-05-13-pre-oss-models-structure_design.md` Round 3 §"Slipper
+# gear disposition" for rationale.
+
+[[build]]
+model  = "experiments.slipper_gear.directional.steep.SlipperGearSteep"
+output = "xlego/slipper_gear/slipper_gear_20t_assembly.step"
+[build.params]
+teeth          = 20
+
+# ── SG90 servo replacement-shaft + saver assembly (Lego adapter) ──────────────
+
+[[build]]
+model  = "vibe_cading.lego_adapters.servos.shaft_crown.ShaftCrown"
+output = "xlego/servos/shaft_crown_sg90.step"
+[build.params]
+servo_profile = "SG90"
+
+[[build]]
+model  = "vibe_cading.lego_adapters.servos.shaft_crown.ShaftCrown"
+output = "xlego/servos/shaft_crown_spmsa370.step"
+[build.params]
+servo_profile = "SPMSA370"
+
+[[build]]
+model  = "vibe_cading.lego_adapters.servos.shaft_body.ShaftBody"
+output = "xlego/servos/shaft_body.step"
+[build.params]
+# Uses generic default params
+
+[[build]]
+model  = "vibe_cading.lego_adapters.servos.shaft.Shaft"
+output = "xlego/servos/shaft.step"
+[build.params]
+# Uses generic default params
+
+
+[[build]]
+model  = "vibe_cading.lego_adapters.servos.sg90.servo_mount_half.ServoCase"
+output = "xlego/servos/sg90/servo_mount_half.step"
+[build.params]
+# Uses generic default params
+
+[[build]]
+model  = "vibe_cading.lego_adapters.servos.sg90.servo_mount.ServoMountAssembly"
+output = "xlego/servos/sg90/servo_mount_assembly.step"
+
+# ── Lego adapters — special-purpose primitives ───────────────────────────────
+
+[[build]]
+model  = "vibe_cading.lego_adapters.axle_to_pin_bore_adapter.AxleToPinBoreAdapter"
+output = "xlego/axle_to_pin_bore_adapter.step"
+[build.params]
+# No params required
 
 # ── Mechanical Utilities ──────────────────────────────────────────────────────
 [[build]]
-model  = "mechanical.hinge.PrintInPlaceHinge"
+model  = "vibe_cading.mechanical.hinge.PrintInPlaceHinge"
 output = "mechanical/hinge_print_in_place.step"
 [build.params]
 leaf_a_length = 20.0
