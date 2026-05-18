@@ -146,6 +146,36 @@ When initializing the project or workspace, you must:
 2. Copy `machine_profiles.json.example` to `machine_profiles_user.json` so the user can configure their specific 3D printer tolerances.
 3. Run any host-platform-specific runtime scaffolder if your agent host requires one (e.g., for Claude Code: `tools/init-claude-runtime.sh` — see the host's own instruction file for details).
 
+### Visual Contract Deliverable (CAD tasks)
+
+A design artifact whose deliverable is a new CAD model class — or which changes existing **visible** geometry (axis convention, hole pattern, mating-face datum, dimensions affecting orientation) — **MUST** include a co-located preview SVG as a first-class design deliverable. Numeric dimensions remain primary; the SVG is the *visual contract* that complements them and exists specifically to catch axis-orientation, hole-pattern, and convention errors that are invisible in numeric specs alone.
+
+**Naming and location.** Co-locate the SVG with the design artifact:
+- `.agents/plans/<YYYY-MM-DD>-<task-slug>_design_iso_ne.svg` — mandatory primary view.
+- `.agents/plans/<YYYY-MM-DD>-<task-slug>_design_top.svg` — additional view for hole-pattern-bearing or asymmetric geometry (optional but encouraged).
+- `.agents/plans/<YYYY-MM-DD>-<task-slug>_design_front.svg` — additional view for asymmetric profiles (optional).
+
+These SVGs are **git-tracked** alongside the design artifact (orthographic SVGs are ~10–25 KB each; trivial storage, diffable, blame-able). Add no broad ignore for `.agents/plans/*.svg` — these are intentional deliverables.
+
+**Generation mechanism.** The designer subagent generates the SVG by either:
+- **(a) Class already exists** — run `python3 tools/preview.py <module.path.Class> --params <key=value>... --views iso_ne` and copy the resulting SVG from `tmp/preview/` to the design-artifact location.
+- **(b) Class does not exist yet** — write a `tmp/visualise_<task-slug>.py` probe that constructs the proposed geometry using `cadquery` primitives, exports an iso-projection SVG via `cq.exporters.export(workplane, str(svg_path))`, and copy to the design-artifact location. Clean up the probe after.
+
+**Embed in the design artifact.** Reference the SVG in the Architecture section immediately after the textual approach description:
+
+```markdown
+![Design preview — iso_ne](2026-MM-DD-task-slug_design_iso_ne.svg)
+```
+
+**Gate enforcement.**
+- **Step 4 (human design gate)** MUST NOT proceed without at least the `_iso_ne.svg` embedded in the artifact. The human reviewer sees the geometry, not just numeric specs.
+- **Step 5 Phase A (developer impl)** MUST regenerate the SVG from the implemented class via `tools/preview.py` and overwrite the committed file as a final implementation task.
+- **Step 5 Phase B (TL review)** MUST confirm the regenerated SVG visually matches the design's intent — gross geometry, axis convention, hole pattern. Minor differences from intermediate-construction artifacts are acceptable; axis/orientation/topology mismatches are blocking findings.
+
+**Scope carve-outs.** Optional for: refactors, internal API changes, additive-only changes that don't alter visual outcome, instruction / config / tooling tasks. If you're uncertain whether a task changes visible geometry, default to including the SVG — the overhead (~1000 tokens, ~3 min per cycle, ~15 KB) is small relative to the cost of an axis-convention error escaping to Phase D.
+
+**Why this rule exists.** The 2026-05-17 LegoTechnicBeam post-mortem (see `.agents/plans/2026-05-15-lego-technic-beam_design.md`) traced a hole-axis convention error through req → design → impl → four independent reviews to Phase D, where the user caught it visually in the OCP viewer. Every reviewer verified internal consistency; none verified that the convention matched what the contributor would actually see. An iso_ne preview embedded at Step 4 would have surfaced the error before any code was written.
+
 ## Multi-Part Assemblies
 
 When a reference (STL, STEP, drawing) contains **N physically distinct
