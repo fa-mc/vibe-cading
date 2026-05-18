@@ -17,6 +17,18 @@
 ### Approach chosen
 <!-- Describe the solution: modules, classes, data flow, interface contracts. -->
 
+### Visual contract (CAD tasks)
+<!-- REQUIRED for new CAD model classes and tasks changing visible geometry
+     (axis convention, hole pattern, mating-face datum, dimensions affecting
+     orientation). See vibe/INSTRUCTIONS.md → "Visual Contract Deliverable".
+     Embed the co-located iso_ne preview SVG immediately below.
+     Optional for refactors / internal API changes / non-CAD tasks. -->
+
+![Design preview — iso_ne](<YYYY-MM-DD>-<task-slug>_design_iso_ne.svg)
+
+<!-- Optional additional views for asymmetric or hole-pattern-bearing geometry:
+     ![top](<slug>_design_top.svg)  ![front](<slug>_design_front.svg) -->
+
 ### Alternatives rejected
 <!-- - Option X: rejected because ... -->
 
