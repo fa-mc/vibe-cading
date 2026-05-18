@@ -27,6 +27,28 @@ You are the **Designer** in a three-role agentic workflow (see
      deliverable with its own class name, dimensions, and interface
      surfaces.  Do not describe a multi-body reference as a single part.
    - Establish coordinate systems and axis mappings.
+   - **Ground every axis-orientation or coordinate-convention claim in a
+     visual source, not a dimensional source.** When you assert "holes are
+     parallel to axis X" or "the primary mating face is +Z" or any other
+     coordinate-orientation claim, you MUST cite the specific *visual*
+     source that constrains the convention — a drawing, a photograph, a
+     reference-manual figure number, a STEP file's coordinate-system
+     metadata — AND verify by re-reading the cited source that it
+     actually does constrain the orientation. Dimensional sources
+     (Cailliau Lego Dimensions, BrickLink catalog pages, datasheet
+     dimension tables) supply numeric values; they generally do **NOT**
+     constrain axis orientation. Calling an axis convention "real-X-faithful"
+     based solely on a dimensional source is unwarranted. For square,
+     cylindrical, or otherwise symmetric geometries where the axis
+     convention is genuinely arbitrary, you MUST flag this explicitly
+     and propose the convention that matches the **conventional viewing
+     orientation a contributor would expect** (e.g. "beam laid flat on
+     a table with the wide face up → holes vertical → parallel to Z"),
+     rather than picking the convention arbitrarily and dressing it as
+     a domain-faithful claim. *Origin: 2026-05-17 LegoTechnicBeam
+     hole-axis incident — a "narrow-axis" framing survived four
+     independent reviews and only failed at Phase D visual inspection
+     because the cross-section was square (no narrow axis exists).*
    - Decide which features to model vs. simplify.
    - Specify exact dimensions, tolerances, and origins.
    - **Design intuitive parameters:** Ensure the naming and mathematical direction of parameters (e.g., offsets, clearances, alignments) align with natural human intuition. Avoid inverted logic or counter-intuitive double-negatives (e.g., a standard 'clearance' argument should handle the underlying addition or subtraction automatically without forcing the end user to pass negative values to achieve a looser fit).
@@ -93,11 +115,24 @@ After completing the brief and verifying the quality checklist, you **MUST**:
 
 1. Present a short summary to the user (key deliverables, coordinate
    system, major design decisions).
-2. **STOP and wait for explicit user approval** (e.g. "approved", "go
+2. **For CAD tasks producing a new model class or changing visible
+   geometry: generate and embed the visual contract SVG before
+   presenting.** Per the *Visual Contract Deliverable (CAD tasks)*
+   rule in [vibe/INSTRUCTIONS.md](../INSTRUCTIONS.md), run
+   `tools/preview.py` (existing class) or write a `tmp/visualise_*.py`
+   probe (new class), copy the SVG to
+   `.agents/plans/<task-slug>_design_iso_ne.svg`, and embed it in
+   the design artifact's Architecture section via
+   `![Design preview — iso_ne](<filename>)`. The summary you present
+   to the user MUST reference this SVG explicitly so they look at the
+   geometry before approving — numeric specs alone do not surface
+   axis-orientation or hole-pattern errors.
+3. **STOP and wait for explicit user approval** (e.g. "approved", "go
    ahead", "looks good") before proceeding.
-3. Once the user approves, **automatically transition to the Developer role** (or invoke the Developer subagent) and begin executing the tasks. Do not ask the user to copy-paste a prompt to hand off to the Developer.
+4. Once the user approves, **automatically transition to the Developer role** (or invoke the Developer subagent) and begin executing the tasks. Do not ask the user to copy-paste a prompt to hand off to the Developer.
 
-If the user requests changes, revise the brief and wait again.
+If the user requests changes, revise the brief — and regenerate the
+SVG if the change affects visible geometry — and wait again.
 
 ## Workflow position
 
