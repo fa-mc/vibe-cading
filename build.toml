@@ -118,6 +118,14 @@ output = "xlego/axle_to_pin_bore_adapter.step"
 [build.params]
 # No params required
 
+# ── Lego Technic primitives (vibe_cading.lego.*) ──────────────────────────────
+
+[[build]]
+model  = "vibe_cading.lego.technic_beam.LegoTechnicBeam"
+output = "lego/technic_beam_5stud.step"
+[build.params]
+length_in_studs = 5
+
 # ── Mechanical Utilities ──────────────────────────────────────────────────────
 [[build]]
 model  = "vibe_cading.mechanical.hinge.PrintInPlaceHinge"
