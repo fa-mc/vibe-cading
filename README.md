@@ -24,6 +24,25 @@ agent personas and slash commands live under [vibe/agents/](vibe/agents/) and
 
 ---
 
+## Examples
+
+Four self-contained scripts under `examples/` demonstrate the library's
+canonical usage patterns. Each runs under a vanilla CadQuery install and
+writes STEP + SVG output to `examples/build/<name>/` (gitignored):
+
+| Example | What it shows |
+|---|---|
+| `examples/lego_technic_beam.py` | `LegoTechnicBeam(length_in_studs=5)` from `vibe_cading.lego.technic_beam` |
+| `examples/screw_cutter.py` | `MetricMachineScrew.to_cutter(profile=...)` boring a counterbore + clearance into a host block |
+| `examples/gear_from_iso.py` | `SpurGear.from_iso(module=1.0, teeth=20, face_width=5.0)` ISO-validated gear factory |
+| `examples/snap_fit_hook.py` | `CantileverSnapFit` male hook plus host block cut by `.to_cutter(...)` (two STEP files) |
+
+Run one with:
+
+    python3 examples/lego_technic_beam.py
+
+---
+
 ## Dev Setup
 
 This project runs in a **VS Code Dev Container** — no manual installation required.

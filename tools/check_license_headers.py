@@ -1,9 +1,14 @@
 #!/usr/bin/env python3
-"""License-header gate for ``vibe_cading/`` and ``tools/``.
+"""License-header gate for ``vibe_cading/``, ``tools/``, and ``examples/``.
 
 Per ``CLAUDE.md`` § "Licensing & Open Source", every new Python file
 in ``vibe_cading/`` or ``tools/`` must carry the AGPLv3 header at the
 top of the file.  Empty ``__init__.py`` files are exempt.
+
+``examples/*.py`` is also walked — the release teaching surface ships
+under AGPLv3 alongside the library it demonstrates (non-recursive: the
+four example scripts sit directly under ``examples/``; subpackages are
+not part of the v1 surface).
 
 ``parts/`` is intentionally NOT walked — project-specific end-products
 under ``parts/`` are not the OSS library distribution surface.
@@ -21,7 +26,7 @@ HEADER_SNIPPET = "vibe-cading is free software: you can redistribute it and/or m
 
 def check_headers():
     missing = []
-    for pattern in ("vibe_cading/**/*.py", "tools/**/*.py"):
+    for pattern in ("vibe_cading/**/*.py", "tools/**/*.py", "examples/*.py"):
         for file_path in glob.glob(pattern, recursive=True):
             if file_path.endswith("__init__.py"):
                 with open(file_path, "r", encoding="utf-8") as f:

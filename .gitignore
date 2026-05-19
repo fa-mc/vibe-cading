@@ -4,6 +4,9 @@ output/
 # Throwaway scratch files
 tmp/
 
+# Example-script output (run python3 examples/<name>.py to regenerate)
+examples/build/
+
 # Python
 **/__pycache__/
 *.pyc
