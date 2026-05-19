@@ -125,19 +125,69 @@ that needs free rotation (e.g. suspension arms, steering linkages).
 
 ## Technic Lift Arms (Beams)
 
-Lift arms (also called beams) are flat with round ends. They lie flat and have
-holes on the 8 mm stud grid.
+Lift arms (also called beams) have round ends and holes on the 8 mm stud
+grid. Thick liftarms have a **square cross-section** (7.8 × 7.8 mm); the
+beam is as deep (along its short transverse axis) as it is tall.
 
 | Property                   | Value    | Notes                                        |
 |----------------------------|----------|----------------------------------------------|
-| Beam thickness             | 7.2 mm   | Height of the beam (tall axis)               |
-| Beam width                 | 4.0 mm   | Narrow axis (depth when lying flat)          |
+| Beam thickness             | 7.8 mm   | Height of the beam (Cailliau measured 7.4–7.8 mm; theoretical nominal 8.0 mm less ~0.2 mm relief) |
+| Beam width                 | 7.8 mm   | Short transverse axis; thick liftarms are square in cross-section (7.8 × 7.8 mm) per Cailliau |
 | Hole diameter              | 4.8 mm   | Technic pin/axle hole                        |
+| Pin-hole counterbore Ø     | 6.0 mm   | Recessed ring around each pin hole (real-liftarm-faithful per Cailliau) |
+| Pin-hole counterbore depth | 0.8 mm   | Axial depth of the counterbore (real-liftarm-faithful per Cailliau)     |
 | Hole center spacing        | 8.0 mm   | Stud pitch                                   |
-| End radius                 | 4.0 mm   | Rounded ends = half of beam thickness        |
+| End radius                 | 3.9 mm   | Rounded ends = half of beam width (7.8 / 2); per Cailliau |
 | 1M beam total length       | 8.0 mm   | One-hole beam (measured center-to-edge × 2)  |
 | nM beam total length       | (n-1)×8 + 8 mm | e.g. 5M = 40 mm, 9M = 72 mm          |
 | Printed hole clearance     | +0.1 mm  | Use 4.9 mm holes for a snug printed fit      |
+
+Numeric values above (beam thickness, beam width, end radius, counterbore
+diameter, counterbore depth) are sourced from
+[Cailliau — Lego Dimensions](https://www.cailliau.org/Alphabetical/L/Lego/Dimensions/More%20Dimensions/BBEditPreviewTemp.html),
+the primary external authority on measured real-liftarm geometry. The audit
+that produced these values was scoped to **thick liftarms only**; thin
+liftarms (if discussed elsewhere) use a different cross-section.
+
+**Counterbore — code defaults vs. real-liftarm values.** Cailliau gives a
+real-liftarm counterbore tolerance range of **6.0–6.2 mm diameter** and
+**0.8–1.0 mm depth**. This document records the real-liftarm-faithful values
+(6.0 × 0.8 mm) as the reference. The project's code defaults in
+[`TechnicPinHole.standard()`](../vibe_cading/lego/cutters/technic_pin_hole.py)
+(see lines 22–24) use **6.2 × 1.0 mm**, the **loose / FDM-friendly edge**
+of the Cailliau range. The code defaults are intentional, not a doc/code
+drift: FDM-printed parts benefit from the looser counterbore so a real
+LEGO pin's collar seats reliably despite layer-line variation.
+
+**Hole-axis convention.** Liftarm pin holes pass perpendicular to beam
+length. In this project's convention:
+
+- **Beam length runs along X** (extent = N × 8 mm for an N-stud beam).
+- For **thick (square 7.8 × 7.8) liftarms** (this v1's scope), pin holes
+  pass **parallel to Z** — i.e. **vertically, when the beam is laid flat
+  on a table**, entering and exiting through the **top face (Z =
+  BEAM_THICKNESS) and the bottom face (Z = 0)**. Both faces are pierced;
+  both carry the symmetric counterbore from `TechnicPinHole.standard()`.
+- For **thin liftarms** (separate part class, **not modelled in v1**),
+  holes pass through the narrow transverse dimension — also
+  conventionally aligned with **Z when laid flat**, so the same
+  "holes-parallel-to-Z when flat" rule applies.
+
+A reader designing an adapter that bolts a pin into a liftarm hole should
+expect to insert the pin along **Z** (vertically into a beam lying flat),
+not along Y or X.
+
+> *Audit note (2026-05-17).* An earlier 2026-05-16 edit of this paragraph
+> claimed pin holes were "parallel to Y" on the grounds that they pass
+> through the beam's "short transverse axis". For thin liftarms this is
+> well-defined (narrow ≠ wide). For **thick** liftarms with a square
+> 7.8 × 7.8 cross-section the two transverse axes (Y and Z) are
+> geometrically equivalent, and the "narrow axis" framing does not pin
+> a direction. The dual-axis equivalence held the prior misclaim for a
+> day; user Phase-D feedback against the OCP CAD viewer demo caught it
+> — a real Lego liftarm laid flat on a table has its wide face up and
+> its holes vertical. This paragraph now follows the
+> orientation-when-laid-flat convention.
 
 ### Lift Arm Length Formula
 
@@ -188,8 +238,9 @@ Common bent beam angles are **90°** and **53.13°** (3–4–5 triangle geometr
 - All hole centers should align to multiples of **8.0 mm** on the XY grid.
 - Use `.polygon(4, axle_tip_to_tip).cutBlind(depth)` for cross-axle holes,
   rotated 45° — or model the actual + cross profile for accuracy.
-- Beam ends are typically modelled as a semicircle of radius `beam_thickness / 2`
-  centred on the outermost hole.
+- Beam ends are typically modelled as a semicircle of radius `beam_width / 2`
+  (≈ 3.9 mm for thick liftarms) centred on the outermost hole — thick liftarms
+  have a square cross-section, so half-thickness and half-width coincide.
 - When modelling friction pin holes, use **4.7 mm** diameter; for frictionless
   use **4.9 mm**. Adjust by ±0.1 mm per printer calibration.
 - When exporting STEP files for Lego-compatible parts, **do not scale** — CadQuery

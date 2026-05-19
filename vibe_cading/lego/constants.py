@@ -42,6 +42,33 @@ PIN_HOLE_PRINTED: float = float(os.getenv("PIN_HOLE_PRINTED", "4.85"))  # Recomm
 HOLE_SPACING: float = 8.0         # Centre-to-centre hole spacing (mm)
 EDGE_TO_CENTRE: float = 4.0       # Distance from part edge to hole centre (mm)
 
+# ── Technic Lift Arm (Beam) ──────────────────────────────────────────────────
+# NOTE: BEAM_END_RADIUS (3.9 mm) and EDGE_TO_CENTRE (4.0 mm) are deliberately
+# offset by 0.1 mm — they describe *different* geometric quantities:
+#   * EDGE_TO_CENTRE = 4.0 = STUD_PITCH/2 is the stud-grid quantization of the
+#     first/last hole centre from the body edge; nominal Lego liftarm length
+#     formula L = n × 8 mm and hole-pitch = 8 mm both hold exactly under this.
+#   * BEAM_END_RADIUS = 3.9 = BEAM_WIDTH/2 is the physical radius of the
+#     hemicircular end-cap, sourced from Cailliau's measured cross-section
+#     (7.8 × 7.8 thick-liftarm).  Centring an r=3.9 end-cap on the first hole
+#     (X=4) would put the body's outermost X at 0.1, contradicting the
+#     n × 8 mm total-length convention (FR11 bb claim).
+# Resolution (option iii per PM brief): place the end-cap *centres* at
+# X = BEAM_END_RADIUS = 3.9 (not on the hole at X = 4.0), preserving FR11's
+# body bb X ∈ [0, length_mm] and the 8 mm stud-grid pitch — at the cost of a
+# 0.1 mm offset between hole centre and end-cap centre on the outermost
+# holes.  Real-liftarm Cailliau geometry has the end-cap centred on the hole
+# (which would shrink total length by 0.2 mm); the project trades that 0.2 mm
+# real-liftarm fidelity for length_mm = n × 8 mm conformance to the
+# n-stud naming convention.  See docs/lego-technic.md lines 219–221 (which
+# state "end-cap centred on outermost hole") for the contrasting view; the
+# 1M-beam doc entry "total length = 8.0 mm" is internally inconsistent with
+# centring r=3.9 on the hole (which would yield 7.8 mm).  This project picks
+# the 8.0 mm total length and lives with the 0.1 mm offset.
+BEAM_THICKNESS: float = 7.8       # Beam height along Z (mm) — Cailliau 7.4–7.8; project picks 7.8 (theoretical 8.0 less ~0.2 relief)
+BEAM_WIDTH: float = 7.8           # Beam width along Y (mm) — square cross-section per Cailliau (7.8 × 7.8)
+BEAM_END_RADIUS: float = 3.9      # Hemicircular end-cap radius (mm) — = BEAM_WIDTH / 2; end-cap *centres* sit at X = BEAM_END_RADIUS, NOT on the outermost hole (see block-header NOTE for the EDGE_TO_CENTRE 0.1 mm offset rationale)
+
 # ── Technic Axle (cross profile) ─────────────────────────────────────────────
 AXLE_TIP_TO_TIP: float = 4.78    # Based on reference drawing
 AXLE_ARM_WIDTH: float = 1.79     # Based on reference drawing
