@@ -40,7 +40,7 @@ If you are adding a complex new model:
 
 *(Note: `.agents/` is gitignored and used locally to stage AI artefacts (design briefs in `.agents/plans/`). The canonical agent personas and slash-command definitions live under `vibe/agents/` and `vibe/commands/` (tracked, tool-neutral); Claude Code picks them up via per-clone runtime aliases under `.claude/` populated by `tools/init-claude-runtime.sh`. See `docs/agentic-workflow.md` for deep details on this protocol).*
 
-> Maintainer-style roles (Admin, TL, PM) are not shipped with this repository. Maintainers who want them as slash commands should install the [core-agents](https://github.com/fa-mc/core-agents) Claude Code plugin per-host and either invoke its bare `/core-agents-admin`, `/core-agents-tl`, `/core-agents-pm` commands or drop personal wrappers into `~/.claude/`. Open-source contributors act as the Admin manually.
+> Maintainer-style roles (Admin, TL, PM) are not shipped with this repository — the human contributor fills them. As an open-source contributor you act as the Admin yourself; the `designer` and `developer` subagents are the complete contributor toolkit and need no additional install. Maintainers who prefer dedicated Admin / TL / PM agents can load their own personas from `~/.claude/`.
 
 ---
 
