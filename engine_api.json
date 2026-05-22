@@ -139,10 +139,112 @@
       "result_accessor": ".solid"
     },
     {
+      "module": "vibe_cading.lego.axle_cross_hole_gauge",
+      "name": "AxleCrossHoleGauge",
+      "fqn": "vibe_cading.lego.axle_cross_hole_gauge.AxleCrossHoleGauge",
+      "doc": "Printable gauge isolating the arm-slot width of the ``+`` cross\nTechnic axle-hole fit.\n\nEach hole is a ``+`` cross cutter at a fixed (profile-derived)\ntip-to-tip, with the arm-slot width swept across the row and a\n**dog-bone relief** at each of the four inner concave corners so the\nconcave corner cannot confound the fit \u2014 the user finds the modelled\narm width that accepts and keys a real Lego axle cleanly.\n\nWhy this gauge exists\n---------------------\nStage 1 (``AxleHoleGauge``) calibrated *tip-to-tip* using round\nholes.  A round hole has no arms, so the ``+`` cross slot \u2014 the flat\narm walls and the four concave corners \u2014 was never physically\ntested.  The cross fit has two unknowns: the flat slot-wall (arm)\nwidth, and the concave corner where FDM \"corner blowout\"\nover-deposits.  Measuring both at once repeats the failed-sweep\nmistake.  This gauge therefore **isolates the arm-slot width**: it\nsweeps arm width while the concave corners are held generously open\nby a dog-bone relief, so the corners cannot be the binding\nconstraint.  The concave-corner treatment itself is Stage 2b\n(data-gated; see the design brief).\n\nDog-bone corner relief\n----------------------\nEach ``+`` hole carries a circular relief pocket at each of its four\ninner concave corners, *replacing* the ``concave_radius`` fillet of\n:class:`~vibe_cading.lego.cutters.technic_axle_hole.TechnicAxleHole`.\nThe pocket centre sits on the corner's 45-degree bisector, offset\noutward by ``corner_relief / sqrt(2)`` per axis so the pocket circle\npasses exactly through the geometric corner point.  Passing through\nthe corner point **undercuts** the corner \u2014 hole material is removed\n*behind* the corner point \u2014 so the axle's rounded corner can never\nregister against hole material there.  The corner is fully relieved\nas a contact for *any* positive ``corner_relief``; a larger radius\nonly removes more (functionally wasted) material and eats more flat\nslot wall.  ``corner_relief`` is therefore sized to fully clear the\ncorner while leaving a defined flat slot wall along each arm \u2014 the\nsurface that actually *measures* arm width \u2014 across the whole sweep\n(see the ``corner_relief`` parameter note).\n\nOrigin (0, 0, 0): the block is plan-centred \u2014 its XY centroid sits at\nthe origin \u2014 and its bottom face lies on the Z=0 print bed; the block\nextrudes up into +Z.  Hole axes are parallel to Z.\n\nCalibration procedure\n---------------------\n1. Print the gauge flat, holes vertical (axis parallel to build-Z),\n   on the same printer / material / slicer settings as the Stage-1\n   gauge and your real parts (XY hole compensation = 0).\n2. Insert a real Lego Technic axle into each ``+`` hole from the\n   labelled (top) face.\n3. The good hole accepts the axle **without force** AND keys it with\n   **minimal rotational slop** \u2014 note its arm-width label\n   ``W_good``.  Judge by both the axial slide *and* the rotational\n   keying: a ``+`` hole that slides but spins freely is too wide.\n4. Report ``W_good``.  The flat-wall arm requirement is then::\n\n       arm_wall_excess = W_good - (AXLE_HOLE_ARM_WIDTH\n                                   + 2 * profile.slip.radial)\n\n   ``arm_wall_excess ~ 0`` means the profile radial already serves\n   the flat-wall arm fit; ``> 0`` means the flat walls need\n   clearance the shared profile radial does not give.  The concave\n   corner is relieved away on this gauge \u2014 it is assessed separately\n   in Stage 2b.  See ``docs/lego-technic.md`` > Tuning Tolerances.\n\nParameters\n----------\narm_widths:\n    Swept arm-slot widths (mm), one ``+`` cross through-hole per\n    entry.  The default range 1.85-2.35 in 0.10 mm increments\n    brackets the 2.03 mm prediction (``AXLE_HOLE_ARM_WIDTH`` 1.83 +\n    2 * the user's calibrated ``slip.radial``).  A shifted or finer\n    pass is just a different tuple.\nprofile:\n    Manufacturing tolerance profile.  Supplies the fixed tip-to-tip\n    via ``slip.radial``; defaults to the active global profile.\ncorner_relief:\n    Dog-bone relief radius (mm) at each of the four inner concave\n    corners.  The pocket passes through the corner point, eating\n    ``corner_relief * sqrt(2)`` of flat slot wall along each arm.\n    The default 0.35 mm fully relieves the corner while leaving a\n    defined flat slot wall (~0.48 mm) even on the *widest* swept\n    hole (arm 2.35), whose flat wall \u2014 the corner-to-tip-arc run \u2014\n    is the shortest in the sweep at ~0.97 mm.  Larger values relieve\n    no more (the corner is already a full undercut once the pocket\n    reaches the corner point) but consume more wall; raise it only\n    for a narrower sweep whose widest hole still leaves enough wall.\n    The design brief's nominal of 0.8 mm is geometrically infeasible\n    here \u2014 at 0.8 the pocket would eat ~1.13 mm, more than the entire\n    ~0.97 mm flat wall of the widest hole \u2014 see the brief's\n    Implementation Status / Developer note.\ndepth:\n    Block thickness = hole depth (mm).  Default 8.0 = one stud unit.\nhole_pitch:\n    Cell width per hole along X (mm) \u2014 centre-to-centre hole\n    spacing.\nengrave_depth:\n    Depth of the arm-width label engraving on the top face (mm).",
+      "constructors": [
+        {
+          "kind": "init",
+          "name": "__init__",
+          "doc": null,
+          "params": [
+            {
+              "name": "arm_widths",
+              "type": "Sequence[float]",
+              "required": false,
+              "default": "(1.85, 1.95, 2.05, 2.15, 2.25, 2.35)",
+              "units": null
+            },
+            {
+              "name": "profile",
+              "type": "ToleranceProfile | None",
+              "required": false,
+              "default": "None",
+              "units": null
+            },
+            {
+              "name": "corner_relief",
+              "type": "float",
+              "required": false,
+              "default": "0.35",
+              "units": null
+            },
+            {
+              "name": "depth",
+              "type": "float",
+              "required": false,
+              "default": "8.0",
+              "units": "mm"
+            },
+            {
+              "name": "hole_pitch",
+              "type": "float",
+              "required": false,
+              "default": "9.0",
+              "units": "mm"
+            },
+            {
+              "name": "engrave_depth",
+              "type": "float",
+              "required": false,
+              "default": "0.6",
+              "units": "mm"
+            }
+          ]
+        }
+      ],
+      "result_accessor": ".solid"
+    },
+    {
+      "module": "vibe_cading.lego.axle_hole_gauge",
+      "name": "AxleHoleGauge",
+      "fqn": "vibe_cading.lego.axle_hole_gauge.AxleHoleGauge",
+      "doc": "Printable round-hole gauge for calibrating the effective Technic\naxle-hole tip-to-tip diameter on a specific FDM printer / material.\n\nA Lego Technic cross axle contacts a *round* hole only at its four\ncurved arm tips \u2014 each tip is an arc of radius ``tip_to_tip / 2``, so\nthe axle's outer envelope is a circle of diameter ``tip_to_tip``.  A\nround hole has no concave corners, so FDM \"corner blowout\" cannot\nconfound the measurement: the smallest round hole that accepts the\naxle measures the effective tip-to-tip directly.  This gauge sweeps a\nrow of round through-holes so the user can read that diameter off a\nsingle printed part.\n\nOrigin (0, 0, 0): the block is plan-centred \u2014 its XY centroid sits at\nthe origin \u2014 and its bottom face lies on the Z=0 print bed; the block\nextrudes up into +Z.  Hole axes are parallel to Z.\n\nCalibration procedure\n---------------------\n1. Print the gauge flat, holes vertical (axis parallel to build-Z),\n   on the target printer + material, with the same slicer settings\n   used for real parts.\n2. Insert a real Lego Technic axle into each hole from the labelled\n   (top) face.\n3. The smallest hole the axle enters with a firm-but-free slip \u2014 no\n   slop, no force \u2014 gives the effective fitting modelled diameter\n   ``D``.  Judge by *axial slide feel*, not rotational wobble: a round\n   hole contacts the axle at four tips only, so some rotational wobble\n   is inherent and expected, not a defect.\n4. The gauge yields a *profile* clearance, not a constant override.\n   The axle-hole nominal (``AXLE_HOLE_TIP_TO_TIP = 4.80``) is fixed\n   real-Lego geometry; printer clearance lives in the active\n   ``ToleranceProfile``.  Convert the fitting diameter with::\n\n       slip.radial = (D - 4.80) / 2\n\n   and write it into the untracked ``machine_profiles_user.json``\n   (dict-merges over ``machine_profiles.json``), e.g. for ``D = 5.00``::\n\n       {\"fdm_standard\": {\"slip\": {\"radial\": 0.10, \"axial\": 0.20}}}\n\n   See ``docs/lego-technic.md`` > Tuning Tolerances for the full\n   procedure.\n\nParameters\n----------\ndiameters:\n    Swept hole diameters (mm), one straight cylindrical through-hole\n    per entry.  The default range 4.70-5.00 in 0.05 mm increments\n    brackets the 4.80 mm real-Lego axle-hole nominal with margin for\n    FDM hole-shrink.\ndepth:\n    Block thickness = hole depth (mm).  Default 8.0 = one stud unit.\nhole_pitch:\n    Cell width per hole along X (mm) \u2014 centre-to-centre hole spacing.\nengrave_depth:\n    Depth of the diameter label engraving on the top face (mm).",
+      "constructors": [
+        {
+          "kind": "init",
+          "name": "__init__",
+          "doc": null,
+          "params": [
+            {
+              "name": "diameters",
+              "type": "Sequence[float]",
+              "required": false,
+              "default": "(4.7, 4.75, 4.8, 4.85, 4.9, 4.95, 5.0)",
+              "units": null
+            },
+            {
+              "name": "depth",
+              "type": "float",
+              "required": false,
+              "default": "8.0",
+              "units": "mm"
+            },
+            {
+              "name": "hole_pitch",
+              "type": "float",
+              "required": false,
+              "default": "9.0",
+              "units": "mm"
+            },
+            {
+              "name": "engrave_depth",
+              "type": "float",
+              "required": false,
+              "default": "0.6",
+              "units": "mm"
+            }
+          ]
+        }
+      ],
+      "result_accessor": ".solid"
+    },
+    {
       "module": "vibe_cading.lego.cutters.technic_axle_hole",
       "name": "TechnicAxleHole",
       "fqn": "vibe_cading.lego.cutters.technic_axle_hole.TechnicAxleHole",
-      "doc": "Lego Technic cross axle hole profile.\n\nBuilds a + cross solid sized to the Technic axle *hole* dimensions.\nUse the :pymeth:`to_cutter` method as a boolean cutter::\n\n    from vibe_cading.lego.cutters.technic_axle_hole import TechnicAxleHole\n\n    hole = TechnicAxleHole(depth=my_thickness, fit=\"slip\")\n    part = part.cut(hole.to_cutter())\n\nThe legacy ``.solid`` accessor remains as an alias for backwards\ncompatibility and is read-only.\n\nThrough-vs-blind: this cutter is built flush \u2014 entry at Z=0 and\nterminal exactly at Z=depth.  Consumers that need a through-hole\ntypically construct the cutter with ``depth`` already equal to the\nhost body's full thickness, so no class-level overcut is required.\n\nParameters\n----------\ndepth:\n    Axial depth of the hole (mm).\nfit:\n    Tolerance fit type: \"press\", \"slip\", or \"free\".\nprofile:\n    Manufacturing tolerance profile. Defaults to global profile.\nconvex_radius:\n    Fillet radius on the 8 outer convex junction edges \u2014 where the\n    curved arm tip meets the flat arm side (mm).  Set to 0 to skip.\nconcave_radius:\n    Fillet radius on the 4 inner concave corners \u2014 the valleys between\n    perpendicular arms (mm).  Set to 0 to skip.",
+      "doc": "Lego Technic cross axle hole profile.\n\nBuilds a + cross solid sized to the Technic axle *hole* dimensions.\n\nThe base cross dimensions come from the ``AXLE_HOLE_TIP_TO_TIP`` /\n``AXLE_HOLE_ARM_WIDTH`` constants, which are **fixed real-world Lego\nnominals** \u2014 the geometric envelope of the cross axle hole, with no\nprinter clearance baked in.  Printer / material clearance is supplied\nby the active :class:`~vibe_cading.print_settings.ToleranceProfile`:\n\n* ``TIP_TO_TIP`` (the round envelope) is sized\n  ``nominal + 2 * grade.radial``, matching the ``Bearing`` /\n  ``magnets`` / clearance-hole pattern used throughout the library.\n* ``ARM_WIDTH`` (the narrow ``+`` cross slot) is sized\n  ``nominal + 2 * grade.radial + 2 * grade.slot``.  The extra\n  ``2 * grade.slot`` term widens *only* the arm slot: a narrow ``+``\n  slot prints tighter on FDM than the round envelope of the same\n  nominal, so it carries its own clearance.  See\n  :class:`~vibe_cading.print_settings.FitGrade` for ``slot``.\n\nTo tune a printed fit, calibrate the profile\n(``slip.radial`` for the round envelope, ``slip.slot`` for the arm\nslot, in ``machine_profiles_user.json``) \u2014 not the constants.  The\nshipped ``fdm_standard`` already carries a conservative\n``slip.slot = 0.10``, so most users calibrate only ``slip.radial``.\n\nUse the :pymeth:`to_cutter` method as a boolean cutter::\n\n    from vibe_cading.lego.cutters.technic_axle_hole import TechnicAxleHole\n\n    hole = TechnicAxleHole(depth=my_thickness, fit=\"slip\")\n    part = part.cut(hole.to_cutter())\n\nThe legacy ``.solid`` accessor remains as an alias for backwards\ncompatibility and is read-only.\n\nThrough-vs-blind: this cutter is built flush \u2014 entry at Z=0 and\nterminal exactly at Z=depth.  Consumers that need a through-hole\ntypically construct the cutter with ``depth`` already equal to the\nhost body's full thickness, so no class-level overcut is required.\n\nParameters\n----------\ndepth:\n    Axial depth of the hole (mm).\nfit:\n    Tolerance fit type: \"press\", \"slip\", or \"free\".\nprofile:\n    Manufacturing tolerance profile. Defaults to global profile.\nconvex_radius:\n    Fillet radius on the 8 outer convex junction edges \u2014 where the\n    curved arm tip meets the flat arm side (mm).  Set to 0 to skip.\nconcave_radius:\n    Fillet radius on the 4 inner concave corners \u2014 the valleys between\n    perpendicular arms (mm).  Set to 0 to skip.",
       "constructors": [
         {
           "kind": "init",
@@ -297,6 +399,28 @@
               "required": false,
               "default": "DEFAULT_CORNER_RADIUS",
               "units": "mm"
+            }
+          ]
+        }
+      ],
+      "result_accessor": ".solid"
+    },
+    {
+      "module": "vibe_cading.lego.technic_beam",
+      "name": "LegoTechnicBeam",
+      "fqn": "vibe_cading.lego.technic_beam.LegoTechnicBeam",
+      "doc": "First-party Lego Technic studless lift-arm (thick) beam primitive.\n\nBuilds a stud-grid-aligned beam body with through pin holes, a 0.3 mm \u00d7 45\u00b0\nlead-in chamfer at every hole entry, and the symmetric two-end counterbore\ninherited from :pyclass:`TechnicPinHole`.\n\nOrigin convention\n-----------------\nThe beam's bounding box is ``X \u2208 [0, length_mm] \u00d7 Y \u2208 [-BEAM_WIDTH/2, +BEAM_WIDTH/2] \u00d7\nZ \u2208 [0, BEAM_THICKNESS]``.  The bottom face sits at ``Z = 0`` (FDM print-bed\nconvention).  ``X = 0`` is the outermost tangent of the first end-cap, **NOT**\nthe first hole centre.\n\nSubtle geometry note \u2014 0.1 mm offset between hole centres and end-cap centres:\n    The first hole centre sits at ``X = STUD_PITCH / 2 = 4.0 mm``.\n    The first end-cap centre sits at ``X = BEAM_END_RADIUS = 3.9 mm``.\n    These are **deliberately offset by 0.1 mm**.  The convention preserves both\n    the Lego naming convention (``length_mm = n \u00d7 8 mm``) and the Cailliau-measured\n    end-cap radius (3.9 mm = ``BEAM_WIDTH / 2``).  Real-world Lego liftarms have\n    the end-cap centred on the outermost hole (which would shrink total length to\n    ``n \u00d7 8 - 0.2 mm``); this project trades 0.2 mm of fidelity for ``n \u00d7 8 mm``\n    conformance.  See the NOTE block above the constants in\n    ``vibe_cading/lego/constants.py`` for the full rationale.  Users placing pins\n    or mating parts should reference hole centres at ``X = STUD_PITCH * i +\n    STUD_PITCH / 2``, NOT at the end-cap centres.\n\nParameters\n----------\nlength_in_studs:\n    Length of the beam in stud units (e.g. ``5`` \u2192 40 mm).  Must be \u2265 1.",
+      "constructors": [
+        {
+          "kind": "init",
+          "name": "__init__",
+          "doc": null,
+          "params": [
+            {
+              "name": "length_in_studs",
+              "type": "int",
+              "required": true,
+              "units": null
             }
           ]
         }
@@ -3166,7 +3290,7 @@
       "module": "vibe_cading.print_settings",
       "name": "FitGrade",
       "fqn": "vibe_cading.print_settings.FitGrade",
-      "doc": "One radial/axial allowance pair for a single fit grade.\n\n``radial`` is half-extra-material on diameter (mm); positive widens\na hole, negative shrinks a peg.  ``axial`` is the along-axis\nallowance (mm); positive deepens a counterbore floor or pocket.",
+      "doc": "The three orthogonal manufacturing allowances for a single fit grade.\n\nAll three are independent \u2014 a feature applies whichever ones its\ngeometry calls for:\n\n* ``radial`` \u2014 half-extra-material on diameter (mm), applied to **all**\n  features; positive widens a hole, negative shrinks a peg.\n* ``axial`` \u2014 the along-axis allowance (mm); positive deepens a\n  counterbore floor or pocket.\n* ``slot`` \u2014 an *additional* half-extra-material (mm) applied **only**\n  to narrow-slot widths, **on top of** ``radial``.  It exists because a\n  narrow ``+`` cross slot prints tighter on FDM than the round envelope\n  of the same nominal \u2014 the two need physically distinct clearances.\n  Defaults to ``0.0`` (no narrow-slot widening); only narrow-slot\n  consumers such as :class:`TechnicAxleHole` read it.",
       "constructors": [
         {
           "kind": "init",
@@ -3181,6 +3305,13 @@
             },
             {
               "name": "axial",
+              "type": "float",
+              "required": false,
+              "default": "0.0",
+              "units": null
+            },
+            {
+              "name": "slot",
               "type": "float",
               "required": false,
               "default": "0.0",
