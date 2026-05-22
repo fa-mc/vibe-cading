@@ -1,8 +1,8 @@
 {
     "fdm_standard": {
-        "free":  {"radial": 0.15, "axial": 0.20},
-        "slip":  {"radial": 0.05, "axial": 0.20},
-        "press": {"radial": 0.04, "axial": 0.20}
+        "free":  {"radial": 0.15, "axial": 0.20, "slot": 0.00},
+        "slip":  {"radial": 0.05, "axial": 0.20, "slot": 0.10},
+        "press": {"radial": 0.04, "axial": 0.20, "slot": 0.00}
     },
     "resin_precise": {
         "free":  {"radial": 0.05, "axial": 0.05},

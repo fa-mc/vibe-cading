@@ -14,10 +14,11 @@
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
 import cadquery as cq
+from vibe_cading.cq_utils import axle_cross_section
 from vibe_cading.print_settings import ToleranceProfile, get_profile
 from vibe_cading.lego.constants import (
-    AXLE_TIP_TO_TIP,
-    AXLE_ARM_WIDTH,
+    AXLE_HOLE_TIP_TO_TIP,
+    AXLE_HOLE_ARM_WIDTH,
 )
 
 
@@ -25,6 +26,29 @@ class TechnicAxleHole:
     """Lego Technic cross axle hole profile.
 
     Builds a + cross solid sized to the Technic axle *hole* dimensions.
+
+    The base cross dimensions come from the ``AXLE_HOLE_TIP_TO_TIP`` /
+    ``AXLE_HOLE_ARM_WIDTH`` constants, which are **fixed real-world Lego
+    nominals** — the geometric envelope of the cross axle hole, with no
+    printer clearance baked in.  Printer / material clearance is supplied
+    by the active :class:`~vibe_cading.print_settings.ToleranceProfile`:
+
+    * ``TIP_TO_TIP`` (the round envelope) is sized
+      ``nominal + 2 * grade.radial``, matching the ``Bearing`` /
+      ``magnets`` / clearance-hole pattern used throughout the library.
+    * ``ARM_WIDTH`` (the narrow ``+`` cross slot) is sized
+      ``nominal + 2 * grade.radial + 2 * grade.slot``.  The extra
+      ``2 * grade.slot`` term widens *only* the arm slot: a narrow ``+``
+      slot prints tighter on FDM than the round envelope of the same
+      nominal, so it carries its own clearance.  See
+      :class:`~vibe_cading.print_settings.FitGrade` for ``slot``.
+
+    To tune a printed fit, calibrate the profile
+    (``slip.radial`` for the round envelope, ``slip.slot`` for the arm
+    slot, in ``machine_profiles_user.json``) — not the constants.  The
+    shipped ``fdm_standard`` already carries a conservative
+    ``slip.slot = 0.10``, so most users calibrate only ``slip.radial``.
+
     Use the :pymeth:`to_cutter` method as a boolean cutter::
 
         from vibe_cading.lego.cutters.technic_axle_hole import TechnicAxleHole
@@ -79,14 +103,21 @@ class TechnicAxleHole:
         profile = profile or get_profile()
         # Pick the radial allowance off the requested fit grade.
         # ``fit`` is one of "free" / "slip" / "press" → maps directly to
-        # the matching FitGrade on the new nested ``ToleranceProfile``.
+        # the matching FitGrade on the nested ``ToleranceProfile``.
         grade = getattr(profile, fit)
-        clearance = grade.radial
 
-        # The profile tolerance is a radial clearance, so diametrical/width
-        # features expand by 2 * clearance.
-        self.TIP_TO_TIP = AXLE_TIP_TO_TIP + (2 * clearance)
-        self.ARM_WIDTH = AXLE_ARM_WIDTH + (2 * clearance)
+        # AXLE_HOLE_* are fixed real-Lego nominals (no clearance baked in),
+        # so the fit grade is applied as a plain absolute clearance —
+        # matching the Bearing / magnets / clearance-hole pattern.
+        # ``grade.radial`` is half-extra-material on diameter, so the
+        # diametrical/width features each widen by 2 * grade.radial.
+        self.TIP_TO_TIP = AXLE_HOLE_TIP_TO_TIP + (2 * grade.radial)
+        # The narrow + cross slot also takes the narrow-slot allowance
+        # ``grade.slot`` (additional half-width) on top of ``radial``: a
+        # narrow slot prints ~2*slot tighter on FDM than the round
+        # envelope. ``slot`` defaults to 0.0 (legacy-flat profiles, resin,
+        # cnc) → arm reduces to nominal + 2*radial in that case.
+        self.ARM_WIDTH = AXLE_HOLE_ARM_WIDTH + (2 * grade.radial) + (2 * grade.slot)
 
         self._solid = self._build()
 
@@ -96,26 +127,9 @@ class TechnicAxleHole:
         arm = self.ARM_WIDTH
         half_arm = arm / 2
 
-        # Cylinder constrains the outer boundary → curved arm tips
-        cylinder = (
-            cq.Workplane("XY")
-            .circle(tip / 2)
-            .extrude(self.depth)
-        )
-
-        # Two rectangular prisms form the + cross mask → flat sides
-        arm_h = (
-            cq.Workplane("XY")
-            .rect(tip, arm)
-            .extrude(self.depth)
-        )
-        arm_v = (
-            cq.Workplane("XY")
-            .rect(arm, tip)
-            .extrude(self.depth)
-        )
-
-        cross = cylinder.intersect(arm_h.union(arm_v))
+        # Curved-tip + cross: cylinder ∩ cross mask.  Shared construction —
+        # see vibe_cading.cq_utils.axle_cross_section.
+        cross = axle_cross_section(tip, arm, self.depth)
 
         # Fillet the 4 inner concave corners first (larger radius).
         # These sit at (±half_arm, ±half_arm) in XY — select via a tight
