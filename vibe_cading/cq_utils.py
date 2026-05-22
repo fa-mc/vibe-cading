@@ -22,9 +22,12 @@ constants.
 
 Post Round 6.1 single-caller audit (see
 ``.agents/plans/2026-05-13-pre-oss-models-structure_design.md``) this module
-intentionally exposes only three generic primitives: :func:`rounded_box`,
-:func:`cylinder`, and :func:`cut_at_positions`.  Helpers that served exactly
-one caller have moved closer to their consumer:
+intentionally exposes a small set of generic primitives: :func:`rounded_box`,
+:func:`cylinder`, :func:`cut_at_positions`, and :func:`axle_cross_section`.
+:func:`axle_cross_section` was promoted here once a third caller materialised
+(``TechnicAxle``, ``TechnicAxleHole`` and ``AxleCrossHoleGauge`` all build the
+identical cylinder∩cross construction — a clear DRY trigger).  Helpers that
+served exactly one caller have moved closer to their consumer:
 
 * ``countersunk_hole`` removed — superseded by
   :class:`vibe_cading.mechanical.holes.CounterboreHole` with
@@ -106,6 +109,60 @@ def cylinder(
         .circle(radius)
         .extrude(height)
     )
+
+
+# ── Lego Technic cross profile ────────────────────────────────────────────────
+
+def axle_cross_section(
+    tip_to_tip: float,
+    arm_width: float,
+    length: float,
+) -> cq.Workplane:
+    """Extruded ``+`` cross solid with curved arm tips — the Lego Technic
+    axle / axle-hole envelope.
+
+    The cross is the intersection of a bounding cylinder (radius
+    ``tip_to_tip / 2``) with the union of two perpendicular rectangular
+    prisms (``tip_to_tip × arm_width`` and ``arm_width × tip_to_tip``).
+    The cylinder constrains the four arm tips to arcs of radius
+    ``tip_to_tip / 2``; the rectangles give the flat arm sides.  No
+    corner fillets and no lead-in chamfers are applied — callers layer
+    those on top (e.g. :class:`TechnicAxle`'s concave fillet and end
+    chamfers, :class:`TechnicAxleHole`'s convex/concave fillets, or the
+    cross-hole gauge's dog-bone corner relief).
+
+    The solid is plan-centred (XY centroid at the origin) and extrudes
+    upward from Z = 0 to Z = ``length``.
+
+    Parameters
+    ----------
+    tip_to_tip:
+        Tip-to-tip diameter of the cross (mm) — the bounding-cylinder
+        diameter and the long dimension of each arm rectangle.
+    arm_width:
+        Flat slot-wall width of each arm (mm) — the short dimension of
+        each arm rectangle.
+    length:
+        Axial extrusion length along +Z (mm).
+    """
+    # Cylinder constrains the outer boundary → curved arm tips.
+    cylinder = (
+        cq.Workplane("XY")
+        .circle(tip_to_tip / 2)
+        .extrude(length)
+    )
+    # Two rectangular prisms form the + cross mask → flat arm sides.
+    arm_h = (
+        cq.Workplane("XY")
+        .rect(tip_to_tip, arm_width)
+        .extrude(length)
+    )
+    arm_v = (
+        cq.Workplane("XY")
+        .rect(arm_width, tip_to_tip)
+        .extrude(length)
+    )
+    return cylinder.intersect(arm_h.union(arm_v))
 
 
 # ── Grid cut helper ───────────────────────────────────────────────────────────

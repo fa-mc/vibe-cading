@@ -18,15 +18,20 @@
 The public surface is the two dataclasses ``FitGrade`` and
 ``ToleranceProfile``, plus the ``get_profile()`` resolver.  A profile
 carries three fit grades — ``free``, ``slip``, ``press`` — each of which
-is a ``FitGrade(radial, axial)`` pair.
+is a ``FitGrade(radial, axial, slot)`` triple.
 
 * ``radial`` is the half-extra material added (or removed, when
   negative) on diameter — i.e. add ``radial`` mm to a hole radius for a
   through-hole clearance, or subtract ``radial`` mm for a press-fit
-  shaft.
+  shaft.  Applies to all features.
 * ``axial`` is the extra material added along the cut axis (typical Z
   direction) — i.e. extend a counterbore floor by ``axial`` mm so the
   fastener head clears its recess.
+* ``slot`` is an *additional* half-extra-material applied **only** to
+  narrow-slot widths, on top of ``radial`` — a narrow ``+`` cross slot
+  prints tighter on FDM than the round envelope, so it needs its own
+  allowance.  Defaults to ``0.0``; read only by narrow-slot consumers
+  such as ``TechnicAxleHole``.
 
 The split is FDM-aware: print-direction asymmetry means radial and
 axial tolerances can diverge — large axial clearance for layer-line
@@ -48,10 +53,13 @@ Both JSON files use a nested schema::
     {
       "fdm_standard": {
         "free":  {"radial": 0.15, "axial": 0.20},
-        "slip":  {"radial": 0.05, "axial": 0.20},
+        "slip":  {"radial": 0.05, "axial": 0.20, "slot": 0.10},
         "press": {"radial": -0.04, "axial": 0.20}
       }
     }
+
+The optional per-grade ``"slot"`` key carries the narrow-slot
+allowance; an omitted key loads as ``0.0``.
 
 For backwards compatibility, the loader also accepts the legacy flat
 schema (``z_clearance`` / ``press_fit`` / ``slip_fit`` / ``free_fit``)
@@ -59,6 +67,10 @@ and migrates it in-memory by mapping ``z_clearance`` onto every grade's
 ``.axial`` value.  This bridge is provided so a stale local
 ``machine_profiles_user.json`` continues to load; the tracked
 ``machine_profiles.json`` is migrated to the nested schema in Phase 3.
+The legacy flat schema has no narrow-slot concept, so a migrated
+profile gets ``slot = 0.0`` on every grade — pre-Stage-2b narrow-slot
+behaviour, which intentionally diverges from the shipped nested
+``fdm_standard`` (``slip.slot = 0.10``).
 """
 
 import json
@@ -82,14 +94,25 @@ def get_default_profile_name() -> str:
 
 @dataclass
 class FitGrade:
-    """One radial/axial allowance pair for a single fit grade.
+    """The three orthogonal manufacturing allowances for a single fit grade.
 
-    ``radial`` is half-extra-material on diameter (mm); positive widens
-    a hole, negative shrinks a peg.  ``axial`` is the along-axis
-    allowance (mm); positive deepens a counterbore floor or pocket.
+    All three are independent — a feature applies whichever ones its
+    geometry calls for:
+
+    * ``radial`` — half-extra-material on diameter (mm), applied to **all**
+      features; positive widens a hole, negative shrinks a peg.
+    * ``axial`` — the along-axis allowance (mm); positive deepens a
+      counterbore floor or pocket.
+    * ``slot`` — an *additional* half-extra-material (mm) applied **only**
+      to narrow-slot widths, **on top of** ``radial``.  It exists because a
+      narrow ``+`` cross slot prints tighter on FDM than the round envelope
+      of the same nominal — the two need physically distinct clearances.
+      Defaults to ``0.0`` (no narrow-slot widening); only narrow-slot
+      consumers such as :class:`TechnicAxleHole` read it.
     """
     radial: float
     axial: float = 0.0
+    slot: float = 0.0   # extra half-width for narrow-slot FDM tightening
 
 
 @dataclass
@@ -148,13 +171,27 @@ def _migrate_flat_to_nested(entry: dict) -> dict:
     }
 
 
-def _fitgrade_from_dict(data: dict, *, default_radial: float, default_axial: float = 0.0) -> FitGrade:
-    """Build a ``FitGrade`` from a dict, falling back to defaults per field."""
+def _fitgrade_from_dict(
+    data: dict,
+    *,
+    default_radial: float,
+    default_axial: float = 0.0,
+    default_slot: float = 0.0,
+) -> FitGrade:
+    """Build a ``FitGrade`` from a dict, falling back to defaults per field.
+
+    ``default_slot`` stays ``0.0`` — an omitted ``slot`` key always loads
+    as ``0.0``.  The shipped non-zero ``slot`` (0.10 on ``fdm_standard``)
+    lives in the JSON *data*, not this dataclass-load default, so a
+    legacy-flat profile (which never carries a ``slot`` key) migrates to
+    ``slot = 0.0`` and keeps pre-Stage-2b narrow-slot behaviour.
+    """
     if not isinstance(data, dict):
-        return FitGrade(radial=default_radial, axial=default_axial)
+        return FitGrade(radial=default_radial, axial=default_axial, slot=default_slot)
     return FitGrade(
         radial=float(data.get("radial", default_radial)),
         axial=float(data.get("axial", default_axial)),
+        slot=float(data.get("slot", default_slot)),
     )
 
 
@@ -162,9 +199,15 @@ def _profile_from_nested(name: str, data: dict) -> ToleranceProfile:
     """Build a ``ToleranceProfile`` from a nested-schema dict."""
     return ToleranceProfile(
         name=name,
-        free=_fitgrade_from_dict(data.get("free", {}), default_radial=0.15, default_axial=0.20),
-        slip=_fitgrade_from_dict(data.get("slip", {}), default_radial=0.05, default_axial=0.0),
-        press=_fitgrade_from_dict(data.get("press", {}), default_radial=0.04, default_axial=0.0),
+        free=_fitgrade_from_dict(
+            data.get("free", {}), default_radial=0.15, default_axial=0.20, default_slot=0.0,
+        ),
+        slip=_fitgrade_from_dict(
+            data.get("slip", {}), default_radial=0.05, default_axial=0.0, default_slot=0.0,
+        ),
+        press=_fitgrade_from_dict(
+            data.get("press", {}), default_radial=0.04, default_axial=0.0, default_slot=0.0,
+        ),
     )
 
 
@@ -223,7 +266,9 @@ def _load_json_profiles() -> dict:
 _FALLBACK_PROFILES: dict[str, dict] = {
     "fdm_standard": {
         "free":  {"radial": 0.15, "axial": 0.20},
-        "slip":  {"radial": 0.05, "axial": 0.20},
+        # ``slip.slot`` mirrors the shipped machine_profiles.json — the
+        # conservative narrow-slot floor for FDM cross axle holes.
+        "slip":  {"radial": 0.05, "axial": 0.20, "slot": 0.10},
         "press": {"radial": 0.04, "axial": 0.20},
     },
     "resin_precise": {

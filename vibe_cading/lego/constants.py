@@ -75,6 +75,22 @@ AXLE_ARM_WIDTH: float = 1.79     # Based on reference drawing
 AXLE_ARM_PROTRUSION: float = 1.50  # Arm protrusion past flat face (mm)
 AXLE_LENGTH_PER_STUD: float = 8.0  # Axle length per stud unit (mm)
 
+# ── Technic Axle Hole (cross profile, real-Lego nominal) ─────────────────────
+# Fixed real-world Lego nominal dimensions of the cross axle *hole* — distinct
+# from the AXLE_* values above, which describe the axle *solid*.  These are
+# plain constants (NOT env-overridable): they are the geometric nominal, not a
+# printer-tuned value.  Printer / material clearance is NOT baked in here —
+# TechnicAxleHole adds it from the active ToleranceProfile (nominal +
+# 2*grade.radial).  To tune a printed fit, calibrate your ToleranceProfile in
+# machine_profiles_user.json (slip.radial), NOT these constants — see
+# docs/lego-technic.md > Tuning Tolerances and AxleHoleGauge.
+#   * TIP_TO_TIP 4.80 — cross axle-hole bounding-cylinder envelope; equals the
+#     PIN_HOLE_DIAMETER Technic-beam hole envelope (docs/lego-technic.md).
+#   * ARM_WIDTH 1.83 — nominal cross-slot flat width (docs/lego-technic.md;
+#     best-sourced figure — stands until Stage-2 calibration data exists).
+AXLE_HOLE_TIP_TO_TIP: float = 4.80
+AXLE_HOLE_ARM_WIDTH:  float = 1.83
+
 # ── Shared geometry defaults ──────────────────────────────────────────────────
 DEFAULT_CORNER_RADIUS: float = float(os.getenv("DEFAULT_CORNER_RADIUS", "0.4")) # Inner concave corner fillet radius (mm) — TechnicAxle
 DEFAULT_LEAD_IN: float = float(os.getenv("DEFAULT_LEAD_IN", "0.3"))             # End-face chamfer for easy sliding (mm)
