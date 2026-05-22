@@ -30,8 +30,12 @@ Semantics (matches the previous inline parsers exactly):
 * One ``KEY=value`` per line.  Whitespace around ``KEY`` and ``value`` is
   stripped.  Lines beginning with ``#`` are treated as comments and skipped.
   Blank lines and lines without ``=`` are skipped.
-* No quoting / escaping / multi-line / variable-interpolation support.  This
-  is intentional — anything fancier should live in a real config system.
+* A pair of *matched* surrounding quotes (``"..."`` or ``'...'``) around the
+  value is stripped — standard ``.env`` behaviour, matching python-dotenv and
+  docker-compose.  ``KEY=""`` yields an empty string.  Mismatched or
+  unbalanced quotes (e.g. ``KEY="val'``) are left untouched.
+* No escaping / multi-line / variable-interpolation support.  This is
+  intentional — anything fancier should live in a real config system.
 
 This module exposes a single callable, :func:`load_env_file`, which both call
 sites invoke at import time.
@@ -74,4 +78,12 @@ def load_env_file(path: Path | str | None = None) -> None:
             if not line or line.startswith("#") or "=" not in line:
                 continue
             k, v = line.split("=", 1)
-            os.environ.setdefault(k.strip(), v.strip())
+            v = v.strip()
+            # Strip a pair of matched surrounding quotes ("..." or '...').
+            # Standard .env semantics: project .env / .env.example write
+            # quoted values (VIBE_MACHINE_PROFILE="bambu_p1s"), and the raw
+            # quote chars would otherwise leak into the env var — breaking
+            # profile-name lookups and float() casts on numeric constants.
+            if len(v) >= 2 and v[0] == v[-1] and v[0] in ("\"", "'"):
+                v = v[1:-1]
+            os.environ.setdefault(k.strip(), v)
