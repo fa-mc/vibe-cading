@@ -95,6 +95,10 @@ class AxleCrossHoleGauge:
        clearance the shared profile radial does not give.  The concave
        corner is relieved away on this gauge — it is assessed separately
        in Stage 2b.  See ``docs/lego-technic.md`` > Tuning Tolerances.
+    5. Write the calibrated value ``slip.slot = arm_wall_excess / 2``
+       onto the ``slip`` grade in ``machine_profiles_user.json``.  The
+       ``/ 2`` converts the total arm-width excess to a per-side slot
+       clearance, since ``ARM_WIDTH = nominal + 2 * radial + 2 * slot``.
 
     Parameters
     ----------
