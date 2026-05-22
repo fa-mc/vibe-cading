@@ -41,7 +41,7 @@ This project uses a structured workflow for complex tasks, divided into **Contri
 
 ## Invoking Roles
 
-Each contributor role's canonical persona is tracked under `vibe/agents/` (tool-neutral). For Claude Code specifically, `tools/init-claude-runtime.sh` regenerates per-clone runtime aliases at `.claude/agents/<name>.md` that delegate back to the canonical content; the `.claude/` tree itself is git-ignored. Note that `Admin` and `TL` are considered **Maintainer Roles** and are intentionally not shipped with this repository — open-source contributors drive those phases manually, while maintainers who want them as slash commands install the [core-agents](https://github.com/fa-mc/core-agents) Claude Code plugin per-host (Mode B / per-host stealth).
+Each contributor role's canonical persona is tracked under `vibe/agents/` (tool-neutral). For Claude Code specifically, `tools/init-claude-runtime.sh` regenerates per-clone runtime aliases at `.claude/agents/<name>.md` that delegate back to the canonical content; the `.claude/` tree itself is git-ignored. Note that `Admin` and `TL` are **Maintainer Roles** and are intentionally not shipped with this repository — open-source contributors drive those phases manually, while maintainers who prefer dedicated maintainer-role agents load their own personas from `~/.claude/` per-host.
 
 | Role | Canonical persona | How to invoke (Claude Code) |
 |---|---|---|
