@@ -20,10 +20,6 @@ Added 2026-05-14 per user direction. These are gates on the v1 OSS publication �
 
 - **Pip-installable distribution + PyPI publication.** Deferred 2026-05-14 by Admin diagnosis: Option C (pip-installable) was a single-adapter speculative seam — one hypothetical platform consumer doesn't justify HE Phase 1 effort + ongoing PyPI maintenance. The renamed `vibe_cading/` namespace is structurally pip-ready (a future PR adds `pyproject.toml` + `[tool.setuptools.packages.find].exclude` for `parts`/`experiments` + version metadata; ships to PyPI). **Trigger condition to revisit:** a second real consumer is committed (NOT hypothetical — the platform team or another downstream actively asking for `pip install vibe-cading`). Until then, distribution = `git clone`.
 
-## Admin follow-ups
-
-- **`vibe/INSTRUCTIONS.md` Deep-Modules Dual-Lens Rule — retire-or-retain decision (post-upstream-merge).** Upstream PR `fa-mc/core-agents#40` merged 2026-05-16 as `v1.14.0`; the contributor-extension contract carve-out is now part of the canonical `core-agents:structural-optimization` skill (carve-out #5). The project-local rule in [vibe/INSTRUCTIONS.md](vibe/INSTRUCTIONS.md) → Code Quality & Open-Source Standards → Deep-Modules Dual-Lens Rule is now redundant with upstream. Two valid resolutions: (a) **retire** the project-local block (delete it; downstream agents pick up the carve-out via `/plugin update core-agents` + the skill's own §"Common false positives" enumeration); (b) **retain** as a project-specific instance that points back to the upstream carve-out (one-line "see `core-agents:structural-optimization` carve-out #5; this project applies it specifically to its OSS-bound class hierarchy"). Owner: Admin (human contributor). Trigger to act: next instruction-maintenance pass, or any PR that touches `vibe/INSTRUCTIONS.md`. Defer until then — both resolutions are sound, and the project-local block is not actively misleading.
-
 ## Parked refactors — from 2026-05-09 TL deep-modules review (resolved 2026-05-15)
 
 The pre-OSS structural refactor (commits `efdc88a..a14f711`, landed 2026-05-15) subsumed or obsoleted every parked item:
