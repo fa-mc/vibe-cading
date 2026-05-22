@@ -139,6 +139,14 @@ Key constants are centralised in [`vibe_cading/lego/constants.py`](vibe_cading/l
 
 ---
 
+## Print Tolerances & Calibration
+
+Printed fits are printer- and material-dependent: the same model bores a tight hole on one machine and a loose one on another. Dimensional *nominals* in the library are fixed real-world geometry; the per-machine clearance is carried separately by a `ToleranceProfile`. The project ships profiles (`fdm_standard`, `resin_precise`, `cnc`) in `machine_profiles.json`; override them per-machine in the gitignored `machine_profiles_user.json` (dict-merges over the defaults) and select the active one with `VIBE_MACHINE_PROFILE`.
+
+To calibrate the Lego axle slip fit specifically, print the `AxleHoleGauge` model and follow the procedure in [docs/lego-technic.md](docs/lego-technic.md) > *Tuning Tolerances* — it converts the fitting hole diameter into a `slip.radial` value for your profile.
+
+---
+
 ## License
 
 [MIT](LICENSE)

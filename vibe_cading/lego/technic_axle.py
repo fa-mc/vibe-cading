@@ -15,6 +15,7 @@
 
 
 import cadquery as cq
+from vibe_cading.cq_utils import axle_cross_section
 from vibe_cading.lego.constants import (
     AXLE_TIP_TO_TIP,
     AXLE_ARM_WIDTH,
@@ -85,27 +86,9 @@ class TechnicAxle:
         """Build the + cross-section axle solid with lead-in chamfers on both ends."""
         length = self.length  # guaranteed non-None when _build is called
 
-        # Cylinder gives the rounded outer boundary (arm tips curve with radius = TIP_TO_TIP/2)
-        cylinder = (
-            cq.Workplane("XY")
-            .circle(self.tip_to_tip / 2)
-            .extrude(length)
-        )
-
-        # Two rectangular prisms form the + cross mask
-        arm_h = (
-            cq.Workplane("XY")
-            .rect(self.tip_to_tip, self.arm_width)
-            .extrude(length)
-        )
-        arm_v = (
-            cq.Workplane("XY")
-            .rect(self.arm_width, self.tip_to_tip)
-            .extrude(length)
-        )
-
-        # Intersect cylinder with cross mask → curved-tip + cross (like the real axle)
-        cross = cylinder.intersect(arm_h.union(arm_v))
+        # Curved-tip + cross (like the real axle): cylinder ∩ cross mask.
+        # Shared construction — see vibe_cading.cq_utils.axle_cross_section.
+        cross = axle_cross_section(self.tip_to_tip, self.arm_width, length)
 
         # Fillet the 4 inner concave corners (the only remaining vertical edges after intersect)
         if self.corner_radius > 0:
