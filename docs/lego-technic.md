@@ -249,9 +249,76 @@ Common bent beam angles are **90°** and **53.13°** (3–4–5 triangle geometr
 
 ## Tuning Tolerances
 
-Because different 3D printers and materials (FDM vs Resin) shrink differently, the default clearance provided in `vibe_cading/lego/constants.py` might result in holes that are too tight or too loose on your specific machine.
+Because different 3D printers and materials (FDM vs Resin) shrink differently,
+the default clearance might result in axle holes that are too tight or too
+loose on your specific machine.
 
-To solve this, this repository supports local overrides:
-1. Copy the `.env.example` file in the root directory to `.env`.
-2. Uncomment the `AXLE_HOLE_TIP_TO_TIP` and `AXLE_HOLE_ARM_WIDTH` variables.
-3. Adjust their values to perfectly dial in the friction fit for your process without having to track these local changes in git.
+The axle-hole *nominal* dimensions in `vibe_cading/lego/constants.py`
+(`AXLE_HOLE_TIP_TO_TIP = 4.80`, `AXLE_HOLE_ARM_WIDTH = 1.83`) are fixed
+real-Lego geometry — **do not edit them to fix a fit.** Printer clearance is
+applied separately, from your active `ToleranceProfile`: `TechnicAxleHole`
+sizes its cutter `nominal + 2 × slip.radial`. Calibrate the *profile*, not the
+constant:
+
+1. Print the `AxleHoleGauge` model (`vibe_cading/lego/axle_hole_gauge.py`): a
+   flat block of swept round through-holes, each engraved with its diameter.
+   Print it flat (hole axes vertical, parallel to build-Z) with the same
+   slicer settings used for real parts.
+2. Insert a real Lego Technic axle into each hole. The smallest hole the axle
+   slips into — judged by axial slide feel, not rotational wobble — gives the
+   effective fitting modelled diameter `D` for your printer and material.
+3. Convert that diameter to a profile clearance with:
+
+       slip.radial = (D − 4.80) / 2
+
+   (4.80 is `AXLE_HOLE_TIP_TO_TIP`; `radial` is half-extra-material on
+   diameter.)
+4. Write the result into the untracked `machine_profiles_user.json` (it
+   dict-merges over `machine_profiles.json`), e.g. for a fitting `D = 5.00`:
+
+       { "fdm_standard": { "slip": { "radial": 0.10, "axial": 0.20 } } }
+
+   These local overrides stay out of git, and every slip-fit consumer picks
+   them up automatically.
+
+### The `slot` allowance — narrow `+` cross slots
+
+`slip.radial` calibrates the **round** axle-hole envelope. The narrow `+`
+*cross* axle-hole slot (`TechnicAxleHole.ARM_WIDTH`) has a physically
+distinct clearance need: a narrow slot prints tighter on FDM than the round
+envelope of the same nominal. `FitGrade` therefore carries a third optional
+allowance, `slot`, applied **only** to the cross-arm slot width on top of
+`radial`:
+
+       ARM_WIDTH  = AXLE_HOLE_ARM_WIDTH + 2 × slip.radial + 2 × slip.slot
+       TIP_TO_TIP = AXLE_HOLE_TIP_TO_TIP + 2 × slip.radial           (unchanged)
+
+The shipped `fdm_standard` profile already ships a conservative
+`slip.slot = 0.10` — a geometric floor that puts the cross-arm slot in the
+tight half of the proven working band. The arm fit is **forgiving** (~0.20 mm
+acceptable band), so most users **leave `slot` at its shipped default and
+calibrate only `slip.radial`**. Override `slot` in `machine_profiles_user.json`
+only on an unusual printer whose narrow-slot tightening differs markedly.
+
+> **Legacy-flat divergence.** A `machine_profiles_user.json` still in the
+> legacy *flat* schema (`slip_fit` / `z_clearance` / …) has no `slot` concept.
+> It migrates to `slot = 0.0`, so its cross arms keep the pre-`slot` width
+> (`AXLE_HOLE_ARM_WIDTH + 2 × slip.radial`) — narrower than the shipped
+> nested `fdm_standard`. This is intentional (a stale config gets stable
+> legacy behaviour, not a silent geometry change), but if you maintain a
+> legacy-flat user file and want the cross-arm widening, migrate it to the
+> nested schema and add `"slot": 0.10` to the `slip` grade.
+
+### Concave-corner blowout — verified adequate
+
+The `+` cross hole's four inner concave corners are where FDM extrusion
+over-deposits ("corner blowout"), which can choke the slot. The
+`AxleCrossHoleGauge` calibration tool isolates the arm-slot width from this
+effect by relieving the corners with a **dog-bone** pocket; production
+`TechnicAxleHole` instead keeps a plain `concave_radius` fillet (default
+0.6 mm). A confirmation print (2026-05-22, `bambu_p1s` + PLA) of production
+cross holes at the calibrated `slot` found 2 of 3 holes fitting well and 1
+slightly tight, **none binding** — the 0.6 mm fillet is adequate once the
+arm slot is correctly widened. No dedicated corner-relief parameter is needed
+at the calibrated arm width; revisit only if a printer with more aggressive
+blowout shows the fillet binding a real axle.

@@ -64,6 +64,29 @@ def test_fitgrade_both_slots():
 
 
 # --------------------------------------------------------------------------
+# FitGrade.slot — narrow-slot allowance (Stage 2b §T1)
+# --------------------------------------------------------------------------
+
+def test_fitgrade_slot_defaults_zero():
+    """``slot`` is the optional third allowance — defaults to 0.0.
+
+    Stage 2b Test #1: a ``FitGrade`` built without ``slot`` reports
+    ``slot == 0.0`` (no narrow-slot widening), keeping every pre-Stage-2b
+    ``FitGrade(...)`` call site unaffected.
+    """
+    grade = FitGrade(radial=0.05, axial=0.20)
+    assert grade.slot == 0.0
+
+
+def test_fitgrade_slot_assignable():
+    """``slot`` is assignable explicitly alongside ``radial`` / ``axial``."""
+    grade = FitGrade(radial=0.05, axial=0.20, slot=0.10)
+    assert grade.radial == 0.05
+    assert grade.axial == 0.20
+    assert grade.slot == 0.10
+
+
+# --------------------------------------------------------------------------
 # ToleranceProfile — nested ``free`` / ``slip`` / ``press`` access (Phase 3 §2)
 # --------------------------------------------------------------------------
 
@@ -102,6 +125,42 @@ def test_profile_from_nested_dict():
     assert prof.free.axial == 0.20
     assert prof.slip.axial == 0.20
     assert prof.press.axial == 0.20
+
+
+def test_profile_from_nested_dict_omitting_slot_defaults_zero():
+    """A nested entry without a ``slot`` key loads ``slot == 0.0``.
+
+    Stage 2b Test #2: ``_fitgrade_from_dict`` defaults the optional
+    ``slot`` key to 0.0 — a pre-Stage-2b nested profile (no ``slot``
+    anywhere) keeps pre-Stage-2b narrow-slot behaviour.
+    """
+    prof = _profile_from_nested(
+        "no_slot",
+        {
+            "free": {"radial": 0.15, "axial": 0.20},
+            "slip": {"radial": 0.05, "axial": 0.20},
+            "press": {"radial": 0.04, "axial": 0.20},
+        },
+    )
+    assert prof.free.slot == 0.0
+    assert prof.slip.slot == 0.0
+    assert prof.press.slot == 0.0
+
+
+def test_profile_from_nested_dict_reads_slot():
+    """An explicit per-grade ``slot`` key is read into ``FitGrade.slot``."""
+    prof = _profile_from_nested(
+        "with_slot",
+        {
+            "free": {"radial": 0.15, "axial": 0.20},
+            "slip": {"radial": 0.05, "axial": 0.20, "slot": 0.10},
+            "press": {"radial": 0.04, "axial": 0.20},
+        },
+    )
+    assert prof.slip.slot == 0.10
+    # Grades omitting the key still default to 0.0.
+    assert prof.free.slot == 0.0
+    assert prof.press.slot == 0.0
 
 
 # --------------------------------------------------------------------------
@@ -190,6 +249,28 @@ def test_legacy_bridge_then_build_profile():
     assert prof.slip.axial == 0.20
     assert prof.press.radial == 0.04
     assert prof.press.axial == 0.20
+
+
+def test_legacy_flat_migration_yields_zero_slot():
+    """A legacy-flat profile migrates with ``slot == 0.0`` on every grade.
+
+    Stage 2b Test #3: the legacy flat schema has no narrow-slot concept,
+    so ``_migrate_flat_to_nested`` emits no ``slot`` key and the loader
+    defaults it to 0.0 — a stale legacy-flat ``machine_profiles_user.json``
+    keeps pre-Stage-2b narrow-slot behaviour, intentionally diverging from
+    the shipped nested ``fdm_standard`` (``slip.slot = 0.10``).
+    """
+    legacy = {
+        "z_clearance": 0.20,
+        "free_fit": 0.15,
+        "slip_fit": 0.11,
+        "press_fit": 0.04,
+    }
+    nested = _migrate_flat_to_nested(legacy)
+    prof = _profile_from_nested("legacy_bambu", nested)
+    assert prof.free.slot == 0.0
+    assert prof.slip.slot == 0.0
+    assert prof.press.slot == 0.0
 
 
 # --------------------------------------------------------------------------
