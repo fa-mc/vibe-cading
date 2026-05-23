@@ -46,6 +46,17 @@ We are expanding this repository into a broader Code-CAD mechanical toolkit. Her
     `AxleCrossHoleGauge` print-and-measure procedure, and where the calibrated
     `slip.radial` value lands. The current section predates the rename and the
     Stage-2 gauge and is framed machine-only.
+- [ ] Field-level profile merge in `_load_json_profiles` — change today's
+  grade-level merge (where a user override of one `slip` field requires
+  restating the whole grade dict) to **field-level**, so a
+  `machine_profiles_user.json` entry like `{"fdm_standard": {"slip":
+  {"radial": 0.11}}}` overrides only `radial` and inherits `axial` + `slot`
+  from the shipped profile. Direct serve to the "fewer knobs" preference (see
+  the `feedback-fewer-calibration-knobs` memory). Touches the shared profile
+  loader's semantics — interacts with the legacy-flat migration path, the
+  `_FALLBACK_PROFILES` fallback, and override layering — so it **needs a
+  proper design-flow review** (`@designer` + `@tl` architecture consult,
+  brief, then implementation) before any code change. (Raised 2026-05-23.)
 
 ## 🚀 Transition to "Open Core" Engine
 Based on the ***REMOVED***, this repository (`vibe-cading`) will act as the public core engine for the `***REMOVED***`. We need to prepare it for external consumption:
