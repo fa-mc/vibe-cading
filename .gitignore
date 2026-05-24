@@ -39,6 +39,7 @@ examples/build/
 !.claude/settings.json
 
 # Local machine tolerances
+print_profiles_user.json
 machine_profiles_user.json
 .env
 

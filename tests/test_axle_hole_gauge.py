@@ -87,7 +87,7 @@ def test_axle_hole_slip_cutter_dimensions() -> None:
     radial (0.05) = 4.90 mm.
 
     The ``fdm_standard`` profile is passed explicitly so the assertion is
-    independent of whatever ``VIBE_MACHINE_PROFILE`` the contributor's
+    independent of whatever ``VIBE_PRINT_PROFILE`` the contributor's
     ``.env`` resolves to — a bare ``TechnicAxleHole(depth=8.0)`` picks up
     the ambient default profile, which is not deterministic across hosts.
     """
@@ -180,8 +180,9 @@ def test_axle_hole_shipped_fdm_standard_arm() -> None:
 def test_axle_hole_legacy_flat_profile_arm() -> None:
     """A legacy-flat profile migrates with ``slot=0.0`` → arm 1.93 mm.
 
-    Stage 2b new test: a stale legacy-flat ``machine_profiles_user.json``
-    has no narrow-slot concept; it migrates to ``slip.slot = 0.0``, so the
+    Stage 2b new test: a stale legacy-flat ``print_profiles_user.json`` (or
+    the legacy-named ``machine_profiles_user.json``) has no narrow-slot
+    concept; it migrates to ``slip.slot = 0.0``, so the
     arm is ``1.83 + 2*0.05 = 1.93 mm`` — pre-Stage-2b behaviour. This pins
     the intentional legacy/nested divergence (nested ``fdm_standard``
     ships 2.13) against a silent regression.

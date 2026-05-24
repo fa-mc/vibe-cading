@@ -81,9 +81,10 @@ def load_env_file(path: Path | str | None = None) -> None:
             v = v.strip()
             # Strip a pair of matched surrounding quotes ("..." or '...').
             # Standard .env semantics: project .env / .env.example write
-            # quoted values (VIBE_MACHINE_PROFILE="bambu_p1s"), and the raw
-            # quote chars would otherwise leak into the env var — breaking
-            # profile-name lookups and float() casts on numeric constants.
+            # quoted values (VIBE_PRINT_PROFILE="bambu_p1s__pla_overture"),
+            # and the raw quote chars would otherwise leak into the env var
+            # — breaking profile-name lookups and float() casts on numeric
+            # constants.
             if len(v) >= 2 and v[0] == v[-1] and v[0] in ("\"", "'"):
                 v = v[1:-1]
             os.environ.setdefault(k.strip(), v)
