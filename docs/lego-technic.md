@@ -273,13 +273,15 @@ constant:
 
    (4.80 is `AXLE_HOLE_TIP_TO_TIP`; `radial` is half-extra-material on
    diameter.)
-4. Write the result into the untracked `machine_profiles_user.json` (it
-   dict-merges over `machine_profiles.json`), e.g. for a fitting `D = 5.00`:
+4. Write the result into the untracked `print_profiles_user.json` (it
+   field-level deep-merges over `print_profiles.json`), e.g. for a fitting
+   `D = 5.00`:
 
-       { "fdm_standard": { "slip": { "radial": 0.10, "axial": 0.20 } } }
+       { "fdm_standard": { "slip": { "radial": 0.10 } } }
 
-   These local overrides stay out of git, and every slip-fit consumer picks
-   them up automatically.
+   You only need to specify the single overridden leaf — `axial` and `slot`
+   inherit from the shipped grade. These local overrides stay out of git,
+   and every slip-fit consumer picks them up automatically.
 
 ### The `slot` allowance — narrow `+` cross slots
 
@@ -297,10 +299,10 @@ The shipped `fdm_standard` profile already ships a conservative
 `slip.slot = 0.10` — a geometric floor that puts the cross-arm slot in the
 tight half of the proven working band. The arm fit is **forgiving** (~0.20 mm
 acceptable band), so most users **leave `slot` at its shipped default and
-calibrate only `slip.radial`**. Override `slot` in `machine_profiles_user.json`
+calibrate only `slip.radial`**. Override `slot` in `print_profiles_user.json`
 only on an unusual printer whose narrow-slot tightening differs markedly.
 
-> **Legacy-flat divergence.** A `machine_profiles_user.json` still in the
+> **Legacy-flat divergence.** A `print_profiles_user.json` still in the
 > legacy *flat* schema (`slip_fit` / `z_clearance` / …) has no `slot` concept.
 > It migrates to `slot = 0.0`, so its cross arms keep the pre-`slot` width
 > (`AXLE_HOLE_ARM_WIDTH + 2 × slip.radial`) — narrower than the shipped

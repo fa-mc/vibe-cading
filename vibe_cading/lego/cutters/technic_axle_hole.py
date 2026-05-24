@@ -45,7 +45,7 @@ class TechnicAxleHole:
 
     To tune a printed fit, calibrate the profile
     (``slip.radial`` for the round envelope, ``slip.slot`` for the arm
-    slot, in ``machine_profiles_user.json``) — not the constants.  The
+    slot, in ``print_profiles_user.json``) — not the constants.  The
     shipped ``fdm_standard`` already carries a conservative
     ``slip.slot = 0.10``, so most users calibrate only ``slip.radial``.
 

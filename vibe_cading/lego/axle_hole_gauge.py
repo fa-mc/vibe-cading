@@ -59,10 +59,11 @@ class AxleHoleGauge:
 
            slip.radial = (D - 4.80) / 2
 
-       and write it into the untracked ``machine_profiles_user.json``
-       (dict-merges over ``machine_profiles.json``), e.g. for ``D = 5.00``::
+       and write it into the untracked ``print_profiles_user.json``
+       (field-level deep-merges over ``print_profiles.json``), e.g. for
+       ``D = 5.00``::
 
-           {"fdm_standard": {"slip": {"radial": 0.10, "axial": 0.20}}}
+           {"fdm_standard": {"slip": {"radial": 0.10}}}
 
        See ``docs/lego-technic.md`` > Tuning Tolerances for the full
        procedure.
