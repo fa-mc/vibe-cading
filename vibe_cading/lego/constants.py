@@ -82,7 +82,7 @@ AXLE_LENGTH_PER_STUD: float = 8.0  # Axle length per stud unit (mm)
 # printer-tuned value.  Printer / material clearance is NOT baked in here —
 # TechnicAxleHole adds it from the active ToleranceProfile (nominal +
 # 2*grade.radial).  To tune a printed fit, calibrate your ToleranceProfile in
-# machine_profiles_user.json (slip.radial), NOT these constants — see
+# print_profiles_user.json (slip.radial), NOT these constants — see
 # docs/lego-technic.md > Tuning Tolerances and AxleHoleGauge.
 #   * TIP_TO_TIP 4.80 — cross axle-hole bounding-cylinder envelope; equals the
 #     PIN_HOLE_DIAMETER Technic-beam hole envelope (docs/lego-technic.md).
