@@ -1,11 +1,11 @@
 ---
-description: Initialize the local workspace (tmp/, .agents/plans/, machine_profiles_user.json)
+description: Initialize the local workspace (tmp/, .agents/plans/, print_profiles_user.json)
 ---
 
 Perform the workspace initialization steps documented in `CLAUDE.md` under "Workspace Initialization":
 
 1. Ensure the git-ignored directories `tmp/` and `.agents/plans/` exist (create them if missing).
-2. If `machine_profiles_user.json` does not yet exist, copy `machine_profiles.json.example` to `machine_profiles_user.json` so the user can override printer-specific tolerances locally without a dirty git history.
+2. If `print_profiles_user.json` does not yet exist, copy `print_profiles.json.example` to `print_profiles_user.json` so the user can override printer-specific tolerances locally without a dirty git history.
 3. If `.env` does not yet exist, copy `.env.example` to `.env`.
 4. Seed the per-clone `.claude/` runtime aliases by running:
 

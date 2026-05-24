@@ -38,43 +38,95 @@ axial tolerances can diverge — large axial clearance for layer-line
 sag, small radial clearance for tight fits.  Resin / CNC profiles
 typically use small or zero axial values.
 
-Resolution order at runtime:
+Resolution order at runtime
+---------------------------
 
-1. ``machine_profiles.json``   — repository defaults (tracked).
-2. ``machine_profiles_user.json`` — user-local overrides (gitignored;
-   dict-merged on top of the defaults).
-3. ``VIBE_MACHINE_PROFILE`` env var picks which named profile resolves
+1. ``print_profiles.json``   — repository defaults (tracked).
+2. ``print_profiles_user.json`` — user-local overrides (gitignored;
+   recursively field-level deep-merged onto the defaults — see
+   *Field-level deep-merge* below).
+3. ``VIBE_PRINT_PROFILE`` env var picks which named profile resolves
    when ``get_profile()`` is called without an explicit name.
 4. Hardcoded fallback inside :func:`get_profile` if both JSON files are
    missing or fail to parse.
 
-Both JSON files use a nested schema::
+User key convention
+-------------------
 
-    {
-      "fdm_standard": {
-        "free":  {"radial": 0.15, "axial": 0.20},
-        "slip":  {"radial": 0.05, "axial": 0.20, "slot": 0.10},
-        "press": {"radial": -0.04, "axial": 0.20}
-      }
-    }
+User-defined profile keys are recommended (not enforced) to follow the
+``<machine>__<material>[__<brand>]`` lexical convention, using
+``__`` (double underscore) as the separator — shell-glob-safe and
+collision-free against hyphenated machine names.  Examples::
 
-The optional per-grade ``"slot"`` key carries the narrow-slot
-allowance; an omitted key loads as ``0.0``.
+    "bambu_p1s__pla_overture": { ... }
+    "ender3__petg_polymaker": { ... }
+    "prusa_mk4__pla":          { ... }
+
+The convention is purely documentary — the loader treats every
+top-level key as an opaque profile name and does not decompose it.
+The shipped fallback keys (``fdm_standard``, ``resin_precise``,
+``cnc``) remain the coarse-default categories and are exempt from the
+convention.
+
+Field-level deep-merge
+----------------------
+
+User overrides merge recursively onto the shipped defaults, leaf-wins.
+This means a user can override exactly one numeric field without
+restating the rest of a fit grade::
+
+    # print_profiles.json (shipped)
+    {"fdm_standard": {"slip": {"radial": 0.05, "axial": 0.20, "slot": 0.10}}}
+
+    # print_profiles_user.json (user override — calibrate one knob)
+    {"fdm_standard": {"slip": {"radial": 0.11}}}
+
+    # Resolved ToleranceProfile.slip:
+    #   radial = 0.11   ← user override
+    #   axial  = 0.20   ← inherited from shipped
+    #   slot   = 0.10   ← inherited from shipped
+
+A ``null`` (JSON null / Python ``None``) at any leaf override raises
+``ValueError`` — silent "reset to default" via ``null`` is too easy a
+foot-gun, and ``null`` is not a tolerance-domain-valid value.  A
+type-mismatch (e.g. user puts a primitive where the shipped profile
+has a dict) likewise raises ``ValueError`` with the JSON-pointer-style
+key path, preventing silent shape coercion downstream.
+
+Deprecation window
+------------------
+
+The legacy file names ``machine_profiles.json`` /
+``machine_profiles_user.json`` and the legacy env var
+``VIBE_MACHINE_PROFILE`` continue to be honoured for one deprecation
+window — first consumption per process emits a single
+``DeprecationWarning`` plus a mirrored stderr line so the message is
+visible under default CPython warning filters.  The legacy names will
+be removed at the OSS publication release.
+
+Legacy flat → nested schema
+---------------------------
 
 For backwards compatibility, the loader also accepts the legacy flat
 schema (``z_clearance`` / ``press_fit`` / ``slip_fit`` / ``free_fit``)
 and migrates it in-memory by mapping ``z_clearance`` onto every grade's
-``.axial`` value.  This bridge is provided so a stale local
-``machine_profiles_user.json`` continues to load; the tracked
-``machine_profiles.json`` is migrated to the nested schema in Phase 3.
-The legacy flat schema has no narrow-slot concept, so a migrated
-profile gets ``slot = 0.0`` on every grade — pre-Stage-2b narrow-slot
-behaviour, which intentionally diverges from the shipped nested
-``fdm_standard`` (``slip.slot = 0.10``).
+``.axial`` value.  Migration runs on each side (shipped + user)
+**independently before** the field-level deep merge — see
+:func:`_load_json_profiles`.  The legacy flat schema has no
+narrow-slot concept, so a migrated profile gets ``slot = 0.0`` on
+every grade — pre-Stage-2b narrow-slot behaviour, which intentionally
+diverges from the shipped nested ``fdm_standard`` (``slip.slot =
+0.10``).  A user file in *combined* shape (legacy-flat sibling keys
+alongside a nested ``free`` dict) is detected as nested by
+:func:`_is_legacy_flat_entry` and the flat-style siblings (``z_clearance``,
+``slip_fit``, …) are silently ignored — in practice a hand-edited user
+file does not produce this combination.
 """
 
 import json
 import os
+import sys
+import warnings
 from pathlib import Path
 from dataclasses import dataclass
 
@@ -84,12 +136,124 @@ from vibe_cading._env import load_env_file
 load_env_file()
 
 
+# --------------------------------------------------------------------------
+# Warning emitter (deprecation + general user-warning, once-per-process)
+# --------------------------------------------------------------------------
+
+# Module-level state — guards against repeat emissions across the many
+# get_profile() calls in a single process.  Each entry is a stable key
+# string identifying *what* was warned about (e.g.
+# "env_var_VIBE_MACHINE_PROFILE", "shipped_file_legacy_only",
+# "unknown_profile_foo"); the *first* call with a given key emits both a
+# stderr line and a ``warnings.warn`` of the requested category,
+# subsequent calls with the same key are no-ops.
+#
+# Renamed from ``_emitted_deprecations`` when the once-per-process
+# guard was generalised to cover the unknown-profile-name ``UserWarning``
+# in addition to the original ``DeprecationWarning`` cases — the guarding
+# mechanism is category-agnostic, only the message prefix and warning
+# category differ per call site.
+_emitted_warnings: set[str] = set()
+
+# Backwards-compatibility alias for any external test code that imported
+# the pre-refactor name.  The set object is the same — both names point
+# at the single source of truth above.
+_emitted_deprecations = _emitted_warnings
+
+
+def _emit_once(
+    key: str,
+    message: str,
+    *,
+    category: type[Warning] = DeprecationWarning,
+    prefix: str = "DEPRECATION",
+    stacklevel: int = 3,
+) -> None:
+    """Emit a warning of ``category`` exactly once per process per ``key``.
+
+    Mechanism: ``warnings.warn`` for programmatic filtering + a
+    one-shot stderr mirror so the user sees the warning even with
+    default CPython warning filters (which suppress
+    ``DeprecationWarning`` by default in many contexts, and may
+    suppress ``UserWarning`` depending on environment).
+
+    Belt-and-suspenders: the stderr mirror guarantees visibility; the
+    ``warnings.warn`` call lets test suites and tooling capture
+    programmatically.  Both are gated by the same idempotence set so
+    a noisy hot-path call (every ``get_profile()`` invocation) emits
+    at most one of each kind per (process, key).
+
+    ``stacklevel=N`` attributes the warning to the N-th frame up from
+    ``warnings.warn``; default ``3`` = caller-of-caller of
+    :func:`_emit_once` (i.e. the function that called the thin
+    wrapper, which called this).  Pass a higher value when the chain
+    has additional intermediate frames so tooling that filters
+    warnings by source location attributes the warning to the
+    user-visible public surface instead of an internal helper.
+    """
+    if key in _emitted_warnings:
+        return
+    _emitted_warnings.add(key)
+    print(f"{prefix}: {message}", file=sys.stderr)
+    warnings.warn(message, category, stacklevel=stacklevel)
+
+
+def _emit_deprecation_once(key: str, message: str, *, stacklevel: int = 3) -> None:
+    """Emit a deprecation warning exactly once per process per ``key``.
+
+    Thin wrapper around :func:`_emit_once` preserving the prior name and
+    signature; defaults to ``DeprecationWarning`` + ``"DEPRECATION"``
+    stderr prefix.  See :func:`_emit_once` for the frame-counting
+    semantics of ``stacklevel`` — default ``3`` attributes the warning to
+    the caller-of-caller of ``_emit_deprecation_once`` (e.g. the
+    user-visible public function that called the resolver that called
+    this).
+    """
+    _emit_once(
+        key,
+        message,
+        category=DeprecationWarning,
+        prefix="DEPRECATION",
+        stacklevel=stacklevel,
+    )
+
+
+# --------------------------------------------------------------------------
+# Env-var resolution
+# --------------------------------------------------------------------------
+
 def get_default_profile_name() -> str:
+    """Return the globally configured print-profile name.
+
+    Resolution chain (first match wins):
+
+    1. ``VIBE_PRINT_PROFILE`` — canonical env var.
+    2. ``VIBE_MACHINE_PROFILE`` — legacy env var, honoured with a
+       one-shot deprecation warning per process.
+    3. ``"fdm_standard"`` — hardcoded coarse default (loosest /
+       safest profile).
     """
-    Returns the globally configured machine profile name.
-    Defaults to 'fdm_standard' as it's the safest (loosest) tolerance fallback.
-    """
-    return os.getenv("VIBE_MACHINE_PROFILE", "fdm_standard")
+    # New canonical env var wins.
+    name = os.getenv("VIBE_PRINT_PROFILE")
+    if name:
+        return name
+
+    # Legacy env var honoured with a one-shot deprecation warning.
+    legacy = os.getenv("VIBE_MACHINE_PROFILE")
+    if legacy:
+        # stacklevel default (3): attributes warning to caller-of-
+        # ``get_default_profile_name`` (conventionally ``get_profile``,
+        # or user code calling ``get_default_profile_name`` directly) —
+        # i.e. the public-API surface, not this helper.
+        _emit_deprecation_once(
+            "env_var_VIBE_MACHINE_PROFILE",
+            "VIBE_MACHINE_PROFILE is deprecated; rename to VIBE_PRINT_PROFILE in your .env file. "
+            "The legacy name will be removed at the OSS publication release.",
+        )
+        return legacy
+
+    # No env var set — hardcoded coarse default.
+    return "fdm_standard"
 
 
 @dataclass
@@ -212,51 +376,249 @@ def _profile_from_nested(name: str, data: dict) -> ToleranceProfile:
 
 
 # --------------------------------------------------------------------------
+# Field-level deep merge (recursive, leaf-wins)
+# --------------------------------------------------------------------------
+
+def _validate_no_null_leaves(d: dict, _path: tuple[str, ...]) -> None:
+    """Recursively assert that no leaf in ``d`` is ``None``.
+
+    Used by :func:`_deep_merge_profiles` Pass 2 (branch (b) — override-only
+    sub-trees) to extend branch (f)'s null-rejection rule into nested
+    override-only dicts.  Without this walk, a user override that introduces
+    a brand-new top-level profile key whose nested leaf is ``None`` (e.g.
+    ``{"new_profile": {"slip": {"radial": null}}}``) would bypass the
+    top-level None check — Pass 2's existing guard only fires on the
+    immediate override value, not on nested children.
+
+    Raises ``ValueError`` using the same JSON-pointer-style key-path
+    message format as branch (f) in :func:`_deep_merge_profiles`.
+    """
+    for k, v in d.items():
+        path_k = _path + (k,)
+        if v is None:
+            raise ValueError(
+                f"null tolerance at {'/'.join(path_k)} is not a valid override"
+            )
+        if isinstance(v, dict):
+            _validate_no_null_leaves(v, path_k)
+
+
+def _deep_merge_profiles(
+    base: dict, override: dict, *, _path: tuple[str, ...] = ()
+) -> dict:
+    """Recursive leaf-wins merge of ``override`` onto ``base``.
+
+    Invariants:
+      - Both inputs are dicts; output is a NEW dict (base and override
+        unmodified).
+      - At each key, the recursion rule is:
+          (a) key absent from override → ``base[k]`` copied through unchanged
+          (b) key absent from base → ``override[k]`` copied through verbatim;
+              if ``override[k]`` is a dict, its nested leaves are
+              recursively validated against branch (f) (no ``None`` leaves
+              anywhere in the override-only sub-tree) via
+              :func:`_validate_no_null_leaves`
+          (c) both present, both dict → recurse with ``_path + (k,)``
+          (d) both present, both NON-dict → ``override[k]`` wins (leaf override)
+          (e) both present, MIXED → ``ValueError`` naming the key path
+              (this rules out the silent shape-coercion failure mode the
+              domain-integrity gate guards against)
+          (f) override leaf is ``None`` → ``ValueError`` naming the key path
+              (silent "reset to default via null" is too easy a foot-gun;
+              ``null`` is not a tolerance-domain-valid value)
+      - Sequences (lists, tuples) are treated as LEAVES — override wins
+        wholesale.  (No element-wise merge; tolerance JSON never carries
+        lists, but defining the rule explicitly prevents future surprise.)
+      - Unrecognized leaf keys silently pass through; ``_fitgrade_from_dict``
+        reads only known field names (``radial``, ``axial``, ``slot``) so
+        a typo'd override (``radail``) is loaded into the merged dict but
+        never read by any consumer.  See design brief §1 for the trade-off
+        rationale and Test T5 for the failure-mode-visibility check.
+    """
+    # unrecognized keys silently accepted; see design brief §1
+    out: dict = {}
+
+    # Pass 1: every key from base.
+    for k, base_v in base.items():
+        path_k = _path + (k,)
+        if k not in override:
+            # branch (a) — key absent from override
+            out[k] = base_v
+            continue
+
+        override_v = override[k]
+
+        # branch (f) — null leaf is a hard error regardless of base type
+        if override_v is None:
+            raise ValueError(
+                f"null tolerance at {'/'.join(path_k)} is not a valid override"
+            )
+
+        base_is_dict = isinstance(base_v, dict)
+        override_is_dict = isinstance(override_v, dict)
+
+        if base_is_dict and override_is_dict:
+            # branch (c) — recurse
+            out[k] = _deep_merge_profiles(base_v, override_v, _path=path_k)
+        elif not base_is_dict and not override_is_dict:
+            # branch (d) — both leaves; override wins
+            out[k] = override_v
+        else:
+            # branch (e) — type mismatch
+            raise ValueError(
+                f"type mismatch at {'/'.join(path_k)}: "
+                f"base is {type(base_v).__name__}, override is {type(override_v).__name__}"
+            )
+
+    # Pass 2: keys only in override (branch (b)).
+    for k, override_v in override.items():
+        if k in base:
+            continue
+        path_k = _path + (k,)
+        # branch (f) also applies to override-only leaves at the top of any
+        # nested level; a user override that introduces a NEW leaf with
+        # explicit null is still incoherent and should be rejected.
+        if override_v is None:
+            raise ValueError(
+                f"null tolerance at {'/'.join(path_k)} is not a valid override"
+            )
+        # branch (f) extension: if the override-only value is itself a dict,
+        # recursively reject any None leaf nested inside it.  Without this
+        # walk, a brand-new top-level profile key with a nested null leaf
+        # (e.g. {"new_profile": {"slip": {"radial": null}}}) would slip past
+        # the top-level None check above — Pass 2 does NOT recurse into
+        # override-only dict values for merging, so the validation must be
+        # an explicit standalone walk.
+        if isinstance(override_v, dict):
+            _validate_no_null_leaves(override_v, path_k)
+        out[k] = override_v
+
+    return out
+
+
+# --------------------------------------------------------------------------
 # JSON loading
 # --------------------------------------------------------------------------
 
+_REPO_ROOT = Path(__file__).parent.parent
+
+
+def _resolve_shipped_file() -> Path | None:
+    """Resolve the canonical shipped-defaults file path.
+
+    Priority: ``print_profiles.json`` (new) wins; ``machine_profiles.json``
+    (legacy) honoured with a one-shot deprecation warning.  If both exist
+    the new file wins silently but a deprecation warning is emitted naming
+    the legacy file as ignored.
+    """
+    new_path = _REPO_ROOT / "print_profiles.json"
+    legacy_path = _REPO_ROOT / "machine_profiles.json"
+    if new_path.exists():
+        if legacy_path.exists():
+            # stacklevel=4: warning needs to skip _emit_deprecation_once
+            # → _resolve_shipped_file → _load_json_profiles to attribute
+            # itself to the public ``get_profile`` (or whoever called
+            # ``_load_json_profiles`` directly), not this helper.
+            _emit_deprecation_once(
+                "shipped_file_both_present",
+                f"Both {new_path.name} and {legacy_path.name} exist; loading {new_path.name} "
+                f"and IGNORING {legacy_path.name}. Delete the legacy file to silence this warning.",
+                stacklevel=4,
+            )
+        return new_path
+    if legacy_path.exists():
+        # stacklevel=4: same chain as above — attribute to ``get_profile``.
+        _emit_deprecation_once(
+            "shipped_file_legacy_only",
+            f"{legacy_path.name} is deprecated; rename to {new_path.name}. "
+            f"The legacy name will be removed at the OSS publication release.",
+            stacklevel=4,
+        )
+        return legacy_path
+    return None
+
+
+def _resolve_user_file() -> Path | None:
+    """Resolve the canonical user-override file path.
+
+    Priority: ``print_profiles_user.json`` (new) wins; legacy
+    ``machine_profiles_user.json`` honoured with a one-shot deprecation
+    warning.  Mirrors :func:`_resolve_shipped_file`.
+    """
+    new_path = _REPO_ROOT / "print_profiles_user.json"
+    legacy_path = _REPO_ROOT / "machine_profiles_user.json"
+    if new_path.exists():
+        if legacy_path.exists():
+            # stacklevel=4: skip _emit_deprecation_once → _resolve_user_file
+            # → _load_json_profiles to attribute the warning to ``get_profile``.
+            _emit_deprecation_once(
+                "user_file_both_present",
+                f"Both {new_path.name} and {legacy_path.name} exist; loading {new_path.name} "
+                f"and IGNORING {legacy_path.name}. Delete the legacy file to silence this warning.",
+                stacklevel=4,
+            )
+        return new_path
+    if legacy_path.exists():
+        # stacklevel=4: same chain as above — attribute to ``get_profile``.
+        _emit_deprecation_once(
+            "user_file_legacy_only",
+            f"{legacy_path.name} is deprecated; rename to {new_path.name}. "
+            f"The legacy name will be removed at the OSS publication release.",
+            stacklevel=4,
+        )
+        return legacy_path
+    return None
+
+
+def _normalise_raw_profiles(raw: dict) -> dict:
+    """Run legacy-flat → nested migration on every top-level entry.
+
+    Returns a new dict; the input is not modified.  Migration runs
+    *per side* (shipped + user) *before* :func:`_deep_merge_profiles`
+    so the merge always sees structurally compatible dict shapes — see
+    design brief §2.
+    """
+    return {
+        k: (_migrate_flat_to_nested(v) if _is_legacy_flat_entry(v) else v)
+        for k, v in raw.items()
+    }
+
+
 def _load_json_profiles() -> dict:
-    """Load profiles from ``machine_profiles.json`` (defaults) and
-    ``machine_profiles_user.json`` (user overrides — gitignored).
+    """Load profiles from the canonical-or-legacy shipped + user files.
 
     Returns a dict keyed by profile name; each value is a nested-schema
     dict (``{"free": {...}, "slip": {...}, "press": {...}}``).  Legacy
-    flat entries are migrated transparently on load.
+    flat entries are migrated transparently on load.  User overrides are
+    merged onto the shipped defaults via :func:`_deep_merge_profiles`
+    (field-level recursive leaf-wins) — a user override of a single leaf
+    inherits its sibling fields from the shipped grade.
     """
-    profiles: dict = {}
+    shipped_norm: dict = {}
+    user_norm: dict = {}
 
-    # 1. Load repository defaults
-    repo_file = Path(__file__).parent.parent / "machine_profiles.json"
-    if repo_file.exists():
+    # 1. Load shipped defaults.
+    shipped_file = _resolve_shipped_file()
+    if shipped_file is not None:
         try:
-            with open(repo_file, "r") as f:
-                raw = json.load(f)
-            for k, v in raw.items():
-                profiles[k] = _migrate_flat_to_nested(v) if _is_legacy_flat_entry(v) else v
+            with open(shipped_file, "r") as f:
+                shipped_raw = json.load(f)
+            shipped_norm = _normalise_raw_profiles(shipped_raw)
         except Exception as e:
-            print(f"Warning: Could not parse machine_profiles.json - {e}")
+            print(f"Warning: Could not parse {shipped_file.name} - {e}")
 
-    # 2. Load user overrides (takes precedence; dict-merged grade-level).
-    user_file = Path(__file__).parent.parent / "machine_profiles_user.json"
-    if user_file.exists():
+    # 2. Load user overrides.
+    user_file = _resolve_user_file()
+    if user_file is not None:
         try:
             with open(user_file, "r") as f:
-                user_profiles = json.load(f)
-            for k, v in user_profiles.items():
-                migrated = _migrate_flat_to_nested(v) if _is_legacy_flat_entry(v) else v
-                if k in profiles and isinstance(profiles[k], dict) and isinstance(migrated, dict):
-                    # Shallow merge at the grade level — user can override a
-                    # single grade without restating the others.
-                    merged = dict(profiles[k])
-                    for grade_key, grade_val in migrated.items():
-                        merged[grade_key] = grade_val
-                    profiles[k] = merged
-                else:
-                    profiles[k] = migrated
+                user_raw = json.load(f)
+            user_norm = _normalise_raw_profiles(user_raw)
         except Exception as e:
-            print(f"Warning: Could not parse machine_profiles_user.json - {e}")
+            print(f"Warning: Could not parse {user_file.name} - {e}")
 
-    return profiles
+    # 3. Field-level deep merge — user overrides win at every leaf.
+    return _deep_merge_profiles(shipped_norm, user_norm)
 
 
 # --------------------------------------------------------------------------
@@ -266,7 +628,7 @@ def _load_json_profiles() -> dict:
 _FALLBACK_PROFILES: dict[str, dict] = {
     "fdm_standard": {
         "free":  {"radial": 0.15, "axial": 0.20},
-        # ``slip.slot`` mirrors the shipped machine_profiles.json — the
+        # ``slip.slot`` mirrors the shipped print_profiles.json — the
         # conservative narrow-slot floor for FDM cross axle holes.
         "slip":  {"radial": 0.05, "axial": 0.20, "slot": 0.10},
         "press": {"radial": 0.04, "axial": 0.20},
@@ -285,20 +647,30 @@ _FALLBACK_PROFILES: dict[str, dict] = {
 
 
 def _fallback_profile(name: str) -> ToleranceProfile:
-    name_lower = name.lower()
-    if "resin" in name_lower:
-        data = _FALLBACK_PROFILES["resin_precise"]
-    elif "cnc" in name_lower or "machined" in name_lower:
-        data = _FALLBACK_PROFILES["cnc"]
-    else:
-        data = _FALLBACK_PROFILES["fdm_standard"]
+    """Resolve a coarse-default fallback ``ToleranceProfile`` by name.
+
+    Looks up ``name`` in :data:`_FALLBACK_PROFILES`; if unknown, returns
+    the ``fdm_standard`` defaults (loosest / safest).  Substring-based
+    heuristic classification (e.g. "anything containing 'resin' resolves
+    to resin_precise") was dropped per Q2 — the new ``<machine>__<material>``
+    user-key convention makes substring matching accidental.  Callers
+    that hit the unknown path should rely on the warning emitted by
+    :func:`get_profile`.
+    """
+    data = _FALLBACK_PROFILES.get(name, _FALLBACK_PROFILES["fdm_standard"])
     return _profile_from_nested(name, data)
 
 
 def get_profile(name: str | None = None) -> ToleranceProfile:
     """Load a specific manufacturing tolerance profile.
 
-    Resolution: the JSON files first, then hardcoded fallback.
+    Resolution: the JSON files first, then hardcoded fallback.  If
+    ``name`` is not a known profile (neither in the JSON files nor in
+    the hardcoded fallback set), a stderr warning is emitted naming the
+    unknown name and the active fallback (``fdm_standard``), and the
+    returned profile carries ``name == "fdm_standard"`` — i.e. the
+    requested name is NOT silently propagated as the resolved profile's
+    label, so downstream calibration mistakes are visible.
     """
     name = name or get_default_profile_name()
     profiles = _load_json_profiles()
@@ -306,6 +678,25 @@ def get_profile(name: str | None = None) -> ToleranceProfile:
     if name in profiles:
         return _profile_from_nested(name, profiles[name])
 
-    # Hardcoded safety fallback if JSON is entirely broken or the name
-    # is unknown.
-    return _fallback_profile(name)
+    if name in _FALLBACK_PROFILES:
+        # Hardcoded safety fallback if JSON is entirely broken but the
+        # name is one of the known coarse defaults.
+        return _fallback_profile(name)
+
+    # Unknown name — emit a warning and resolve to fdm_standard.  The
+    # returned profile is labelled "fdm_standard", NOT the unknown name,
+    # so a calibration mistake (typo in VIBE_PRINT_PROFILE, missing
+    # profile entry, etc.) does not silently mask itself.  Routed through
+    # ``_emit_once`` so a build loop that repeatedly resolves the same
+    # unknown name (e.g. once per model class) does not spam stderr —
+    # one warning per (process, unknown-name) is sufficient signal.
+    _emit_once(
+        f"unknown_profile_{name}",
+        f"unknown print profile '{name}'; falling back to 'fdm_standard'. "
+        f"Add a '{name}' entry to print_profiles_user.json or pick a shipped "
+        f"profile name (fdm_standard, resin_precise, cnc).",
+        category=UserWarning,
+        prefix="WARNING",
+        stacklevel=2,  # attribute to ``get_profile`` — the public surface
+    )
+    return _fallback_profile("fdm_standard")
