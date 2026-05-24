@@ -137,37 +137,85 @@ load_env_file()
 
 
 # --------------------------------------------------------------------------
-# Deprecation emitter
+# Warning emitter (deprecation + general user-warning, once-per-process)
 # --------------------------------------------------------------------------
 
 # Module-level state — guards against repeat emissions across the many
 # get_profile() calls in a single process.  Each entry is a stable key
-# string identifying *what* was deprecated (e.g.
-# "env_var_VIBE_MACHINE_PROFILE", "shipped_file_legacy_only"); the
-# *first* call with a given key emits both a stderr line and a
-# DeprecationWarning, subsequent calls with the same key are no-ops.
-_emitted_deprecations: set[str] = set()
+# string identifying *what* was warned about (e.g.
+# "env_var_VIBE_MACHINE_PROFILE", "shipped_file_legacy_only",
+# "unknown_profile_foo"); the *first* call with a given key emits both a
+# stderr line and a ``warnings.warn`` of the requested category,
+# subsequent calls with the same key are no-ops.
+#
+# Renamed from ``_emitted_deprecations`` when the once-per-process
+# guard was generalised to cover the unknown-profile-name ``UserWarning``
+# in addition to the original ``DeprecationWarning`` cases — the guarding
+# mechanism is category-agnostic, only the message prefix and warning
+# category differ per call site.
+_emitted_warnings: set[str] = set()
+
+# Backwards-compatibility alias for any external test code that imported
+# the pre-refactor name.  The set object is the same — both names point
+# at the single source of truth above.
+_emitted_deprecations = _emitted_warnings
 
 
-def _emit_deprecation_once(key: str, message: str) -> None:
-    """Emit a deprecation warning exactly once per process per ``key``.
+def _emit_once(
+    key: str,
+    message: str,
+    *,
+    category: type[Warning] = DeprecationWarning,
+    prefix: str = "DEPRECATION",
+    stacklevel: int = 3,
+) -> None:
+    """Emit a warning of ``category`` exactly once per process per ``key``.
 
     Mechanism: ``warnings.warn`` for programmatic filtering + a
     one-shot stderr mirror so the user sees the warning even with
     default CPython warning filters (which suppress
-    ``DeprecationWarning`` by default in many contexts).
+    ``DeprecationWarning`` by default in many contexts, and may
+    suppress ``UserWarning`` depending on environment).
 
     Belt-and-suspenders: the stderr mirror guarantees visibility; the
-    ``DeprecationWarning`` lets test suites and tooling capture
+    ``warnings.warn`` call lets test suites and tooling capture
     programmatically.  Both are gated by the same idempotence set so
     a noisy hot-path call (every ``get_profile()`` invocation) emits
     at most one of each kind per (process, key).
+
+    ``stacklevel=N`` attributes the warning to the N-th frame up from
+    ``warnings.warn``; default ``3`` = caller-of-caller of
+    :func:`_emit_once` (i.e. the function that called the thin
+    wrapper, which called this).  Pass a higher value when the chain
+    has additional intermediate frames so tooling that filters
+    warnings by source location attributes the warning to the
+    user-visible public surface instead of an internal helper.
     """
-    if key in _emitted_deprecations:
+    if key in _emitted_warnings:
         return
-    _emitted_deprecations.add(key)
-    print(f"DEPRECATION: {message}", file=sys.stderr)
-    warnings.warn(message, DeprecationWarning, stacklevel=2)
+    _emitted_warnings.add(key)
+    print(f"{prefix}: {message}", file=sys.stderr)
+    warnings.warn(message, category, stacklevel=stacklevel)
+
+
+def _emit_deprecation_once(key: str, message: str, *, stacklevel: int = 3) -> None:
+    """Emit a deprecation warning exactly once per process per ``key``.
+
+    Thin wrapper around :func:`_emit_once` preserving the prior name and
+    signature; defaults to ``DeprecationWarning`` + ``"DEPRECATION"``
+    stderr prefix.  See :func:`_emit_once` for the frame-counting
+    semantics of ``stacklevel`` — default ``3`` attributes the warning to
+    the caller-of-caller of ``_emit_deprecation_once`` (e.g. the
+    user-visible public function that called the resolver that called
+    this).
+    """
+    _emit_once(
+        key,
+        message,
+        category=DeprecationWarning,
+        prefix="DEPRECATION",
+        stacklevel=stacklevel,
+    )
 
 
 # --------------------------------------------------------------------------
@@ -193,6 +241,10 @@ def get_default_profile_name() -> str:
     # Legacy env var honoured with a one-shot deprecation warning.
     legacy = os.getenv("VIBE_MACHINE_PROFILE")
     if legacy:
+        # stacklevel default (3): attributes warning to caller-of-
+        # ``get_default_profile_name`` (conventionally ``get_profile``,
+        # or user code calling ``get_default_profile_name`` directly) —
+        # i.e. the public-API surface, not this helper.
         _emit_deprecation_once(
             "env_var_VIBE_MACHINE_PROFILE",
             "VIBE_MACHINE_PROFILE is deprecated; rename to VIBE_PRINT_PROFILE in your .env file. "
@@ -327,6 +379,30 @@ def _profile_from_nested(name: str, data: dict) -> ToleranceProfile:
 # Field-level deep merge (recursive, leaf-wins)
 # --------------------------------------------------------------------------
 
+def _validate_no_null_leaves(d: dict, _path: tuple[str, ...]) -> None:
+    """Recursively assert that no leaf in ``d`` is ``None``.
+
+    Used by :func:`_deep_merge_profiles` Pass 2 (branch (b) — override-only
+    sub-trees) to extend branch (f)'s null-rejection rule into nested
+    override-only dicts.  Without this walk, a user override that introduces
+    a brand-new top-level profile key whose nested leaf is ``None`` (e.g.
+    ``{"new_profile": {"slip": {"radial": null}}}``) would bypass the
+    top-level None check — Pass 2's existing guard only fires on the
+    immediate override value, not on nested children.
+
+    Raises ``ValueError`` using the same JSON-pointer-style key-path
+    message format as branch (f) in :func:`_deep_merge_profiles`.
+    """
+    for k, v in d.items():
+        path_k = _path + (k,)
+        if v is None:
+            raise ValueError(
+                f"null tolerance at {'/'.join(path_k)} is not a valid override"
+            )
+        if isinstance(v, dict):
+            _validate_no_null_leaves(v, path_k)
+
+
 def _deep_merge_profiles(
     base: dict, override: dict, *, _path: tuple[str, ...] = ()
 ) -> dict:
@@ -337,7 +413,11 @@ def _deep_merge_profiles(
         unmodified).
       - At each key, the recursion rule is:
           (a) key absent from override → ``base[k]`` copied through unchanged
-          (b) key absent from base → ``override[k]`` copied through verbatim
+          (b) key absent from base → ``override[k]`` copied through verbatim;
+              if ``override[k]`` is a dict, its nested leaves are
+              recursively validated against branch (f) (no ``None`` leaves
+              anywhere in the override-only sub-tree) via
+              :func:`_validate_no_null_leaves`
           (c) both present, both dict → recurse with ``_path + (k,)``
           (d) both present, both NON-dict → ``override[k]`` wins (leaf override)
           (e) both present, MIXED → ``ValueError`` naming the key path
@@ -402,6 +482,15 @@ def _deep_merge_profiles(
             raise ValueError(
                 f"null tolerance at {'/'.join(path_k)} is not a valid override"
             )
+        # branch (f) extension: if the override-only value is itself a dict,
+        # recursively reject any None leaf nested inside it.  Without this
+        # walk, a brand-new top-level profile key with a nested null leaf
+        # (e.g. {"new_profile": {"slip": {"radial": null}}}) would slip past
+        # the top-level None check above — Pass 2 does NOT recurse into
+        # override-only dict values for merging, so the validation must be
+        # an explicit standalone walk.
+        if isinstance(override_v, dict):
+            _validate_no_null_leaves(override_v, path_k)
         out[k] = override_v
 
     return out
@@ -426,17 +515,24 @@ def _resolve_shipped_file() -> Path | None:
     legacy_path = _REPO_ROOT / "machine_profiles.json"
     if new_path.exists():
         if legacy_path.exists():
+            # stacklevel=4: warning needs to skip _emit_deprecation_once
+            # → _resolve_shipped_file → _load_json_profiles to attribute
+            # itself to the public ``get_profile`` (or whoever called
+            # ``_load_json_profiles`` directly), not this helper.
             _emit_deprecation_once(
                 "shipped_file_both_present",
                 f"Both {new_path.name} and {legacy_path.name} exist; loading {new_path.name} "
                 f"and IGNORING {legacy_path.name}. Delete the legacy file to silence this warning.",
+                stacklevel=4,
             )
         return new_path
     if legacy_path.exists():
+        # stacklevel=4: same chain as above — attribute to ``get_profile``.
         _emit_deprecation_once(
             "shipped_file_legacy_only",
             f"{legacy_path.name} is deprecated; rename to {new_path.name}. "
             f"The legacy name will be removed at the OSS publication release.",
+            stacklevel=4,
         )
         return legacy_path
     return None
@@ -453,17 +549,22 @@ def _resolve_user_file() -> Path | None:
     legacy_path = _REPO_ROOT / "machine_profiles_user.json"
     if new_path.exists():
         if legacy_path.exists():
+            # stacklevel=4: skip _emit_deprecation_once → _resolve_user_file
+            # → _load_json_profiles to attribute the warning to ``get_profile``.
             _emit_deprecation_once(
                 "user_file_both_present",
                 f"Both {new_path.name} and {legacy_path.name} exist; loading {new_path.name} "
                 f"and IGNORING {legacy_path.name}. Delete the legacy file to silence this warning.",
+                stacklevel=4,
             )
         return new_path
     if legacy_path.exists():
+        # stacklevel=4: same chain as above — attribute to ``get_profile``.
         _emit_deprecation_once(
             "user_file_legacy_only",
             f"{legacy_path.name} is deprecated; rename to {new_path.name}. "
             f"The legacy name will be removed at the OSS publication release.",
+            stacklevel=4,
         )
         return legacy_path
     return None
@@ -585,11 +686,17 @@ def get_profile(name: str | None = None) -> ToleranceProfile:
     # Unknown name — emit a warning and resolve to fdm_standard.  The
     # returned profile is labelled "fdm_standard", NOT the unknown name,
     # so a calibration mistake (typo in VIBE_PRINT_PROFILE, missing
-    # profile entry, etc.) does not silently mask itself.
-    print(
-        f"Warning: unknown print profile '{name}'; falling back to 'fdm_standard'. "
+    # profile entry, etc.) does not silently mask itself.  Routed through
+    # ``_emit_once`` so a build loop that repeatedly resolves the same
+    # unknown name (e.g. once per model class) does not spam stderr —
+    # one warning per (process, unknown-name) is sufficient signal.
+    _emit_once(
+        f"unknown_profile_{name}",
+        f"unknown print profile '{name}'; falling back to 'fdm_standard'. "
         f"Add a '{name}' entry to print_profiles_user.json or pick a shipped "
         f"profile name (fdm_standard, resin_precise, cnc).",
-        file=sys.stderr,
+        category=UserWarning,
+        prefix="WARNING",
+        stacklevel=2,  # attribute to ``get_profile`` — the public surface
     )
     return _fallback_profile("fdm_standard")
