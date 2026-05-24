@@ -64,15 +64,15 @@ Open Claude Code in this workspace and ask it to initialize the project, e.g.:
 please initialize the project
 ```
 
-Claude Code will read `CLAUDE.md`, create the local `tmp/` and `.agents/plans/` folders for tool analysis, copy `machine_profiles.json.example` → `machine_profiles_user.json` so you can configure your manufacturing tolerance profiles, and run `tools/init-claude-runtime.sh` to populate the per-clone `.claude/` runtime aliases that Claude Code uses to discover the project's `designer`/`developer` subagents and slash commands.
+Claude Code will read `CLAUDE.md`, create the local `tmp/` and `.agents/plans/` folders for tool analysis, copy `print_profiles.json.example` → `print_profiles_user.json` so you can configure your manufacturing tolerance profiles, and run `tools/init-claude-runtime.sh` to populate the per-clone `.claude/` runtime aliases that Claude Code uses to discover the project's `designer`/`developer` subagents and slash commands.
 
 > Maintainer-style roles (Admin, TL, PM) are not shipped with this repository — the human contributor fills them. As an open-source contributor you act as the Admin yourself: clarifying requirements, approving the designer's brief, and reviewing the developer's output. The included `designer` and `developer` subagents are the complete contributor toolkit and need no additional install. Maintainers who prefer dedicated Admin / TL / PM agents can load their own personas from `~/.claude/`.
 
 **Manufacturing & Tolerance Profiles:**
 This repository uses a global tolerance configuration system to ensure parts fit together correctly based on your specific manufacturing method (e.g. FDM vs Resin 3D printing). 
-- **`machine_profiles.json`**: Checked into version control. Contains defaults (like `fdm_standard`, `resin_precise`).
-- **`machine_profiles_user.json`**: Untracked (gitignored). Use this to override specific keys in the default profiles or define entirely new profiles without creating a dirty git history. Your keys will be merged into the defaults.
-- **`.env`**: Untracked. You can set `VIBE_MACHINE_PROFILE=your_profile_name` here to define the global fallback profile used across all CAD scripts.
+- **`print_profiles.json`**: Checked into version control. Contains defaults (like `fdm_standard`, `resin_precise`).
+- **`print_profiles_user.json`**: Untracked (gitignored). Use this to override specific fields in the default profiles or define entirely new profiles without creating a dirty git history. Your fields are recursively deep-merged into the defaults — override a single leaf and the sibling fields inherit from the shipped grade (see [Print Tolerances & Calibration](#print-tolerances--calibration) below).
+- **`.env`**: Untracked. You can set `VIBE_PRINT_PROFILE=your_profile_name` here to define the global fallback profile used across all CAD scripts.
 
 ---
 
@@ -141,9 +141,26 @@ Key constants are centralised in [`vibe_cading/lego/constants.py`](vibe_cading/l
 
 ## Print Tolerances & Calibration
 
-Printed fits are printer- and material-dependent: the same model bores a tight hole on one machine and a loose one on another. Dimensional *nominals* in the library are fixed real-world geometry; the per-machine clearance is carried separately by a `ToleranceProfile`. The project ships profiles (`fdm_standard`, `resin_precise`, `cnc`) in `machine_profiles.json`; override them per-machine in the gitignored `machine_profiles_user.json` (dict-merges over the defaults) and select the active one with `VIBE_MACHINE_PROFILE`.
+Printed fits are printer- and material-dependent: the same model bores a tight hole on one machine and a loose one on another. Dimensional *nominals* in the library are fixed real-world geometry; the per-machine clearance is carried separately by a `ToleranceProfile`. The project ships profiles (`fdm_standard`, `resin_precise`, `cnc`) in `print_profiles.json`; override them per-machine in the gitignored `print_profiles_user.json` and select the active one with `VIBE_PRINT_PROFILE`.
 
-To calibrate the Lego axle slip fit specifically, print the `AxleHoleGauge` model and follow the procedure in [docs/lego-technic.md](docs/lego-technic.md) > *Tuning Tolerances* — it converts the fitting hole diameter into a `slip.radial` value for your profile.
+**User key convention.** User-defined profile keys are recommended (not enforced) to follow the `<machine>__<material>[__<brand>]` lexical convention with `__` (double underscore) as the separator — for example `bambu_p1s__pla_overture`, `ender3__petg_polymaker`, `prusa_mk4__pla`. The convention is purely documentary; the loader treats every key as opaque. The shipped fallback keys (`fdm_standard`, `resin_precise`, `cnc`) remain the coarse-default categories and are exempt.
+
+**Field-level deep merge.** Your override file recursively deep-merges onto the shipped defaults, leaf-wins. This means you can calibrate a single value without restating the rest of a fit grade. For example, to bump only `slip.radial`:
+
+```json
+// print_profiles_user.json
+{
+  "fdm_standard": {
+    "slip": { "radial": 0.11 }
+  }
+}
+```
+
+The resolved `slip` grade then carries `radial = 0.11` (your override) together with `axial = 0.20` and `slot = 0.10` inherited from the shipped `fdm_standard`. A typo'd leaf key (e.g. `radail`) is silently ignored downstream — the resolved tolerance falls back to the shipped value. A `null` override (e.g. `{"slot": null}`) is rejected with a clear error rather than silently zeroing.
+
+**Calibration helper.** The Lego axle slip fit is the project's canonical calibration target — print the `AxleHoleGauge` model and follow the procedure in [docs/lego-technic.md](docs/lego-technic.md) > *Tuning Tolerances* to convert the fitting hole diameter into a `slip.radial` value for your profile. A single-knob calibration CLI that writes the value into `print_profiles_user.json` for you is on the roadmap (see `TODO.md`).
+
+**Deprecation window.** The legacy file names `machine_profiles.json` / `machine_profiles_user.json` and the legacy env var `VIBE_MACHINE_PROFILE` continue to be honoured during a deprecation window — first consumption per process emits a single warning. The legacy names will be removed at the OSS publication release; the loader prints the rename instruction at first contact.
 
 ---
 

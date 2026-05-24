@@ -84,8 +84,8 @@ class FreespinHexHub:
         Breaks the 6 vertical corners and the 12 perimeter edges on the
         top and bottom faces.  Default 0.5 mm.
     profile : str | None
-        Tolerance profile name from ``machine_profiles.json``.  ``None``
-        uses the globally-configured default (``VIBE_MACHINE_PROFILE``
+        Tolerance profile name from ``print_profiles.json``.  ``None``
+        uses the globally-configured default (``VIBE_PRINT_PROFILE``
         env var, falling back to ``fdm_standard``).
 
         The bearing pocket uses **free_fit** radial clearance so the
