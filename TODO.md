@@ -27,8 +27,8 @@ We are expanding this repository into a broader Code-CAD mechanical toolkit. Her
     fillet corner is acceptable; no `corner_relief` parameter needed. The
     slightly-tight hole is FDM print-to-print variation (arm 2.25 = band
     centre, optimally placed). Cross axle-hole calibration complete.
-- [ ] Build a guided calibration helper (e.g. `tools/calibrate.py`) that walks the user through the `AxleHoleGauge` print + fit test and writes the resulting `slip.radial` into `machine_profiles_user.json` — replacing the manual print → feel-test → compute → hand-edit-JSON workflow.
-- [ ] Rename the "machine profile" concept — tolerance depends on the machine
+- [x] Build a guided calibration helper (e.g. `tools/calibrate.py`) that walks the user through the `AxleHoleGauge` print + fit test and writes the resulting `slip.radial` into `machine_profiles_user.json` — replacing the manual print → feel-test → compute → hand-edit-JSON workflow. — **Re-scoped 2026-05-23**: narrow axle-only scope rejected at design Step-4 gate; replaced by the generic multi-knob calibration helper (≤5 gauges, M3-screw + M3-nut defaults with Lego axle as opt-in for delicate fits). Foundation pre-req shipped in [PR #8](https://github.com/fa-mc/vibe-cading/pull/8); Brief #2 (`.agents/plans/2026-05-23-calibration-helper-generic_req.md`) now unblocked and Designer-pending. SUPERSEDED prior-art at `.agents/plans/2026-05-23-calibrate-helper_*`.
+- [x] Rename the "machine profile" concept — tolerance depends on the machine
   **and** the filament (and brand), not the machine alone. `machine_profiles*.json`
   → `print_profiles*.json`, `VIBE_MACHINE_PROFILE` → `VIBE_PRINT_PROFILE`; adopt a
   `<machine>__<material>[__<brand>]` user-profile key convention (e.g.
@@ -39,14 +39,21 @@ We are expanding this repository into a broader Code-CAD mechanical toolkit. Her
   (machine/material clearances interact; do **not** build a machine×material
   composition matrix). Keep the old file + env-var names working as deprecated
   fallbacks for one transition window. Pre-OSS naming debt; also resolves the
-  mismatch with the `ToleranceProfile` dataclass name. (Raised 2026-05-22.)
-  - [ ] As part of this, rewrite the README "Print Tolerances & Calibration"
+  mismatch with the `ToleranceProfile` dataclass name. (Raised 2026-05-22.) —
+  **Resolved 2026-05-24 by [PR #8](https://github.com/fa-mc/vibe-cading/pull/8)** (merge commit `dc877a7`):
+  filename + env-var rename landed, `<machine>__<material>__<brand>` convention
+  documented in the `print_settings.py` module docstring + README, deprecation
+  emitter via `_emit_deprecation_once` honours legacy names for one window.
+  See `.agents/plans/2026-05-23-print-profile-foundation_*`.
+  - [x] As part of this, rewrite the README "Print Tolerances & Calibration"
     section to document calibrating a per-printer-**and-filament** profile:
     the `<machine>__<material>` profile workflow, the `AxleHoleGauge` /
     `AxleCrossHoleGauge` print-and-measure procedure, and where the calibrated
     `slip.radial` value lands. The current section predates the rename and the
-    Stage-2 gauge and is framed machine-only.
-- [ ] Field-level profile merge in `_load_json_profiles` — change today's
+    Stage-2 gauge and is framed machine-only. — **Resolved 2026-05-24 by PR #8**
+    (T12 — README §"Print Tolerances & Calibration" rewritten + worked example for
+    `<machine>__<material>` convention + field-level merge override example).
+- [x] Field-level profile merge in `_load_json_profiles` — change today's
   grade-level merge (where a user override of one `slip` field requires
   restating the whole grade dict) to **field-level**, so a
   `machine_profiles_user.json` entry like `{"fdm_standard": {"slip":
@@ -56,7 +63,17 @@ We are expanding this repository into a broader Code-CAD mechanical toolkit. Her
   loader's semantics — interacts with the legacy-flat migration path, the
   `_FALLBACK_PROFILES` fallback, and override layering — so it **needs a
   proper design-flow review** (`@designer` + `@tl` architecture consult,
-  brief, then implementation) before any code change. (Raised 2026-05-23.)
+  brief, then implementation) before any code change. (Raised 2026-05-23.) —
+  **Resolved 2026-05-24 by [PR #8](https://github.com/fa-mc/vibe-cading/pull/8)** (merge commit `dc877a7`):
+  `_deep_merge_profiles` implements recursive leaf-wins merge with hard-error
+  on type mismatch + null leaves (both with JSON-pointer-style key paths in
+  the error message); T9b snapshot test pins 27 leaf-float values across
+  `fdm_standard` / `resin_precise` / `cnc` to lock backward-compat against
+  silent tolerance drift. Inline PR-review follow-ups (`3690705`) added
+  null-leaf recursion into override-only sub-trees + dynamic `stacklevel` +
+  once-guarded unknown-profile warning. Full design-flow trail with Step 3.5
+  fresh-context reviewers + Phase B/C post-implementation reviewers (per
+  `Domain integrity gate: YES`) at `.agents/plans/2026-05-23-print-profile-foundation_*`.
 
 ## 🚀 Transition to "Open Core" Engine
 Based on the ***REMOVED***, this repository (`vibe-cading`) will act as the public core engine for the `***REMOVED***`. We need to prepare it for external consumption:
