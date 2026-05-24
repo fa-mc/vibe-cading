@@ -359,6 +359,46 @@ def test_get_profile_unknown_falls_back_to_hardcoded(capsys):
     assert "fdm_standard" in captured.err
 
 
+def test_get_profile_unknown_warning_emitted_once_per_process(capsys):
+    """Follow-up 3: unknown-profile-name warning fires exactly once per process per name.
+
+    Before the follow-up, ``get_profile()``'s unknown-profile-name warning
+    was an unconditional ``print(..., file=sys.stderr)`` — fine for one-shot
+    CLI use but spammy in a build loop that resolves the same unknown name
+    once per model class.  The follow-up factors out a generic ``_emit_once``
+    helper that handles the once-per-process guard for any warning category,
+    and routes the unknown-profile-name warning through it under the
+    ``UserWarning`` category with a ``WARNING:`` stderr prefix.
+
+    This test verifies:
+      1. The first ``get_profile("nonexistent_profile_xyz")`` call emits the
+         ``WARNING: unknown print profile 'nonexistent_profile_xyz'`` line.
+      2. A second call with the same unknown name does NOT re-emit it.
+      3. Both calls return a profile labelled ``fdm_standard`` — the unknown
+         name is NOT silently propagated.
+    """
+    # Reset the module-level once-per-process guard so this test's emission
+    # is not suppressed by a prior unrelated test that used the same key.
+    print_settings_module._emitted_warnings.clear()
+
+    prof_first = get_profile("nonexistent_profile_xyz")
+    prof_second = get_profile("nonexistent_profile_xyz")
+
+    # Both calls return the coarse-default fallback labelled "fdm_standard"
+    # — the unknown name is NOT silently propagated as the resolved label.
+    assert isinstance(prof_first, ToleranceProfile)
+    assert isinstance(prof_second, ToleranceProfile)
+    assert prof_first.name == "fdm_standard"
+    assert prof_second.name == "fdm_standard"
+
+    # Exactly one WARNING line in stderr across the two calls — the guard
+    # suppresses the second emission.
+    captured = capsys.readouterr()
+    assert captured.err.count(
+        "WARNING: unknown print profile 'nonexistent_profile_xyz'"
+    ) == 1
+
+
 def test_get_default_profile_name_env_var():
     """The default-name resolver returns a non-empty string."""
     name = get_default_profile_name()
@@ -474,6 +514,30 @@ def test_deep_merge_does_not_mutate_inputs():
     _deep_merge_profiles(base, override)
     assert json.dumps(base, sort_keys=True) == base_snapshot
     assert json.dumps(override, sort_keys=True) == override_snapshot
+
+
+def test_deep_merge_null_leaf_in_override_only_subtree_raises():
+    """Follow-up 1: a null leaf nested inside an override-only sub-tree raises.
+
+    Before the follow-up, ``_deep_merge_profiles`` Pass 2 (the branch (b)
+    loop over override-only keys) only checked ``override_v is None`` at
+    the immediate level of the override-only sub-tree.  A user override
+    that introduces a brand-new top-level profile key with a nested null
+    leaf — e.g. ``{"new_profile": {"slip": {"radial": null}}}`` — bypassed
+    the §1 branch (f) rejection because ``new_profile``'s value is a dict
+    (passes the top-level ``is None`` check) and the function did not
+    recurse into override-only dict values.
+
+    The follow-up adds ``_validate_no_null_leaves`` which recursively
+    walks any override-only dict value, raising ``ValueError`` on the
+    first ``None`` leaf using the same JSON-pointer-style key-path
+    message format as branch (f).
+    """
+    with pytest.raises(
+        ValueError,
+        match=r"null tolerance at new_profile/slip/radial is not a valid override",
+    ):
+        _deep_merge_profiles({}, {"new_profile": {"slip": {"radial": None}}})
 
 
 # --------------------------------------------------------------------------
