@@ -54,19 +54,94 @@ class MetricHexNut:
             base = base.cut(hole_cutter)
         return base
 
-    def to_cutter(self, profile = None) -> cq.Workplane:
-        from vibe_cading.print_settings import get_profile
-        prof = profile or get_profile()
-        # ``CaptiveNutPocket`` reads ``profile.free.radial`` for the pocket
-        # inflation; the matching axial allowance lives on the same grade.
-        depth_allowance = prof.free.axial
+    def to_cutter(self, profile=None, fit: str = "captive") -> cq.Workplane:
+        """Generate a pocket cutter for this nut.
+
+        Parameters
+        ----------
+        profile:
+            Active :class:`~vibe_cading.print_settings.ToleranceProfile`,
+            or ``None`` to resolve via
+            :func:`~vibe_cading.print_settings.get_profile`.
+        fit:
+            ``"captive"`` (default) sizes the pocket from
+            ``profile.free.radial`` — loose enough for hand-insertion
+            of the nut, suitable for a captive-nut slot or a hex
+            recess where the screw passes through. Preserves bit-exact
+            backwards-compatibility with every pre-``fit``-kwarg
+            caller.
+
+            ``"press"`` sizes the pocket from ``profile.press.radial``
+            — an interference fit for hammer-/firm-press insertion of
+            the nut, suitable for a self-retaining nut pocket with no
+            mechanical capture.
+
+        Notes
+        -----
+        First-call note: pre-calibration, ``fit="press"`` uses the
+        shipped ``press.radial = 0.04`` (about 4× tighter per side
+        than ``fit="captive"`` which uses the shipped
+        ``free.radial = 0.15``). The first press print is likely to
+        feel tight — run a quick test fit (or calibrate via
+        ``python3 tools/calibrate.py press``) before relying on a
+        press joint in a finished part.
+        """
+        from vibe_cading.print_settings import (
+            ToleranceProfile,
+            get_profile,
+        )
+        # Type-narrow: accept the same ``profile`` shapes that the
+        # ``fit="captive"`` branch accepts (None or str profile name)
+        # before the synthesis path dereferences ``prof.press``.
+        # Without this, ``fit="press"`` + str profile name would
+        # ``AttributeError`` at ``prof.press`` below — silent-until-trigger
+        # for a future caller. See design Open Concern OC3 (2026-05-25).
+        if profile is None or isinstance(profile, str):
+            prof = get_profile(profile)
+        else:
+            prof = profile
+        if fit == "captive":
+            # Bit-exact backwards-compat: pass the resolved profile
+            # straight through. ``CaptiveNutPocket`` reads
+            # ``profile.free.radial`` / ``profile.free.axial``.
+            effective = prof
+        elif fit == "press":
+            # Synthesise a per-call ``ToleranceProfile`` whose ``free``
+            # slot carries the press allowances; ``CaptiveNutPocket``
+            # is unchanged and continues to read ``free.radial``/
+            # ``free.axial`` — but those now reflect ``prof.press``.
+            # Option A from design brief §5: keeps the
+            # ``CaptiveNutPocket`` wire contract byte-identical, only
+            # this method's behaviour changes.
+            effective = ToleranceProfile(
+                name=f"{prof.name}__press_synth",
+                free=prof.press,
+                slip=prof.slip,
+                press=prof.press,
+            )
+        else:
+            raise ValueError(
+                f"unknown fit {fit!r}; expected 'captive' or 'press'"
+            )
+        # ``CaptiveNutPocket`` reads ``profile.free.radial`` for the
+        # pocket inflation; the matching axial allowance lives on the
+        # same grade. Under ``fit="press"`` the synthesised profile
+        # routes the press allowance through this same path.
+        depth_allowance = effective.free.axial
         from vibe_cading.mechanical.holes import CaptiveNutPocket
-        pocket = CaptiveNutPocket(self.width_flats, self.thickness + depth_allowance, prof)
-        # The pocket translates down by `-thickness` internally, so to match the
-        # captive-pocket UP-from-XY convention we translate up by its thickness so
-        # it sits at Z=0 and goes to +h.  ``CaptiveNutPocket`` is blind-class
-        # (no terminal/entry overcut) — this consumer owns any host-body overcut.
-        return pocket.to_cutter().translate((0, 0, self.thickness + depth_allowance))
+        pocket = CaptiveNutPocket(
+            self.width_flats,
+            self.thickness + depth_allowance,
+            effective,
+        )
+        # The pocket translates down by `-thickness` internally, so to
+        # match the captive-pocket UP-from-XY convention we translate
+        # up by its thickness so it sits at Z=0 and goes to +h.
+        # ``CaptiveNutPocket`` is blind-class (no terminal/entry
+        # overcut) — this consumer owns any host-body overcut.
+        return pocket.to_cutter().translate(
+            (0, 0, self.thickness + depth_allowance)
+        )
 
     def to_captive_slot(self, slot_length: float, radial_allowance: float = 0.15, depth_allowance: float = 0.2) -> cq.Workplane:
         r = self.radius + radial_allowance
