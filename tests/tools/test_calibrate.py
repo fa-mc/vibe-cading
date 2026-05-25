@@ -475,6 +475,12 @@ def test_diameter_validates_against_sweep(calibrate, capsys):
 def test_active_profile_resolution(calibrate, monkeypatch, capsys):
     monkeypatch.setenv("VIBE_PRINT_PROFILE", "myprinter__pla")
     monkeypatch.delenv("VIBE_MACHINE_PROFILE", raising=False)
+    # Seed the profile so the env-resolved name is NOT fresh; otherwise
+    # the FR20 --yes-without-explicit-confirm guard would (correctly)
+    # block this run. The intent of this test is to verify env-var
+    # resolution, not the fresh-profile guard.
+    with open(calibrate._USER_FILE, "w") as f:
+        json.dump({"myprinter__pla": {}}, f)
     rc = calibrate.main([
         "free", "--diameter", "3.30", "--yes",
         # NO --profile — should resolve from env.
@@ -695,6 +701,97 @@ def test_all_mode_existing_profile_does_not_emit_slot_warning(
     assert "this session created a fresh profile" not in out, (
         "end-of-session slot-gap warning fired against an EXISTING profile"
     )
+
+
+# ── FR20-tighten — --yes without --profile on a fresh non-shipped name ──────
+def test_yes_fresh_env_profile_blocked_without_explicit_profile(
+    calibrate, monkeypatch, capsys
+):
+    """An env-var typo cannot silently create a stray profile entry.
+
+    Scenario: ``VIBE_PRINT_PROFILE=bumbu_p1s__test_typo`` (note the
+    "bumbu" typo for "bambu"), invoked with ``--yes`` and no
+    ``--profile``. The resolved name is fresh (no user file yet) and
+    not in ``_SHIPPED_PROFILE_NAMES``, so the FR20 guard MUST fire,
+    name the typo'd profile in stderr, suggest the corrective
+    ``--profile`` flag, and exit non-zero BEFORE any write.
+    """
+    monkeypatch.setenv("VIBE_PRINT_PROFILE", "bumbu_p1s__test_typo")
+    monkeypatch.delenv("VIBE_MACHINE_PROFILE", raising=False)
+    # Sentinel: input() should NEVER be called (--yes bypasses prompts,
+    # the guard fires before any per-knob prompting).
+    monkeypatch.setattr(
+        "builtins.input",
+        lambda *_: (_ for _ in ()).throw(
+            AssertionError("input() should not be called")
+        ),
+    )
+    assert not calibrate._USER_FILE.exists()
+
+    rc = calibrate.main(["free", "--diameter", "3.30", "--yes"])
+
+    assert rc != 0, "guard must exit non-zero on fresh-env-profile + --yes"
+    captured = capsys.readouterr()
+    assert "ERROR:" in captured.err
+    assert "bumbu_p1s__test_typo" in captured.err
+    assert "--profile bumbu_p1s__test_typo" in captured.err
+    # Guard fires before any write — user file must not have been
+    # created (or, if pre-existing, must remain empty / unchanged).
+    assert not calibrate._USER_FILE.exists(), (
+        "guard fired but a stray user file was still created"
+    )
+
+
+def test_yes_with_explicit_profile_creates_fresh_entry(
+    calibrate, monkeypatch
+):
+    """The guard does NOT over-trigger when --profile is explicit.
+
+    Negative control for the FR20 tighten: same env-var typo would
+    fire, but the user explicitly confirms creation via
+    ``--profile <name>`` so the run proceeds normally.
+    """
+    monkeypatch.setenv("VIBE_PRINT_PROFILE", "bumbu_p1s__test_typo")
+    monkeypatch.delenv("VIBE_MACHINE_PROFILE", raising=False)
+    monkeypatch.setattr(
+        "builtins.input",
+        lambda *_: (_ for _ in ()).throw(
+            AssertionError("input() should not be called")
+        ),
+    )
+    rc = calibrate.main([
+        "free", "--diameter", "3.30", "--yes",
+        "--profile", "bambu_p1s__pla_real",
+    ])
+    assert rc == 0
+    with open(calibrate._USER_FILE, "r") as f:
+        post = json.load(f)
+    assert "bambu_p1s__pla_real" in post
+
+
+def test_yes_resolves_to_shipped_default_proceeds(
+    calibrate, monkeypatch
+):
+    """Shipped fallback names are exempt from the FR20 tighten guard.
+
+    No env var, no ``--profile`` → ``_resolve_active_profile_name``
+    falls through to the hardcoded ``fdm_standard`` shipped default.
+    Even though that name is fresh (no user file yet), it IS in
+    ``_SHIPPED_PROFILE_NAMES`` so the guard exempts it.
+    """
+    monkeypatch.delenv("VIBE_PRINT_PROFILE", raising=False)
+    monkeypatch.delenv("VIBE_MACHINE_PROFILE", raising=False)
+    monkeypatch.setattr(
+        "builtins.input",
+        lambda *_: (_ for _ in ()).throw(
+            AssertionError("input() should not be called")
+        ),
+    )
+    rc = calibrate.main(["free", "--diameter", "3.30", "--yes"])
+    assert rc == 0
+    with open(calibrate._USER_FILE, "r") as f:
+        post = json.load(f)
+    assert "fdm_standard" in post
 
 
 # ── T28 — No third-party imports in helper or new gauges ─────────────────────
