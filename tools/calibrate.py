@@ -919,6 +919,36 @@ def main(argv: list[str] | None = None) -> int:
         profile_name not in pre_session_raw
     )
 
+    # FR20 hard guard — non-interactive (`--yes`) creation of a fresh
+    # non-shipped profile MUST be explicitly confirmed via `--profile`.
+    # Without this, an env-var typo
+    # (e.g. ``VIBE_PRINT_PROFILE=bumbu_p1s__pla`` instead of
+    # ``bambu_p1s__pla``) would silently materialise a stray entry on
+    # the next ``--yes`` run. The interactive path (no ``--yes``)
+    # already prompts for confirmation inside ``_run_one_knob``; this
+    # guard closes the matching ``--yes`` hole that the ``--yes`` flag's
+    # own help text already advertises. Fires ONCE at the top of
+    # ``main()`` so it short-circuits before any per-knob prompting.
+    if (
+        args.yes
+        and not args.profile
+        and profile_was_fresh_at_session_start
+        and profile_name not in _SHIPPED_PROFILE_NAMES
+    ):
+        print(
+            f"ERROR: --yes was passed but the resolved profile "
+            f"'{profile_name}' does not yet exist in "
+            f"print_profiles_user.json and is not a shipped fallback.\n"
+            f"To create a new profile entry non-interactively, also "
+            f"pass:\n"
+            f"    --profile {profile_name}\n"
+            f"This guard prevents silent stray entries from an env-var "
+            f"typo.\n"
+            f"(Resolved from: {profile_source}.)",
+            file=sys.stderr,
+        )
+        return 2
+
     for i, knob in enumerate(knobs):
         next_knob = knobs[i + 1] if i + 1 < len(knobs) else None
         rc = _run_one_knob(
