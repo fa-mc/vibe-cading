@@ -74,6 +74,21 @@ We are expanding this repository into a broader Code-CAD mechanical toolkit. Her
   once-guarded unknown-profile warning. Full design-flow trail with Step 3.5
   fresh-context reviewers + Phase B/C post-implementation reviewers (per
   `Domain integrity gate: YES`) at `.agents/plans/2026-05-23-print-profile-foundation_*`.
+- [ ] Visual-contract SVG size — investigate multi-variant gauge previews.
+  The per-gauge iso_ne SVGs for `MThreeClearanceGauge` (404 KB) and
+  `MThreeNutPocketGauge` (275 KB) shipped via [PR #10](https://github.com/fa-mc/vibe-cading/pull/10)
+  exceed the visual-contract rule's "~10-25 KB each" guidance
+  (`vibe/INSTRUCTIONS.md` §Visual Contract Deliverable). Live precedent
+  shows `2026-05-15-lego-technic-beam_design_iso_ne.svg` already at 251 KB,
+  so the guidance pre-dates multi-variant CAD previews. Two paths to
+  evaluate: (a) tune projection complexity / render single-variant gauge
+  previews to bring SVGs back under the budget; (b) update the
+  visual-contract guidance to reflect multi-variant CAD reality and raise
+  the size budget. Non-blocking for downstream work — the SVGs still serve
+  the visual contract (axis, hole pattern, labels visible) and remain
+  diffable as XML — but accumulating ~700 KB per design brief is repo
+  bloat worth addressing before OSS publication. Phase B Independent TL
+  flagged + recommended ACCEPT + DEFER. (Raised 2026-05-25.)
 
 ## 🚀 Transition to "Open Core" Engine
 Based on the ***REMOVED***, this repository (`vibe-cading`) will act as the public core engine for the `***REMOVED***`. We need to prepare it for external consumption:
