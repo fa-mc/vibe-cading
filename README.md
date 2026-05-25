@@ -158,7 +158,28 @@ Printed fits are printer- and material-dependent: the same model bores a tight h
 
 The resolved `slip` grade then carries `radial = 0.11` (your override) together with `axial = 0.20` and `slot = 0.10` inherited from the shipped `fdm_standard`. A typo'd leaf key (e.g. `radail`) is silently ignored downstream — the resolved tolerance falls back to the shipped value. A `null` override (e.g. `{"slot": null}`) is rejected with a clear error rather than silently zeroing.
 
-**Calibration helper.** The Lego axle slip fit is the project's canonical calibration target — print the `AxleHoleGauge` model and follow the procedure in [docs/lego-technic.md](docs/lego-technic.md) > *Tuning Tolerances* to convert the fitting hole diameter into a `slip.radial` value for your profile. A single-knob calibration CLI that writes the value into `print_profiles_user.json` for you is on the roadmap (see `TODO.md`).
+**Calibration helper.** Once you've printed a calibration gauge, run `python3 tools/calibrate.py` to write the calibrated value directly into your `print_profiles_user.json`:
+
+```bash
+python3 tools/calibrate.py                  # walk free.radial → press.radial
+python3 tools/calibrate.py free             # calibrate only free.radial
+python3 tools/calibrate.py press            # calibrate only press.radial
+python3 tools/calibrate.py slip             # opt-in: calibrate slip.radial (Lego axle)
+python3 tools/calibrate.py free --diameter 3.30 --yes \
+    --profile bambu_p1s__pla_overture       # one-shot non-interactive
+```
+
+The helper resolves the active profile (via `--profile`, `VIBE_PRINT_PROFILE`, or the hardcoded `fdm_standard` fallback), reads the best-fitting gauge variant you measured, computes `radial = (D − N) / 2` against the live source-of-truth nominal, and atomically writes the value into your user file. Per-knob field-level merge — your file stays a diff from shipped.
+
+v1 calibratable knobs and their default gauges:
+
+| Knob          | Gauge                                                                 | Nominal source                                        |
+|---------------|-----------------------------------------------------------------------|-------------------------------------------------------|
+| `free.radial` | `MThreeClearanceGauge` (M3 clearance hole)                            | `METRIC_SIZES["M3"]["clearance"] = 3.2 mm`            |
+| `press.radial`| `MThreeNutPocketGauge` (M3 nut press-fit pocket)                      | `MetricHexNut.DIMENSIONS["M3"]["width_flats"] = 5.5 mm` |
+| `slip.radial` | `AxleHoleGauge` (Lego axle slip fit — opt-in via `slip` subcommand)   | `AXLE_HOLE_TIP_TO_TIP = 4.80 mm`                      |
+
+Print the gauge first with `python3 tools/preview.py <module.path.GaugeClass> --views iso_ne` to see what you're going to print, then run the matching `tools/calibrate.py <knob>`. For the slip-fit calibration procedure (axle judging criteria), see [docs/lego-technic.md](docs/lego-technic.md) > *Tuning Tolerances*.
 
 **Deprecation window.** The legacy file names `machine_profiles.json` / `machine_profiles_user.json` and the legacy env var `VIBE_MACHINE_PROFILE` continue to be honoured during a deprecation window — first consumption per process emits a single warning. The legacy names will be removed at the OSS publication release; the loader prints the rename instruction at first contact.
 
