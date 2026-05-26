@@ -159,6 +159,7 @@ class LegoTechnicBeam:
         # [BEAM_THICKNESS - 1.0, BEAM_THICKNESS + 0.01] respectively — i.e. one
         # 1.0 mm counterbore well inset from each Z face.
         cutter_depth = BEAM_WIDTH + 2 * TechnicPinHole._ENTRY_OVERCUT
+        # Profile-awareness inherited from TechnicPinHole.standard default fit="slip".
         cutter = TechnicPinHole.standard(depth=cutter_depth).to_cutter()
 
         positions = [

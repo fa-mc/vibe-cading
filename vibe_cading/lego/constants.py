@@ -37,8 +37,18 @@ STUD_DIAMETER: float = 4.8    # Stud top diameter (mm)
 STUD_HEIGHT: float = 1.8      # Stud height above top face (mm)
 
 # ── Technic Pin Holes ─────────────────────────────────────────────────────────
+# PIN_HOLE_DIAMETER (4.8 mm) is the fixed real-Lego nominal envelope — no
+# printer clearance baked in.  TechnicPinHole now sources its printed bore
+# from the active ToleranceProfile (slip.radial by default) — see
+# vibe_cading/lego/cutters/technic_pin_hole.py and docs/print-tolerances.md
+# §2.1.  To tune the printed pin fit, calibrate slip.radial in
+# print_profiles_user.json via ``python3 tools/calibrate.py slip``.
+#
+# PIN_HOLE_PRINTED (legacy 4.85 mm constant) is deprecated and re-exposed
+# via the module-level ``__getattr__`` below — reads emit a one-shot
+# DeprecationWarning per process.  Planned removal at the OSS publication
+# release.  No code under vibe_cading/ reads PIN_HOLE_PRINTED any more.
 PIN_HOLE_DIAMETER: float = 4.8    # Nominal round pin hole diameter (mm)
-PIN_HOLE_PRINTED: float = float(os.getenv("PIN_HOLE_PRINTED", "4.85"))  # Recommended diameter for FDM printed parts (mm)
 HOLE_SPACING: float = 8.0         # Centre-to-centre hole spacing (mm)
 EDGE_TO_CENTRE: float = 4.0       # Distance from part edge to hole centre (mm)
 
@@ -94,3 +104,39 @@ AXLE_HOLE_ARM_WIDTH:  float = 1.83
 # ── Shared geometry defaults ──────────────────────────────────────────────────
 DEFAULT_CORNER_RADIUS: float = float(os.getenv("DEFAULT_CORNER_RADIUS", "0.4")) # Inner concave corner fillet radius (mm) — TechnicAxle
 DEFAULT_LEAD_IN: float = float(os.getenv("DEFAULT_LEAD_IN", "0.3"))             # End-face chamfer for easy sliding (mm)
+
+
+# ── Deprecated-attribute hook (PEP 562) ──────────────────────────────────────
+
+def __getattr__(name: str):
+    """PEP 562 module-level lazy attribute hook.
+
+    Currently used to deprecate ``PIN_HOLE_PRINTED`` — readers get the
+    legacy ``os.getenv("PIN_HOLE_PRINTED", "4.85")`` value plus a
+    one-shot deprecation warning per process.  The constant remains
+    importable for one release window (planned removal at OSS
+    publication, mirroring the ``VIBE_MACHINE_PROFILE`` precedent in
+    ``vibe_cading.print_settings``).
+
+    Note: ``from vibe_cading.lego.constants import *`` would silently
+    skip names resolved through ``__getattr__`` (PEP 562 fires only on
+    direct attribute lookup, not on the wildcard-import path).  Verified
+    zero wildcard importers of ``lego.constants`` exist in the repo as
+    of 2026-05-26 — this comment is for future contributors, not a
+    behaviour change.
+    """
+    if name == "PIN_HOLE_PRINTED":
+        # Lazy import inside the hook to avoid an import cycle if
+        # ``print_settings`` later imports ``lego.constants``.
+        from vibe_cading.print_settings import _emit_deprecation_once
+        _emit_deprecation_once(
+            "const_PIN_HOLE_PRINTED",
+            "vibe_cading.lego.constants.PIN_HOLE_PRINTED is deprecated; "
+            "TechnicPinHole now consumes profile.slip.radial. To tune the "
+            "printed pin-hole fit, calibrate slip.radial in "
+            "print_profiles_user.json via `python3 tools/calibrate.py slip`. "
+            "The legacy constant (and the PIN_HOLE_PRINTED .env override) "
+            "will be removed at the OSS publication release.",
+        )
+        return float(os.getenv("PIN_HOLE_PRINTED", "4.85"))
+    raise AttributeError(f"module {__name__!r} has no attribute {name!r}")
