@@ -29,6 +29,7 @@ Read [`_FALLBACK_PROFILES["fdm_standard"]`](../vibe_cading/print_settings.py#L62
 |---------|----------------------------------------------------------|---------------------------------------------------------------|------------|------------------------------------|
 | `free`  | [`ClearanceHole.to_cutter`](../vibe_cading/mechanical/holes.py#L92) | `r = D/2 + profile.free.radial`                               | D = 3.2 mm | 3.20 + 2·0.15 = **3.50 mm**        |
 | `slip`  | [`Bearing.shaft_cutter`](../vibe_cading/mechanical/bearings.py#L105) | `r = D_inner/2 + profile.slip.radial`                         | D = 5.0 mm | 5.00 + 2·0.05 = **5.10 mm**        |
+| `slip`  | [`TechnicPinHole.standard`](../vibe_cading/lego/cutters/technic_pin_hole.py) (default) | `bore = PIN_HOLE_DIAMETER + 2 * profile.slip.radial`         | D = 4.8 mm | 4.80 + 2·0.05 = **4.90 mm**        |
 | `press` | [`Bearing.outer_pocket`](../vibe_cading/mechanical/bearings.py#L81) | `r = D_outer/2 + profile.press.radial`                        | D = 10.0 mm | 10.00 + 2·0.04 = **10.08 mm**     |
 
 (`+0.04` on a press pocket sounds like it *loosens* the joint — it does, by exactly enough that an OD-`10.00 mm` bearing presses into a `10.08 mm` printed hole rather than failing to insert at all. Recalibrate against your own printer with [`tools/calibrate.py press`](../tools/calibrate.py).)
@@ -70,9 +71,10 @@ Each `FitGrade` carries three orthogonal numeric fields (see [`FitGrade`](../vib
 | `Standoff.to_cutter`                                                                           | `free`  | [`standoffs.py:84`](../vibe_cading/mechanical/standoffs.py#L84)                                  |
 | `PrintInPlaceHinge` (clearance + face gap)                                                     | `free`  | [`hinge.py:58-59`](../vibe_cading/mechanical/hinge.py#L58)                                       |
 | `TechnicAxleHole` (`TIP_TO_TIP` cross envelope; chooses grade by `fit=` kwarg)                 | `slip`* | [`technic_axle_hole.py:114`](../vibe_cading/lego/cutters/technic_axle_hole.py#L114)              |
+| `TechnicPinHole.standard` (round pin socket bore; chooses grade by `fit=` kwarg; counterbore stays at nominal) | `slip`* | [`technic_pin_hole.py`](../vibe_cading/lego/cutters/technic_pin_hole.py)                         |
 | `FreespinHexHub` (bearing pocket lateral inflation)                                            | `free`  | [`freespin_hex_hub.py:137`](../vibe_cading/rc/freespin_hex_hub.py#L137)                          |
 
-\* `TechnicAxleHole` defaults to `slip` but accepts `fit="free"` / `fit="press"`; the grade selection happens at construction.
+\* `TechnicAxleHole` and `TechnicPinHole` both default to `slip` but accept `fit="free"` / `fit="press"`; the grade selection happens at construction.
 
 ### 2.2 `axial` — extra material along the cut axis (typically Z)
 

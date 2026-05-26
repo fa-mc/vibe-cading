@@ -119,7 +119,13 @@ class ToleranceGauge:
             # plain cylinder for now to test raw diameter tolerance.
             pegs.append(peg)
 
-            # 4. Row 4 (y_coords[3]): Lego Technic pins (4.8mm hole)
+            # 4. Row 4 (y_coords[3]): Lego Technic pins (4.8mm hole).
+            # This row sweeps the same physical landscape TechnicPinHole reads
+            # through profile.slip.radial (post-2026-05-26 refactor) — the gauge
+            # is a *neutral visualisation* of the radial-allowance space.
+            # Passing ``diameter=`` explicitly takes the explicit-override branch
+            # in TechnicPinHole.__init__ (no profile widening applied on top), so
+            # each column prints the exact bore its ``+offset`` label advertises.
             pin_dia = PIN_HOLE_DIAMETER + 2 * offset
             pin_cutter = TechnicPinHole(depth=self.base_thickness, diameter=pin_dia).solid
             pin_cutter = pin_cutter.translate((x, y_coords[3], 0))

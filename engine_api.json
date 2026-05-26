@@ -294,12 +294,12 @@
       "module": "vibe_cading.lego.cutters.technic_pin_hole",
       "name": "TechnicPinHole",
       "fqn": "vibe_cading.lego.cutters.technic_pin_hole.TechnicPinHole",
-      "doc": "Lego Technic pin hole profile.\n\nBuilds a cylindrical cutter sized to the Technic pin *hole* dimensions,\nwith optional counterbores on both ends (matching the flanged recess on\nthe real part).\n\nUse the :pymeth:`to_cutter` method as a boolean cutter::\n\n    from vibe_cading.lego.cutters.technic_pin_hole import TechnicPinHole\n\n    hole = TechnicPinHole(depth=8.0)\n    part = part.cut(hole.to_cutter())\n\nThe legacy ``.solid`` accessor remains as an alias for backwards\ncompatibility and is read-only.\n\nThrough-vs-blind: this cutter is **blind** by design \u2014 the bore\nterminates exactly at the requested ``depth`` so the upper\ncounterbore forms a defined-floor cavity.  A 0.01 mm entry overcut\nis baked at Z=0 so the cutter clears the host face cleanly.\n\nParameters\n----------\ndepth:\n    Total axial depth of the hole (mm).\ndiameter:\n    Bore diameter (mm). Defaults to ``PIN_HOLE_DIAMETER`` (4.8 mm).\ncounterbore_depth:\n    Depth of each counterbore end cap (mm). Pass 0 to omit. Default 1.0.\ncounterbore_diameter:\n    Diameter of the counterbore flanges (mm). Default 6.2 mm.",
+      "doc": "Lego Technic pin hole profile.\n\nBuilds a cylindrical cutter sized to the Technic pin *hole* dimensions,\nwith optional counterbores on both ends (matching the flanged recess on\nthe real part).\n\nUse the :pymeth:`to_cutter` method as a boolean cutter::\n\n    from vibe_cading.lego.cutters.technic_pin_hole import TechnicPinHole\n\n    hole = TechnicPinHole(depth=8.0)\n    part = part.cut(hole.to_cutter())\n\nThe legacy ``.solid`` accessor remains as an alias for backwards\ncompatibility and is read-only.\n\nThrough-vs-blind: this cutter is **blind** by design \u2014 the bore\nterminates exactly at the requested ``depth`` so the upper\ncounterbore forms a defined-floor cavity.  A 0.01 mm entry overcut\nis baked at Z=0 so the cutter clears the host face cleanly.\n\nProfile awareness\n-----------------\n\n``PIN_HOLE_DIAMETER`` (4.8 mm) is the **real-Lego nominal** envelope \u2014\nno printer clearance is baked into the constant.  Printer / material\nclearance is supplied by the active\n:class:`~vibe_cading.print_settings.ToleranceProfile`:\n\n* The **bore** diameter is sized ``PIN_HOLE_DIAMETER + 2 *\n  grade.radial`` (the round envelope), matching ``TechnicAxleHole`` /\n  ``Bearing`` / ``ClearanceHole`` patterns.  ``fit`` selects the\n  :class:`~vibe_cading.print_settings.FitGrade` (\"slip\" / \"free\" /\n  \"press\"); default ``fit=\"slip\"`` per ``docs/print-tolerances.md``\n  \u00a71 (pin-in-printed-socket = slip semantics).\n* The **counterbore** diameter is **NOT** profile-widened.  It is a\n  seating surface for the real LEGO pin's flanged head (Cailliau\n  6.0\u20136.2 mm range) \u2014 a one-time press-down-and-seat interface, not\n  a sliding interface.  The default ``6.2 mm`` is already the\n  loose-FDM edge of the Cailliau range; adding ``2 * slip.radial``\n  on top would exceed the range and risk loss of seat.  The\n  counterbore stays printer-independent at this scale.\n\nTo tune the printed pin fit, calibrate ``slip.radial`` in\n``print_profiles_user.json`` via ``python3 tools/calibrate.py slip``\n\u2014 not the constants.  See ``docs/print-tolerances.md`` \u00a74.\n\nParameters\n----------\ndepth:\n    Total axial depth of the hole (mm).\ndiameter:\n    Explicit bore-diameter override (mm).  When ``None`` (the\n    default) the bore is computed as ``PIN_HOLE_DIAMETER + 2 *\n    profile.<fit>.radial``.  When non-``None`` the value wins\n    as-is \u2014 **no profile widening is applied on top**.  This\n    precedence is load-bearing for\n    :class:`~vibe_cading.mechanical.tolerance_gauge.ToleranceGauge`,\n    which pre-computes the exact bore it wants per column.\ncounterbore_depth:\n    Depth of each counterbore end cap (mm). Pass 0 to omit. Default 1.0.\ncounterbore_diameter:\n    Diameter of the counterbore flanges (mm). Default 6.2 mm.\n    Stays at nominal \u2014 see the *Profile awareness* note above.\nfit:\n    Tolerance fit grade selector \u2014 ``\"slip\"`` / ``\"free\"`` /\n    ``\"press\"``.  Default ``\"slip\"`` (pin-in-socket semantics).\n    Ignored when ``diameter`` is passed explicitly.\nprofile:\n    Manufacturing tolerance profile.  Accepts a\n    :class:`~vibe_cading.print_settings.ToleranceProfile` instance,\n    a string profile name (resolved via\n    :func:`~vibe_cading.print_settings.get_profile`), or ``None`` to\n    resolve the process-global profile lazily at construction time.\n    Ignored when ``diameter`` is passed explicitly.",
       "constructors": [
         {
           "kind": "classmethod",
           "name": "standard",
-          "doc": "Factory: standard Technic pin hole with default counterbore spec.",
+          "doc": "Factory: standard Technic pin hole with default counterbore spec.\n\nForwards ``fit`` and ``profile`` through to the constructor so\nthe printed bore tracks the active\n:class:`~vibe_cading.print_settings.ToleranceProfile`.  Counterbore\ndefaults remain at the real-liftarm Cailliau spec.",
           "params": [
             {
               "name": "depth",
@@ -322,9 +322,9 @@
             },
             {
               "name": "diameter",
-              "type": "float",
+              "type": "float | None",
               "required": false,
-              "default": "DEFAULT_DIAMETER",
+              "default": "None",
               "units": "mm"
             },
             {
@@ -340,6 +340,20 @@
               "required": false,
               "default": "DEFAULT_CB_DIAMETER",
               "units": "mm"
+            },
+            {
+              "name": "fit",
+              "type": "str",
+              "required": false,
+              "default": "'slip'",
+              "units": null
+            },
+            {
+              "name": "profile",
+              "type": "ToleranceProfile | str | None",
+              "required": false,
+              "default": "None",
+              "units": null
             }
           ]
         }

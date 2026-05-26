@@ -140,7 +140,7 @@ beam is as deep (along its short transverse axis) as it is tall.
 | End radius                 | 3.9 mm   | Rounded ends = half of beam width (7.8 / 2); per Cailliau |
 | 1M beam total length       | 8.0 mm   | One-hole beam (measured center-to-edge × 2)  |
 | nM beam total length       | (n-1)×8 + 8 mm | e.g. 5M = 40 mm, 9M = 72 mm          |
-| Printed hole clearance     | +0.1 mm  | Use 4.9 mm holes for a snug printed fit      |
+| Printed hole clearance     | `2 × slip.radial` mm | Profile-driven via `TechnicPinHole(fit="slip")`; calibrate `slip.radial` in `print_profiles_user.json` per `docs/print-tolerances.md` §4 |
 
 Numeric values above (beam thickness, beam width, end radius, counterbore
 diameter, counterbore depth) are sourced from
@@ -158,6 +158,13 @@ real-liftarm counterbore tolerance range of **6.0–6.2 mm diameter** and
 of the Cailliau range. The code defaults are intentional, not a doc/code
 drift: FDM-printed parts benefit from the looser counterbore so a real
 LEGO pin's collar seats reliably despite layer-line variation.
+
+Only the **bore** is now profile-driven (`PIN_HOLE_DIAMETER + 2 *
+profile.<fit>.radial`, default `fit="slip"`).  The counterbore dimensions
+stay at the hardcoded real-liftarm spec — the LEGO pin flange seats once
+in the counterbore (no sliding interface), and the 6.2 × 1.0 mm value is
+already the FDM-friendly edge of the Cailliau range, so widening it
+further would risk flange-seat loss.
 
 **Hole-axis convention.** Liftarm pin holes pass perpendicular to beam
 length. In this project's convention:
