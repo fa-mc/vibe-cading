@@ -319,6 +319,7 @@ class ServoCase:
         # We build a custom cutter with an outside counterbore but NO inside counterbore.
         # The standard TechnicPinHole has counterbores on both ends, which would pierce
         # and scar the inner servo cavity walls because it intersects the collar space.
+        # Profile-awareness inherited from TechnicPinHole.__init__ default fit="slip".
         base_bore = TechnicPinHole(depth=STUD_PITCH, counterbore_depth=0.0).solid
         cb_bottom = cylinder(TECHNIC_PIN_CB_DIAMETER / 2, TECHNIC_PIN_CB_DEPTH, center=(0, 0, 0))
         cutter = base_bore.union(cb_bottom)
