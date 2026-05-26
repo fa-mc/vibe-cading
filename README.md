@@ -143,6 +143,8 @@ Key constants are centralised in [`vibe_cading/lego/constants.py`](vibe_cading/l
 
 Printed fits are printer- and material-dependent: the same model bores a tight hole on one machine and a loose one on another. Dimensional *nominals* in the library are fixed real-world geometry; the per-machine clearance is carried separately by a `ToleranceProfile`. The project ships profiles (`fdm_standard`, `resin_precise`, `cnc`) in `print_profiles.json`; override them per-machine in the gitignored `print_profiles_user.json` and select the active one with `VIBE_PRINT_PROFILE`.
 
+For the full taxonomy reference — what each fit grade (`free` / `slip` / `press`) means physically, what each allowance (`radial` / `axial` / `slot`) modifies geometrically, which model classes read which knob, and the shipped 27-leaf-float snapshot — see [docs/print-tolerances.md](docs/print-tolerances.md). The rest of this section is the calibration workflow.
+
 **User key convention.** User-defined profile keys are recommended (not enforced) to follow the `<machine>__<material>[__<brand>]` lexical convention with `__` (double underscore) as the separator — for example `bambu_p1s__pla_overture`, `ender3__petg_polymaker`, `prusa_mk4__pla`. The convention is purely documentary; the loader treats every key as opaque. The shipped fallback keys (`fdm_standard`, `resin_precise`, `cnc`) remain the coarse-default categories and are exempt.
 
 **Field-level deep merge.** Your override file recursively deep-merges onto the shipped defaults, leaf-wins. This means you can calibrate a single value without restating the rest of a fit grade. For example, to bump only `slip.radial`:
