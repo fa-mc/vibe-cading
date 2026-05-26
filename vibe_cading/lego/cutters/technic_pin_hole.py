@@ -16,7 +16,7 @@
 import cadquery as cq
 from vibe_cading.lego.constants import PIN_HOLE_DIAMETER
 from vibe_cading.cq_utils import cylinder
-from vibe_cading.print_settings import ToleranceProfile
+from vibe_cading.print_settings import ToleranceProfile, get_profile
 
 
 # Standard Technic counterbore spec (measured from STP loose-fit file)
@@ -46,16 +46,60 @@ class TechnicPinHole:
     counterbore forms a defined-floor cavity.  A 0.01 mm entry overcut
     is baked at Z=0 so the cutter clears the host face cleanly.
 
+    Profile awareness
+    -----------------
+
+    ``PIN_HOLE_DIAMETER`` (4.8 mm) is the **real-Lego nominal** envelope —
+    no printer clearance is baked into the constant.  Printer / material
+    clearance is supplied by the active
+    :class:`~vibe_cading.print_settings.ToleranceProfile`:
+
+    * The **bore** diameter is sized ``PIN_HOLE_DIAMETER + 2 *
+      grade.radial`` (the round envelope), matching ``TechnicAxleHole`` /
+      ``Bearing`` / ``ClearanceHole`` patterns.  ``fit`` selects the
+      :class:`~vibe_cading.print_settings.FitGrade` ("slip" / "free" /
+      "press"); default ``fit="slip"`` per ``docs/print-tolerances.md``
+      §1 (pin-in-printed-socket = slip semantics).
+    * The **counterbore** diameter is **NOT** profile-widened.  It is a
+      seating surface for the real LEGO pin's flanged head (Cailliau
+      6.0–6.2 mm range) — a one-time press-down-and-seat interface, not
+      a sliding interface.  The default ``6.2 mm`` is already the
+      loose-FDM edge of the Cailliau range; adding ``2 * slip.radial``
+      on top would exceed the range and risk loss of seat.  The
+      counterbore stays printer-independent at this scale.
+
+    To tune the printed pin fit, calibrate ``slip.radial`` in
+    ``print_profiles_user.json`` via ``python3 tools/calibrate.py slip``
+    — not the constants.  See ``docs/print-tolerances.md`` §4.
+
     Parameters
     ----------
     depth:
         Total axial depth of the hole (mm).
     diameter:
-        Bore diameter (mm). Defaults to ``PIN_HOLE_DIAMETER`` (4.8 mm).
+        Explicit bore-diameter override (mm).  When ``None`` (the
+        default) the bore is computed as ``PIN_HOLE_DIAMETER + 2 *
+        profile.<fit>.radial``.  When non-``None`` the value wins
+        as-is — **no profile widening is applied on top**.  This
+        precedence is load-bearing for
+        :class:`~vibe_cading.mechanical.tolerance_gauge.ToleranceGauge`,
+        which pre-computes the exact bore it wants per column.
     counterbore_depth:
         Depth of each counterbore end cap (mm). Pass 0 to omit. Default 1.0.
     counterbore_diameter:
         Diameter of the counterbore flanges (mm). Default 6.2 mm.
+        Stays at nominal — see the *Profile awareness* note above.
+    fit:
+        Tolerance fit grade selector — ``"slip"`` / ``"free"`` /
+        ``"press"``.  Default ``"slip"`` (pin-in-socket semantics).
+        Ignored when ``diameter`` is passed explicitly.
+    profile:
+        Manufacturing tolerance profile.  Accepts a
+        :class:`~vibe_cading.print_settings.ToleranceProfile` instance,
+        a string profile name (resolved via
+        :func:`~vibe_cading.print_settings.get_profile`), or ``None`` to
+        resolve the process-global profile lazily at construction time.
+        Ignored when ``diameter`` is passed explicitly.
     """
 
     DEFAULT_DIAMETER: float = PIN_HOLE_DIAMETER
@@ -67,24 +111,62 @@ class TechnicPinHole:
     _ENTRY_OVERCUT: float = 0.01
 
     @classmethod
-    def standard(cls, depth: float) -> "TechnicPinHole":
-        """Factory: standard Technic pin hole with default counterbore spec."""
+    def standard(
+        cls,
+        depth: float,
+        *,
+        fit: str = "slip",
+        profile: ToleranceProfile | str | None = None,
+    ) -> "TechnicPinHole":
+        """Factory: standard Technic pin hole with default counterbore spec.
+
+        Forwards ``fit`` and ``profile`` through to the constructor so
+        the printed bore tracks the active
+        :class:`~vibe_cading.print_settings.ToleranceProfile`.  Counterbore
+        defaults remain at the real-liftarm Cailliau spec.
+        """
         return cls(
             depth=depth,
-            diameter=cls.DEFAULT_DIAMETER,
+            diameter=None,                                # route through profile
             counterbore_depth=cls.DEFAULT_CB_DEPTH,
             counterbore_diameter=cls.DEFAULT_CB_DIAMETER,
+            fit=fit,
+            profile=profile,
         )
 
     def __init__(
         self,
         depth: float,
-        diameter: float = DEFAULT_DIAMETER,
+        diameter: float | None = None,
         counterbore_depth: float = DEFAULT_CB_DEPTH,
         counterbore_diameter: float = DEFAULT_CB_DIAMETER,
+        fit: str = "slip",
+        profile: ToleranceProfile | str | None = None,
     ):
+        # Bore-diameter resolution — the single load-bearing formula.
+        # An explicit ``diameter=`` kwarg wins as-is; the profile path is
+        # only taken when the caller leaves the override at its ``None``
+        # default.  This precedence is documented in the class docstring
+        # and is load-bearing for tolerance_gauge.py (which sweeps the
+        # radial-allowance landscape directly via explicit diameters).
+        if diameter is not None:
+            bore_diameter = diameter
+        else:
+            # ``profile`` may be a ToleranceProfile instance, a string
+            # profile name, or None (lazy process-global lookup).
+            if profile is None or isinstance(profile, str):
+                profile = get_profile(profile) if isinstance(profile, str) else get_profile()
+            # ``fit`` maps to one of FitGrade("free"|"slip"|"press") on
+            # the resolved ToleranceProfile.  ``grade.radial`` is
+            # half-extra-material on diameter — the bore widens by
+            # ``2 * grade.radial``.  Mirrors TechnicAxleHole.TIP_TO_TIP.
+            grade = getattr(profile, fit)
+            bore_diameter = PIN_HOLE_DIAMETER + 2 * grade.radial
+
         self.depth = depth
-        self.diameter = diameter
+        self.diameter = bore_diameter
+        # Counterbore stays at nominal — printer-independent seating
+        # surface; see the *Profile awareness* note in the class docstring.
         self.counterbore_depth = counterbore_depth
         self.counterbore_diameter = counterbore_diameter
         self._solid = self._build()
