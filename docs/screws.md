@@ -79,7 +79,7 @@ plate_with_hole = plate.cut(cutter)
 
 For parts intended to be 3D printed, different materials shrink or bridge differently, resulting in undersized holes (especially in PETG or ASA).
 
-`to_cutter()` accepts a `profile` keyword that carries the radial and axial allowances together.  Pass a named profile from `print_profiles.json` (the global default is configured via the `VIBE_PRINT_PROFILE` env var) or construct a `ToleranceProfile` literal in code.  The profile's `free.radial` slot drives shaft inflation and `free.axial` drives the head recess depth — no separate `radial_allowance` / `head_recess_depth` floats are required.
+`to_cutter()` accepts a `profile` keyword that carries the radial and axial allowances together.  Pass a named profile from `print_profiles.json` (the global default is configured via the `PRINT_PROFILE` env var) or construct a `ToleranceProfile` literal in code.  The profile's `free.radial` slot drives shaft inflation and `free.axial` drives the head recess depth — no separate `radial_allowance` / `head_recess_depth` floats are required.
 
 ```python
 import cadquery as cq

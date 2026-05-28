@@ -427,7 +427,7 @@ def test_profile_name_confirmation(calibrate, monkeypatch):
     # Second scenario: omit --profile entirely; confirm prompt fires.
     # Reset the user file.
     calibrate._USER_FILE.unlink(missing_ok=True)
-    monkeypatch.setenv("VIBE_PRINT_PROFILE", "bambo_p1s__pla")
+    monkeypatch.setenv("PRINT_PROFILE", "bambo_p1s__pla")
     inputs2 = iter(["bambu_p1s__pla", "y"])  # corrects the typo
     monkeypatch.setattr("builtins.input", lambda *_: next(inputs2))
     rc = calibrate.main(["free", "--diameter", "3.30"])
@@ -471,10 +471,9 @@ def test_diameter_validates_against_sweep(calibrate, capsys):
     assert "3.20" in captured.err  # nominal must appear
 
 
-# ── T18 — Active-profile resolution via VIBE_PRINT_PROFILE ───────────────────
+# ── T18 — Active-profile resolution via PRINT_PROFILE ────────────────────────
 def test_active_profile_resolution(calibrate, monkeypatch, capsys):
-    monkeypatch.setenv("VIBE_PRINT_PROFILE", "myprinter__pla")
-    monkeypatch.delenv("VIBE_MACHINE_PROFILE", raising=False)
+    monkeypatch.setenv("PRINT_PROFILE", "myprinter__pla")
     # Seed the profile so the env-resolved name is NOT fresh; otherwise
     # the FR20 --yes-without-explicit-confirm guard would (correctly)
     # block this run. The intent of this test is to verify env-var
@@ -492,7 +491,7 @@ def test_active_profile_resolution(calibrate, monkeypatch, capsys):
 
 # ── T19 — --profile flag overrides env ───────────────────────────────────────
 def test_profile_flag_overrides_env(calibrate, monkeypatch, capsys):
-    monkeypatch.setenv("VIBE_PRINT_PROFILE", "from_env")
+    monkeypatch.setenv("PRINT_PROFILE", "from_env")
     rc = calibrate.main([
         "free", "--diameter", "3.30", "--yes",
         "--profile", "from_flag",
@@ -709,15 +708,14 @@ def test_yes_fresh_env_profile_blocked_without_explicit_profile(
 ):
     """An env-var typo cannot silently create a stray profile entry.
 
-    Scenario: ``VIBE_PRINT_PROFILE=bumbu_p1s__test_typo`` (note the
+    Scenario: ``PRINT_PROFILE=bumbu_p1s__test_typo`` (note the
     "bumbu" typo for "bambu"), invoked with ``--yes`` and no
     ``--profile``. The resolved name is fresh (no user file yet) and
     not in ``_SHIPPED_PROFILE_NAMES``, so the FR20 guard MUST fire,
     name the typo'd profile in stderr, suggest the corrective
     ``--profile`` flag, and exit non-zero BEFORE any write.
     """
-    monkeypatch.setenv("VIBE_PRINT_PROFILE", "bumbu_p1s__test_typo")
-    monkeypatch.delenv("VIBE_MACHINE_PROFILE", raising=False)
+    monkeypatch.setenv("PRINT_PROFILE", "bumbu_p1s__test_typo")
     # Sentinel: input() should NEVER be called (--yes bypasses prompts,
     # the guard fires before any per-knob prompting).
     monkeypatch.setattr(
@@ -751,8 +749,7 @@ def test_yes_with_explicit_profile_creates_fresh_entry(
     fire, but the user explicitly confirms creation via
     ``--profile <name>`` so the run proceeds normally.
     """
-    monkeypatch.setenv("VIBE_PRINT_PROFILE", "bumbu_p1s__test_typo")
-    monkeypatch.delenv("VIBE_MACHINE_PROFILE", raising=False)
+    monkeypatch.setenv("PRINT_PROFILE", "bumbu_p1s__test_typo")
     monkeypatch.setattr(
         "builtins.input",
         lambda *_: (_ for _ in ()).throw(
@@ -779,8 +776,7 @@ def test_yes_resolves_to_shipped_default_proceeds(
     Even though that name is fresh (no user file yet), it IS in
     ``_SHIPPED_PROFILE_NAMES`` so the guard exempts it.
     """
-    monkeypatch.delenv("VIBE_PRINT_PROFILE", raising=False)
-    monkeypatch.delenv("VIBE_MACHINE_PROFILE", raising=False)
+    monkeypatch.delenv("PRINT_PROFILE", raising=False)
     monkeypatch.setattr(
         "builtins.input",
         lambda *_: (_ for _ in ()).throw(

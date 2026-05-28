@@ -115,8 +115,7 @@ def __getattr__(name: str):
     legacy ``os.getenv("PIN_HOLE_PRINTED", "4.85")`` value plus a
     one-shot deprecation warning per process.  The constant remains
     importable for one release window (planned removal at OSS
-    publication, mirroring the ``VIBE_MACHINE_PROFILE`` precedent in
-    ``vibe_cading.print_settings``).
+    publication).
 
     Note: ``from vibe_cading.lego.constants import *`` would silently
     skip names resolved through ``__getattr__`` (PEP 562 fires only on

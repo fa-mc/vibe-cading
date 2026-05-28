@@ -29,7 +29,9 @@ working transparently.  The 2026-05-23 refactor adds field-level
 deep-merge semantics (a user can override one leaf without restating
 its siblings), file/env-var rename to ``print_profiles*`` /
 ``VIBE_PRINT_PROFILE``, and a single deprecation window honouring the
-legacy names.
+legacy names.  The 2026-05-28 follow-on hard-cuts the env-var to
+``PRINT_PROFILE`` (dropping the ``VIBE_`` prefix and the
+``VIBE_MACHINE_PROFILE`` legacy branch).
 
 This module asserts:
 
@@ -345,7 +347,7 @@ def test_get_profile_unknown_falls_back_to_hardcoded(capsys):
     heuristic was dropped — unknown profile names no longer silently propagate
     as the resolved profile's label.  Instead, ``get_profile`` emits a stderr
     warning and returns a profile labelled ``"fdm_standard"`` (the coarse-default
-    fallback).  This surfaces calibration mistakes (typos in ``VIBE_PRINT_PROFILE``,
+    fallback).  This surfaces calibration mistakes (typos in ``PRINT_PROFILE``,
     missing profile entries) that the old silent-pass-through hid.
     """
     prof = get_profile("some_unknown_profile_name_xyz")
@@ -718,8 +720,9 @@ def test_shipped_profiles_pinned_tuples(tmp_path, monkeypatch):
 # --------------------------------------------------------------------------
 
 def test_env_new_var_wins(monkeypatch, capsys, reset_deprecations):
-    """T10 (FR2): ``VIBE_PRINT_PROFILE`` set → wins; no deprecation warning."""
-    monkeypatch.setenv("VIBE_PRINT_PROFILE", "my_custom_profile")
+    """T10 (FR1): ``PRINT_PROFILE`` set → wins; no deprecation warning."""
+    monkeypatch.setenv("PRINT_PROFILE", "my_custom_profile")
+    monkeypatch.delenv("VIBE_PRINT_PROFILE", raising=False)
     monkeypatch.delenv("VIBE_MACHINE_PROFILE", raising=False)
     with warnings.catch_warnings(record=True) as caught:
         warnings.simplefilter("always")
@@ -730,25 +733,42 @@ def test_env_new_var_wins(monkeypatch, capsys, reset_deprecations):
     assert not any(issubclass(w.category, DeprecationWarning) for w in caught)
 
 
-def test_env_legacy_var_with_warning(monkeypatch, capsys, reset_deprecations):
-    """T11 (FR12, FR13, Q1): only ``VIBE_MACHINE_PROFILE`` set → returned with deprecation."""
-    monkeypatch.delenv("VIBE_PRINT_PROFILE", raising=False)
-    monkeypatch.setenv("VIBE_MACHINE_PROFILE", "my_legacy_value")
+def test_env_legacy_vars_no_longer_read(monkeypatch, capsys, reset_deprecations):
+    """T11 (FR1, FR4): legacy ``VIBE_*_PROFILE`` env vars set, canonical
+    ``PRINT_PROFILE`` unset → resolves to ``"fdm_standard"``.
+
+    Hard-cut regression guard added 2026-05-28 (env-var-prefix-drop PR,
+    superseded by the supersession note in
+    ``.agents/plans/2026-05-28-env-var-prefix-drop_req.md``).  The PR #8
+    deprecation window for the ``VIBE_`` prefix is closed — neither
+    ``VIBE_PRINT_PROFILE`` nor ``VIBE_MACHINE_PROFILE`` is consulted by
+    the resolver any longer.  A future contributor accidentally
+    re-introducing the legacy branch trips this test.  Per Admin's
+    hard-cut posture (Open Question Q1 resolution), the fallback is
+    silent — no deprecation warning is emitted; the contributor
+    discovers the rename via tooling / docs / first-print fit drift.
+    """
+    monkeypatch.delenv("PRINT_PROFILE", raising=False)
+    monkeypatch.setenv("VIBE_PRINT_PROFILE", "should_be_ignored_legacy")
+    monkeypatch.setenv("VIBE_MACHINE_PROFILE", "should_also_be_ignored")
     with warnings.catch_warnings(record=True) as caught:
         warnings.simplefilter("always")
         name = get_default_profile_name()
-    assert name == "my_legacy_value"
+    assert name == "fdm_standard", (
+        "Legacy VIBE_*_PROFILE env vars must NOT influence the resolved "
+        "profile name post-2026-05-28 hard-cut."
+    )
     captured = capsys.readouterr()
-    assert captured.err.count("DEPRECATION") == 1
-    assert "VIBE_MACHINE_PROFILE" in captured.err
-    assert "VIBE_PRINT_PROFILE" in captured.err
-    deprecation_warnings = [w for w in caught if issubclass(w.category, DeprecationWarning)]
-    assert len(deprecation_warnings) == 1
-    assert "OSS publication release" in str(deprecation_warnings[0].message)
+    assert "DEPRECATION" not in captured.err, (
+        "Hard-cut posture (Q1): no deprecation warning on legacy env var; "
+        "silent fallback to fdm_standard."
+    )
+    assert not any(issubclass(w.category, DeprecationWarning) for w in caught)
 
 
 def test_env_neither_returns_default(monkeypatch, capsys, reset_deprecations):
-    """T12 (FR12): neither env var set → ``"fdm_standard"``."""
+    """T12 (FR1): no env var set → ``"fdm_standard"``."""
+    monkeypatch.delenv("PRINT_PROFILE", raising=False)
     monkeypatch.delenv("VIBE_PRINT_PROFILE", raising=False)
     monkeypatch.delenv("VIBE_MACHINE_PROFILE", raising=False)
     name = get_default_profile_name()
@@ -869,8 +889,8 @@ def test_module_docstring_documents_new_contracts():
     """
     doc = print_settings_module.__doc__
     assert doc is not None
-    # Q4 — canonical env var name.
-    assert "VIBE_PRINT_PROFILE" in doc
+    # Canonical env var name (post-2026-05-28 hard-cut of VIBE_ prefix).
+    assert "PRINT_PROFILE" in doc
     # Q4 — canonical file name.
     assert "print_profiles.json" in doc
     # Q4 — key convention with `__` separator (search both quoted and unquoted).
