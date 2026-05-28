@@ -23,15 +23,11 @@ foundation refactor); earlier history in
 The Phase 3 refactor restructured ``ToleranceProfile`` from a flat
 ``z_clearance``/``free_fit``/``slip_fit``/``press_fit`` shape into a
 nested ``{free, slip, press}`` of ``FitGrade(radial, axial)`` slots.
-A legacy-flat → nested bridge keeps old user-local
-``machine_profiles_user.json`` / ``print_profiles_user.json`` files
-working transparently.  The 2026-05-23 refactor adds field-level
-deep-merge semantics (a user can override one leaf without restating
-its siblings), file/env-var rename to ``print_profiles*`` /
-``VIBE_PRINT_PROFILE``, and a single deprecation window honouring the
-legacy names.  The 2026-05-28 follow-on hard-cuts the env-var to
-``PRINT_PROFILE`` (dropping the ``VIBE_`` prefix and the
-``VIBE_MACHINE_PROFILE`` legacy branch).
+A legacy-flat → nested bridge keeps old ``print_profiles_user.json``
+files working transparently.  The 2026-05-23 refactor adds
+field-level deep-merge semantics (a user can override one leaf
+without restating its siblings) and the file/env-var rename to
+``print_profiles*`` / ``PRINT_PROFILE``.
 
 This module asserts:
 
@@ -299,10 +295,8 @@ def test_legacy_flat_migration_yields_zero_slot():
     Stage 2b Test #3: the legacy flat schema has no narrow-slot concept,
     so ``_migrate_flat_to_nested`` emits no ``slot`` key and the loader
     defaults it to 0.0 — a stale legacy-flat ``print_profiles_user.json``
-    (or the legacy-named ``machine_profiles_user.json`` still in the
-    deprecation window) keeps pre-Stage-2b narrow-slot behaviour,
-    intentionally diverging from the shipped nested ``fdm_standard``
-    (``slip.slot = 0.10``).
+    keeps pre-Stage-2b narrow-slot behaviour, intentionally diverging
+    from the shipped nested ``fdm_standard`` (``slip.slot = 0.10``).
     """
     legacy = {
         "z_clearance": 0.20,
@@ -543,7 +537,7 @@ def test_deep_merge_null_leaf_in_override_only_subtree_raises():
 
 
 # --------------------------------------------------------------------------
-# T6–T8: file-resolution chain (Data Contract §4)
+# T6: file-resolution chain (Data Contract §4)
 # --------------------------------------------------------------------------
 
 def _import_print_settings_against(tmp_path, monkeypatch):
@@ -579,45 +573,33 @@ def test_loader_prefers_new_shipped_filename(tmp_path, monkeypatch, capsys):
     assert not any(issubclass(w.category, DeprecationWarning) for w in caught)
 
 
-def test_loader_legacy_shipped_emits_deprecation(tmp_path, monkeypatch, capsys):
-    """T7 (FR12, FR13, Q1): only ``machine_profiles.json`` present → loaded with one deprecation."""
-    mod = _import_print_settings_against(tmp_path, monkeypatch)
-    (tmp_path / "machine_profiles.json").write_text(json.dumps({
-        "fdm_standard": {
-            "free":  {"radial": 0.15, "axial": 0.20},
-            "slip":  {"radial": 0.05, "axial": 0.20, "slot": 0.10},
-            "press": {"radial": 0.04, "axial": 0.20},
-        },
-    }))
-    with warnings.catch_warnings(record=True) as caught:
-        warnings.simplefilter("always")
-        profiles = mod._load_json_profiles()
-    assert "fdm_standard" in profiles
-    captured = capsys.readouterr()
-    # Exactly one stderr DEPRECATION line, one DeprecationWarning.
-    assert captured.err.count("DEPRECATION") == 1
-    assert "machine_profiles.json" in captured.err
-    assert "print_profiles.json" in captured.err
-    deprecation_warnings = [w for w in caught if issubclass(w.category, DeprecationWarning)]
-    assert len(deprecation_warnings) == 1
-    assert "OSS publication release" in str(deprecation_warnings[0].message)
+def test_resolvers_return_canonical_paths_or_none(tmp_path, monkeypatch):
+    """Regression guard for the OSS-publication hard-cut of legacy filenames.
 
-
-def test_loader_both_shipped_prefers_new(tmp_path, monkeypatch, capsys):
-    """T8 (FR12, FR13): both shipped files present → new wins, deprecation warns of ignored legacy."""
+    Without this guard, a future contributor accidentally re-introducing a
+    legacy branch with the wrong precedence order goes undetected.  Asserts
+    each resolver returns the canonical file when present and ``None`` when
+    absent — no dual-path or legacy-name behaviour is permitted.
+    """
     mod = _import_print_settings_against(tmp_path, monkeypatch)
-    new_data = {"fdm_standard": {"slip": {"radial": 0.05, "axial": 0.20, "slot": 0.10}}}
-    legacy_data = {"fdm_standard": {"slip": {"radial": 999.0, "axial": 0.0, "slot": 0.0}}}
-    (tmp_path / "print_profiles.json").write_text(json.dumps(new_data))
-    (tmp_path / "machine_profiles.json").write_text(json.dumps(legacy_data))
-    with warnings.catch_warnings(record=True):
-        warnings.simplefilter("always")
-        profiles = mod._load_json_profiles()
-    # New file's value wins.
-    assert profiles["fdm_standard"]["slip"]["radial"] == 0.05
-    captured = capsys.readouterr()
-    assert "IGNORING" in captured.err
-    assert "machine_profiles.json" in captured.err
+
+    assert mod._resolve_shipped_file() is None
+    assert mod._resolve_user_file() is None
+
+    shipped = tmp_path / "print_profiles.json"
+    shipped.write_text("{}")
+    user = tmp_path / "print_profiles_user.json"
+    user.write_text("{}")
+    assert mod._resolve_shipped_file() == shipped
+    assert mod._resolve_user_file() == user
+
+    # Legacy-named files are NOT honoured post-hard-cut.
+    (tmp_path / "machine_profiles.json").write_text("{}")
+    (tmp_path / "machine_profiles_user.json").write_text("{}")
+    shipped.unlink()
+    user.unlink()
+    assert mod._resolve_shipped_file() is None
+    assert mod._resolve_user_file() is None
 
 
 # --------------------------------------------------------------------------
@@ -653,7 +635,7 @@ def test_backward_compat_snapshot(tmp_path, monkeypatch):
             "press": {"radial": 0.00, "axial": 0.00},
         },
     }))
-    # User: today's maintainer machine_profiles_user.json content (verbatim).
+    # User: today's maintainer print_profiles_user.json content (verbatim).
     (tmp_path / "print_profiles_user.json").write_text(json.dumps({
         "bambu_p1s": {
             "free":  {"radial": 0.15, "axial": 0.20},
@@ -899,8 +881,6 @@ def test_module_docstring_documents_new_contracts():
     assert "deep-merge" in doc.lower() or "deep merge" in doc.lower()
     # Q3 — null rejection rule.
     assert "null" in doc.lower()
-    # Q6 — cutover criterion.
-    assert "OSS publication release" in doc
 
 
 # --------------------------------------------------------------------------
