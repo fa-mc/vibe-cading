@@ -147,7 +147,7 @@ Key constants are centralised in [`vibe_cading/lego/constants.py`](vibe_cading/l
 
 > **TL;DR for new contributors.** The shipped `print_profiles.json` is a *starting point*, not a contract. After cloning:
 > 1. Copy `print_profiles.json.example` → `print_profiles_user.json` (the workspace initializer does this).
-> 2. Print the axle gauge: `python3 tools/preview.py vibe_cading.lego.axle_hole_gauge.AxleHoleGauge --views iso_ne`, then build + print it.
+> 2. Export the axle gauge to STEP and slice/print it on your machine: `python3 tools/view.py vibe_cading.lego.axle_hole_gauge.AxleHoleGauge --export tmp/axle_gauge.step` (preview first with `tools/preview.py … --views iso_ne` if you want to confirm it looks right).
 > 3. Run `python3 tools/calibrate.py slip` — it writes the measured `slip.radial` into your gitignored `print_profiles_user.json`.
 > 4. Set `PRINT_PROFILE=<your_profile>` in `.env` (defaults to `fdm_standard`).
 >
