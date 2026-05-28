@@ -2,100 +2,186 @@
 
 Welcome! `vibe-cading` is an open-source library for generating parametric 3D CAD models using [CadQuery](https://github.com/CadQuery/cadquery) (Python).
 
-Our primary goal is to build a robust, generic Code-CAD toolkit for mechanical design (fasteners, joints, enclosures), with practical examples showing how to interface domain-specific ecosystems like **RC (radio-controlled) components** and **Lego Technic**.
+The primary goal is a robust, generic Code-CAD toolkit for mechanical design (fasteners, joints, enclosures), with practical examples showing how to interface domain-specific ecosystems like **RC (radio-controlled) components** and **Lego Technic**.
 
-This project is built using an **AI-first, Agentic Workflow**. To contribute effectively, please read through our design principles and AI workflow guidelines below.
-
----
-
-## 🏗️ 1. Core Design Principles
-
-We hold our codebase to a high standard of structural quality and mathematical rigor.
-
-*   **Fundamental Geometry over Hacky Patches:**
-    Do not use arbitrary translations, clipping boxes, or brute-force boolean intersections just to "make it look right" for one specific set of parameters. Geometry should be anchored to logical origins (e.g., centering a gear on `(0, 0, 0)`) and scale cleanly via parameters.
-*   **No Overly Specific Hardcoding (Magic Numbers):**
-    Dimensions must be derived from fundamental parameters (e.g., `self.length = holes * 8.0`) or imported from centralized constants (like `vibe_cading.lego.constants`).
-*   **The 8 mm Technic Standard:**
-    All Lego-compatible models must align with the 8 mm stud grid. Use standard values for Technic pins (4.8 mm diameter) and axles (5.0 mm clearance). See `docs/lego-technic.md` for exact values.
-*   **Generic Tooling:**
-    Shared features (like standard Technic axle holes, generic mounting tabs, or fillets) should be abstracted into reusable functions in `vibe_cading/cq_utils.py` or base classes. Do not copy-paste raw boolean cuts across different models.
-*   **All units are in millimeters (mm).**
+This project is built using an **AI-first, Agentic Workflow**. Please skim the design principles, the AI workflow, and §5 *Project Conventions That Will Fail Your PR* before opening one.
 
 ---
 
-## 🤖 2. The Agentic AI Workflow
+## 📜 1. License & CLA
 
-We strongly encourage contributors to use [Claude Code](https://claude.com/claude-code) to generate code. To manage the complexity of CAD, we use a three-role system:
+`vibe-cading` is licensed under **[AGPLv3](LICENSE)**.
 
-1.  **Admin**: Understands the global instruction set (`CLAUDE.md`) and helps refine requirements. Open-source contributors act as the Admin manually, or supply their own personal `admin` agent loaded from `~/.claude/`.
-2.  **Designer** (`designer` subagent): Brainstorms, digests reference material (STEP files, drawings), resolves geometric ambiguities, and writes a **Design Brief**. Focuses on *what* to build and *why*.
-3.  **Developer** (`developer` subagent): Has responsibility over the Python code structure. Implements the Design Brief by writing CadQuery classes and validation tooling.
+**Contributor License Agreement.** Every PR is checked by the CLA Assistant bot ([`.github/workflows/cla.yml`](.github/workflows/cla.yml)). On your first PR the bot will comment with a link to this file; reply on the PR thread with exactly:
 
-### How to Use the Workflow
-If you are adding a complex new model:
-1. Provide the reference material (STEP files, specs) and ask the **Designer** to analyze it and produce a Design Brief (saved to `.agents/plans/`). In Claude Code: *"use the designer agent to analyze ref.step and produce a brief"*.
-2. Once the brief is clear, hand it over to the **Developer** to write the code (Claude Code will normally transition automatically once the brief is approved).
-3. The Developer must run the validation tools before considering the task complete.
+> `I have read the CLA Document and I hereby sign the CLA`
 
-*(Note: `.agents/` is gitignored and used locally to stage AI artefacts (design briefs in `.agents/plans/`). The canonical agent personas and slash-command definitions live under `vibe/agents/` and `vibe/commands/` (tracked, tool-neutral); Claude Code picks them up via per-clone runtime aliases under `.claude/` populated by `tools/init-claude-runtime.sh`. See `docs/agentic-workflow.md` for deep details on this protocol).*
+Your signature is recorded in [`signatures/version1/cla.json`](signatures/version1/cla.json) and covers all of your future contributions. By signing, you agree that your contributions are licensed under AGPLv3 and that you have the right to submit them.
 
-> Maintainer-style roles (Admin, TL, PM) are not shipped with this repository — the human contributor fills them. As an open-source contributor you act as the Admin yourself; the `designer` and `developer` subagents are the complete contributor toolkit and need no additional install. Maintainers who prefer dedicated Admin / TL / PM agents can load their own personas from `~/.claude/`.
+**AGPLv3 header.** Every new `.py` file under [`vibe_cading/`](vibe_cading/), [`parts/`](parts/), or [`tools/`](tools/) must carry the AGPLv3 header at the top (copy from any existing file — look for the *"vibe-cading is free software"* block). Empty `__init__.py` files are exempt. This is enforced by [`tools/check_license_headers.py`](tools/check_license_headers.py) which runs inside `python build.py` (and therefore the CI build-smoke step).
 
 ---
 
-## 🛠️ 3. Repository Hygiene & `tmp/`
+## 💬 2. Where to Discuss
 
-CAD development requires extensive trial and error, parameter sweeping, and visual debugging.
+- **Bug reports & feature requests:** [GitHub Issues](https://github.com/fa-mc/vibe-cading/issues)
+- **Design discussion / open-ended questions:** [GitHub Discussions](https://github.com/fa-mc/vibe-cading/discussions) (if enabled) or open an issue tagged `discussion`.
 
-*   **The `tmp/` Directory:** All throwaway metric checks (`check_gap.py`), specific parameter tests, boolean visualizers, and debug scripts **must** be placed in the `tmp/` folder.
-*   **No Clutter:** Do not pollute the `vibe_cading/` library tree, the `parts/` tree, or the repository root with `test.py` or isolated `.step` exports. The `.gitignore` is set up to ignore `tmp/` and `output/` automatically.
-*   The `vibe_cading/` (library) and `parts/` (project-specific) trees must remain clean, purely declarative, and strictly contain reusable CadQuery classes — library-generic in the former, project-specific in the latter.
-
----
-
-## 🔬 4. Validation Tools
-
-Before submitting a Pull Request, you must validate that your models compile and match the requirements.
-
-We provide several CLI utilities in the `tools/` folder:
-*   `python3 tools/preview.py <module.path.ClassName>`: Generates orthographic SVGs (Top, Front, Left) to visually validate oriention and dimensions against technical drawings.
-*   `python3 tools/section_slicer.py`: Slices a generated part to ensure internal features (like blind holes, snap rings, or counterbores) were cut correctly.
-*   `python3 tools/boolean_diff.py`: Compares your generated CadQuery model against a reference STEP file to check for volume deviations.
+For non-trivial geometry changes, please open an issue first describing the use case — the Designer-side analysis is usually the long pole, and we'd rather collaborate on the brief than rework a PR.
 
 ---
 
-## 💻 5. Dev Environment Overview
+## 🛠️ 3. Dev Setup
 
-*   **Language:** Python 3
-*   **Library:** CadQuery
-*   **Environment:** Use the provided VS Code Dev Container (Debian GNU/Linux). It includes everything you need.
-*   Use the system `python3` binary directly inside the container. We do not use isolated virtual environments (`venv`) for this project, as the container itself provides the isolation.
+The repo ships a VS Code Dev Container with everything pre-installed (Python 3.11, CadQuery, OCP CAD Viewer, Claude Code). See [README.md > Dev Setup](README.md#dev-setup) for the click-by-click.
 
-We look forward to your contributions!
+**First-clone checklist:**
+
+1. **Reopen in Container** when VS Code prompts.
+2. **Initialize the workspace.** From inside Claude Code: *"please initialize the project"*. This creates `tmp/` and `.agents/plans/`, copies `print_profiles.json.example` → `print_profiles_user.json`, and runs [`tools/init-claude-runtime.sh`](tools/init-claude-runtime.sh) to populate the per-clone `.claude/` runtime aliases. (Equivalent manual steps are documented in [vibe/INSTRUCTIONS.md](vibe/INSTRUCTIONS.md) §*Workspace Initialization*.)
+3. **Calibrate your printer's `slip.radial`.** The shipped `fdm_standard` profile is a reasonable starting point, but the slip fit for Lego pins/axles is printer-specific. Print the axle gauge and run `python3 tools/calibrate.py slip` — the calibrated value lands in your gitignored `print_profiles_user.json`. Full procedure in [README.md > Print Tolerances & Calibration](README.md#print-tolerances--calibration).
+4. **Try an example.** `python3 examples/lego_technic_beam.py` writes a STEP file under `examples/build/` — confirms your environment works end-to-end.
+
+**Local dev loop:**
+
+```bash
+python3 tools/preview.py <module.path.ClassName>   # iterate on geometry
+python3 tools/view.py    <module.path.ClassName>   # live OCP viewer
+python -m pytest tests/ -v                         # unit + smoke tests
+python tools/check_no_main_blocks.py               # CI-enforced lint
+flake8 .                                           # CI-enforced lint
+python build.py                                    # CI-enforced full build smoke
+```
+
+Run these locally before opening a PR — they mirror the CI gates (§6).
 
 ---
 
-## 📦 6. Engine API artifact
+## 🏗️ 4. Core Design Principles
 
-`engine_api.json` at the repo root is a machine-readable index of every public model class in `vibe_cading/**` and `parts/**`. Downstream LLM code-gen tooling (e.g. the platform's `query_engine_api` MCP) consumes it to call engine classes deterministically. It is generated, not hand-written, and **must stay in sync with `vibe_cading/**` + `parts/**`**.
+We hold the codebase to a high standard of structural quality and mathematical rigor.
+
+- **Fundamental Geometry over Hacky Patches:** No arbitrary translations, clipping boxes, or brute-force boolean intersections to "make it look right" for one parameter set. Anchor geometry to logical origins (e.g. center a gear on `(0, 0, 0)`) and scale cleanly via parameters.
+- **No Magic Numbers:** Derive dimensions from fundamental parameters (`self.length = holes * 8.0`) or import from centralized constants ([`vibe_cading.lego.constants`](vibe_cading/lego/constants.py)).
+- **The 8 mm Technic Standard:** All Lego-compatible models align with the 8 mm stud grid. Use standard values for Technic pins (4.8 mm) and axles (5.0 mm). See [docs/lego-technic.md](docs/lego-technic.md).
+- **Generic Tooling:** Shared features (axle holes, mounting tabs, fillets) belong in [`vibe_cading/cq_utils.py`](vibe_cading/cq_utils.py) or base classes — not copy-pasted across models.
+- **Tolerances via Profiles, Not Magic Floats:** Never hardcode a clearance like `+ 0.2` in a boolean cut. Use `vibe_cading.print_settings.get_profile(...)` and pass the resolved `ToleranceProfile` through. See [docs/print-tolerances.md](docs/print-tolerances.md).
+- **All units in millimeters (mm).**
+
+---
+
+## 🤖 5. The Agentic AI Workflow
+
+We strongly recommend using an AI coding host like [Claude Code](https://claude.com/claude-code) for non-trivial geometry work. The repository ships **two contributor subagents** under [`vibe/agents/`](vibe/agents/):
+
+1. **[`designer`](vibe/agents/designer.md)** — brainstorms, digests reference material (STEP files, drawings), resolves geometric ambiguities, and writes a *Design Brief* to `.agents/plans/`. Focuses on *what* to build and *why*.
+2. **[`developer`](vibe/agents/developer.md)** — implements the brief: Python code structure, CadQuery classes, validation tooling. Focuses on *how*.
+
+The maintainer-style roles (`admin`, `tl`, `pm`) are **intentionally not shipped**. As an open-source contributor you fill the **Admin** role yourself: refining requirements, approving the designer's brief, and reviewing the developer's output. The `designer` + `developer` pair is the complete contributor toolkit; no additional install is required. Maintainers who prefer dedicated Admin / TL / PM agents can load their own personas from `~/.claude/`.
+
+**Canonical instructions.** The tool-neutral instruction set lives at [`vibe/INSTRUCTIONS.md`](vibe/INSTRUCTIONS.md); [`CLAUDE.md`](CLAUDE.md) is a thin Claude-Code-specific shim that imports it. Other AI-coding hosts use their own equivalent (`.github/copilot-instructions.md`, `.cursor/rules/`, etc.). See [docs/agentic-workflow.md](docs/agentic-workflow.md) for the workflow specification.
+
+**How to use the workflow for a complex new model:**
+
+1. Provide reference material (STEP file, spec, drawing) and ask the **designer**: *"use the designer agent to analyze ref.step and produce a brief"*. The brief lands in `.agents/plans/` (gitignored).
+2. Review the brief. Approve once dimensions, coordinate system, and visual contract SVG look right.
+3. The **developer** auto-transitions on your approval and implements the brief.
+4. The developer runs the validation tools (§7) before declaring complete.
+
+*Note: `.agents/` is gitignored and stages AI artefacts locally. Persona/command sources are tracked under [`vibe/agents/`](vibe/agents/) and [`vibe/commands/`](vibe/commands/); Claude Code picks them up via per-clone runtime aliases under `.claude/` populated by [`tools/init-claude-runtime.sh`](tools/init-claude-runtime.sh).*
+
+---
+
+## ⚠️ 6. Project Conventions That Will Fail Your PR
+
+These rules are CI-enforced or workflow-required. Skim them before submitting.
+
+- **AGPLv3 header on new `.py` files** in `vibe_cading/`, `parts/`, `tools/`. Copy from any existing file. Empty `__init__.py` exempt. CI-enforced via `tools/check_license_headers.py` (runs inside `python build.py`).
+- **No `if __name__ == "__main__":` blocks under `vibe_cading/` or `parts/`.** Model class files are pure class definitions; use [`tools/view.py`](tools/view.py) to launch the OCP viewer instead. CI-enforced via AST walker [`tools/check_no_main_blocks.py`](tools/check_no_main_blocks.py) + grep belt-and-braces.
+- **No `ocp_vscode` imports outside `tools/view.py`.** CI-enforced.
+- **`build.toml` registration is explicit.** Never auto-add a `[[build]]` entry for a new class — propose it in your PR description and let the maintainer/reviewer confirm before committing the change. The build manifest is intentional, not derived.
+- **Visual Contract Deliverable (CAD tasks).** Any PR introducing a new model class — or changing visible geometry (axis convention, hole pattern, dimensions affecting orientation) — must include a co-located preview SVG (`.agents/plans/<task-slug>_design_iso_ne.svg`) generated via `python3 tools/preview.py`. Numeric specs alone do not surface axis-orientation errors. See [vibe/INSTRUCTIONS.md > Visual Contract Deliverable](vibe/INSTRUCTIONS.md) for the full rule and rationale.
+- **`tmp/` for scratch.** All ad-hoc debug scripts, parameter sweeps, gauge probes, and one-off STEP exports live in `tmp/` (gitignored). Never commit them.
+- **No inline-code-in-shell.** `python3 -c '<embedded body>'` and `bash -c '<embedded body>'` are disallowed — write a file in `tmp/` first. Quoting bugs and silently-truncated logic are a reliable failure mode.
+
+---
+
+## 🔬 7. Validation Tools
+
+Before opening a PR, validate locally:
+
+| Tool | When to use |
+|---|---|
+| `python3 tools/preview.py <module.path.ClassName>` | Generate orthographic SVGs (top, front, left, iso_ne) to visually validate orientation and dimensions against drawings. |
+| `python3 tools/view.py <module.path.ClassName>` | Launch the OCP CAD Viewer (port 3939) for live 3D inspection. Supports `--demo` and `--assembly`. |
+| `python3 tools/section_slicer.py` | Slice a part along an axis to verify internal features (blind holes, snap rings, counterbores) that external views can't show. |
+| `python3 tools/boolean_diff.py <reference.step> <module.path.ClassName> --model` | Quantitative volume comparison against a reference STEP file. |
+| `python3 tools/calibrate.py [free\|slip\|press]` | Calibrate your `print_profiles_user.json` against a printed gauge. |
+| `python -m pytest tests/ -v` | Run the unit + smoke test suite. |
+
+---
+
+## ✅ 8. CI Gates
+
+PRs are gated by two workflows. Both run on `pull_request` (read-only token, fork-safe).
+
+**[`.github/workflows/ci.yml`](.github/workflows/ci.yml)** runs on every PR:
+
+1. `flake8 .` — style + import lint (config in [`.flake8`](.flake8)).
+2. `py_compile` over `vibe_cading/`, `parts/`, `tools/` — syntax sanity for every `.py` file.
+3. AST check: no `__main__` blocks under `vibe_cading/` or `parts/`.
+4. Grep belt-and-braces for the same.
+5. No `ocp_vscode` imports outside `tools/view.py`.
+6. `python -m pytest tests/ -v` — unit + smoke tests.
+7. `python build.py` — full STEP-build smoke (also runs `tools/check_license_headers.py`).
+
+**[`.github/workflows/engine-api.yml`](.github/workflows/engine-api.yml)** runs when `vibe_cading/`, `parts/`, `tools/engine_api/`, or `engine_api.json` change:
+
+1. `python3 tools/gen_engine_api.py --check` — regenerates `engine_api.json` in memory and exits non-zero if the on-disk file differs.
+2. `python3 tools/validate_engine_api.py` — asserts schema invariants.
+
+If the engine-api gate fails, run `python3 tools/gen_engine_api.py` locally and commit the diff (see §9).
+
+---
+
+## 🔧 9. Adding a Model
+
+1. **Pick the right home:**
+   - **Reusable, project-agnostic library classes** (screws, gears, joints, Lego primitives, Lego adapters, RC building blocks) live under [`vibe_cading/`](vibe_cading/) in an appropriate subpackage.
+   - **Project- or vehicle-specific parts** (an ESC mount tied to one chassis) live under [`parts/<vehicle_or_project>/`](parts/).
+2. **Define a class** with a `.solid` property returning a `cq.Workplane`. Use strict type hints on public parameters. Add a top-level docstring stating what `(0, 0, 0)` represents.
+3. **Add the AGPLv3 header** to your new file.
+4. **Validate:** preview, view, slice (if internal features), calibrate-aware tolerances.
+5. **Regenerate engine_api.json:** `python3 tools/gen_engine_api.py` — commit the diff alongside your class.
+6. **Propose a `build.toml` entry** in your PR description (do not auto-add — see §6).
+
+---
+
+## 🎯 10. Print Tolerances & Calibration
+
+This repo uses a profile-driven tolerance system so the same model bores a working slip fit on every printer. The shipped `print_profiles.json` is a calibration **starting point**, not a contract — most contributors override at least `slip.radial` for their machine in the gitignored `print_profiles_user.json`. Set `PRINT_PROFILE=<name>` in `.env` to switch the active profile.
+
+Full calibration workflow, fit-grade taxonomy, and field-level deep-merge semantics: [README.md > Print Tolerances & Calibration](README.md#print-tolerances--calibration) and [docs/print-tolerances.md](docs/print-tolerances.md).
+
+---
+
+## 📦 11. Engine API Artifact
+
+[`engine_api.json`](engine_api.json) at the repo root is a machine-readable index of every public model class in `vibe_cading/**` and `parts/**`. Downstream LLM code-gen tooling (e.g. the platform's `query_engine_api` MCP) consumes it to call engine classes deterministically. It is generated, not hand-written, and **must stay in sync with `vibe_cading/**` + `parts/**`**.
 
 **Regenerate after editing any model class:**
 
     python3 tools/gen_engine_api.py
 
-That walks `vibe_cading/**` and `parts/**` with a pure-`ast` extractor (no CadQuery import) and rewrites the file in place. Commit the regenerated artifact alongside your model changes.
+That walks the trees with a pure-`ast` extractor (no CadQuery import) and rewrites the file in place. Commit the regenerated artifact alongside your model changes.
 
-**CI gate.** `.github/workflows/engine-api.yml` runs on any PR or push to `main` that touches `vibe_cading/**`, `parts/**`, `tools/engine_api/**`, `tools/gen_engine_api.py`, `tools/validate_engine_api.py`, or `engine_api.json`. The gate executes:
+**Bumping `schema_version`.** The extractor pins `SCHEMA_VERSION` in [`tools/engine_api/extractor.py`](tools/engine_api/extractor.py); the validator imports the same constant. Bump it whenever the schema shape changes:
 
-1. `python3 tools/gen_engine_api.py --check` — regenerates in memory and exits non-zero if the on-disk file differs.
-2. `python3 tools/validate_engine_api.py` — asserts the schema invariants documented in `tools/engine_api/extractor.py`.
+- **Major** (`1.0` → `2.0`) for breaking changes — renaming or removing a field, dropping a class, narrowing a `type` annotation, making an optional param required.
+- **Minor** (`1.0` → `1.1`) for additive changes — a new top-level field with a default, a new class, a previously-omitted optional param, a new `constructors[].kind` value.
 
-If the gate fails on your PR, run `gen_engine_api.py` locally and commit the diff.
+The validator hard-fails on `schema_version` mismatch so the bump is forced to be intentional.
 
-**Bumping `schema_version`.** The extractor pins `SCHEMA_VERSION` in `tools/engine_api/extractor.py`; the validator imports the same constant. Bump it whenever the schema shape changes:
+---
 
-- **Major** (`1.0` → `2.0`) for breaking changes — renaming or removing a field, dropping a previously-listed class, narrowing a `type` annotation, making an optional param required.
-- **Minor** (`1.0` → `1.1`) for additive changes — a new top-level field with a sensible default, a new class, a previously-omitted optional param, a new `constructors[].kind` value.
-
-The validator hard-fails on a `schema_version` mismatch so the bump is forced to be intentional.
+Thanks for contributing — we look forward to your PRs!
