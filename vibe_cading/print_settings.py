@@ -93,22 +93,6 @@ type-mismatch (e.g. user puts a primitive where the shipped profile
 has a dict) likewise raises ``ValueError`` with the JSON-pointer-style
 key path, preventing silent shape coercion downstream.
 
-Deprecation window
-------------------
-
-The legacy file names ``machine_profiles.json`` /
-``machine_profiles_user.json`` continue to be honoured for one
-deprecation window — first consumption per process emits a single
-``DeprecationWarning`` plus a mirrored stderr line so the message is
-visible under default CPython warning filters.  The legacy file names
-will be removed at the OSS publication release.
-
-The legacy env vars ``VIBE_PRINT_PROFILE`` and ``VIBE_MACHINE_PROFILE``
-were honoured for one prior deprecation window (PR #8) and are now
-no longer read by the loader — only ``PRINT_PROFILE`` is consulted.
-A `.env` file carrying a legacy env-var name will silently fall back
-to ``fdm_standard``; rename the entry to ``PRINT_PROFILE``.
-
 Legacy flat → nested schema
 ---------------------------
 
@@ -234,11 +218,6 @@ def get_default_profile_name() -> str:
     1. ``PRINT_PROFILE`` — canonical env var.
     2. ``"fdm_standard"`` — hardcoded coarse default (loosest /
        safest profile).
-
-    The legacy env vars ``VIBE_PRINT_PROFILE`` and
-    ``VIBE_MACHINE_PROFILE`` were honoured for one deprecation window
-    (PR #8) and are no longer read.  A `.env` file carrying either name
-    silently resolves to ``"fdm_standard"`` until renamed.
     """
     name = os.getenv("PRINT_PROFILE")
     if name:
@@ -496,70 +475,15 @@ _REPO_ROOT = Path(__file__).parent.parent
 
 
 def _resolve_shipped_file() -> Path | None:
-    """Resolve the canonical shipped-defaults file path.
-
-    Priority: ``print_profiles.json`` (new) wins; ``machine_profiles.json``
-    (legacy) honoured with a one-shot deprecation warning.  If both exist
-    the new file wins silently but a deprecation warning is emitted naming
-    the legacy file as ignored.
-    """
-    new_path = _REPO_ROOT / "print_profiles.json"
-    legacy_path = _REPO_ROOT / "machine_profiles.json"
-    if new_path.exists():
-        if legacy_path.exists():
-            # stacklevel=4: warning needs to skip _emit_deprecation_once
-            # → _resolve_shipped_file → _load_json_profiles to attribute
-            # itself to the public ``get_profile`` (or whoever called
-            # ``_load_json_profiles`` directly), not this helper.
-            _emit_deprecation_once(
-                "shipped_file_both_present",
-                f"Both {new_path.name} and {legacy_path.name} exist; loading {new_path.name} "
-                f"and IGNORING {legacy_path.name}. Delete the legacy file to silence this warning.",
-                stacklevel=4,
-            )
-        return new_path
-    if legacy_path.exists():
-        # stacklevel=4: same chain as above — attribute to ``get_profile``.
-        _emit_deprecation_once(
-            "shipped_file_legacy_only",
-            f"{legacy_path.name} is deprecated; rename to {new_path.name}. "
-            f"The legacy name will be removed at the OSS publication release.",
-            stacklevel=4,
-        )
-        return legacy_path
-    return None
+    """Resolve the shipped-defaults file path, or ``None`` if absent."""
+    path = _REPO_ROOT / "print_profiles.json"
+    return path if path.exists() else None
 
 
 def _resolve_user_file() -> Path | None:
-    """Resolve the canonical user-override file path.
-
-    Priority: ``print_profiles_user.json`` (new) wins; legacy
-    ``machine_profiles_user.json`` honoured with a one-shot deprecation
-    warning.  Mirrors :func:`_resolve_shipped_file`.
-    """
-    new_path = _REPO_ROOT / "print_profiles_user.json"
-    legacy_path = _REPO_ROOT / "machine_profiles_user.json"
-    if new_path.exists():
-        if legacy_path.exists():
-            # stacklevel=4: skip _emit_deprecation_once → _resolve_user_file
-            # → _load_json_profiles to attribute the warning to ``get_profile``.
-            _emit_deprecation_once(
-                "user_file_both_present",
-                f"Both {new_path.name} and {legacy_path.name} exist; loading {new_path.name} "
-                f"and IGNORING {legacy_path.name}. Delete the legacy file to silence this warning.",
-                stacklevel=4,
-            )
-        return new_path
-    if legacy_path.exists():
-        # stacklevel=4: same chain as above — attribute to ``get_profile``.
-        _emit_deprecation_once(
-            "user_file_legacy_only",
-            f"{legacy_path.name} is deprecated; rename to {new_path.name}. "
-            f"The legacy name will be removed at the OSS publication release.",
-            stacklevel=4,
-        )
-        return legacy_path
-    return None
+    """Resolve the user-override file path, or ``None`` if absent."""
+    path = _REPO_ROOT / "print_profiles_user.json"
+    return path if path.exists() else None
 
 
 def _normalise_raw_profiles(raw: dict) -> dict:
@@ -577,7 +501,7 @@ def _normalise_raw_profiles(raw: dict) -> dict:
 
 
 def _load_json_profiles() -> dict:
-    """Load profiles from the canonical-or-legacy shipped + user files.
+    """Load profiles from the shipped + user JSON files.
 
     Returns a dict keyed by profile name; each value is a nested-schema
     dict (``{"free": {...}, "slip": {...}, "press": {...}}``).  Legacy
