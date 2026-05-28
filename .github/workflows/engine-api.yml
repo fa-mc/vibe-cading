@@ -28,6 +28,9 @@ on:
       - "engine_api.json"
       - ".github/workflows/engine-api.yml"
 
+permissions:
+  contents: read
+
 jobs:
   check:
     runs-on: ubuntu-latest
