@@ -15,6 +15,13 @@ jobs:
   CLAAssistant:
     runs-on: ubuntu-latest
     permissions:
+      # Permission set established empirically in commit e6583e7 — the
+      # action was failing with "Resource not accessible by integration"
+      # against this repo's narrow default GITHUB_TOKEN until each of
+      # these was granted. Do NOT drop any of these without first
+      # validating against a real fork PR that the bot's GraphQL calls
+      # still succeed.
+      actions: write        # action calls workflow_runs API (e6583e7)
       contents: write       # update signatures/version1/cla.json on the default branch
       pull-requests: write  # post the CLA comment on the PR
       statuses: write       # mark the CLA check status on the PR
