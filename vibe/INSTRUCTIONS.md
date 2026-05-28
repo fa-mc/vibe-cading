@@ -21,7 +21,7 @@ Project-specific instructions further down inherit from and build upon the unive
 - **Tool Cleanliness:** Clean up any temporary refactoring scripts, downloaded manuals, or research junction files as soon as the task is successfully applied.
 - **Utility Reuse:** Before writing a new helper, validation script, or geometric primitive, inspect the workspace for an existing reusable utility. The canonical locations are `tools/` (CLI utilities — preview, section_slicer, hole_finder, etc.) and `vibe_cading/cq_utils.py` (CadQuery primitives shared across model classes). Save frequently-needed helpers there rather than duplicating them inline in model files or leaving them under `tmp/`.
 - **Git Commits:** Do not commit changes using git unless specifically asked to in the **current user prompt**. A request to commit in a previous turn does **not** carry over to subsequent tasks. Always ask for confirmation before committing.
-- **Scoped Staging:** NEVER use `git add .`, `git add -A`, or `git commit -a` unless explicitly instructed. Always stage with `git add <specific_file_path>` for only the files modified for the current task. Broad staging sweeps accidentally capture sensitive files (`.env`, `machine_profiles_user.json`), large binaries (STEP / STL outputs under `build/`), or unrelated in-progress work from parallel streams.
+- **Scoped Staging:** NEVER use `git add .`, `git add -A`, or `git commit -a` unless explicitly instructed. Always stage with `git add <specific_file_path>` for only the files modified for the current task. Broad staging sweeps accidentally capture sensitive files (`.env`, `print_profiles_user.json`), large binaries (STEP / STL outputs under `build/`), or unrelated in-progress work from parallel streams.
 - **TODO direct-push carve-out:** Commits touching only `TODO.md` (backlog / follow-up tracking entries) push directly to `origin/main` and skip the PR cycle. If the harness blocks direct-to-default-branch commits, commit on a tiny chore branch and fast-forward `main` to it before pushing. Substantive code changes still use the standard branch + PR + `pr-review-cycle` flow — this carve-out is specifically for backlog-tracking docs.
 
 ## 3. Tool Usage & Editing Rules
@@ -153,7 +153,7 @@ implement the brief.
 **Workspace Initialization:**
 When initializing the project or workspace, you must:
 1. Create local `.gitignore`d directories if they don't exist (`tmp/`, `.agents/plans/`).
-2. Copy `machine_profiles.json.example` to `machine_profiles_user.json` so the user can configure their specific 3D printer tolerances.
+2. Copy `print_profiles.json.example` to `print_profiles_user.json` so the user can configure their specific 3D printer tolerances.
 3. Run any host-platform-specific runtime scaffolder if your agent host requires one (e.g., for Claude Code: `tools/init-claude-runtime.sh` — see the host's own instruction file for details).
 
 ### Visual Contract Deliverable (CAD tasks)

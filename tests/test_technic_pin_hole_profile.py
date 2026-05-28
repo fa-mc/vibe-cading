@@ -32,7 +32,6 @@ import math
 
 import pytest
 
-import vibe_cading.print_settings as print_settings
 from vibe_cading.lego.constants import PIN_HOLE_DIAMETER
 from vibe_cading.lego.cutters.technic_pin_hole import TechnicPinHole
 from vibe_cading.print_settings import get_profile
@@ -55,20 +54,6 @@ _PINNED_SLIP_BORE: dict[str, float] = {
     "resin_precise": 4.86,
     "cnc":           4.82,
 }
-
-
-@pytest.fixture
-def _clear_deprecation_guard(monkeypatch: pytest.MonkeyPatch) -> None:
-    """Reset the once-per-process deprecation set so warnings fire deterministically.
-
-    ``_emitted_warnings`` is a module-global set in
-    ``vibe_cading.print_settings`` mutated by ``_emit_deprecation_once``.
-    Patching the module-global (NOT a locally re-imported copy) is the
-    only way to reset the guard — patching a re-imported alias leaves
-    the original set untouched and the second test invocation sees no
-    warning, masking real regressions silently.
-    """
-    monkeypatch.setattr(print_settings, "_emitted_warnings", set())
 
 
 # ── 1. Per-profile bore snapshot (FR1, FR3) ──────────────────────────────────
@@ -132,42 +117,7 @@ def test_pin_hole_explicit_diameter_bypasses_profile() -> None:
     )
 
 
-# ── 4. Deprecation warning fires once per process (FR7) ──────────────────────
-
-
-def test_pin_hole_printed_deprecation_warning(_clear_deprecation_guard: None) -> None:
-    """Reading PIN_HOLE_PRINTED emits exactly one DeprecationWarning per process.
-
-    PEP 562 module ``__getattr__`` fires on the first attribute access;
-    the once-per-process guard in ``_emit_deprecation_once`` suppresses
-    repeats.  The fixture clears the guard so the assertion is
-    deterministic across test invocations.
-    """
-    # Force-reimport at the module-attribute level so PEP 562 fires.
-    import vibe_cading.lego.constants as constants
-
-    with pytest.warns(DeprecationWarning, match="PIN_HOLE_PRINTED is deprecated"):
-        value_a = constants.PIN_HOLE_PRINTED
-
-    # Sanity: the legacy resolution still produces the 4.85 default.
-    assert math.isclose(value_a, 4.85, abs_tol=1e-9)
-
-    # Second read in the same process is silent — the guard de-dupes.
-    # ``warnings.catch_warnings`` lets us assert "no warning fired".
-    import warnings
-    with warnings.catch_warnings(record=True) as recorded:
-        warnings.simplefilter("always")
-        value_b = constants.PIN_HOLE_PRINTED
-
-    deprecations = [w for w in recorded if issubclass(w.category, DeprecationWarning)]
-    assert not deprecations, (
-        f"Second read must be silent (once-per-process guard); "
-        f"got {len(deprecations)} DeprecationWarning(s)"
-    )
-    assert math.isclose(value_b, 4.85, abs_tol=1e-9)
-
-
-# ── 5. .standard() forwards fit + profile kwargs (FR5) ───────────────────────
+# ── 4. .standard() forwards fit + profile kwargs (FR5) ───────────────────────
 
 
 def test_pin_hole_standard_forwards_profile() -> None:

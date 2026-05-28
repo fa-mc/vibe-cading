@@ -183,10 +183,8 @@ v1 calibratable knobs and their default gauges:
 
 Print the gauge first with `python3 tools/preview.py <module.path.GaugeClass> --views iso_ne` to see what you're going to print, then run the matching `tools/calibrate.py <knob>`. For the slip-fit calibration procedure (axle judging criteria), see [docs/lego-technic.md](docs/lego-technic.md) > *Tuning Tolerances*.
 
-**Deprecation window.** The legacy file names `machine_profiles.json` / `machine_profiles_user.json` continue to be honoured during a deprecation window — first consumption per process emits a single warning. The legacy file names will be removed at the OSS publication release; the loader prints the rename instruction at first contact. The legacy env vars `VIBE_PRINT_PROFILE` and `VIBE_MACHINE_PROFILE` are no longer read — rename to `PRINT_PROFILE`.
-
 ---
 
 ## License
 
-[MIT](LICENSE)
+[AGPLv3](LICENSE)
