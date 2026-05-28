@@ -56,7 +56,8 @@ jobs:
       - name: Check no ocp_vscode imports outside tools/view.py
         run: |
           set -euo pipefail
-          matches=$(grep -rlE 'from ocp_vscode' vibe_cading/ parts/ tools/ || true)
+          # Matches both `from ocp_vscode import …` and `import ocp_vscode`.
+          matches=$(grep -rlE '(from|import) ocp_vscode' vibe_cading/ parts/ tools/ || true)
           # Allow exactly tools/view.py and nothing else.
           unexpected=$(echo "$matches" | grep -vE '^tools/view\.py$' || true)
           if [ -n "$unexpected" ]; then

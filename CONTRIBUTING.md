@@ -116,7 +116,7 @@ Before opening a PR, validate locally:
 | `python3 tools/view.py <module.path.ClassName>` | Launch the OCP CAD Viewer (port 3939) for live 3D inspection. Supports `--demo` and `--assembly`. |
 | `python3 tools/section_slicer.py` | Slice a part along an axis to verify internal features (blind holes, snap rings, counterbores) that external views can't show. |
 | `python3 tools/boolean_diff.py <reference.step> <module.path.ClassName> --model` | Quantitative volume comparison against a reference STEP file. |
-| `python3 tools/calibrate.py [free\|slip\|press]` | Calibrate your `print_profiles_user.json` against a printed gauge. |
+| `python3 tools/calibrate.py [all\|free\|slip\|press]` | Calibrate your `print_profiles_user.json` against a printed gauge (see `--help` for flags). |
 | `python -m pytest tests/ -v` | Run the unit + smoke test suite. |
 
 ---
