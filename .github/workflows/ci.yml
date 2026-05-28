@@ -1,12 +1,15 @@
 name: ci
 
-# Baseline lint + import-check. See
+# Baseline lint + import-check + build smoke. See
 # .agents/plans/2026-05-08-ci-baseline_design.md.
 
 on:
   pull_request:
   push:
     branches: [main]
+
+permissions:
+  contents: read
 
 jobs:
   check:
@@ -16,8 +19,10 @@ jobs:
       - uses: actions/setup-python@v5
         with:
           python-version: "3.11"
-      - name: Install test dependencies
-        run: pip install flake8 pytest cadquery
+          cache: pip
+          cache-dependency-path: requirements-ci.txt
+      - name: Install CI dependencies
+        run: pip install -r requirements-ci.txt
       - name: Lint (flake8)
         run: flake8 .
       - name: Import-check (py_compile)
@@ -61,3 +66,10 @@ jobs:
           fi
       - name: Pytest (unit + smoke tests)
         run: python -m pytest tests/ -v
+      - name: Build smoke (python build.py)
+        # Catches OCCT/CadQuery runtime regressions that pytest/py_compile miss
+        # (boolean kernel failures, geometry-assertion breakage, topology drift).
+        # Also enforces AGPLv3 headers via tools/check_license_headers.py
+        # (build.py.__main__ runs it before the build).
+        # Outputs land under output/ which is gitignored — nothing is committed.
+        run: python build.py

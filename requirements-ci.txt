@@ -1,0 +1,5 @@
+# CI runtime dependencies (installed by .github/workflows/ci.yml).
+# Kept unpinned so CI tracks current upstreams; bump explicitly if reproducibility ever bites.
+flake8
+pytest
+cadquery
