@@ -65,6 +65,15 @@ from typing import Any
 # or gauge import. Gauge classes and ``METRIC_SIZES`` / ``MetricHexNut``
 # / ``AXLE_HOLE_TIP_TO_TIP`` are imported lazily inside
 # ``_load_knob_runtime``.
+
+# Self-bootstrap sys.path so the script runs as a fresh subprocess from
+# any cwd (mirrors build.py:24). Required when invoked via
+# ``python tools/calibrate.py …`` without PYTHONPATH set — most notably
+# by tests/tools/test_calibrate.py which subprocess.runs the --help path.
+_REPO_ROOT = Path(__file__).resolve().parent.parent
+if str(_REPO_ROOT) not in sys.path:
+    sys.path.insert(0, str(_REPO_ROOT))
+
 from vibe_cading.print_settings import (
     _is_legacy_flat_entry,
     _migrate_flat_to_nested,
@@ -72,7 +81,6 @@ from vibe_cading.print_settings import (
 )
 
 
-_REPO_ROOT = Path(__file__).parent.parent
 _USER_FILE = _REPO_ROOT / "print_profiles_user.json"
 
 # Profile names that may freely receive calibrations even with ``--yes``
