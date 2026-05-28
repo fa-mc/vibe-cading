@@ -27,6 +27,9 @@ We are expanding this repository into a broader Code-CAD mechanical toolkit. Her
     fillet corner is acceptable; no `corner_relief` parameter needed. The
     slightly-tight hole is FDM print-to-print variation (arm 2.25 = band
     centre, optimally placed). Cross axle-hole calibration complete.
+    (Followed up 2026-05-28: default lowered to 0.3 mm on bambu_p1s +
+    slip.slot 0.1125 — see
+    `.agents/plans/2026-05-28-concave-radius-default_design.md`.)
 - [x] Build a guided calibration helper (e.g. `tools/calibrate.py`) that walks the user through the `AxleHoleGauge` print + fit test and writes the resulting `slip.radial` into `machine_profiles_user.json` — replacing the manual print → feel-test → compute → hand-edit-JSON workflow. — **Re-scoped 2026-05-23**: narrow axle-only scope rejected at design Step-4 gate; replaced by the generic multi-knob calibration helper (≤5 gauges, M3-screw + M3-nut defaults with Lego axle as opt-in for delicate fits). Foundation pre-req shipped in [PR #8](https://github.com/fa-mc/vibe-cading/pull/8); Brief #2 (`.agents/plans/2026-05-23-calibration-helper-generic_req.md`) now unblocked and Designer-pending. SUPERSEDED prior-art at `.agents/plans/2026-05-23-calibrate-helper_*`.
 - [x] Rename the "machine profile" concept — tolerance depends on the machine
   **and** the filament (and brand), not the machine alone. `machine_profiles*.json`
