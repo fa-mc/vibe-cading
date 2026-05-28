@@ -49,6 +49,15 @@ class TechnicAxleHole:
     shipped ``fdm_standard`` already carries a conservative
     ``slip.slot = 0.10``, so most users calibrate only ``slip.radial``.
 
+    The ``concave_radius`` inner-valley fillet default (``0.3 mm``) is
+    best-current-evidence on one calibrated FDM stack
+    (``bambu_p1s`` + PLA at ``slip.slot = 0.1125``, validated
+    2026-05-28), **not** a universally optimal value.  Users on other
+    printers may override per-instance via the ``concave_radius=``
+    constructor kwarg — already public API, no profile-level field
+    needed (the concave fillet does not participate in the fit
+    envelope).
+
     Use the :pymeth:`to_cutter` method as a boolean cutter::
 
         from vibe_cading.lego.cutters.technic_axle_hole import TechnicAxleHole
@@ -77,12 +86,22 @@ class TechnicAxleHole:
         curved arm tip meets the flat arm side (mm).  Set to 0 to skip.
     concave_radius:
         Fillet radius on the 4 inner concave corners — the valleys between
-        perpendicular arms (mm).  Set to 0 to skip.
+        perpendicular arms (mm).  Set to 0 to skip.  Default ``0.3 mm``
+        validated 2026-05-28 on ``bambu_p1s`` + PLA at
+        ``slip.slot = 0.1125`` / ``slip.radial = 0.11``
+        (sweep: ``tmp/print_concave_sweep_2.py``).  Best-current-evidence
+        on one calibrated FDM stack — override per-instance for other
+        printers.
     """
 
     # ── Hole-specific corner radius defaults ───────────────────────────────
     DEFAULT_CONVEX_RADIUS: float = 0  # Convex junction (arm tip meets flat side)
-    DEFAULT_CONCAVE_RADIUS: float = 0.6  # Concave inner corner (valley between arms)
+    # 0.3 validated 2026-05-28 on bambu_p1s + PLA (slip.slot=0.1125,
+    # slip.radial=0.11); was 0.6 pre-2026-05-28 — see
+    # tmp/print_concave_sweep_2.py.  See also docs/lego-technic.md
+    # §"Concave-corner blowout — verified adequate" and
+    # .agents/plans/2026-05-28-concave-radius-default_design.md.
+    DEFAULT_CONCAVE_RADIUS: float = 0.3  # Concave inner corner (valley between arms)
 
     # Cutter is built flush by construction; per-class through/blind policy
     # is degenerate for this class (no extra entry/terminal overcut).

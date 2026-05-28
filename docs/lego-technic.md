@@ -325,9 +325,16 @@ over-deposits ("corner blowout"), which can choke the slot. The
 `AxleCrossHoleGauge` calibration tool isolates the arm-slot width from this
 effect by relieving the corners with a **dog-bone** pocket; production
 `TechnicAxleHole` instead keeps a plain `concave_radius` fillet (default
-0.6 mm). A confirmation print (2026-05-22, `bambu_p1s` + PLA) of production
+0.3 mm). A confirmation print (2026-05-22, `bambu_p1s` + PLA) of production
 cross holes at the calibrated `slot` found 2 of 3 holes fitting well and 1
-slightly tight, **none binding** — the 0.6 mm fillet is adequate once the
-arm slot is correctly widened. No dedicated corner-relief parameter is needed
+slightly tight, **none binding** — the 0.6 mm fillet was adequate once the
+arm slot was correctly widened. No dedicated corner-relief parameter is needed
 at the calibrated arm width; revisit only if a printer with more aggressive
 blowout shows the fillet binding a real axle.
+
+Follow-up 2026-05-28 on the same printer at a re-calibrated `slip.slot`
+(0.1125): a 2-variant in-script sweep (`tmp/print_concave_sweep_2.py`)
+showed 0.30 prints clean while 0.35 does not, so the shipped default is
+now 0.3 mm. The original 0.6 mm value was acceptable at the prior
+calibration point but consumed more slot wall than needed; 0.3 mm is the
+best-current-evidence point at the calibrated slot.
