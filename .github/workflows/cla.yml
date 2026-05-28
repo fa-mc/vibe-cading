@@ -5,23 +5,39 @@ on:
   pull_request_target:
     types: [opened, closed, synchronize]
 
+# Note: this workflow runs on `pull_request_target` with write tokens, so it
+# executes in the base-repo context against fork PRs. To minimise blast
+# radius the third-party action is pinned to a commit SHA (not a floating
+# tag), and the `permissions:` block is scoped to the minimum the action
+# documents needing.
+
 jobs:
   CLAAssistant:
     runs-on: ubuntu-latest
     permissions:
-      actions: write
-      contents: write
-      pull-requests: write
-      statuses: write
+      # Permission set established empirically in commit e6583e7 — the
+      # action was failing with "Resource not accessible by integration"
+      # against this repo's narrow default GITHUB_TOKEN until each of
+      # these was granted. Do NOT drop any of these without first
+      # validating against a real fork PR that the bot's GraphQL calls
+      # still succeed.
+      actions: write        # action calls workflow_runs API (e6583e7)
+      contents: write       # update signatures/version1/cla.json on the default branch
+      pull-requests: write  # post the CLA comment on the PR
+      statuses: write       # mark the CLA check status on the PR
     steps:
       - name: "CLA Assistant"
         if: (github.event.comment.body == 'I have read the CLA Document and I hereby sign the CLA') || github.event_name == 'pull_request_target'
-        uses: cla-assistant/github-action@v2.6.1
+        # Pinned to v2.6.1 (commit ca4a40a7d1004f18d9960b404b97e5f30a505a08).
+        # Bump deliberately after re-reading the upstream changelog — never
+        # accept a floating tag here because the token grants write access
+        # to this repo from fork-PR context.
+        uses: cla-assistant/github-action@ca4a40a7d1004f18d9960b404b97e5f30a505a08
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           PERSONAL_ACCESS_TOKEN: ${{ secrets.PERSONAL_ACCESS_TOKEN }}
         with:
           path-to-signatures: 'signatures/version1/cla.json'
-          path-to-document: 'https://github.com/vibe-cading/vibe-cading/blob/main/CONTRIBUTING.md'
+          path-to-document: 'https://github.com/fa-mc/vibe-cading/blob/main/CONTRIBUTING.md'
           branch: 'main'
           allowlist: 'dependabot[bot],greenkeeper[bot]'
