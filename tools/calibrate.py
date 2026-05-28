@@ -610,12 +610,9 @@ def _resolve_active_profile_name(
     """Return ``(name, source_label)`` for stdout messages."""
     if args.profile:
         return (args.profile, "--profile flag")
-    env_value = os.getenv("VIBE_PRINT_PROFILE")
+    env_value = os.getenv("PRINT_PROFILE")
     if env_value:
-        return (env_value, "VIBE_PRINT_PROFILE env var")
-    legacy = os.getenv("VIBE_MACHINE_PROFILE")
-    if legacy:
-        return (legacy, "VIBE_MACHINE_PROFILE env var (legacy)")
+        return (env_value, "PRINT_PROFILE env var")
     return (get_default_profile_name(), "hardcoded default")
 
 
@@ -806,7 +803,7 @@ with:
 (swap the class for MThreeNutPocketGauge / AxleHoleGauge as needed).
 
 Writes the calibrated values into print_profiles_user.json under the
-active profile name (resolved via --profile, VIBE_PRINT_PROFILE, or
+active profile name (resolved via --profile, PRINT_PROFILE, or
 the hardcoded 'fdm_standard' default). Each calibrated value is
 field-level deep-merged onto the shipped defaults at get_profile()
 time — your override file stays a diff from shipped, never a full
@@ -858,7 +855,7 @@ def _build_parser() -> argparse.ArgumentParser:
         type=str,
         default=None,
         help="Override the active profile name (else uses "
-             "VIBE_PRINT_PROFILE env var or 'fdm_standard').",
+             "PRINT_PROFILE env var or 'fdm_standard').",
     )
     parser.add_argument(
         "--yes",
@@ -922,7 +919,7 @@ def main(argv: list[str] | None = None) -> int:
     # FR20 hard guard — non-interactive (`--yes`) creation of a fresh
     # non-shipped profile MUST be explicitly confirmed via `--profile`.
     # Without this, an env-var typo
-    # (e.g. ``VIBE_PRINT_PROFILE=bumbu_p1s__pla`` instead of
+    # (e.g. ``PRINT_PROFILE=bumbu_p1s__pla`` instead of
     # ``bambu_p1s__pla``) would silently materialise a stray entry on
     # the next ``--yes`` run. The interactive path (no ``--yes``)
     # already prompts for confirmation inside ``_run_one_knob``; this

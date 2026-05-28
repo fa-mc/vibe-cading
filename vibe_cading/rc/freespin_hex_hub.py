@@ -85,7 +85,7 @@ class FreespinHexHub:
         top and bottom faces.  Default 0.5 mm.
     profile : str | None
         Tolerance profile name from ``print_profiles.json``.  ``None``
-        uses the globally-configured default (``VIBE_PRINT_PROFILE``
+        uses the globally-configured default (``PRINT_PROFILE``
         env var, falling back to ``fdm_standard``).
 
         The bearing pocket uses **free_fit** radial clearance so the
