@@ -44,7 +44,7 @@ if __name__ == "__main__":
 
     # Build the screw and request its boolean cutter.  Hard-coded
     # "fdm_standard" for reproducibility across contributors; in production
-    # code, call get_profile() with no arg to read VIBE_PRINT_PROFILE
+    # code, call get_profile() with no arg to read PRINT_PROFILE
     # from .env.  fit="clearance" gives the through-hole the shaft inflates
     # into per the project's free-fit tolerance.
     screw = MetricMachineScrew.from_size("M3", length=10, head_type="socket")

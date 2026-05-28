@@ -87,7 +87,7 @@ def test_axle_hole_slip_cutter_dimensions() -> None:
     radial (0.05) = 4.90 mm.
 
     The ``fdm_standard`` profile is passed explicitly so the assertion is
-    independent of whatever ``VIBE_PRINT_PROFILE`` the contributor's
+    independent of whatever ``PRINT_PROFILE`` the contributor's
     ``.env`` resolves to — a bare ``TechnicAxleHole(depth=8.0)`` picks up
     the ambient default profile, which is not deterministic across hosts.
     """

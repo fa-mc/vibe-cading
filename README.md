@@ -72,7 +72,7 @@ Claude Code will read `CLAUDE.md`, create the local `tmp/` and `.agents/plans/` 
 This repository uses a global tolerance configuration system to ensure parts fit together correctly based on your specific manufacturing method (e.g. FDM vs Resin 3D printing). 
 - **`print_profiles.json`**: Checked into version control. Contains defaults (like `fdm_standard`, `resin_precise`).
 - **`print_profiles_user.json`**: Untracked (gitignored). Use this to override specific fields in the default profiles or define entirely new profiles without creating a dirty git history. Your fields are recursively deep-merged into the defaults — override a single leaf and the sibling fields inherit from the shipped grade (see [Print Tolerances & Calibration](#print-tolerances--calibration) below).
-- **`.env`**: Untracked. You can set `VIBE_PRINT_PROFILE=your_profile_name` here to define the global fallback profile used across all CAD scripts.
+- **`.env`**: Untracked. You can set `PRINT_PROFILE=your_profile_name` here to define the global fallback profile used across all CAD scripts.
 
 ---
 
@@ -141,7 +141,7 @@ Key constants are centralised in [`vibe_cading/lego/constants.py`](vibe_cading/l
 
 ## Print Tolerances & Calibration
 
-Printed fits are printer- and material-dependent: the same model bores a tight hole on one machine and a loose one on another. Dimensional *nominals* in the library are fixed real-world geometry; the per-machine clearance is carried separately by a `ToleranceProfile`. The project ships profiles (`fdm_standard`, `resin_precise`, `cnc`) in `print_profiles.json`; override them per-machine in the gitignored `print_profiles_user.json` and select the active one with `VIBE_PRINT_PROFILE`.
+Printed fits are printer- and material-dependent: the same model bores a tight hole on one machine and a loose one on another. Dimensional *nominals* in the library are fixed real-world geometry; the per-machine clearance is carried separately by a `ToleranceProfile`. The project ships profiles (`fdm_standard`, `resin_precise`, `cnc`) in `print_profiles.json`; override them per-machine in the gitignored `print_profiles_user.json` and select the active one with `PRINT_PROFILE`.
 
 For the full taxonomy reference — what each fit grade (`free` / `slip` / `press`) means physically, what each allowance (`radial` / `axial` / `slot`) modifies geometrically, which model classes read which knob, and the shipped 27-leaf-float snapshot — see [docs/print-tolerances.md](docs/print-tolerances.md). The rest of this section is the calibration workflow.
 
@@ -171,7 +171,7 @@ python3 tools/calibrate.py free --diameter 3.30 --yes \
     --profile bambu_p1s__pla_overture       # one-shot non-interactive
 ```
 
-The helper resolves the active profile (via `--profile`, `VIBE_PRINT_PROFILE`, or the hardcoded `fdm_standard` fallback), reads the best-fitting gauge variant you measured, computes `radial = (D − N) / 2` against the live source-of-truth nominal, and atomically writes the value into your user file. Per-knob field-level merge — your file stays a diff from shipped.
+The helper resolves the active profile (via `--profile`, `PRINT_PROFILE`, or the hardcoded `fdm_standard` fallback), reads the best-fitting gauge variant you measured, computes `radial = (D − N) / 2` against the live source-of-truth nominal, and atomically writes the value into your user file. Per-knob field-level merge — your file stays a diff from shipped.
 
 v1 calibratable knobs and their default gauges:
 
@@ -183,7 +183,7 @@ v1 calibratable knobs and their default gauges:
 
 Print the gauge first with `python3 tools/preview.py <module.path.GaugeClass> --views iso_ne` to see what you're going to print, then run the matching `tools/calibrate.py <knob>`. For the slip-fit calibration procedure (axle judging criteria), see [docs/lego-technic.md](docs/lego-technic.md) > *Tuning Tolerances*.
 
-**Deprecation window.** The legacy file names `machine_profiles.json` / `machine_profiles_user.json` and the legacy env var `VIBE_MACHINE_PROFILE` continue to be honoured during a deprecation window — first consumption per process emits a single warning. The legacy names will be removed at the OSS publication release; the loader prints the rename instruction at first contact.
+**Deprecation window.** The legacy file names `machine_profiles.json` / `machine_profiles_user.json` continue to be honoured during a deprecation window — first consumption per process emits a single warning. The legacy file names will be removed at the OSS publication release; the loader prints the rename instruction at first contact. The legacy env vars `VIBE_PRINT_PROFILE` and `VIBE_MACHINE_PROFILE` are no longer read — rename to `PRINT_PROFILE`.
 
 ---
 

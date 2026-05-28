@@ -45,7 +45,7 @@ Resolution order at runtime
 2. ``print_profiles_user.json`` — user-local overrides (gitignored;
    recursively field-level deep-merged onto the defaults — see
    *Field-level deep-merge* below).
-3. ``VIBE_PRINT_PROFILE`` env var picks which named profile resolves
+3. ``PRINT_PROFILE`` env var picks which named profile resolves
    when ``get_profile()`` is called without an explicit name.
 4. Hardcoded fallback inside :func:`get_profile` if both JSON files are
    missing or fail to parse.
@@ -97,12 +97,17 @@ Deprecation window
 ------------------
 
 The legacy file names ``machine_profiles.json`` /
-``machine_profiles_user.json`` and the legacy env var
-``VIBE_MACHINE_PROFILE`` continue to be honoured for one deprecation
-window — first consumption per process emits a single
+``machine_profiles_user.json`` continue to be honoured for one
+deprecation window — first consumption per process emits a single
 ``DeprecationWarning`` plus a mirrored stderr line so the message is
-visible under default CPython warning filters.  The legacy names will
-be removed at the OSS publication release.
+visible under default CPython warning filters.  The legacy file names
+will be removed at the OSS publication release.
+
+The legacy env vars ``VIBE_PRINT_PROFILE`` and ``VIBE_MACHINE_PROFILE``
+were honoured for one prior deprecation window (PR #8) and are now
+no longer read by the loader — only ``PRINT_PROFILE`` is consulted.
+A `.env` file carrying a legacy env-var name will silently fall back
+to ``fdm_standard``; rename the entry to ``PRINT_PROFILE``.
 
 Legacy flat → nested schema
 ---------------------------
@@ -143,10 +148,9 @@ load_env_file()
 # Module-level state — guards against repeat emissions across the many
 # get_profile() calls in a single process.  Each entry is a stable key
 # string identifying *what* was warned about (e.g.
-# "env_var_VIBE_MACHINE_PROFILE", "shipped_file_legacy_only",
-# "unknown_profile_foo"); the *first* call with a given key emits both a
-# stderr line and a ``warnings.warn`` of the requested category,
-# subsequent calls with the same key are no-ops.
+# "shipped_file_legacy_only", "unknown_profile_foo"); the *first* call
+# with a given key emits both a stderr line and a ``warnings.warn`` of
+# the requested category, subsequent calls with the same key are no-ops.
 #
 # Renamed from ``_emitted_deprecations`` when the once-per-process
 # guard was generalised to cover the unknown-profile-name ``UserWarning``
@@ -227,30 +231,18 @@ def get_default_profile_name() -> str:
 
     Resolution chain (first match wins):
 
-    1. ``VIBE_PRINT_PROFILE`` — canonical env var.
-    2. ``VIBE_MACHINE_PROFILE`` — legacy env var, honoured with a
-       one-shot deprecation warning per process.
-    3. ``"fdm_standard"`` — hardcoded coarse default (loosest /
+    1. ``PRINT_PROFILE`` — canonical env var.
+    2. ``"fdm_standard"`` — hardcoded coarse default (loosest /
        safest profile).
+
+    The legacy env vars ``VIBE_PRINT_PROFILE`` and
+    ``VIBE_MACHINE_PROFILE`` were honoured for one deprecation window
+    (PR #8) and are no longer read.  A `.env` file carrying either name
+    silently resolves to ``"fdm_standard"`` until renamed.
     """
-    # New canonical env var wins.
-    name = os.getenv("VIBE_PRINT_PROFILE")
+    name = os.getenv("PRINT_PROFILE")
     if name:
         return name
-
-    # Legacy env var honoured with a one-shot deprecation warning.
-    legacy = os.getenv("VIBE_MACHINE_PROFILE")
-    if legacy:
-        # stacklevel default (3): attributes warning to caller-of-
-        # ``get_default_profile_name`` (conventionally ``get_profile``,
-        # or user code calling ``get_default_profile_name`` directly) —
-        # i.e. the public-API surface, not this helper.
-        _emit_deprecation_once(
-            "env_var_VIBE_MACHINE_PROFILE",
-            "VIBE_MACHINE_PROFILE is deprecated; rename to VIBE_PRINT_PROFILE in your .env file. "
-            "The legacy name will be removed at the OSS publication release.",
-        )
-        return legacy
 
     # No env var set — hardcoded coarse default.
     return "fdm_standard"
@@ -685,7 +677,7 @@ def get_profile(name: str | None = None) -> ToleranceProfile:
 
     # Unknown name — emit a warning and resolve to fdm_standard.  The
     # returned profile is labelled "fdm_standard", NOT the unknown name,
-    # so a calibration mistake (typo in VIBE_PRINT_PROFILE, missing
+    # so a calibration mistake (typo in PRINT_PROFILE, missing
     # profile entry, etc.) does not silently mask itself.  Routed through
     # ``_emit_once`` so a build loop that repeatedly resolves the same
     # unknown name (e.g. once per model class) does not spam stderr —
