@@ -170,7 +170,7 @@ A design artifact whose deliverable is a new CAD model class — or which change
 - `.agents/plans/<YYYY-MM-DD>-<task-slug>_design_top.svg` — additional view for hole-pattern-bearing or asymmetric geometry (optional but encouraged).
 - `.agents/plans/<YYYY-MM-DD>-<task-slug>_design_front.svg` — additional view for asymmetric profiles (optional).
 
-These SVGs are **git-tracked** alongside the design artifact (orthographic SVGs are ~10–25 KB each; trivial storage, diffable, blame-able). Add no broad ignore for `.agents/plans/*.svg` — these are intentional deliverables.
+These SVGs are **git-tracked** alongside the design artifact (orthographic SVGs are ~20–165 KB each after the 3 dp coordinate-rounding pass in `tools/preview.py`; trivial storage, diffable, blame-able). The heavy tail (~120–165 KB) is multi-pocket sweep gauges with engraved `cq.Workplane.text()` labels — label glyphs tessellate into many curved edges, which dominates the file. Add no broad ignore for `.agents/plans/*.svg` — these are intentional deliverables.
 
 **Generation mechanism.** The designer subagent generates the SVG by either:
 - **(a) Class already exists** — run `python3 tools/preview.py <module.path.Class> --params <key=value>... --views iso_ne` and copy the resulting SVG from `tmp/preview/` to the design-artifact location.
@@ -187,7 +187,7 @@ These SVGs are **git-tracked** alongside the design artifact (orthographic SVGs 
 - **Step 5 Phase A (developer impl)** MUST regenerate the SVG from the implemented class via `tools/preview.py` and overwrite the committed file as a final implementation task.
 - **Step 5 Phase B (TL review)** MUST confirm the regenerated SVG visually matches the design's intent — gross geometry, axis convention, hole pattern. Minor differences from intermediate-construction artifacts are acceptable; axis/orientation/topology mismatches are blocking findings.
 
-**Scope carve-outs.** Optional for: refactors, internal API changes, additive-only changes that don't alter visual outcome, instruction / config / tooling tasks. If you're uncertain whether a task changes visible geometry, default to including the SVG — the overhead (~1000 tokens, ~3 min per cycle, ~15 KB) is small relative to the cost of an axis-convention error escaping to Phase D.
+**Scope carve-outs.** Optional for: refactors, internal API changes, additive-only changes that don't alter visual outcome, instruction / config / tooling tasks. If you're uncertain whether a task changes visible geometry, default to including the SVG — the overhead (~1000 tokens, ~3 min per cycle, and a file in the ~20–165 KB range noted above — ~100 KB typical, the upper end being text-label sweep gauges) is small relative to the cost of an axis-convention error escaping to Phase D.
 
 **Why this rule exists.** The 2026-05-17 LegoTechnicBeam post-mortem (see `.agents/plans/2026-05-15-lego-technic-beam_design.md`) traced a hole-axis convention error through req → design → impl → four independent reviews to Phase D, where the user caught it visually in the OCP viewer. Every reviewer verified internal consistency; none verified that the convention matched what the contributor would actually see. An iso_ne preview embedded at Step 4 would have surfaced the error before any code was written.
 

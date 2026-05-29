@@ -162,6 +162,63 @@ def _fix_svg_viewport(svg_path: Path) -> None:
     svg_path.write_text(text, encoding="utf-8")
 
 
+# Coordinate precision for path data, in decimal places.  3 dp at mm scale is
+# 1-micron resolution — finer than any FDM / resin process this project targets,
+# so it is below the visual and manufacturing-relevant threshold.  CadQuery emits
+# full 15-digit float repr (e.g. ``24.65397582806252``), which is pure byte-waste:
+# it inflates the file 5-10x and produces noisy, unblameable diffs with no visual
+# benefit.  Rounding to 3 dp is a "same picture, fewer digits" transform.
+_COORD_DP = 3
+
+
+def _round_svg_coords(svg_path: Path) -> None:
+    """Round path-coordinate tokens inside ``d="..."`` attributes to
+    ``_COORD_DP`` decimal places.
+
+    This is a *pure text transform* over the already-emitted SVG — it never
+    touches CadQuery geometry, the projection direction, the set of edges, or
+    the hidden-line layer.  It only shortens the decimal representation of
+    coordinates that CadQuery wrote at full float precision.
+
+    Scope is deliberately narrow:
+
+    * Only the numeric tokens *inside* ``d="..."`` are rewritten.  The
+      ``transform="scale(...) translate(...)"`` matrix coefficients and the
+      ``viewBox`` / ``width`` / ``height`` attributes are left at their original
+      precision, so the projection and framing are bit-for-bit unchanged.
+    * Integers and tokens already at or below ``_COORD_DP`` are left unchanged
+      (rounding ``2.86`` to 3 dp yields ``2.86``, not ``2.860``).
+    * Negative numbers are handled.  CadQuery *does* emit scientific-notation
+      tokens for near-zero coordinates (e.g. ``1.2543356667477765e-15``); the
+      regex matches and rounds only the *mantissa* (``-> 1.254e-15``), leaving
+      the ``e`` exponent intact.  This is harmless: such values are
+      sub-femtometre (effectively zero), the exponent is preserved, and the
+      token stays a valid float — no edge position shifts and no exponent form
+      is introduced or mangled.  A bare ``.5`` (no integer part) would be
+      skipped, but CadQuery's path emitter always writes a leading zero.
+    """
+    text = svg_path.read_text(encoding="utf-8")
+
+    # Plain decimal token: optional sign, integer part, decimal point, fraction.
+    # Anchored to require a '.' so bare integers (no fractional digits) are skipped.
+    decimal_re = re.compile(r"-?\d+\.\d+")
+
+    def _round_token(match: re.Match[str]) -> str:
+        # ``f"{x:.3f}"`` then strip trailing zeros / dot so 2.860 → 2.86 and
+        # 5.000 → 5, keeping diffs minimal and matching CadQuery's own style.
+        rounded = f"{float(match.group(0)):.{_COORD_DP}f}"
+        if "." in rounded:
+            rounded = rounded.rstrip("0").rstrip(".")
+        return rounded
+
+    def _round_d_attr(d_match: re.Match[str]) -> str:
+        body = decimal_re.sub(_round_token, d_match.group(1))
+        return f'd="{body}"'
+
+    text = re.sub(r'd="([^"]*)"', _round_d_attr, text)
+    svg_path.write_text(text, encoding="utf-8")
+
+
 def export_previews(
     model_path: str,
     out_dir: Path,
@@ -224,6 +281,9 @@ def export_previews(
             },
         )
         _fix_svg_viewport(svg_path)
+        # Round path coords AFTER viewBox computation so the framing is derived
+        # from full-precision data and only the on-disk text is shortened.
+        _round_svg_coords(svg_path)
         written.append(svg_path)
         print(f"WROTE {svg_path}")
 
