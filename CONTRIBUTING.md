@@ -134,6 +134,7 @@ PRs are gated by two workflows. Both run on `pull_request` (read-only token, for
 5. No `ocp_vscode` imports outside `tools/view.py`.
 6. `python -m pytest tests/ -v` — unit + smoke tests.
 7. `python build.py` — full STEP-build smoke (also runs `tools/check_license_headers.py`).
+8. **Topology check** — runs [`tools/check_topology.py`](tools/check_topology.py) against every `[[build]]` entry in [`build.toml`](build.toml) and fails on any disconnected-body regression (floating artifacts, failed boolean cuts, un-merged outer components) that the build smoke would silently pass. Three classes are allowlisted as legitimate multi-body assemblies (`ServoMountAssembly`, `SlipperGearSteep`, `PrintInPlaceHinge`); the allowlist is inline in [`.github/workflows/ci.yml`](.github/workflows/ci.yml). To reproduce a CI failure locally, run `python3 tools/check_topology.py <fq.class.path> [--params k=v …] [--ignore N]` for the failing target — see the workflow step for the exact invocation and the per-target `--ignore` values.
 
 **[`.github/workflows/engine-api.yml`](.github/workflows/engine-api.yml)** runs when `vibe_cading/`, `parts/`, `tools/engine_api/`, or `engine_api.json` change:
 
