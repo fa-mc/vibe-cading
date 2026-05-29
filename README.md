@@ -199,4 +199,6 @@ Print the gauge first with `python3 tools/preview.py <module.path.GaugeClass> --
 
 ## License
 
-[AGPLv3](LICENSE)
+[AGPLv3](LICENSE). See [LICENSE-FAQ.md](LICENSE-FAQ.md) for a plain-language
+guide to what AGPLv3 means for printing parts, forking the library, running it
+as a network service, and the relationship to the CLA.

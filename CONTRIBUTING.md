@@ -10,7 +10,7 @@ This project is built using an **AI-first, Agentic Workflow**. Please skim the d
 
 ## 📜 1. License & CLA
 
-`vibe-cading` is licensed under **[AGPLv3](LICENSE)**.
+`vibe-cading` is licensed under **[AGPLv3](LICENSE)**. For a plain-language guide to what that means in practice (printing parts, forking, network deployment, CLA interaction), see [LICENSE-FAQ.md](LICENSE-FAQ.md).
 
 **Contributor License Agreement.** Every PR is checked by the CLA Assistant bot ([`.github/workflows/cla.yml`](.github/workflows/cla.yml)). On your first PR the bot will comment with a link to this file; reply on the PR thread with exactly:
 
