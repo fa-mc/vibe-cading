@@ -77,7 +77,7 @@ We are expanding this repository into a broader Code-CAD mechanical toolkit. Her
   once-guarded unknown-profile warning. Full design-flow trail with Step 3.5
   fresh-context reviewers + Phase B/C post-implementation reviewers (per
   `Domain integrity gate: YES`) at `.agents/plans/2026-05-23-print-profile-foundation_*`.
-- [ ] Visual-contract SVG size — investigate multi-variant gauge previews.
+- [x] Visual-contract SVG size — investigate multi-variant gauge previews.
   The per-gauge iso_ne SVGs for `MThreeClearanceGauge` (404 KB) and
   `MThreeNutPocketGauge` (275 KB) shipped via [PR #10](https://github.com/fa-mc/vibe-cading/pull/10)
   exceed the visual-contract rule's "~10-25 KB each" guidance
@@ -91,7 +91,29 @@ We are expanding this repository into a broader Code-CAD mechanical toolkit. Her
   the visual contract (axis, hole pattern, labels visible) and remain
   diffable as XML — but accumulating ~700 KB per design brief is repo
   bloat worth addressing before OSS publication. Phase B Independent TL
-  flagged + recommended ACCEPT + DEFER. (Raised 2026-05-25.)
+  flagged + recommended ACCEPT + DEFER. (Raised 2026-05-25.) —
+  **Resolved 2026-05-29 by [PR #17](https://github.com/fa-mc/vibe-cading/pull/17).**
+  Root cause was neither path (a) nor (b) as originally framed: the real
+  driver was `tools/preview.py` emitting path coords at full 15-digit float
+  precision (pure byte-waste). Fix = a post-export `_round_svg_coords` text
+  transform rounding `d="..."` coordinates to 3 dp (1 µm). `showHidden=False`
+  was evaluated and **rejected** by designer review — the dashed occluded
+  edges are the primary cue for catching hole-axis errors, so hidden lines
+  are kept. The two calibration gauges dropped precision-only (404→165 KB,
+  275→116 KB); the guidance figure in `vibe/INSTRUCTIONS.md` was corrected to
+  the measured post-rounding range with the `text()`-label heavy-tail caveat.
+  Net tracked SVG footprint 1.5 MB → 1.0 MB.
+- [ ] Visual-contract SVG freshness — contracts silently drift from model
+  code. PR #17's regeneration revealed 7 of 9 tracked design SVGs had drifted
+  from current model code (beam pin-hole radius refactor; axle-gauge engraved
+  `text()` labels absent from the committed contracts despite being in the
+  model). Root cause: when a model class is refactored, nothing re-runs the
+  Step-5 Phase-A SVG regeneration, so the committed visual contract goes
+  stale and the `committed == regenerable` invariant silently breaks.
+  Evaluate a CI freshness check (regenerate each tracked `_design_*.svg` from
+  its source class + params and fail if the committed file differs beyond
+  coordinate precision), or a lighter lint that flags design SVGs older than
+  their source model file. (Raised 2026-05-29.)
 
 ## 🚀 Transition to "Open Core" Engine
 Based on the ***REMOVED***, this repository (`vibe-cading`) will act as the public core engine for the `***REMOVED***`. We need to prepare it for external consumption:
