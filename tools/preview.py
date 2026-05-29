@@ -188,9 +188,14 @@ def _round_svg_coords(svg_path: Path) -> None:
       precision, so the projection and framing are bit-for-bit unchanged.
     * Integers and tokens already at or below ``_COORD_DP`` are left unchanged
       (rounding ``2.86`` to 3 dp yields ``2.86``, not ``2.860``).
-    * Negative numbers are handled.  Scientific-notation tokens are left alone
-      (CadQuery does not emit them in path data; matching only plain decimals
-      guarantees we never introduce or mangle exponent forms).
+    * Negative numbers are handled.  CadQuery *does* emit scientific-notation
+      tokens for near-zero coordinates (e.g. ``1.2543356667477765e-15``); the
+      regex matches and rounds only the *mantissa* (``-> 1.254e-15``), leaving
+      the ``e`` exponent intact.  This is harmless: such values are
+      sub-femtometre (effectively zero), the exponent is preserved, and the
+      token stays a valid float — no edge position shifts and no exponent form
+      is introduced or mangled.  A bare ``.5`` (no integer part) would be
+      skipped, but CadQuery's path emitter always writes a leading zero.
     """
     text = svg_path.read_text(encoding="utf-8")
 
