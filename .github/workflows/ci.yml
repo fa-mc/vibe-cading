@@ -74,3 +74,56 @@ jobs:
         # (build.py.__main__ runs it before the build).
         # Outputs land under output/ which is gitignored — nothing is committed.
         run: python build.py
+      - name: Topology check
+        # Runs tools/check_topology.py against every [[build]] entry in
+        # build.toml.  Fails on any disconnected-body regression (floating
+        # artifacts, failed boolean cuts, un-merged outer components) that
+        # `python build.py` itself would silently pass.
+        #
+        # FR3 allowlist: per-target --ignore overrides keyed by FQ class
+        # path, kept in sync with the matching block in
+        # tmp/topology_sweep_with_allowlist.sh (local-reproduction script).
+        # Every override carries a why-comment so a future contributor
+        # removing the assembly notices the stale entry.
+        run: |
+          set -uo pipefail
+          declare -A IGNORE_OVERRIDES=(
+              # Pre-arranged print plate: ServoMountBase + ServoMountClamp
+              # composed via cq.Workplane().add().add() — expect 2 bodies.
+              ["vibe_cading.lego_adapters.servos.sg90.servo_mount.ServoMountAssembly"]=1
+              # R&D slipper-gear assembly: plate + ring + 4 spring parts
+              # composed via cq.Assembly().toCompound() — expect 6 bodies.
+              ["experiments.slipper_gear.directional.steep.SlipperGearSteep"]=5
+              # Print-in-place hinge: leaf_a + leaf_b (the knuckle bridge
+              # is part of leaf_a in the default knuckle_count=3 config) —
+              # expect 2 bodies.
+              ["vibe_cading.mechanical.hinge.PrintInPlaceHinge"]=1
+          )
+          mapfile -t entries < <(python3 -c "
+          import tomllib
+          with open('build.toml','rb') as f:
+              cfg = tomllib.load(f)
+          for e in cfg['build']:
+              params = e.get('params', {})
+              pstr = ' '.join(f'--params {k}={v}' for k, v in params.items()) if params else ''
+              print(f\"{e['model']}|{pstr}\")
+          ")
+          total=${#entries[@]}
+          passed=0
+          failed=0
+          for entry in "${entries[@]}"; do
+              model="${entry%%|*}"
+              pstr="${entry#*|}"
+              ignore="${IGNORE_OVERRIDES[$model]:-0}"
+              echo "::: $model (--ignore $ignore)"
+              # shellcheck disable=SC2086
+              if python3 tools/check_topology.py "$model" $pstr --ignore "$ignore"; then
+                  passed=$((passed + 1))
+              else
+                  failed=$((failed + 1))
+              fi
+              echo
+          done
+          echo "================================================================"
+          echo "$passed / $total targets passed, $failed failed"
+          [[ "$failed" -eq 0 ]] || exit 1

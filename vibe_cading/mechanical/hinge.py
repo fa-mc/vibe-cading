@@ -217,11 +217,20 @@ class PrintInPlaceHinge:
 
     @property
     def solid(self) -> cq.Workplane:
-        """Returns the fully assembled static geometry of the hinge."""
+        """Returns the fully assembled static geometry of the hinge.
+
+        The two leaves are composed via ``cq.Assembly().toCompound()`` and
+        then wrapped in a ``cq.Workplane`` so the return type matches the
+        project-wide ``.solid -> cq.Workplane`` convention every other
+        shipped model class honors.  Without the wrap, downstream tooling
+        that assumes a Workplane selector chain (e.g.
+        ``tools/check_topology.py`` calling ``.solids().vals()``) crashes
+        with ``AttributeError: 'Compound' object has no attribute …``.
+        """
         comp = cq.Assembly()
         comp.add(self.leaf_a, name="leaf_a")
         comp.add(self.leaf_b, name="leaf_b")
-        return comp.toCompound()
+        return cq.Workplane(obj=comp.toCompound())
 
     @classmethod
     def demo(cls, **kwargs) -> list[tuple[cq.Workplane, str, str]]:
