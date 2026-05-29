@@ -44,7 +44,13 @@
 - [ ] **T3** –
 
 ## Tests
-<!-- Concrete test cases with explicit assertions. Reference existing test files or describe new ones. -->
+<!-- Concrete test cases with explicit assertions. Reference existing test files or describe new ones.
+     PRE-MERGE REPRESENTATIVE-SCALE ROW (required when the deliverable is a new
+     model class, a build.toml geometry change, or a tool whose only true
+     exercise is the full `python build.py` rebuild or a full-reference
+     `boolean_diff.py`): include at least one row that runs that real full-scale
+     path once before merge. Fast single-class preview/section probes do not
+     substitute. See vibe/INSTRUCTIONS.md §4 "Representative-Scale Verification". -->
 
 | # | Test description | Expected assertion | File / location |
 |---|------------------|--------------------|-----------------|
