@@ -72,12 +72,14 @@ We hold the codebase to a high standard of structural quality and mathematical r
 
 ## 🤖 5. The Agentic AI Workflow
 
-We strongly recommend using an AI coding host like [Claude Code](https://claude.com/claude-code) for non-trivial geometry work. The repository ships **two contributor subagents** under [`vibe/agents/`](vibe/agents/):
+We strongly recommend using an AI coding host like [Claude Code](https://claude.com/claude-code) for non-trivial geometry work. The repository ships **four contributor subagents** under [`vibe/agents/`](vibe/agents/):
 
-1. **[`designer`](vibe/agents/designer.md)** — brainstorms, digests reference material (STEP files, drawings), resolves geometric ambiguities, and writes a *Design Brief* to `.agents/plans/`. Focuses on *what* to build and *why*.
-2. **[`developer`](vibe/agents/developer.md)** — implements the brief: Python code structure, CadQuery classes, validation tooling. Focuses on *how*.
+1. **[`admin`](vibe/agents/admin.md)** — workflow governance and the instruction set: clarifies requirements, runs mid-session interventions, initiates the design flow, and orchestrates wrap-ups. Diagnoses and routes; does not write model code, briefs, or blueprints.
+2. **[`designer`](vibe/agents/designer.md)** — brainstorms, digests reference material (STEP files, drawings), resolves geometric ambiguities, and writes a *Design Brief* to `.agents/plans/`. Focuses on *what* to build and *why*.
+3. **[`tl`](vibe/agents/tl.md)** — code architecture: shared abstractions, base-class and `Protocol`/`ABC` contracts, cross-cutting refactors, and post-implementation architectural review. Invoked for architecturally-significant work only; everyday single-part creation flows Designer → Developer without it.
+4. **[`developer`](vibe/agents/developer.md)** — implements the brief: per-part code structure, CadQuery classes, validation tooling. Focuses on *how*.
 
-The maintainer-style roles (`admin`, `tl`, `pm`) are **intentionally not shipped**. As an open-source contributor you fill the **Admin** role yourself: refining requirements, approving the designer's brief, and reviewing the developer's output. The `designer` + `developer` pair is the complete contributor toolkit; no additional install is required. Maintainers who prefer dedicated Admin / TL / PM agents can load their own personas from `~/.claude/`.
+Only the **`pm`** role (backlog prioritisation across many tasks) is **intentionally not shipped** — the human contributor drives it, and remains the final acceptance authority for merges and project policy above all shipped roles. Maintainers who prefer a dedicated PM agent can load their own persona from `~/.claude/`.
 
 **Canonical instructions.** The tool-neutral instruction set lives at [`vibe/INSTRUCTIONS.md`](vibe/INSTRUCTIONS.md); [`CLAUDE.md`](CLAUDE.md) is a thin Claude-Code-specific shim that imports it. Other AI-coding hosts use their own equivalent (`.github/copilot-instructions.md`, `.cursor/rules/`, etc.). See [docs/agentic-workflow.md](docs/agentic-workflow.md) for the workflow specification.
 
