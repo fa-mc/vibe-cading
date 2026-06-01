@@ -61,16 +61,16 @@ The OCP viewer backend runs on port **3939** and is forwarded to your host autom
 
 ### Workspace Initialization
 
-Since this repository is managed via a three-role AI Agentic Workflow, you should initialize your local settings upon cloning the repository.
+Since this repository is managed via a multi-role AI Agentic Workflow, you should initialize your local settings upon cloning the repository.
 
 Open Claude Code in this workspace and ask it to initialize the project, e.g.:
 ```
 please initialize the project
 ```
 
-Claude Code will read `CLAUDE.md`, create the local `tmp/` and `.agents/plans/` folders for tool analysis, copy `print_profiles.json.example` → `print_profiles_user.json` so you can configure your manufacturing tolerance profiles, and run `tools/init-claude-runtime.sh` to populate the per-clone `.claude/` runtime aliases that Claude Code uses to discover the project's `designer`/`developer` subagents and slash commands.
+Claude Code will read `CLAUDE.md`, create the local `tmp/` and `.agents/plans/` folders for tool analysis, copy `print_profiles.json.example` → `print_profiles_user.json` so you can configure your manufacturing tolerance profiles, and run `tools/init-claude-runtime.sh` to populate the per-clone `.claude/` runtime aliases that Claude Code uses to discover the project's `admin`/`designer`/`tl`/`developer` subagents and slash commands.
 
-> Maintainer-style roles (Admin, TL, PM) are not shipped with this repository — the human contributor fills them. As an open-source contributor you act as the Admin yourself: clarifying requirements, approving the designer's brief, and reviewing the developer's output. The included `designer` and `developer` subagents are the complete contributor toolkit and need no additional install. Maintainers who prefer dedicated Admin / TL / PM agents can load their own personas from `~/.claude/`.
+> Four contributor roles are shipped under `vibe/agents/`: `admin` (workflow governance & instruction maintenance), `designer` (domain reasoning & design briefs), `tl` (code architecture & shared-contract stewardship — invoked for architecturally-significant work only), and `developer` (per-part implementation & validation). Only the **PM** role (backlog prioritisation) is not shipped — the human contributor drives it, and remains the final acceptance authority for merges and project policy above all shipped roles. Maintainers who prefer a dedicated PM agent can load their own persona from `~/.claude/`.
 
 **Manufacturing & Tolerance Profiles:**
 This repository uses a global tolerance configuration system to ensure parts fit together correctly based on your specific manufacturing method (e.g. FDM vs Resin 3D printing). 
