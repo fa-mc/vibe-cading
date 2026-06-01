@@ -94,20 +94,20 @@
 ## Sign-off
 
 ### Author sign-off (drafting role — Step 3 termination)
-<!-- The drafting author (TL when the project ships one; otherwise the Designer or human acting as Admin)
+<!-- The drafting author (the Designer for a domain brief, or the TL for an architecture plan)
      self-marks these once all Step 3 termination conditions are met. This is the author's approval,
      not an independent verdict — the Independent reviewer block below collects the latter. -->
 - [ ] Domain expert co-sign  *(required if domain integrity gate is YES; skip if NO)*
 - [ ] Requester sign-off
-- [ ] TL sign-off  *(or drafting-author sign-off if no TL is shipped)*
+- [ ] TL sign-off  *(for architecturally-significant work; the drafting role signs off otherwise)*
 
 ### Independent reviewer sign-off (fresh-context — Step 3.5 termination)
 <!-- Each independent reviewer's findings live in `## Independent <Role> Review` sections appended
      below this artifact. Tick the matching box once that reviewer's verdict is APPROVE, or once
      APPROVE-WITH-CONDITIONS conditions have been applied AND re-confirmed by the same reviewer.
      Step 4 (human review) MUST NOT begin until every applicable box here is checked.
-     Vibe-cading note: when no TL is installed, the Designer subagent serves as "Independent TL"
-     iff a *different* drafter authored Step 3; otherwise the human Admin performs the TL review. -->
+     Vibe-cading note: the Independent TL review is performed by a fresh-context `tl` subagent
+     (the drafting author cannot self-sign here); the human Admin may perform it for trivial cases. -->
 - [ ] Independent TL  *(always required; drafting author cannot self-sign here)*
 - [ ] Independent Developer  *(always required)*
 - [ ] Independent Researcher  *(required if domain integrity gate is YES; skip if NO)*
