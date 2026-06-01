@@ -127,3 +127,13 @@ jobs:
           echo "================================================================"
           echo "$passed / $total targets passed, $failed failed"
           [[ "$failed" -eq 0 ]] || exit 1
+      - name: Visual contract freshness
+        # Regenerates every .agents/plans/*_design_*.svg registered in
+        # visual_contracts.toml via tools/preview.py's export_previews() and
+        # byte-compares against the committed file; fails on drift or on a
+        # tracked design SVG missing from the manifest (coverage gate).  Runs
+        # after Build smoke / Topology check so CadQuery is installed +
+        # validated.  `python3` here is the 3.11 + cadquery interpreter
+        # actions/setup-python pins (same one build.py and the topology step
+        # use).  Local contributors run it as `python3.11`.
+        run: python3 tools/check_visual_contract_freshness.py

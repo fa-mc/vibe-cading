@@ -1,0 +1,82 @@
+# ── Visual-contract manifest ──────────────────────────────────────────────────
+# Each [[contract]] entry registers one tracked .agents/plans/*_design_*.svg
+# visual contract.  tools/check_visual_contract_freshness.py regenerates each
+# via tools/preview.py's export_previews() and byte-compares against the
+# committed file (with a coverage gate against unregistered design SVGs), so
+# the `committed == regenerable` invariant can no longer silently break.
+#
+#   "svg"    : path to the committed SVG, relative to the repo root.
+#   "model"  : full dotted import path to the source class.
+#   "view"   : a named view from tools/preview.py NAMED_VIEWS
+#              (top / front / left / iso_ne / …).
+#   "params" : constructor kwargs, in a [contract.params] sub-table.  REQUIRED
+#              where the class has no defaults — e.g.
+#              LegoTechnicBeam.length_in_studs is a required positional arg, so
+#              the three beam entries below MUST carry it.  Entries whose class
+#              takes only defaults omit [contract.params].
+#
+# Refresh all contracts after a legitimate geometry change:
+#   python3.11 tools/check_visual_contract_freshness.py --update
+# (cadquery lives on the 3.11 interpreter in this container; the default
+# `python3` is 3.13 without cadquery.  CI runs it as `python3` because
+# actions/setup-python pins 3.11 there.)
+# ─────────────────────────────────────────────────────────────────────────────
+
+# ── LegoTechnicBeam (length_in_studs is a REQUIRED arg — no default) ───────────
+
+[[contract]]
+svg   = ".agents/plans/2026-05-15-lego-technic-beam_design_iso_ne.svg"
+model = "vibe_cading.lego.technic_beam.LegoTechnicBeam"
+view  = "iso_ne"
+[contract.params]
+length_in_studs = 5
+
+[[contract]]
+svg   = ".agents/plans/2026-05-15-lego-technic-beam_design_top.svg"
+model = "vibe_cading.lego.technic_beam.LegoTechnicBeam"
+view  = "top"
+[contract.params]
+length_in_studs = 5
+
+[[contract]]
+svg   = ".agents/plans/2026-05-15-lego-technic-beam_design_front.svg"
+model = "vibe_cading.lego.technic_beam.LegoTechnicBeam"
+view  = "front"
+[contract.params]
+length_in_studs = 5
+
+# ── AxleHoleGauge (defaults) ───────────────────────────────────────────────────
+
+[[contract]]
+svg   = ".agents/plans/2026-05-20-axle-hole-tip-to-tip-gauge_design_iso_ne.svg"
+model = "vibe_cading.lego.axle_hole_gauge.AxleHoleGauge"
+view  = "iso_ne"
+
+[[contract]]
+svg   = ".agents/plans/2026-05-20-axle-hole-tip-to-tip-gauge_design_top.svg"
+model = "vibe_cading.lego.axle_hole_gauge.AxleHoleGauge"
+view  = "top"
+
+# ── AxleCrossHoleGauge (defaults) ──────────────────────────────────────────────
+
+[[contract]]
+svg   = ".agents/plans/2026-05-21-axle-cross-hole-gauge_design_iso_ne.svg"
+model = "vibe_cading.lego.axle_cross_hole_gauge.AxleCrossHoleGauge"
+view  = "iso_ne"
+
+[[contract]]
+svg   = ".agents/plans/2026-05-21-axle-cross-hole-gauge_design_top.svg"
+model = "vibe_cading.lego.axle_cross_hole_gauge.AxleCrossHoleGauge"
+view  = "top"
+
+# ── M3 calibration gauges (defaults) ───────────────────────────────────────────
+
+[[contract]]
+svg   = ".agents/plans/2026-05-23-calibration-helper-generic_design_m3_clearance_iso_ne.svg"
+model = "vibe_cading.mechanical.calibration.m3_clearance_gauge.MThreeClearanceGauge"
+view  = "iso_ne"
+
+[[contract]]
+svg   = ".agents/plans/2026-05-23-calibration-helper-generic_design_m3_nut_pocket_iso_ne.svg"
+model = "vibe_cading.mechanical.calibration.m3_nut_pocket_gauge.MThreeNutPocketGauge"
+view  = "iso_ne"
