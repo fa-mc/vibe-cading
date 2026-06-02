@@ -31,6 +31,7 @@ from typing import Sequence
 
 import cadquery as cq
 
+from vibe_cading.cq_utils import engraved_labels
 from vibe_cading.mechanical.nuts.metric import MetricHexNut
 
 
@@ -97,6 +98,14 @@ class MThreeNutPocketGauge:
         Cell width per pocket along X (mm) — centre-to-centre spacing.
     engrave_depth:
         Depth of the width label engraving on the top face (mm).
+    labels:
+        When ``True`` (default) each pocket is engraved with its width on
+        the top face — kept for physical prints, ``build.py`` and
+        ``tools/view.py``.  When ``False`` the gauge is geometry-only (no
+        engraving); the visual-contract render sets ``labels=False`` because
+        ``cq.text()`` glyph tessellation is host-font-dependent and not
+        reproducible across CI / clone hosts (see
+        :func:`vibe_cading.cq_utils.engraved_labels`).
     """
 
     def __init__(
@@ -105,6 +114,7 @@ class MThreeNutPocketGauge:
         depth: float = 8.0,
         pocket_pitch: float = 10.0,
         engrave_depth: float = 0.6,
+        labels: bool = True,
     ) -> None:
         if not widths:
             raise ValueError(
@@ -114,6 +124,7 @@ class MThreeNutPocketGauge:
         self.depth: float = float(depth)
         self.pocket_pitch: float = float(pocket_pitch)
         self.engrave_depth: float = float(engrave_depth)
+        self.labels: bool = bool(labels)
 
         # ── Nominal-source guard ──────────────────────────────────────
         # Live read from the source-of-truth constant — the
@@ -190,34 +201,31 @@ class MThreeNutPocketGauge:
         base = base.cut(pockets)
 
         # ── Width labels ──────────────────────────────────────────────
-        # All label glyphs unioned into one compound before a single
-        # ``.cut()`` — engraving each label separately stalls the OCCT
-        # boolean kernel.
-        label_solids: list[cq.Workplane] = []
-        for index, waf in enumerate(self.widths):
-            text = (
-                cq.Workplane("XY")
-                .text(
+        # Each pocket engraved with its width on the top face via the
+        # shared engraved_labels helper (single combined cut — engraving
+        # each label separately stalls the OCCT boolean kernel).  text()
+        # extrudes glyphs symmetrically about their plane, so the label
+        # plane sits engrave_depth/2 below the top face.  labels=False
+        # suppresses engraving entirely (geometry-only) — the visual
+        # contract renders that way (host-font-dependent glyphs).
+        engraving = engraved_labels(
+            [
+                (
                     f"{waf:.2f}",
-                    fontsize=3.0,
-                    distance=self.engrave_depth,
-                    halign="center",
-                    valign="center",
-                )
-                .translate(
                     (
                         self._pocket_x(index),
                         self._label_y,
                         self.depth - self.engrave_depth / 2.0,
-                    )
+                    ),
                 )
-            )
-            label_solids.append(text)
-
-        all_labels = cq.Workplane("XY")
-        for label in label_solids:
-            all_labels.add(label.vals())
-        base = base.cut(all_labels.combine())
+                for index, waf in enumerate(self.widths)
+            ],
+            fontsize=3.0,
+            depth=self.engrave_depth,
+            labels=self.labels,
+        )
+        if engraving is not None:
+            base = base.cut(engraving)
 
         result = base
         assert len(result.solids().vals()) == 1, (
