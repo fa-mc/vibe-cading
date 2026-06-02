@@ -1,5 +1,15 @@
 FROM python:3.11-slim
 
+# Non-root user model (OSS-portable; UID/GID overridable per host).
+# Pinned to 1000 by default — the conventional first-user UID on Debian/Ubuntu
+# hosts and the UID an exec-based IDE (e.g. Antigravity) lands on. Override via
+# build args on a host whose user UID differs. VS Code's updateRemoteUserUID
+# (set in devcontainer.json) re-stamps these to the host UID automatically on
+# the VS Code build/start path, so this default is a fallback, not a hardcode.
+ARG USERNAME=vscode
+ARG USER_UID=1000
+ARG USER_GID=1000
+
 # Install system dependencies required by OpenCASCADE/CadQuery
 RUN apt-get update && apt-get install -y \
     git \
@@ -11,6 +21,7 @@ RUN apt-get update && apt-get install -y \
     curl \
     gnupg \
     ca-certificates \
+    sudo \
     && rm -rf /var/lib/apt/lists/*
 
 # Install GitHub CLI (gh) from the official apt repository
@@ -22,5 +33,17 @@ RUN curl -fsSL https://cli.github.com/packages/githubcli-archive-keyring.gpg \
     && apt-get update && apt-get install -y gh \
     && rm -rf /var/lib/apt/lists/*
 
-# Install CadQuery and the VS Code viewer integration
+# Install CadQuery and the VS Code viewer integration (system site-packages,
+# world-readable — usable by the non-root runtime user).
 RUN pip install --no-cache-dir cadquery ocp_vscode
+
+# Create the non-root dev user with passwordless sudo. Passwordless sudo is the
+# standard devcontainer posture for the dev user and is strictly LESS privileged
+# than the previous root-by-default setup; it is required by postCreateCommand to
+# chown the runtime-mounted workspace (which does not exist at build time).
+RUN groupadd --gid ${USER_GID} ${USERNAME} \
+    && useradd  --uid ${USER_UID} --gid ${USER_GID} -m -s /bin/bash ${USERNAME} \
+    && echo "${USERNAME} ALL=(root) NOPASSWD:ALL" > /etc/sudoers.d/${USERNAME} \
+    && chmod 0440 /etc/sudoers.d/${USERNAME}
+
+USER ${USERNAME}
