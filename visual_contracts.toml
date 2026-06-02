@@ -15,6 +15,19 @@
 #              the three beam entries below MUST carry it.  Entries whose class
 #              takes only defaults omit [contract.params].
 #
+# Label suppression (labels = false):
+#   The four parameter-sweep gauges engrave numeric labels via
+#   cq.Workplane.text().  Glyph tessellation depends on the *host* font
+#   (fontconfig substitutes font="Arial" with a host-specific binary) and the
+#   host freetype version, so the glyph wire geometry — and therefore the SVG
+#   bytes — differ between the CI runner and a contributor's clone.  Byte-pinning
+#   that glyph soup would drift across hosts while protecting nothing the visual
+#   contract exists to protect (axis convention, hole/pocket pattern, datum —
+#   see vibe/INSTRUCTIONS.md §Visual Contract Deliverable).  The six gauge rows
+#   therefore render with [contract.params] labels = false: the contract pins the
+#   geometry, not the host-dependent glyphs, keeping it a pure function of
+#   tracked repo state.  The beam rows are text-free and need no suppression.
+#
 # Refresh all contracts after a legitimate geometry change:
 #   python3.11 tools/check_visual_contract_freshness.py --update
 # (cadquery lives on the 3.11 interpreter in this container; the default
@@ -51,11 +64,15 @@ length_in_studs = 5
 svg   = ".agents/plans/2026-05-20-axle-hole-tip-to-tip-gauge_design_iso_ne.svg"
 model = "vibe_cading.lego.axle_hole_gauge.AxleHoleGauge"
 view  = "iso_ne"
+[contract.params]
+labels = false
 
 [[contract]]
 svg   = ".agents/plans/2026-05-20-axle-hole-tip-to-tip-gauge_design_top.svg"
 model = "vibe_cading.lego.axle_hole_gauge.AxleHoleGauge"
 view  = "top"
+[contract.params]
+labels = false
 
 # ── AxleCrossHoleGauge (defaults) ──────────────────────────────────────────────
 
@@ -63,11 +80,15 @@ view  = "top"
 svg   = ".agents/plans/2026-05-21-axle-cross-hole-gauge_design_iso_ne.svg"
 model = "vibe_cading.lego.axle_cross_hole_gauge.AxleCrossHoleGauge"
 view  = "iso_ne"
+[contract.params]
+labels = false
 
 [[contract]]
 svg   = ".agents/plans/2026-05-21-axle-cross-hole-gauge_design_top.svg"
 model = "vibe_cading.lego.axle_cross_hole_gauge.AxleCrossHoleGauge"
 view  = "top"
+[contract.params]
+labels = false
 
 # ── M3 calibration gauges (defaults) ───────────────────────────────────────────
 
@@ -75,8 +96,12 @@ view  = "top"
 svg   = ".agents/plans/2026-05-23-calibration-helper-generic_design_m3_clearance_iso_ne.svg"
 model = "vibe_cading.mechanical.calibration.m3_clearance_gauge.MThreeClearanceGauge"
 view  = "iso_ne"
+[contract.params]
+labels = false
 
 [[contract]]
 svg   = ".agents/plans/2026-05-23-calibration-helper-generic_design_m3_nut_pocket_iso_ne.svg"
 model = "vibe_cading.mechanical.calibration.m3_nut_pocket_gauge.MThreeNutPocketGauge"
 view  = "iso_ne"
+[contract.params]
+labels = false

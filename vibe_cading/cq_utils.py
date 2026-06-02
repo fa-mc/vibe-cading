@@ -48,7 +48,97 @@ second caller materialises.
 
 from __future__ import annotations
 
+from typing import Sequence
+
 import cadquery as cq
+
+
+# ── Engraved labels ─────────────────────────────────────────────────────────
+
+def engraved_labels(
+    specs: Sequence[tuple[str, tuple[float, float, float]]],
+    *,
+    fontsize: float,
+    depth: float,
+    labels: bool = True,
+) -> cq.Workplane | None:
+    """Build one unioned compound of engraving solids, ready for a single cut.
+
+    Consolidates the label-engraving block the parameter-sweep gauges
+    (``AxleHoleGauge``, ``AxleCrossHoleGauge``, ``MThreeClearanceGauge``,
+    ``MThreeNutPocketGauge``) previously duplicated verbatim.  Each label is
+    extruded with :meth:`cq.Workplane.text` (centred on its plane via
+    ``halign``/``valign``) then translated to its target position; all glyph
+    solids are merged into **one** compound with a single ``.combine()`` so the
+    caller performs exactly one ``base.cut(...)``.  Engraving each label with
+    its own ``.cut()`` stalls the OCCT boolean kernel — collecting into one
+    compound first is the established gauge performance idiom (see the
+    "Parameter Sweeps and Test Fits" rule in ``CLAUDE.md``).
+
+    Caller contract::
+
+        engraving = engraved_labels(specs, fontsize=3.0, depth=engrave_depth,
+                                    labels=self.labels)
+        if engraving is not None:
+            base = base.cut(engraving)
+
+    Visual-contract note
+    --------------------
+    ``labels=False`` returns ``None`` so the caller emits **no** engraving and
+    the resulting part is geometry-only.  Visual contracts
+    (``visual_contracts.toml``) render the gauges with ``labels = false`` for a
+    reason: ``cq.Workplane.text()`` resolves a host font via fontconfig
+    (``font='Arial'`` substitutes a host-specific binary) and freetype
+    tessellates its glyphs into wire geometry that differs byte-for-byte across
+    hosts.  A contract that byte-pins glyph soup would drift between the CI
+    runner and a contributor's clone while protecting geometry the contract was
+    never meant to cover.  Suppressing labels keeps the contract a pure
+    function of tracked repo state — the block, the holes/pockets, and the axis
+    convention — which is exactly what the visual contract exists to protect.
+    The default ``labels=True`` preserves engravings for physical prints,
+    ``build.py``, and ``tools/view.py``.
+
+    Parameters
+    ----------
+    specs:
+        One ``(text, (x, y, z))`` pair per label.  ``text`` is the literal
+        string to engrave; ``(x, y, z)`` is where the glyph plane lands.  To
+        bite an engraving ``depth`` mm into a top face at ``z = block_top``,
+        pass ``z = block_top - depth / 2`` (``text()`` extrudes glyphs
+        symmetrically about their plane).
+    fontsize:
+        Glyph height passed to ``text(fontsize=...)`` (mm).
+    depth:
+        Extrusion distance of each glyph, passed to ``text(distance=...)``
+        (mm) — the engraving depth.
+    labels:
+        When ``False``, return ``None`` (no engraving — geometry-only part).
+        Defaults to ``True``.
+
+    Returns
+    -------
+    cq.Workplane | None
+        One combined compound of all glyph solids, or ``None`` when
+        ``labels`` is ``False``.
+    """
+    if not labels:
+        return None
+
+    compound = cq.Workplane("XY")
+    for text, position in specs:
+        glyph = (
+            cq.Workplane("XY")
+            .text(
+                text,
+                fontsize=fontsize,
+                distance=depth,
+                halign="center",
+                valign="center",
+            )
+            .translate(position)
+        )
+        compound.add(glyph.vals())
+    return compound.combine()
 
 
 # ── Primitives ────────────────────────────────────────────────────────────────
