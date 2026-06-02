@@ -28,7 +28,7 @@ Designer, and TL).
    unilaterally (see *Escalate to the TL* below).
 
 3. **Write code (Challenge the Status Quo)** — Implement CadQuery models, utilities, or tools.
-   Follow all conventions in `CLAUDE.md`. If your implementation approach yields geometrically brittle outcomes (e.g. self-intersecting meshes, boolean union/cut failures requiring excessive boundary hacks), do not get trapped patching a bad architecture. Rethink the underlying CAD mechanics (e.g. rely on overlapping clean solids anchored to the center origin rather than perfectly-aligned faces on a perimeter).
+   Follow all conventions in `vibe/INSTRUCTIONS.md` (plus any host-specific addenda in your host instruction file, e.g. `CLAUDE.md` for Claude Code). If your implementation approach yields geometrically brittle outcomes (e.g. self-intersecting meshes, boolean union/cut failures requiring excessive boundary hacks), do not get trapped patching a bad architecture. Rethink the underlying CAD mechanics (e.g. rely on overlapping clean solids anchored to the center origin rather than perfectly-aligned faces on a perimeter).
    **Crucial Documentation Rule:** Proactively document all non-obvious architecture decisions, placeholders, and deferred functionality directly in the code (via docstrings and inline comments) so future developers and the user understand the context (e.g., *why* a flag like `render_threads` is present but implemented as a no-op).
 
 4. **Run validation** — After completing deliverables, run the validation
@@ -58,7 +58,7 @@ Designer, and TL).
   classes, `Protocol`/`ABC` contracts, project-wide conventions) — escalate to
   the **TL** instead. Per-part code structure inside one part's boundaries is
   yours.
-- Modify `CLAUDE.md` — flag gaps to the user (acting as Admin).
+- Modify the instruction graph — `vibe/INSTRUCTIONS.md`, the role/command/template files, or your host instruction file — flag gaps to the user (acting as Admin).
 - Change the brief's acceptance criteria or scope.
 - Interpret reference drawings or STEP files to extract dimensions — the
   Designer should have pre-digested these into the design brief.

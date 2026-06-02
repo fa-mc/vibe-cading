@@ -82,7 +82,7 @@ and Developer).
 - Write production model code (that is the Developer's job).
 - Decide code structure, class hierarchies, or method decomposition (that
   is the Developer's job).
-- Modify `CLAUDE.md` (that is the Admin's job).
+- Modify the instruction graph — `vibe/INSTRUCTIONS.md`, the role/command/template files, or your host instruction file (that is the Admin's job).
 - Make scope changes without user/Admin approval.
 
 ## Incremental writing — crash resilience

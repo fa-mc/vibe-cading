@@ -5,10 +5,11 @@
 The canonical, tool-neutral instruction set for this project is imported above
 from [vibe/INSTRUCTIONS.md](vibe/INSTRUCTIONS.md). This file holds only the
 instructions that depend on Claude Code's specific mechanisms (subagent
-invocation, slash-command paths, runtime alias scaffolding). Other AI-coding
-hosts have their own equivalent file (`.github/copilot-instructions.md`,
-`.cursor/rules/`, etc.) that imports the same canonical instructions and adds
-host-specific sections.
+invocation, slash-command paths, runtime alias scaffolding). Agents on any other host enter
+through the universal [AGENTS.md](AGENTS.md) at the repo root, which routes to
+the same canonical `vibe/INSTRUCTIONS.md`. A host that prefers a native file
+(`.github/copilot-instructions.md`, `.cursor/rules/`, etc.) can add one that
+likewise imports the canonical instructions; none ship yet.
 
 ## Subagent Invocation
 
