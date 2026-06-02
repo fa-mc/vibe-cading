@@ -62,11 +62,12 @@ This workspace utilizes a structured, multi-role agentic workflow.
 
 - **Standard Roles:**
   - **Contributor Roles (shipped as agent personas under `vibe/agents/`, surfaced through the host platform's subagent mechanism):**
-    - `designer`: Domain reasoning, brainstorming, and design briefs.
-    - `developer`: Code structure, implementation, frameworks, and validation.
-  - **Maintainer Roles (Human or Bring-Your-Own-Agent):**
-    - `Admin`: Requirements, instruction maintenance, and unblocking execution loops. (For open-source users, the human contributor acts as the Admin, or supplies their own admin persona.)
-    - `TL`: Architecture for global CLI utilities and shared refactors.
+    - `admin`: Workflow governance, instruction maintenance, mid-session interventions, and design-flow orchestration. Diagnoses and routes; does not write model code, design briefs, or architectural blueprints.
+    - `designer`: Domain reasoning, brainstorming, and design briefs (*what* to build and *why*).
+    - `tl`: Code/system architecture — shared abstractions, base-class and `Protocol`/`ABC` contracts, cross-cutting refactors, and post-implementation architectural review. Invoked for architecturally-significant work only; everyday single-part creation flows Designer → Developer without it.
+    - `developer`: Per-part code structure, implementation, and validation.
+  - **Maintainer Role (Human or Bring-Your-Own-Agent):**
+    - `PM`: Backlog curation and cross-task prioritisation — not shipped; the human contributor drives it (or supplies their own PM persona). The human also remains the final acceptance authority for merges and project policy, above all shipped roles.
 - **Artefact Management:**
   - **Design Briefs & Plans:** Tracked in `.agents/plans/` (git-ignored).
   - **Session Backlog/Ideas:** Parked under `/memories/session/ideas.md` to defer non-immediate refactors.
@@ -75,8 +76,8 @@ This workspace utilizes a structured, multi-role agentic workflow.
 - **Artifact-Driven Handoffs:** When a non-trivial root cause is established, capture the finding in a durable artifact under `tmp/` or `.agents/plans/` before handing off for architectural review or downstream implementation. Verbal handoffs are insufficient — the artifact is the contract between roles.
 - **Seamless Role Transitions:** Transition seamlessly between included roles (or invoke the next step) without asking the user for confirmation if there is no ambiguity. Never instruct the user to copy-paste prompts to facilitate a hand-off.
 - **Role Activation Protocol:** Whenever a transition into a named role is required — whether triggered by the host's subagent mechanism, a slash command, or an explicit `@role` mention in chat — read the persona file before adopting it. Do not infer the persona from memory or prior context.
-  - **`@designer`, `@developer` (project-tracked):** Read [vibe/agents/`<role>`.md](agents/) before adopting the persona. The file is the source of truth for responsibilities, validation gates, and routing rules.
-  - **`@admin`, `@tl`, `@pm` (not project-tracked):** This repository intentionally does not ship maintainer-role personas. An inline mention is a signal to escalate to the human contributor, who acts as Admin / TL / PM by default. If a maintainer has loaded their own Admin / TL / PM persona from `~/.claude/`, hand off to that persona instead. Do not fabricate one of these personas from memory.
+  - **`@admin`, `@designer`, `@tl`, `@developer` (project-tracked):** Read [vibe/agents/`<role>`.md](agents/) before adopting the persona. The file is the source of truth for responsibilities, validation gates, and routing rules.
+  - **`@pm` (not project-tracked):** This repository intentionally does not ship a PM persona. An inline `@pm` mention is a signal to escalate to the human contributor, who drives backlog prioritisation by default. If a maintainer has loaded their own PM persona from `~/.claude/`, hand off to that persona instead. Do not fabricate a PM persona from memory.
 - **Subagent Outcome Discipline:** When spawning any role-isolated subagent (Designer, Developer, or via the host's `Agent` mechanism):
   - **Pre-write grep rule.** If the subagent will write to an existing file, the spawn prompt MUST instruct it to grep the file for its target heading first; if found, return the surrounding bytes verbatim instead of appending a duplicate. Prevents the self-write misattribution failure mode — a subagent writes a section, then on re-read confuses its own fresh write with pre-existing content and skips the work it was sent to do.
   - **Outcome-write contract.** The subagent MUST persist its outcome to a concrete file (design brief, RCA artifact, plan section) **before** returning. The return message is a summary, not the source of truth — the orchestrator relies on the file. *Success* → update the designated artifact section. *Blocker* → write a blocker note to the plan or RCA artifact with any task/run IDs. *Failure* → note in the plan file and escalate with the artifact path. If the file isn't updated, the spawn is incomplete regardless of what the return message claims.
@@ -133,7 +134,7 @@ This codebase must be maintained at a high standard of structural quality and re
 
 ## Reference Docs
 - [docs/lego-technic.md](../docs/lego-technic.md) — Lego Technic part dimensions (beams, pins, axles, holes, gears, tolerances)
-- [docs/agentic-workflow.md](../docs/agentic-workflow.md) — Three-role agentic workflow (Admin / Designer / Developer)
+- [docs/agentic-workflow.md](../docs/agentic-workflow.md) — Multi-role agentic workflow (Admin / Designer / TL / Developer)
 
 ## Agentic Workflow
 
@@ -142,8 +143,8 @@ See [docs/agentic-workflow.md](../docs/agentic-workflow.md) for the full
 specification.
 
 **Roles:**
-- **Contributor Roles (canonical persona content under `vibe/agents/`):** `designer` (domain reasoning & design briefs), `developer` (code structure, implementation & execution).
-- **Maintainer Roles (Bring-Your-Own / Human):** Admin (requirements & review), TL (architecture & refactors). Open-source contributors act as the Admin and guide the workflow manually unless they supply their own personal agent platform configuration.
+- **Contributor Roles (canonical persona content under `vibe/agents/`):** `admin` (workflow governance & instruction maintenance), `designer` (domain reasoning & design briefs), `tl` (code architecture & shared-contract stewardship), `developer` (per-part code structure, implementation & execution).
+- **Maintainer Role (Bring-Your-Own / Human):** PM (backlog curation & cross-task prioritisation) is not shipped; the human contributor drives it and remains the final acceptance authority for merges and project policy.
 
 **Artefact locations** (git-ignored):
 - Design briefs: `.agents/plans/`

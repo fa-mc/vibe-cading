@@ -12,22 +12,30 @@ host-specific sections.
 
 ## Subagent Invocation
 
-The Designer and Developer roles defined in [vibe/agents/](vibe/agents/) are
-surfaced through Claude Code's subagent mechanism:
+The Admin, Designer, TL, and Developer roles defined in
+[vibe/agents/](vibe/agents/) are surfaced through Claude Code's subagent
+mechanism:
 
-- Delegate domain/design work via the `designer` subagent — `Agent` tool with
-  `subagent_type: "designer"`, or via user prompt *"use the designer agent
-  to ..."*.
+- Delegate workflow governance, instruction maintenance, mid-session
+  interventions, and design-flow orchestration via the `admin` subagent —
+  `Agent` tool with `subagent_type: "admin"`, or via user prompt *"use the
+  admin agent to ..."* (or an `@admin` mention).
+- Delegate domain/design work via the `designer` subagent —
+  `subagent_type: "designer"`.
+- Delegate code/system architecture — shared abstractions, base-class and
+  `Protocol`/`ABC` contracts, cross-cutting refactors, post-implementation
+  architectural review — via the `tl` subagent — `subagent_type: "tl"`.
+  Invoke the TL only for architecturally-significant work; everyday
+  single-part creation flows Designer → Developer without it.
 - Delegate implementation/execution via the `developer` subagent —
   `subagent_type: "developer"`.
-- *Note:* `admin`, `tl`, and `pm` are *maintainer* roles — intentionally
-  not shipped as tracked subagents or slash commands. On an open-source
-  clone the human contributor fills the Admin role directly: refining
-  requirements, reviewing the designer's brief, and accepting the
-  developer's output. The `designer` and `developer` subagents are the
-  complete contributor toolkit; no additional install is required.
-  Maintainers who prefer dedicated Admin / TL / PM agents can load their
-  own personas from `~/.claude/` per-host.
+- *Note:* `pm` (Project Manager — backlog curation, cross-task
+  prioritisation) is intentionally *not* shipped as a tracked subagent or
+  slash command. On an open-source clone the human contributor drives
+  backlog prioritisation directly; maintainers who prefer a dedicated PM
+  agent can load their own persona from `~/.claude/` per-host. The `admin`,
+  `designer`, `tl`, and `developer` subagents are the complete contributor
+  toolkit; no additional install is required.
 
 ## `.claude/` runtime aliases
 
