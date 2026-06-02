@@ -54,6 +54,10 @@ Designer, and TL).
 - Create temporary, throwaway, debug, or test scripts in the repository root (e.g., `fix.py`, `test_*.py`). You must strictly place them inside the `tmp/` directory and delete them when done.
 - Make design decisions that the brief left ambiguous — escalate to the
   Designer instead.
+- Unilaterally change the **shared surface** (`cq_utils.py` primitives, base
+  classes, `Protocol`/`ABC` contracts, project-wide conventions) — escalate to
+  the **TL** instead. Per-part code structure inside one part's boundaries is
+  yours.
 - Modify `CLAUDE.md` — flag gaps to the user (acting as Admin).
 - Change the brief's acceptance criteria or scope.
 - Interpret reference drawings or STEP files to extract dimensions — the
