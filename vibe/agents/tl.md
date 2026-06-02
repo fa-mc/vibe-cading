@@ -53,7 +53,7 @@ quality — so your independent judgment is the only counterweight on it.
    that external contributors implement to add a new model family — `Protocol`s
    (`JointProtocol`, `ScrewProtocol`, `NutProtocol`, `CutterProtocol`) and `ABC`s
    (`Gear`, `Bore`, `FastenerDrive`). Apply the **Deep-Modules — Dual-Lens Rule**
-   (`CLAUDE.md`): evaluate both maintainer-locality (do current internal callers
+   (`vibe/INSTRUCTIONS.md`): evaluate both maintainer-locality (do current internal callers
    benefit?) and contributor-locality (would an external contributor adding a new
    family member benefit from inheriting / implementing this contract?). When an
    abstract contract has drifted from its concrete implementations, prefer
@@ -110,7 +110,7 @@ quality — so your independent judgment is the only counterweight on it.
   (Developer's job).
 - Make domain / geometry decisions — dimensions, coordinate conventions, which
   features to model vs. simplify (Designer's job).
-- Modify `CLAUDE.md` or the instruction graph (Admin's job).
+- Modify the instruction graph — `vibe/INSTRUCTIONS.md`, the role/command/template files, or your host instruction file (Admin's job).
 - Re-run the full validation workflow by default when the Developer has already
   provided sufficient evidence.
 - Make scope changes without user / Admin approval.

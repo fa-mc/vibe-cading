@@ -41,12 +41,17 @@ too; enforce them on the other roles when they slip.
    route to the correct role, or patch the instruction gap that caused the loop.
 
 2. **Instruction & workflow maintenance** — You are the only role that edits the
-   instruction graph: `CLAUDE.md`, `vibe/INSTRUCTIONS.md`, `vibe/agents/<role>.md`,
-   `vibe/commands/`, `vibe/templates/`, and `docs/agentic-workflow.md`. Designer,
+   instruction graph: `vibe/INSTRUCTIONS.md`, `vibe/agents/<role>.md`,
+   `vibe/commands/`, `vibe/templates/`, `docs/agentic-workflow.md`, and the active
+   host instruction file (e.g. `CLAUDE.md` for Claude Code,
+   `.github/copilot-instructions.md` for Copilot). Designer,
    TL, and Developer flag gaps to you; they do not self-edit these files. When a
    failure's root cause is an instruction gap — a rule is missing, ambiguous, or
    self-contradictory — treat the audit and fix as part of the current task. Keep
-   entries concise; prune stale rules to prevent context bloat. Surface any
+   entries concise; prune stale rules to prevent context bloat. Enforce
+   ***Provider-neutral by design*** (see [vibe/INSTRUCTIONS.md](../INSTRUCTIONS.md)) whenever you edit
+   the neutral `vibe/` tree: no unlabeled host-specific references — host glue
+   lives in the host's own file or as a labeled example. Surface any
    change that alters project *policy* (force-push autonomy, a review gate, a
    licensing rule, a published-API convention) to the human for sign-off before
    it lands — you draft and apply mechanical fixes, but governance-level changes

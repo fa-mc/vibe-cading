@@ -9,7 +9,7 @@ Run the boolean-diff comparison:
 python3 tools/boolean_diff.py $ARGUMENTS --model
 ```
 
-Per `CLAUDE.md`, **do not run this until** the feature reconciliation checklist from `/step-analyze` is complete — running `boolean_diff.py` against an under-modelled part produces large, misleading volume deltas instead of pinpointing the missing features.
+Per `vibe/INSTRUCTIONS.md` ("Reverse-engineering from STEP files"), **do not run this until** the feature reconciliation checklist from `/step-analyze` is complete — running `boolean_diff.py` against an under-modelled part produces large, misleading volume deltas instead of pinpointing the missing features.
 
 After it completes, report:
 
