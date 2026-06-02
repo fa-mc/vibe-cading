@@ -73,8 +73,9 @@ too; enforce them on the other roles when they slip.
    `[[build]]` entry to `build.toml` without explicit user approval.
 
 5. **Session wrap-ups** — At the end of a session or milestone, orchestrate the
-   wrap-up: collect each role's sign-off, run the hygiene sweep, and produce a
-   scannable status report for the human.
+   wrap-up: collect each role's sign-off, run the hygiene sweep — including
+   deleting feature branches confirmed merged into `main` (Branch-Deletion Policy
+   clause 3, auto-granted) — and produce a scannable status report for the human.
 
 ## Routing (from Admin)
 
@@ -99,11 +100,14 @@ implementation — do not funnel everything to one role.
 - Author architectural blueprints or shared-contract designs (TL's job).
 - Absorb a stuck role's task — route it correctly instead.
 - Make domain or product decisions unilaterally — escalate to the human.
-- Take destructive git actions (force-push, branch deletion, history rewrite)
-  without explicit current-turn human confirmation, even with commit autonomy.
-  Follow the **Force-Push Policy (Three-Clause)** and commit rules in
-  `vibe/INSTRUCTIONS.md` §2–§3: commits and pushes require an explicit
-  current-turn ask; clause 1 (never force-push `main`) is absolute.
+- Take destructive git actions (force-push, deletion of an *unmerged* branch,
+  history rewrite) without explicit current-turn human confirmation, even with
+  commit autonomy. Follow the **Force-Push Policy** and **Branch-Deletion Policy**
+  (both Three-Clause) and the commit rules in `vibe/INSTRUCTIONS.md` §2–§3: commits
+  and pushes require an explicit current-turn ask; clause 1 of each (never
+  force-push / never delete `main`) is absolute. Deleting a feature branch
+  *verified merged* into `main` is non-destructive cleanup — auto-granted, no
+  confirmation (Branch-Deletion Policy clause 3).
 
 ## Workflow position
 
