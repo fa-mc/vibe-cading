@@ -224,6 +224,7 @@ def export_previews(
     out_dir: Path,
     params: dict[str, any] | None = None,
     views: list[str] | None = None,
+    quiet: bool = False,
 ) -> list[Path]:
     """Build *model_path* and write one SVG per view to *out_dir*.
 
@@ -240,6 +241,12 @@ def export_previews(
         List of view names to export.  Each name must be a key in
         ``NAMED_VIEWS``.  Defaults to ``DEFAULT_VIEWS`` when omitted.
         Pass ``["all"]`` as a shortcut to export every named view.
+    quiet:
+        When ``True``, suppress the per-file ``WROTE <path>`` stdout line.
+        Programmatic callers that regenerate into a temp dir (e.g. the
+        visual-contract freshness check) pass ``quiet=True`` to keep their
+        output clean; the CLI leaves it ``False`` so ``preview.py`` still
+        reports each file it wrote.
 
     Returns
     -------
@@ -285,7 +292,8 @@ def export_previews(
         # from full-precision data and only the on-disk text is shortened.
         _round_svg_coords(svg_path)
         written.append(svg_path)
-        print(f"WROTE {svg_path}")
+        if not quiet:
+            print(f"WROTE {svg_path}")
 
     return written
 
