@@ -2,6 +2,10 @@
     "name": "CadQuery Dev",
     "build": {
         "dockerfile": "Dockerfile"
+        // To pin the user to a non-1000 host UID at build time, add:
+        // "args": { "USER_UID": "1001", "USER_GID": "1001" }
+        // On the common path this is unnecessary: the default is UID 1000 and
+        // VS Code's updateRemoteUserUID (below) re-stamps to the host UID.
     },
     "customizations": {
         "vscode": {
@@ -14,14 +18,19 @@
     "forwardPorts": [
         3939
     ],
-    "remoteUser": "root",
+    "remoteUser": "vscode",
+    "updateRemoteUserUID": true,
     "mounts": [
         "source=${localEnv:HOME}/.ssh,target=/tmp/host-ssh,type=bind,readonly",
-        "source=${localEnv:HOME}${localEnv:USERPROFILE}/.claude,target=/root/.claude,type=bind,consistency=cached"
+        // If you override USERNAME (default "vscode") via build args, also update
+        // "remoteUser" above and the /home/<user>/.claude target below — neither
+        // can interpolate the Dockerfile ARG. Overriding only USER_UID/USER_GID
+        // (the common non-1000-host case) needs no change here.
+        "source=${localEnv:HOME}${localEnv:USERPROFILE}/.claude,target=/home/vscode/.claude,type=bind,consistency=cached"
     ],
     "remoteEnv": {
         "SSH_AUTH_SOCK": "/ssh-agent",
         "PYTHONPATH": "/workspaces/vibe-cading"
     },
-    "postCreateCommand": "mkdir -p ~/.ssh && cp -a /tmp/host-ssh/. ~/.ssh/ && chown -R $(whoami) ~/.ssh && chmod 700 ~/.ssh && chmod 600 ~/.ssh/* && git config --global --add safe.directory /workspaces/vibe-cading"
+    "postCreateCommand": "git config --global --add safe.directory /workspaces/vibe-cading && sudo chown -R \"$(id -u):$(id -g)\" /workspaces/vibe-cading && mkdir -p \"$HOME/.ssh\" && cp -a /tmp/host-ssh/. \"$HOME/.ssh/\" && chmod 700 \"$HOME/.ssh\" && find \"$HOME/.ssh\" -maxdepth 1 -type f ! -name '*.pub' -exec chmod 600 {} + && find \"$HOME/.ssh\" -maxdepth 1 -name '*.pub' -exec chmod 644 {} +"
 }
