@@ -30,6 +30,7 @@ from typing import Sequence
 
 import cadquery as cq
 
+from vibe_cading.cq_utils import engraved_labels
 from vibe_cading.mechanical.screws.metric import METRIC_SIZES
 
 
@@ -86,6 +87,14 @@ class MThreeClearanceGauge:
         Cell width per hole along X (mm) — centre-to-centre spacing.
     engrave_depth:
         Depth of the diameter label engraving on the top face (mm).
+    labels:
+        When ``True`` (default) each hole is engraved with its diameter on
+        the top face — kept for physical prints, ``build.py`` and
+        ``tools/view.py``.  When ``False`` the gauge is geometry-only (no
+        engraving); the visual-contract render sets ``labels=False`` because
+        ``cq.text()`` glyph tessellation is host-font-dependent and not
+        reproducible across CI / clone hosts (see
+        :func:`vibe_cading.cq_utils.engraved_labels`).
     """
 
     def __init__(
@@ -94,6 +103,7 @@ class MThreeClearanceGauge:
         depth: float = 8.0,
         hole_pitch: float = 9.0,
         engrave_depth: float = 0.6,
+        labels: bool = True,
     ) -> None:
         if not diameters:
             raise ValueError(
@@ -103,6 +113,7 @@ class MThreeClearanceGauge:
         self.depth: float = float(depth)
         self.hole_pitch: float = float(hole_pitch)
         self.engrave_depth: float = float(engrave_depth)
+        self.labels: bool = bool(labels)
 
         # ── Nominal-source guard ──────────────────────────────────────
         # Live read from the source-of-truth constant; if the swept
@@ -176,34 +187,31 @@ class MThreeClearanceGauge:
         base = base.cut(holes)
 
         # ── Diameter labels ───────────────────────────────────────────
-        # All label glyphs unioned into one compound *before* a single
-        # ``.cut()`` — engraving each label separately stalls the OCCT
-        # boolean kernel (established ToleranceGauge pattern).
-        label_solids: list[cq.Workplane] = []
-        for index, dia in enumerate(self.diameters):
-            text = (
-                cq.Workplane("XY")
-                .text(
+        # Each hole engraved with its diameter on the top face via the
+        # shared engraved_labels helper (single combined cut — engraving
+        # each label separately stalls the OCCT boolean kernel).  text()
+        # extrudes glyphs symmetrically about their plane, so the label
+        # plane sits engrave_depth/2 below the top face.  labels=False
+        # suppresses engraving entirely (geometry-only) — the visual
+        # contract renders that way (host-font-dependent glyphs).
+        engraving = engraved_labels(
+            [
+                (
                     f"{dia:.2f}",
-                    fontsize=3.0,
-                    distance=self.engrave_depth,
-                    halign="center",
-                    valign="center",
-                )
-                .translate(
                     (
                         self._hole_x(index),
                         self._label_y,
                         self.depth - self.engrave_depth / 2.0,
-                    )
+                    ),
                 )
-            )
-            label_solids.append(text)
-
-        all_labels = cq.Workplane("XY")
-        for label in label_solids:
-            all_labels.add(label.vals())
-        base = base.cut(all_labels.combine())
+                for index, dia in enumerate(self.diameters)
+            ],
+            fontsize=3.0,
+            depth=self.engrave_depth,
+            labels=self.labels,
+        )
+        if engraving is not None:
+            base = base.cut(engraving)
 
         result = base
         # Topological guard: the gauge must be a single contiguous

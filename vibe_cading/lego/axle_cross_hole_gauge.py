@@ -23,7 +23,7 @@ from typing import Sequence
 
 import cadquery as cq
 
-from vibe_cading.cq_utils import axle_cross_section
+from vibe_cading.cq_utils import axle_cross_section, engraved_labels
 from vibe_cading.lego.constants import AXLE_HOLE_TIP_TO_TIP
 from vibe_cading.print_settings import ToleranceProfile, get_profile
 
@@ -133,6 +133,14 @@ class AxleCrossHoleGauge:
         spacing.
     engrave_depth:
         Depth of the arm-width label engraving on the top face (mm).
+    labels:
+        When ``True`` (default) each hole is engraved with its arm width on
+        the top face — kept for physical prints, ``build.py`` and
+        ``tools/view.py``.  When ``False`` the gauge is geometry-only (no
+        engraving); the visual-contract render sets ``labels=False`` because
+        ``cq.text()`` glyph tessellation is host-font-dependent and not
+        reproducible across CI / clone hosts (see
+        :func:`vibe_cading.cq_utils.engraved_labels`).
     """
 
     def __init__(
@@ -143,6 +151,7 @@ class AxleCrossHoleGauge:
         depth: float = 8.0,
         hole_pitch: float = 9.0,
         engrave_depth: float = 0.6,
+        labels: bool = True,
     ) -> None:
         if not arm_widths:
             raise ValueError("AxleCrossHoleGauge requires at least one arm width")
@@ -154,6 +163,7 @@ class AxleCrossHoleGauge:
         self.depth: float = float(depth)
         self.hole_pitch: float = float(hole_pitch)
         self.engrave_depth: float = float(engrave_depth)
+        self.labels: bool = bool(labels)
 
         profile = profile or get_profile()
         self.profile: ToleranceProfile = profile
@@ -253,38 +263,30 @@ class AxleCrossHoleGauge:
         base = base.cut(holes)
 
         # ── Arm-width labels ──────────────────────────────────────────────
-        # Each hole engraved with its arm width on the top face.  All
-        # label text solids are unioned into one compound *before* a
-        # single ``.cut()`` — engraving each label separately stalls the
-        # OCCT boolean kernel (the established gauge pattern).
-        label_solids: list[cq.Workplane] = []
-        for index, arm_width in enumerate(self.arm_widths):
-            text = (
-                cq.Workplane("XY")
-                .text(
+        # Each hole engraved with its arm width on the top face via the shared
+        # engraved_labels helper (single combined cut — engraving each label
+        # separately stalls the OCCT boolean kernel).  text() extrudes the
+        # glyphs symmetrically about its plane, so the label plane sits
+        # engrave_depth/2 below the top face so the cut bites downward.
+        # labels=False suppresses engraving entirely (geometry-only) — the
+        # visual contract renders that way (host-font-dependent glyphs).
+        engraving = engraved_labels(
+            [
+                (
                     f"{arm_width:.2f}",
-                    fontsize=3.0,
-                    distance=self.engrave_depth,
-                    halign="center",
-                    valign="center",
-                )
-                # Sit the engraving on the top face: text() extrudes the
-                # glyphs symmetrically about its plane, so place the plane
-                # engrave_depth/2 below the top so the cut bites downward.
-                .translate(
                     (
                         self._hole_x(index),
                         self._label_y,
                         self.depth - self.engrave_depth / 2.0,
-                    )
+                    ),
                 )
-            )
-            label_solids.append(text)
-
-        all_labels = cq.Workplane("XY")
-        for label in label_solids:
-            all_labels.add(label.vals())
-        result = base.cut(all_labels.combine())
+                for index, arm_width in enumerate(self.arm_widths)
+            ],
+            fontsize=3.0,
+            depth=self.engrave_depth,
+            labels=self.labels,
+        )
+        result = base.cut(engraving) if engraving is not None else base
 
         # Topological guard: the gauge must be a single contiguous solid.
         # A floating sliver here would mean a hole or label cutter severed

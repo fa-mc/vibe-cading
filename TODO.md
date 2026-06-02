@@ -103,7 +103,7 @@ We are expanding this repository into a broader Code-CAD mechanical toolkit. Her
   275→116 KB); the guidance figure in `vibe/INSTRUCTIONS.md` was corrected to
   the measured post-rounding range with the `text()`-label heavy-tail caveat.
   Net tracked SVG footprint 1.5 MB → 1.0 MB.
-- [ ] Visual-contract SVG freshness — contracts silently drift from model
+- [x] Visual-contract SVG freshness — contracts silently drift from model
   code. PR #17's regeneration revealed 7 of 9 tracked design SVGs had drifted
   from current model code (beam pin-hole radius refactor; axle-gauge engraved
   `text()` labels absent from the committed contracts despite being in the
@@ -114,6 +114,16 @@ We are expanding this repository into a broader Code-CAD mechanical toolkit. Her
   its source class + params and fail if the committed file differs beyond
   coordinate precision), or a lighter lint that flags design SVGs older than
   their source model file. (Raised 2026-05-29.)
+  **Resolved 2026-06-01 (PR pending) — CI regenerate-and-compare check.**
+  Added `visual_contracts.toml` (the SVG→`(class, view, params)` manifest)
+  and `tools/check_visual_contract_freshness.py`, which reuses
+  `tools.preview.export_previews` to regenerate each tracked `_design_*.svg`
+  into a temp dir and byte-compares it against the committed file, plus a
+  bidirectional coverage gate (unregistered tracked SVG → fail; manifest row
+  with a missing target → fail).  Wired as the `Visual contract freshness`
+  step in `.github/workflows/ci.yml` after `Topology check`.  The mtime-lint
+  alternative was rejected (git does not preserve mtimes; meaningless on a
+  fresh CI checkout).  Design: `.agents/plans/2026-05-29-visual-contract-freshness_design.md`.
 
 ## 🚀 Transition to "Open Core" Engine
 Based on the ***REMOVED***, this repository (`vibe-cading`) will act as the public core engine for the `***REMOVED***`. We need to prepare it for external consumption:
