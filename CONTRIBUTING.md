@@ -81,7 +81,7 @@ We strongly recommend using an AI coding host like [Claude Code](https://claude.
 
 Only the **`pm`** role (backlog prioritisation across many tasks) is **intentionally not shipped** — the human contributor drives it, and remains the final acceptance authority for merges and project policy above all shipped roles. Maintainers who prefer a dedicated PM agent can load their own persona from `~/.claude/`.
 
-**Canonical instructions.** The tool-neutral instruction set lives at [`vibe/INSTRUCTIONS.md`](vibe/INSTRUCTIONS.md); [`CLAUDE.md`](CLAUDE.md) is a thin Claude-Code-specific shim that imports it. Other AI-coding hosts use their own equivalent (`.github/copilot-instructions.md`, `.cursor/rules/`, etc.). See [docs/agentic-workflow.md](docs/agentic-workflow.md) for the workflow specification.
+**Canonical instructions.** The tool-neutral instruction set lives at [`vibe/INSTRUCTIONS.md`](vibe/INSTRUCTIONS.md). Every AI host enters through the universal [`AGENTS.md`](AGENTS.md) at the repo root, which routes there; [`CLAUDE.md`](CLAUDE.md) is the thin Claude-Code-specific shim that imports the same file and adds subagent glue. A host that prefers a native file (`.github/copilot-instructions.md`, `.cursor/rules/`, etc.) can add one that likewise imports the canonical instructions; none ship yet. See [docs/agentic-workflow.md](docs/agentic-workflow.md) for the workflow specification.
 
 **How to use the workflow for a complex new model:**
 
