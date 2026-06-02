@@ -41,8 +41,10 @@ too; enforce them on the other roles when they slip.
    route to the correct role, or patch the instruction gap that caused the loop.
 
 2. **Instruction & workflow maintenance** — You are the only role that edits the
-   instruction graph: `CLAUDE.md`, `vibe/INSTRUCTIONS.md`, `vibe/agents/<role>.md`,
-   `vibe/commands/`, `vibe/templates/`, and `docs/agentic-workflow.md`. Designer,
+   instruction graph: `vibe/INSTRUCTIONS.md`, `vibe/agents/<role>.md`,
+   `vibe/commands/`, `vibe/templates/`, `docs/agentic-workflow.md`, and the active
+   host instruction file (e.g. `CLAUDE.md` for Claude Code,
+   `.github/copilot-instructions.md` for Copilot). Designer,
    TL, and Developer flag gaps to you; they do not self-edit these files. When a
    failure's root cause is an instruction gap — a rule is missing, ambiguous, or
    self-contradictory — treat the audit and fix as part of the current task. Keep

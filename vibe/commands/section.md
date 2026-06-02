@@ -9,7 +9,7 @@ Run the section slicer for `$ARGUMENTS`:
 python3 tools/section_slicer.py $ARGUMENTS
 ```
 
-Use this tool whenever a model contains blind holes, internal cavities, snap rings, counterbores, or any feature that cannot be reliably validated from external orthographic / iso views. Per `CLAUDE.md` ("Blind Holes and Internal Geometry Under-visibility" and "Validating Internal Intersections and Mating Surfaces"), `section_slicer.py` is **mandatory** in those cases — `iso_ne` previews physically cannot see inside a blind hole.
+Use this tool whenever a model contains blind holes, internal cavities, snap rings, counterbores, or any feature that cannot be reliably validated from external orthographic / iso views. Per `vibe/INSTRUCTIONS.md` ("Blind Holes and Internal Geometry Under-visibility" and "Validating Internal Intersections and Mating Surfaces"), `section_slicer.py` is **mandatory** in those cases — `iso_ne` previews physically cannot see inside a blind hole.
 
 After running, read the `--report` table (if requested) and the generated cross-section SVGs in `tmp/section/`, and report:
 
