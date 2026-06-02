@@ -151,7 +151,7 @@ class Contract:
         design-slug filename (the FR4 indirection).
         """
         written = export_previews(
-            self.model, tmp_dir, self.params, views=[self.view]
+            self.model, tmp_dir, self.params, views=[self.view], quiet=True
         )
         return written[0].read_bytes()
 
