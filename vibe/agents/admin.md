@@ -48,7 +48,10 @@ too; enforce them on the other roles when they slip.
    TL, and Developer flag gaps to you; they do not self-edit these files. When a
    failure's root cause is an instruction gap — a rule is missing, ambiguous, or
    self-contradictory — treat the audit and fix as part of the current task. Keep
-   entries concise; prune stale rules to prevent context bloat. Surface any
+   entries concise; prune stale rules to prevent context bloat. Enforce
+   ***Provider-neutral by design*** (see [vibe/INSTRUCTIONS.md](../INSTRUCTIONS.md)) whenever you edit
+   the neutral `vibe/` tree: no unlabeled host-specific references — host glue
+   lives in the host's own file or as a labeled example. Surface any
    change that alters project *policy* (force-push autonomy, a review gate, a
    licensing rule, a published-API convention) to the human for sign-off before
    it lands — you draft and apply mechanical fixes, but governance-level changes

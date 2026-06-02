@@ -15,6 +15,12 @@ Read it in full before doing any work. It is the source of truth for agent
 behaviour, workspace hygiene, validation gates, the multi-role workflow, CAD
 conventions, and known modelling pitfalls. Nothing in this file overrides it.
 
+In particular, read its **Provider-neutral by design** rule (near the top): it
+explains why this repo is host-agnostic and tells you which host-specific files
+(`CLAUDE.md`, `.claude/`, runtime scaffolders) you should **ignore** if they are
+not your host's — skipping another host's glue does not mean you are missing a
+project requirement.
+
 ## Repository layout for agents
 
 | Path | What it is |
