@@ -49,21 +49,32 @@ RUN groupadd --gid ${USER_GID} ${USERNAME} \
 USER ${USERNAME}
 
 # Install the Antigravity CLI (`agy`) — Antigravity's terminal coding agent.
-# This container is driven from both VS Code and Antigravity (see
-# updateRemoteUserUID / UID-1000 notes above), so `agy` is installed for the
-# non-root user to be usable from Antigravity's terminal.
+# This container is driven from both VS Code and Antigravity (see the
+# updateRemoteUserUID / UID-1000 notes above; the VS Code Claude Code
+# extension is likewise baked into this image via devcontainer.json), so
+# `agy` is installed for the non-root user to be usable from Antigravity's
+# terminal.
 #
 # Runs AFTER the USER switch, on purpose: `agy` self-updates in place during
 # normal runs, so the binary must live in a user-writable location
 # (~/.local/bin) rather than a root-owned system path, or self-update breaks.
-# The official installer SHA512-verifies the download against its release
-# manifest; `--dir` pins the target so it never depends on $HOME resolution.
+# `--dir` pins the install location so it never depends on $HOME resolution.
+#
+# Intentionally NOT version-pinned: the installer always fetches the latest
+# build from its release manifest, and `agy` self-updates at runtime — so the
+# exact version is not reproducible from this Dockerfile alone. The installer
+# SHA512-checks the download against that same manifest, which guards against
+# a corrupted/truncated download but NOT against a compromised release
+# endpoint (manifest, URL, and hash share one origin — there is no
+# independent signature). The installer also runs the freshly-downloaded
+# binary once at build time to configure the shell env (a soft-failed step).
 #
 # ENV HOME makes the build-time user home deterministic (Docker does not
-# reliably derive $HOME from the USER instruction, and the installer's
-# staging dir is rooted at $HOME). ENV PATH surfaces ~/.local/bin in every
-# shell and in Antigravity's exec context — not just interactive bash, which
-# is all the installer's own .bashrc edit would cover.
+# reliably derive $HOME from the USER instruction, and the installer stages
+# downloads under $HOME) and matches the image's runtime user. ENV PATH
+# surfaces ~/.local/bin in every shell and in Antigravity's exec context —
+# not just interactive bash, which is all the installer's own .bashrc edit
+# would cover.
 ENV HOME=/home/${USERNAME}
 ENV PATH=/home/${USERNAME}/.local/bin:${PATH}
 RUN curl -fsSL https://antigravity.google/cli/install.sh \
