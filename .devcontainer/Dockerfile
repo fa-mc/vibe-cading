@@ -47,3 +47,24 @@ RUN groupadd --gid ${USER_GID} ${USERNAME} \
     && chmod 0440 /etc/sudoers.d/${USERNAME}
 
 USER ${USERNAME}
+
+# Install the Antigravity CLI (`agy`) — Antigravity's terminal coding agent.
+# This container is driven from both VS Code and Antigravity (see
+# updateRemoteUserUID / UID-1000 notes above), so `agy` is installed for the
+# non-root user to be usable from Antigravity's terminal.
+#
+# Runs AFTER the USER switch, on purpose: `agy` self-updates in place during
+# normal runs, so the binary must live in a user-writable location
+# (~/.local/bin) rather than a root-owned system path, or self-update breaks.
+# The official installer SHA512-verifies the download against its release
+# manifest; `--dir` pins the target so it never depends on $HOME resolution.
+#
+# ENV HOME makes the build-time user home deterministic (Docker does not
+# reliably derive $HOME from the USER instruction, and the installer's
+# staging dir is rooted at $HOME). ENV PATH surfaces ~/.local/bin in every
+# shell and in Antigravity's exec context — not just interactive bash, which
+# is all the installer's own .bashrc edit would cover.
+ENV HOME=/home/${USERNAME}
+ENV PATH=/home/${USERNAME}/.local/bin:${PATH}
+RUN curl -fsSL https://antigravity.google/cli/install.sh \
+        | bash -s -- --dir /home/${USERNAME}/.local/bin
