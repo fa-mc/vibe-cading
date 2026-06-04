@@ -96,6 +96,97 @@ def _validate_param(
             f"{ctor_label}.{name}: 'default' must be present when required is false",
         )
 
+    _validate_allowed_values(param, ctor_label=ctor_label, name=name, errors=errors)
+
+
+def _strip_one_quote_layer(default: str) -> str:
+    """Strip one layer of source-literal quoting from an ``ast.unparse`` default.
+
+    ``ast.unparse`` of a string default produces a quoted source literal —
+    e.g. ``"slip"`` round-trips as the 6-char string ``"'slip'"``.  The
+    ``allowed_values`` members are bare strings (``"slip"``), so the
+    membership check must strip exactly one matching pair of surrounding
+    quotes (``'…'`` or ``"…"``) before comparing.  A default that is not a
+    quoted string literal (e.g. ``None``, a number) is returned unchanged.
+    """
+    if len(default) >= 2 and default[0] == default[-1] and default[0] in ("'", '"'):
+        return default[1:-1]
+    return default
+
+
+def _validate_allowed_values(
+    param: dict, *, ctor_label: str, name: str, errors: list[str]
+) -> None:
+    """Schema 1.1 assertions for ``allowed_values`` / ``value_doc`` (R7/R8).
+
+    R7a — ``allowed_values`` (when non-null) is a non-empty list.
+    R7b — every ``allowed_values`` entry is a string (the 1.1 in-scope set).
+    R8a — when both ``default`` and ``allowed_values`` are present, the
+          quote-stripped default is a member of ``allowed_values``
+          (a ``None``/null default is exempt).
+    R8b — ``value_doc`` keys are a subset of ``allowed_values``.
+    R8c — ``value_doc`` MUST be null when ``allowed_values`` is null.
+    """
+    label = f"{ctor_label}.{name}"
+    allowed = param.get("allowed_values", "<missing>")
+    value_doc = param.get("value_doc", "<missing>")
+
+    if allowed == "<missing>":
+        _fail(errors, f"{label}: missing 'allowed_values' key (schema 1.1)")
+        allowed = None
+    if value_doc == "<missing>":
+        _fail(errors, f"{label}: missing 'value_doc' key (schema 1.1)")
+        value_doc = None
+
+    if allowed is not None:
+        # R7a — non-empty list.
+        if not isinstance(allowed, list):
+            _fail(errors, f"{label}: 'allowed_values' must be a list or null")
+            return
+        if not allowed:
+            _fail(
+                errors,
+                f"{label}: 'allowed_values' must be non-empty when present "
+                "(use null for free-form params)",
+            )
+            return
+        # R7b — every entry is a string.
+        if not all(isinstance(v, str) for v in allowed):
+            _fail(
+                errors,
+                f"{label}: every 'allowed_values' entry must be a string "
+                "(1.1 in-scope set)",
+            )
+        # R8a — quote-stripped default ∈ allowed_values (None/null exempt).
+        default = param.get("default")
+        if isinstance(default, str):
+            stripped = _strip_one_quote_layer(default)
+            if stripped != "None" and stripped not in allowed:
+                _fail(
+                    errors,
+                    f"{label}: default {default!r} (stripped {stripped!r}) "
+                    f"not in allowed_values {allowed}",
+                )
+        # R8b — value_doc keys ⊆ allowed_values.
+        if isinstance(value_doc, dict):
+            stray = [k for k in value_doc if k not in allowed]
+            if stray:
+                _fail(
+                    errors,
+                    f"{label}: value_doc keys {sorted(stray)} not in "
+                    f"allowed_values {allowed}",
+                )
+        elif value_doc is not None:
+            _fail(errors, f"{label}: 'value_doc' must be a dict or null")
+    else:
+        # R8c — value_doc must be null when allowed_values is null.
+        if value_doc is not None:
+            _fail(
+                errors,
+                f"{label}: 'value_doc' must be null when 'allowed_values' "
+                "is null",
+            )
+
 
 def _validate_constructor(
     ctor: object, *, class_fqn: str, errors: list[str]

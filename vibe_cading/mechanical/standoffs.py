@@ -17,6 +17,9 @@
 Hexagonal Standoffs / Spacers (standard PCB/electronics mounting hardware).
 """
 from __future__ import annotations
+
+from typing import Literal
+
 import cadquery as cq
 
 from vibe_cading.print_settings import ToleranceProfile, get_profile
@@ -33,7 +36,7 @@ class HexStandoff:
         "6-32": {"width_flats": 6.35, "nominal_diameter": 3.5},
     }
 
-    def __init__(self, width_flats: float, length: float, nominal_diameter: float, type_: str = "F-F", thread_length: float = 6.0):
+    def __init__(self, width_flats: float, length: float, nominal_diameter: float, type_: Literal["F-F", "M-F", "M-M"] = "F-F", thread_length: float = 6.0):
         self.width_flats = float(width_flats)
         self.length = float(length)
         self.nominal_diameter = float(nominal_diameter)
@@ -42,7 +45,7 @@ class HexStandoff:
         self.radius = self.width_flats / 1.7320508075688772
 
     @classmethod
-    def from_size(cls, size: str, length: float = 10.0, type_: str = "F-F", thread_length: float = 6.0) -> "HexStandoff":
+    def from_size(cls, size: Literal["M2", "M2.5", "M3", "M4", "4-40", "6-32"], length: float = 10.0, type_: Literal["F-F", "M-F", "M-M"] = "F-F", thread_length: float = 6.0) -> "HexStandoff":
         if size not in cls.DIMENSIONS:
             raise ValueError(f"Unknown standoff size {size}. Supported: {list(cls.DIMENSIONS.keys())}")
         dims = cls.DIMENSIONS[size]

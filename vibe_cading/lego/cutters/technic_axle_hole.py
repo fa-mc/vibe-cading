@@ -13,6 +13,8 @@
 # You should have received a copy of the GNU Affero General Public License
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
+from typing import Literal
+
 import cadquery as cq
 from vibe_cading.cq_utils import axle_cross_section
 from vibe_cading.print_settings import ToleranceProfile, get_profile
@@ -20,6 +22,18 @@ from vibe_cading.lego.constants import (
     AXLE_HOLE_TIP_TO_TIP,
     AXLE_HOLE_ARM_WIDTH,
 )
+
+
+# Per-value glosses for the engine_api `value_doc` field (schema 1.1).
+# Co-located with the `fit` Literal (design §D5); the validator (R8b)
+# enforces these keys stay a subset of the `fit` allowed_values.
+_VALUE_DOC = {
+    "TechnicAxleHole.fit": {
+        "free":  "loosest grade — generous clearance for easy hand assembly",
+        "slip":  "default sliding fit — axle slides without play",
+        "press": "tightest grade — interference fit, firm push-in, self-retaining",
+    },
+}
 
 
 class TechnicAxleHole:
@@ -110,7 +124,7 @@ class TechnicAxleHole:
     def __init__(
         self,
         depth: float,
-        fit: str = "slip",
+        fit: Literal["free", "slip", "press"] = "slip",
         profile: ToleranceProfile | None = None,
         convex_radius: float = DEFAULT_CONVEX_RADIUS,
         concave_radius: float = DEFAULT_CONCAVE_RADIUS,

@@ -14,6 +14,8 @@
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
 import math
+from typing import Literal
+
 import cadquery as cq
 
 PLASTIC_SCREW_SIZES = {
@@ -36,8 +38,8 @@ class PlasticsScrew:
         pilot_diameter: float,
         head_diameter: float,
         head_height: float,
-        head_type: str = "pan",
-        drive_type: str = "phillips",
+        head_type: Literal["pan", "flat"] = "pan",
+        drive_type: Literal["phillips", "hex", "slotted", "torx"] = "phillips",
         head_angle: float = 90.0,
     ):
         self.length = float(length)
@@ -51,7 +53,7 @@ class PlasticsScrew:
         self.head_angle = float(head_angle)
 
     @classmethod
-    def from_size(cls, size: str, length: float, head_type: str = "pan", drive_type: str = "phillips") -> "PlasticsScrew":
+    def from_size(cls, size: Literal["M2", "M2.5", "M3", "M4", "M5"], length: float, head_type: Literal["pan", "flat"] = "pan", drive_type: Literal["phillips", "hex", "slotted", "torx"] = "phillips") -> "PlasticsScrew":
         size = size.upper()
         if size not in PLASTIC_SCREW_SIZES:
             raise ValueError(f"Unsupported plastic screw size: {size}. Available: {list(PLASTIC_SCREW_SIZES.keys())}")

@@ -13,6 +13,8 @@
 # You should have received a copy of the GNU Affero General Public License
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
+from typing import Literal
+
 import cadquery as cq
 import math
 
@@ -28,7 +30,7 @@ WOOD_SIZES = {
 
 class WoodScrew:
     """Standard wood and self-tapping screws."""
-    def __init__(self, size: str, length: float, head_type: str = "flat", drive_type: str = "phillips"):
+    def __init__(self, size: Literal["#2", "#4", "#6", "#8", "#10", "3/16"], length: float, head_type: Literal["flat", "pan"] = "flat", drive_type: Literal["phillips", "hex", "slotted", "torx"] = "phillips"):
         if size not in WOOD_SIZES:
             raise ValueError(f"Unsupported wood screw size: {size}. Available: {list(WOOD_SIZES.keys())}")
             

@@ -61,7 +61,7 @@ from pathlib import Path
 
 # Pinned schema version. Bumped in lockstep with the validator (which
 # imports this constant) per design brief §8.
-SCHEMA_VERSION = "1.0"
+SCHEMA_VERSION = "1.1"
 
 
 # Parameter-name suffixes that imply mm. Ordered alphabetically for
@@ -112,6 +112,11 @@ class Param:
     required: bool
     default: str | None = None  # ast.unparse of default expr; None if required.
     units: str | None = None  # "mm" / "deg" / None.
+    # Schema 1.1 additive fields (design §D1/§D4). Both are always-present
+    # keys in the wire output (``null`` when absent), matching the existing
+    # ``units`` always-present convention.
+    allowed_values: list | None = None  # closed enum set | None (free-form).
+    value_doc: dict | None = None  # {value: gloss} | None (render-only hint).
 
     def to_dict(self) -> dict:
         out: dict = {
@@ -125,6 +130,10 @@ class Param:
             # = None`` -> default="None").
             out["default"] = self.default
         out["units"] = self.units
+        # Always-present 1.1 keys, immediately after ``units`` (design §D4).
+        # ``null`` when the param is free-form / has no gloss.
+        out["allowed_values"] = self.allowed_values
+        out["value_doc"] = self.value_doc
         return out
 
 
@@ -225,6 +234,7 @@ def extract_classes(roots: list[Path]) -> list[ClassRecord]:
                     continue
                 record = _build_class_record(
                     node, module=module, local_classes=local_classes,
+                    module_tree=tree,
                 )
                 if not record.constructors:
                     # No own constructors and no resolvable same-module
@@ -343,9 +353,12 @@ def _build_class_record(
     *,
     module: str,
     local_classes: dict[str, ast.ClassDef] | None = None,
+    module_tree: ast.Module | None = None,
 ) -> ClassRecord:
     fqn = f"{module}.{node.name}"
-    constructors = _collect_constructors(node, local_classes=local_classes or {})
+    constructors = _collect_constructors(
+        node, local_classes=local_classes or {}, module_tree=module_tree,
+    )
 
     return ClassRecord(
         module=module,
@@ -361,6 +374,7 @@ def _collect_constructors(
     node: ast.ClassDef,
     *,
     local_classes: dict[str, ast.ClassDef],
+    module_tree: ast.Module | None = None,
 ) -> list[Constructor]:
     """Walk the class body and gather constructors.
 
@@ -378,7 +392,12 @@ def _collect_constructors(
         if not isinstance(child, ast.FunctionDef):
             continue
         if child.name == "__init__":
-            constructors.append(_build_constructor(child, kind="init"))
+            constructors.append(
+                _build_constructor(
+                    child, kind="init",
+                    module_tree=module_tree, class_name=node.name,
+                )
+            )
             has_explicit_init = True
             continue
         if child.name.startswith("_"):
@@ -391,7 +410,12 @@ def _collect_constructors(
         if child.name == "demo":
             continue
         if _has_decorator(child, "classmethod"):
-            constructors.append(_build_constructor(child, kind="classmethod"))
+            constructors.append(
+                _build_constructor(
+                    child, kind="classmethod",
+                    module_tree=module_tree, class_name=node.name,
+                )
+            )
 
     # Synthesize an init for ``@dataclass`` decorated classes that do not
     # define one explicitly. The dataclass decorator generates
@@ -400,39 +424,104 @@ def _collect_constructors(
     # describes a callable signature. The synthesized record is prepended
     # so "init first" ordering holds.
     if not has_explicit_init and _is_dataclass(node):
-        synthetic = _synthesize_dataclass_init(node)
+        synthetic = _synthesize_dataclass_init(node, module_tree=module_tree)
         if synthetic is not None:
             constructors.insert(0, synthetic)
             has_explicit_init = True
 
     if constructors:
+        # The class has at least one own constructor (an ``__init__`` and/or
+        # public classmethods).  If it defines public classmethods but NO
+        # own/synthesized ``__init__``, it still *inherits* the ancestor's
+        # ``__init__`` at runtime — and that inherited ``__init__`` is a real
+        # callable signature consumers rely on.  Pull it from the same-module
+        # ancestor and prepend it so "init first" ordering holds.
+        #
+        # Why this matters: ``MetricNylocNut`` defines only a ``from_size``
+        # classmethod override (added in schema 1.1 to advertise its own size
+        # enum) but inherits ``MetricHexNut.__init__``.  Without this branch,
+        # adding the override would silently DROP the inherited ``__init__``
+        # from the wire record (it was present in schema 1.0), violating the
+        # additive-only contract.  This keeps the emitted constructor set
+        # faithful to what the class actually exposes.
+        if not has_explicit_init:
+            inherited_init = _inherited_init_from_ancestor(
+                node, local_classes=local_classes, module_tree=module_tree,
+            )
+            if inherited_init is not None:
+                constructors.insert(0, inherited_init)
         return constructors
 
-    # Inherit from a same-module ancestor when no own constructors. We
-    # look up bases by bare name; ``ast.Attribute`` bases (e.g.
-    # ``foo.BaseClass``) are not resolved — that requires import graph
-    # walking which v1 does not implement.
+    # Inherit ALL constructors from a same-module ancestor when the class
+    # has no own constructors at all. We look up bases by bare name;
+    # ``ast.Attribute`` bases (e.g. ``foo.BaseClass``) are not resolved —
+    # that requires import graph walking which v1 does not implement.
+    # ``module_tree`` flows through so an inherited ``Literal`` param resolves
+    # its ``_VALUE_DOC`` gloss against the (same) module's AST keyed by the
+    # ancestor's class name.
     for base in node.bases:
         if isinstance(base, ast.Name) and base.id in local_classes:
             ancestor = local_classes[base.id]
             inherited = _collect_constructors(
-                ancestor, local_classes=local_classes,
+                ancestor, local_classes=local_classes, module_tree=module_tree,
             )
             if inherited:
                 return inherited
     return []
 
 
-def _build_constructor(func: ast.FunctionDef, *, kind: str) -> Constructor:
+def _inherited_init_from_ancestor(
+    node: ast.ClassDef,
+    *,
+    local_classes: dict[str, ast.ClassDef],
+    module_tree: ast.Module | None = None,
+) -> Constructor | None:
+    """Return the ``__init__`` Constructor inherited from a same-module ancestor.
+
+    Used when a subclass defines public classmethods but no own ``__init__``
+    so the runtime-inherited ``__init__`` is not dropped from the wire
+    record.  Resolves bare-name bases only (same one-level same-module scope
+    as the full-inheritance fallback); returns ``None`` if no ancestor
+    contributes an ``__init__``.
+    """
+    for base in node.bases:
+        if not (isinstance(base, ast.Name) and base.id in local_classes):
+            continue
+        ancestor = local_classes[base.id]
+        inherited = _collect_constructors(
+            ancestor, local_classes=local_classes, module_tree=module_tree,
+        )
+        for ctor in inherited:
+            if ctor.kind == "init":
+                return ctor
+    return None
+
+
+def _build_constructor(
+    func: ast.FunctionDef,
+    *,
+    kind: str,
+    module_tree: ast.Module | None = None,
+    class_name: str | None = None,
+) -> Constructor:
     return Constructor(
         kind=kind,
         name=func.name,
         doc=ast.get_docstring(func),
-        params=_extract_params(func, kind=kind),
+        params=_extract_params(
+            func, kind=kind,
+            module_tree=module_tree, class_name=class_name,
+        ),
     )
 
 
-def _extract_params(func: ast.FunctionDef, *, kind: str) -> list[Param]:
+def _extract_params(
+    func: ast.FunctionDef,
+    *,
+    kind: str,
+    module_tree: ast.Module | None = None,
+    class_name: str | None = None,
+) -> list[Param]:
     """Extract positional-or-keyword parameters from *func*.
 
     Skips the leading ``self`` (init) or ``cls`` (classmethod). Defaults
@@ -442,6 +531,12 @@ def _extract_params(func: ast.FunctionDef, *, kind: str) -> list[Param]:
     ``*args`` / ``**kwargs`` are intentionally ignored — the schema
     targets concrete user-facing parameters, and no current model uses
     var-args in a public constructor.
+
+    ``module_tree`` / ``class_name`` are threaded through so a
+    ``Literal``-annotated param can resolve its co-located ``_VALUE_DOC``
+    gloss (schema 1.1, design §D5).  Both may be ``None`` (e.g. the
+    synthetic-dataclass twin passes its own context) — in which case no
+    ``value_doc`` is attached.
     """
     # ``func.args.kwonlyargs`` is intentionally out of scope for v1 — no
     # current model exposes keyword-only constructor params.
@@ -469,7 +564,17 @@ def _extract_params(func: ast.FunctionDef, *, kind: str) -> list[Param]:
 
     out: list[Param] = []
     for arg, default in paired:
-        type_str = ast.unparse(arg.annotation) if arg.annotation is not None else "Any"
+        # ``_split_literal`` intercepts a ``Literal[...]`` subscript before
+        # the historical ``ast.unparse`` so the 1.0 ``type`` contract is
+        # preserved (``"str"``, not ``"Literal[...]"``) and the member set
+        # surfaces as ``allowed_values`` (schema 1.1, design §D1).  A
+        # non-``Literal`` annotation round-trips byte-identically.
+        type_str, allowed_values = _split_literal(arg.annotation)
+        value_doc = (
+            _value_doc_for(module_tree, class_name, arg.arg)
+            if allowed_values is not None
+            else None
+        )
         if default is None:
             out.append(
                 Param(
@@ -478,6 +583,8 @@ def _extract_params(func: ast.FunctionDef, *, kind: str) -> list[Param]:
                     required=True,
                     default=None,
                     units=_units_for_param(arg.arg),
+                    allowed_values=allowed_values,
+                    value_doc=value_doc,
                 )
             )
         else:
@@ -488,6 +595,8 @@ def _extract_params(func: ast.FunctionDef, *, kind: str) -> list[Param]:
                     required=False,
                     default=ast.unparse(default),
                     units=_units_for_param(arg.arg),
+                    allowed_values=allowed_values,
+                    value_doc=value_doc,
                 )
             )
     return out
@@ -504,13 +613,25 @@ def _is_dataclass(node: ast.ClassDef) -> bool:
     return False
 
 
-def _synthesize_dataclass_init(node: ast.ClassDef) -> Constructor | None:
+def _synthesize_dataclass_init(
+    node: ast.ClassDef,
+    *,
+    module_tree: ast.Module | None = None,
+) -> Constructor | None:
     """Build a synthetic ``__init__`` constructor from dataclass fields.
 
     Reads class-body ``AnnAssign`` nodes (annotated assignments) which is
     how ``@dataclass`` collects fields. ``ClassVar`` and assignments
     without annotations are ignored. A field with a default value (RHS of
     the AnnAssign) is emitted as optional; one without becomes required.
+
+    A ``Literal``-annotated dataclass field surfaces its member set as
+    ``allowed_values`` via the same ``_split_literal`` interception used
+    by ``_extract_params`` (schema 1.1).  No in-scope Coverage-list class
+    is a synthesized ``@dataclass`` — every in-scope param flows through
+    ``_extract_params`` — so this wiring changes zero in-scope wire bytes
+    today; it is here for uniformity / future-proofing and is exercised
+    only by the dedicated synthetic fixture in the test suite (design T9d).
     """
     params: list[Param] = []
     for child in node.body:
@@ -524,7 +645,12 @@ def _synthesize_dataclass_init(node: ast.ClassDef) -> Constructor | None:
         name = child.target.id
         if name.startswith("_"):
             continue
-        type_str = ast.unparse(child.annotation) if child.annotation is not None else "Any"
+        type_str, allowed_values = _split_literal(child.annotation)
+        value_doc = (
+            _value_doc_for(module_tree, node.name, name)
+            if allowed_values is not None
+            else None
+        )
         if child.value is None:
             params.append(
                 Param(
@@ -533,6 +659,8 @@ def _synthesize_dataclass_init(node: ast.ClassDef) -> Constructor | None:
                     required=True,
                     default=None,
                     units=_units_for_param(name),
+                    allowed_values=allowed_values,
+                    value_doc=value_doc,
                 )
             )
         else:
@@ -543,6 +671,8 @@ def _synthesize_dataclass_init(node: ast.ClassDef) -> Constructor | None:
                     required=False,
                     default=ast.unparse(child.value),
                     units=_units_for_param(name),
+                    allowed_values=allowed_values,
+                    value_doc=value_doc,
                 )
             )
     if not params:
@@ -567,6 +697,167 @@ def _is_classvar(annotation: ast.expr | None) -> bool:
     if isinstance(target, ast.Attribute) and target.attr == "ClassVar":
         return True
     return False
+
+
+def _is_literal_subscript(annotation: ast.expr | None) -> bool:
+    """True if *annotation* reads as ``Literal[...]`` / ``typing.Literal[...]``.
+
+    Mirrors the AST shape used by ``_is_classvar`` / ``_base_is_abc`` /
+    ``_base_is_protocol`` so the convention stays consistent across the
+    extractor.  Matches both the bare ``Literal`` (after
+    ``from typing import Literal``) and the qualified ``typing.Literal``
+    subscript forms.  ``ast.parse`` produces a real ``Subscript`` node for
+    a ``Literal[...]`` annotation regardless of
+    ``from __future__ import annotations`` — PEP 563 stringification
+    affects only runtime ``__annotations__``, never the parse tree walked
+    here.
+    """
+    if annotation is None or not isinstance(annotation, ast.Subscript):
+        return False
+    value = annotation.value
+    if isinstance(value, ast.Name) and value.id == "Literal":
+        return True
+    if (
+        isinstance(value, ast.Attribute)
+        and value.attr == "Literal"
+        and isinstance(value.value, ast.Name)
+        and value.value.id == "typing"
+    ):
+        return True
+    return False
+
+
+def _literal_members(annotation: ast.Subscript) -> list:
+    """Return the ordered member values of a ``Literal[...]`` subscript.
+
+    A multi-member literal's slice is an ``ast.Tuple`` of ``ast.Constant``;
+    a single-member literal's slice is a bare ``ast.Constant``.  Member
+    values are collected in source-declaration order.  A non-constant
+    slice element (e.g. ``Literal[SOME_VAR]``) is a producer bug — fail
+    loudly rather than emit a silently-wrong enum.
+    """
+    node = annotation.slice
+    elements = node.elts if isinstance(node, ast.Tuple) else [node]
+    members: list = []
+    for elt in elements:
+        if not isinstance(elt, ast.Constant):
+            raise ValueError(
+                "engine_api: Literal[...] members must be constants; got "
+                f"{ast.dump(elt)}"
+            )
+        members.append(elt.value)
+    return members
+
+
+def _literal_base_type(members: list) -> str:
+    """Return the JSON-runtime base type of a ``Literal``'s members.
+
+    ``"str"`` iff every member is a Python ``str`` (the entire 1.1
+    in-scope enum surface is all-string).  A future numeric enum would
+    return ``"int"`` / ``"float"`` — the mapping generalizes without a
+    wire-format change.  Returns the unparsed annotation only for the
+    all-same-type cases the schema supports; mixed-type literals are out
+    of scope and fall back to ``"str"`` only when truly all-string.
+    """
+    if members and all(isinstance(m, str) for m in members):
+        return "str"
+    if members and all(isinstance(m, bool) for m in members):
+        # ``bool`` is a subclass of ``int`` — check it before ``int``.
+        return "bool"
+    if members and all(isinstance(m, int) for m in members):
+        return "int"
+    if members and all(isinstance(m, float) for m in members):
+        return "float"
+    # Mixed-type or empty literal — out of scope for the 1.1 schema; the
+    # caller should never reach here for an in-scope site.  Fall back to a
+    # neutral type string so the artifact stays serializable.
+    return "str"
+
+
+def _split_literal(annotation: ast.expr | None) -> tuple[str, list | None]:
+    """Map a parameter annotation to ``(type_str, allowed_values)``.
+
+    A ``Literal[...]`` annotation yields the *base runtime type* of its
+    members as ``type_str`` (NOT ``"Literal[...]"`` — preserving the 1.0
+    ``type`` contract so no 1.0 consumer sees a retype) plus the ordered
+    list of member values.  Any other annotation is unparsed verbatim
+    with ``allowed_values = None`` — byte-identical behaviour to the
+    pre-1.1 ``ast.unparse(annotation)`` path.
+    """
+    if annotation is None:
+        return "Any", None
+    if _is_literal_subscript(annotation):
+        members = _literal_members(annotation)
+        return _literal_base_type(members), members
+    return ast.unparse(annotation), None
+
+
+def _parse_value_doc_assign(node: ast.Dict) -> dict:
+    """Parse a ``_VALUE_DOC`` dict-literal AST into a nested str dict.
+
+    Expects ``{"<Class>.<param>": {value: gloss, ...}, ...}`` where every
+    key and gloss is a constant ``str``.  A non-constant key, a non-dict
+    inner value, or a non-constant gloss is a producer bug — fail loudly
+    rather than silently drop a gloss (design §D5).
+    """
+    result: dict[str, dict[str, str]] = {}
+    for outer_key, outer_val in zip(node.keys, node.values):
+        if not (isinstance(outer_key, ast.Constant) and isinstance(outer_key.value, str)):
+            raise ValueError(
+                "engine_api: _VALUE_DOC keys must be constant strings; got "
+                f"{ast.dump(outer_key) if outer_key is not None else 'None'}"
+            )
+        if not isinstance(outer_val, ast.Dict):
+            raise ValueError(
+                f"engine_api: _VALUE_DOC['{outer_key.value}'] must be a dict literal"
+            )
+        inner: dict[str, str] = {}
+        for k, v in zip(outer_val.keys, outer_val.values):
+            if not (isinstance(k, ast.Constant) and isinstance(k.value, str)):
+                raise ValueError(
+                    f"engine_api: _VALUE_DOC['{outer_key.value}'] keys must be "
+                    "constant strings"
+                )
+            if not (isinstance(v, ast.Constant) and isinstance(v.value, str)):
+                raise ValueError(
+                    f"engine_api: _VALUE_DOC['{outer_key.value}']['{k.value}'] "
+                    "gloss must be a constant string"
+                )
+            inner[k.value] = v.value
+        result[outer_key.value] = inner
+    return result
+
+
+def _value_doc_for(
+    module_tree: ast.Module | None,
+    class_name: str | None,
+    param_name: str,
+) -> dict | None:
+    """Resolve a co-located ``_VALUE_DOC`` gloss for ``<class>.<param>``.
+
+    Reads a top-level ``_VALUE_DOC`` ``Assign`` from *module_tree* (pure
+    same-module AST — no import, no cross-file graph) and returns
+    ``_VALUE_DOC.get(f"{class_name}.{param_name}")`` or ``None``.  Returns
+    ``None`` when no module tree / class name is available, or the module
+    declares no ``_VALUE_DOC`` (design §D5).
+    """
+    if module_tree is None or class_name is None:
+        return None
+    for stmt in module_tree.body:
+        if not isinstance(stmt, ast.Assign):
+            continue
+        targets = stmt.targets
+        if not any(
+            isinstance(t, ast.Name) and t.id == "_VALUE_DOC" for t in targets
+        ):
+            continue
+        if not isinstance(stmt.value, ast.Dict):
+            raise ValueError(
+                "engine_api: _VALUE_DOC must be assigned a dict literal"
+            )
+        mapping = _parse_value_doc_assign(stmt.value)
+        return mapping.get(f"{class_name}.{param_name}")
+    return None
 
 
 def _units_for_param(name: str) -> str | None:

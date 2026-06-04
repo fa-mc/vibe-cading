@@ -13,6 +13,8 @@
 # You should have received a copy of the GNU Affero General Public License
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
+from typing import Literal
+
 import cadquery as cq
 from vibe_cading.lego.constants import PIN_HOLE_DIAMETER
 from vibe_cading.cq_utils import cylinder
@@ -22,6 +24,19 @@ from vibe_cading.print_settings import ToleranceProfile, get_profile
 # Standard Technic counterbore spec (measured from STP loose-fit file)
 TECHNIC_PIN_CB_DIAMETER: float = 6.2   # outer flange / counterbore diameter
 TECHNIC_PIN_CB_DEPTH: float = 1.0      # depth of each counterbore end
+
+
+# Per-value glosses for the engine_api `value_doc` field (schema 1.1).
+# Co-located with the `fit` Literal so the drift-guard test reads the
+# same source the annotation declares (design §D5).  The validator
+# (R8b) enforces these keys stay a subset of the `fit` allowed_values.
+_VALUE_DOC = {
+    "TechnicPinHole.fit": {
+        "free":  "loosest grade — generous clearance for easy hand assembly",
+        "slip":  "default sliding fit — pin slides/rotates without play (pin-in-socket)",
+        "press": "tightest grade — interference fit, firm push-in, self-retaining",
+    },
+}
 
 
 class TechnicPinHole:
@@ -115,7 +130,7 @@ class TechnicPinHole:
         cls,
         depth: float,
         *,
-        fit: str = "slip",
+        fit: Literal["free", "slip", "press"] = "slip",
         profile: ToleranceProfile | str | None = None,
     ) -> "TechnicPinHole":
         """Factory: standard Technic pin hole with default counterbore spec.
@@ -140,7 +155,7 @@ class TechnicPinHole:
         diameter: float | None = None,
         counterbore_depth: float = DEFAULT_CB_DEPTH,
         counterbore_diameter: float = DEFAULT_CB_DIAMETER,
-        fit: str = "slip",
+        fit: Literal["free", "slip", "press"] = "slip",
         profile: ToleranceProfile | str | None = None,
     ):
         # Bore-diameter resolution — the single load-bearing formula.

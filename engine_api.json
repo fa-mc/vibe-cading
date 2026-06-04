@@ -1,5 +1,5 @@
 {
-  "schema_version": "1.0",
+  "schema_version": "1.1",
   "classes": [
     {
       "module": "parts.arrma_vorteks_223s.esc_mount",
@@ -17,70 +17,90 @@
               "type": "float",
               "required": false,
               "default": "LENGTH",
-              "units": "mm"
+              "units": "mm",
+              "allowed_values": null,
+              "value_doc": null
             },
             {
               "name": "width",
               "type": "float",
               "required": false,
               "default": "WIDTH",
-              "units": "mm"
+              "units": "mm",
+              "allowed_values": null,
+              "value_doc": null
             },
             {
               "name": "height",
               "type": "float",
               "required": false,
               "default": "HEIGHT",
-              "units": "mm"
+              "units": "mm",
+              "allowed_values": null,
+              "value_doc": null
             },
             {
               "name": "left_notch_w",
               "type": "float",
               "required": false,
               "default": "LEFT_NOTCH_W",
-              "units": null
+              "units": null,
+              "allowed_values": null,
+              "value_doc": null
             },
             {
               "name": "left_notch_h",
               "type": "float",
               "required": false,
               "default": "LEFT_NOTCH_H",
-              "units": null
+              "units": null,
+              "allowed_values": null,
+              "value_doc": null
             },
             {
               "name": "right_notch_w",
               "type": "float",
               "required": false,
               "default": "RIGHT_NOTCH_W",
-              "units": null
+              "units": null,
+              "allowed_values": null,
+              "value_doc": null
             },
             {
               "name": "right_notch_h",
               "type": "float",
               "required": false,
               "default": "RIGHT_NOTCH_H",
-              "units": null
+              "units": null,
+              "allowed_values": null,
+              "value_doc": null
             },
             {
               "name": "fillet_r",
               "type": "float",
               "required": false,
               "default": "FILLET_R",
-              "units": null
+              "units": null,
+              "allowed_values": null,
+              "value_doc": null
             },
             {
               "name": "groove_w",
               "type": "float",
               "required": false,
               "default": "GROOVE_W",
-              "units": null
+              "units": null,
+              "allowed_values": null,
+              "value_doc": null
             },
             {
               "name": "groove_depth",
               "type": "float",
               "required": false,
               "default": "GROOVE_DEPTH",
-              "units": "mm"
+              "units": "mm",
+              "allowed_values": null,
+              "value_doc": null
             }
           ]
         }
@@ -103,35 +123,45 @@
               "type": "str",
               "required": false,
               "default": "'M2.5'",
-              "units": null
+              "units": null,
+              "allowed_values": null,
+              "value_doc": null
             },
             {
               "name": "motor_screw_size",
               "type": "str",
               "required": false,
               "default": "'M3'",
-              "units": null
+              "units": null,
+              "allowed_values": null,
+              "value_doc": null
             },
             {
               "name": "motor_hole_dist",
               "type": "float",
               "required": false,
               "default": "17.0",
-              "units": null
+              "units": null,
+              "allowed_values": null,
+              "value_doc": null
             },
             {
               "name": "motor_boss_clearance_diameter",
               "type": "float",
               "required": false,
               "default": "9.0",
-              "units": "mm"
+              "units": "mm",
+              "allowed_values": null,
+              "value_doc": null
             },
             {
               "name": "material",
               "type": "str",
               "required": false,
               "default": "'PLA'",
-              "units": null
+              "units": null,
+              "allowed_values": null,
+              "value_doc": null
             }
           ]
         }
@@ -154,49 +184,63 @@
               "type": "Sequence[float]",
               "required": false,
               "default": "(1.85, 1.95, 2.05, 2.15, 2.25, 2.35)",
-              "units": null
+              "units": null,
+              "allowed_values": null,
+              "value_doc": null
             },
             {
               "name": "profile",
               "type": "ToleranceProfile | None",
               "required": false,
               "default": "None",
-              "units": null
+              "units": null,
+              "allowed_values": null,
+              "value_doc": null
             },
             {
               "name": "corner_relief",
               "type": "float",
               "required": false,
               "default": "0.35",
-              "units": null
+              "units": null,
+              "allowed_values": null,
+              "value_doc": null
             },
             {
               "name": "depth",
               "type": "float",
               "required": false,
               "default": "8.0",
-              "units": "mm"
+              "units": "mm",
+              "allowed_values": null,
+              "value_doc": null
             },
             {
               "name": "hole_pitch",
               "type": "float",
               "required": false,
               "default": "9.0",
-              "units": "mm"
+              "units": "mm",
+              "allowed_values": null,
+              "value_doc": null
             },
             {
               "name": "engrave_depth",
               "type": "float",
               "required": false,
               "default": "0.6",
-              "units": "mm"
+              "units": "mm",
+              "allowed_values": null,
+              "value_doc": null
             },
             {
               "name": "labels",
               "type": "bool",
               "required": false,
               "default": "True",
-              "units": null
+              "units": null,
+              "allowed_values": null,
+              "value_doc": null
             }
           ]
         }
@@ -219,35 +263,45 @@
               "type": "Sequence[float]",
               "required": false,
               "default": "(4.7, 4.75, 4.8, 4.85, 4.9, 4.95, 5.0)",
-              "units": null
+              "units": null,
+              "allowed_values": null,
+              "value_doc": null
             },
             {
               "name": "depth",
               "type": "float",
               "required": false,
               "default": "8.0",
-              "units": "mm"
+              "units": "mm",
+              "allowed_values": null,
+              "value_doc": null
             },
             {
               "name": "hole_pitch",
               "type": "float",
               "required": false,
               "default": "9.0",
-              "units": "mm"
+              "units": "mm",
+              "allowed_values": null,
+              "value_doc": null
             },
             {
               "name": "engrave_depth",
               "type": "float",
               "required": false,
               "default": "0.6",
-              "units": "mm"
+              "units": "mm",
+              "allowed_values": null,
+              "value_doc": null
             },
             {
               "name": "labels",
               "type": "bool",
               "required": false,
               "default": "True",
-              "units": null
+              "units": null,
+              "allowed_values": null,
+              "value_doc": null
             }
           ]
         }
@@ -269,35 +323,53 @@
               "name": "depth",
               "type": "float",
               "required": true,
-              "units": "mm"
+              "units": "mm",
+              "allowed_values": null,
+              "value_doc": null
             },
             {
               "name": "fit",
               "type": "str",
               "required": false,
               "default": "'slip'",
-              "units": null
+              "units": null,
+              "allowed_values": [
+                "free",
+                "slip",
+                "press"
+              ],
+              "value_doc": {
+                "free": "loosest grade \u2014 generous clearance for easy hand assembly",
+                "slip": "default sliding fit \u2014 axle slides without play",
+                "press": "tightest grade \u2014 interference fit, firm push-in, self-retaining"
+              }
             },
             {
               "name": "profile",
               "type": "ToleranceProfile | None",
               "required": false,
               "default": "None",
-              "units": null
+              "units": null,
+              "allowed_values": null,
+              "value_doc": null
             },
             {
               "name": "convex_radius",
               "type": "float",
               "required": false,
               "default": "DEFAULT_CONVEX_RADIUS",
-              "units": "mm"
+              "units": "mm",
+              "allowed_values": null,
+              "value_doc": null
             },
             {
               "name": "concave_radius",
               "type": "float",
               "required": false,
               "default": "DEFAULT_CONCAVE_RADIUS",
-              "units": "mm"
+              "units": "mm",
+              "allowed_values": null,
+              "value_doc": null
             }
           ]
         }
@@ -319,7 +391,9 @@
               "name": "depth",
               "type": "float",
               "required": true,
-              "units": "mm"
+              "units": "mm",
+              "allowed_values": null,
+              "value_doc": null
             }
           ]
         },
@@ -332,42 +406,62 @@
               "name": "depth",
               "type": "float",
               "required": true,
-              "units": "mm"
+              "units": "mm",
+              "allowed_values": null,
+              "value_doc": null
             },
             {
               "name": "diameter",
               "type": "float | None",
               "required": false,
               "default": "None",
-              "units": "mm"
+              "units": "mm",
+              "allowed_values": null,
+              "value_doc": null
             },
             {
               "name": "counterbore_depth",
               "type": "float",
               "required": false,
               "default": "DEFAULT_CB_DEPTH",
-              "units": "mm"
+              "units": "mm",
+              "allowed_values": null,
+              "value_doc": null
             },
             {
               "name": "counterbore_diameter",
               "type": "float",
               "required": false,
               "default": "DEFAULT_CB_DIAMETER",
-              "units": "mm"
+              "units": "mm",
+              "allowed_values": null,
+              "value_doc": null
             },
             {
               "name": "fit",
               "type": "str",
               "required": false,
               "default": "'slip'",
-              "units": null
+              "units": null,
+              "allowed_values": [
+                "free",
+                "slip",
+                "press"
+              ],
+              "value_doc": {
+                "free": "loosest grade \u2014 generous clearance for easy hand assembly",
+                "slip": "default sliding fit \u2014 pin slides/rotates without play (pin-in-socket)",
+                "press": "tightest grade \u2014 interference fit, firm push-in, self-retaining"
+              }
             },
             {
               "name": "profile",
               "type": "ToleranceProfile | str | None",
               "required": false,
               "default": "None",
-              "units": null
+              "units": null,
+              "allowed_values": null,
+              "value_doc": null
             }
           ]
         }
@@ -405,28 +499,36 @@
               "type": "int | None",
               "required": false,
               "default": "None",
-              "units": null
+              "units": null,
+              "allowed_values": null,
+              "value_doc": null
             },
             {
               "name": "clearance",
               "type": "float",
               "required": false,
               "default": "DEFAULT_CLEARANCE",
-              "units": null
+              "units": null,
+              "allowed_values": null,
+              "value_doc": null
             },
             {
               "name": "lead_in",
               "type": "float",
               "required": false,
               "default": "DEFAULT_LEAD_IN",
-              "units": null
+              "units": null,
+              "allowed_values": null,
+              "value_doc": null
             },
             {
               "name": "corner_radius",
               "type": "float",
               "required": false,
               "default": "DEFAULT_CORNER_RADIUS",
-              "units": "mm"
+              "units": "mm",
+              "allowed_values": null,
+              "value_doc": null
             }
           ]
         }
@@ -448,7 +550,9 @@
               "name": "length_in_studs",
               "type": "int",
               "required": true,
-              "units": null
+              "units": null,
+              "allowed_values": null,
+              "value_doc": null
             }
           ]
         }
@@ -471,14 +575,18 @@
               "type": "float",
               "required": false,
               "default": "0.02",
-              "units": null
+              "units": null,
+              "allowed_values": null,
+              "value_doc": null
             },
             {
               "name": "rod_diameter",
               "type": "float",
               "required": false,
               "default": "3.4",
-              "units": "mm"
+              "units": "mm",
+              "allowed_values": null,
+              "value_doc": null
             }
           ]
         }
@@ -516,140 +624,180 @@
               "type": "float",
               "required": false,
               "default": "OUTER_SIZE",
-              "units": null
+              "units": null,
+              "allowed_values": null,
+              "value_doc": null
             },
             {
               "name": "total_height",
               "type": "float",
               "required": false,
               "default": "TOTAL_HEIGHT",
-              "units": "mm"
+              "units": "mm",
+              "allowed_values": null,
+              "value_doc": null
             },
             {
               "name": "corner_r",
               "type": "float",
               "required": false,
               "default": "CORNER_R",
-              "units": null
+              "units": null,
+              "allowed_values": null,
+              "value_doc": null
             },
             {
               "name": "cavity_depth",
               "type": "float",
               "required": false,
               "default": "CAVITY_DEPTH",
-              "units": "mm"
+              "units": "mm",
+              "allowed_values": null,
+              "value_doc": null
             },
             {
               "name": "cavity_half_x",
               "type": "float",
               "required": false,
               "default": "CAVITY_HALF_X",
-              "units": null
+              "units": null,
+              "allowed_values": null,
+              "value_doc": null
             },
             {
               "name": "cavity_front_y",
               "type": "float",
               "required": false,
               "default": "CAVITY_FRONT_Y",
-              "units": null
+              "units": null,
+              "allowed_values": null,
+              "value_doc": null
             },
             {
               "name": "cavity_back_y",
               "type": "float",
               "required": false,
               "default": "CAVITY_BACK_Y",
-              "units": null
+              "units": null,
+              "allowed_values": null,
+              "value_doc": null
             },
             {
               "name": "cavity_corner_r",
               "type": "float",
               "required": false,
               "default": "CAVITY_CORNER_R",
-              "units": null
+              "units": null,
+              "allowed_values": null,
+              "value_doc": null
             },
             {
               "name": "servo_center_y",
               "type": "float",
               "required": false,
               "default": "SERVO_CENTER_Y",
-              "units": null
+              "units": null,
+              "allowed_values": null,
+              "value_doc": null
             },
             {
               "name": "collar_r",
               "type": "float",
               "required": false,
               "default": "COLLAR_R",
-              "units": null
+              "units": null,
+              "allowed_values": null,
+              "value_doc": null
             },
             {
               "name": "gear_boss_r",
               "type": "float",
               "required": false,
               "default": "GEAR_BOSS_R",
-              "units": null
+              "units": null,
+              "allowed_values": null,
+              "value_doc": null
             },
             {
               "name": "gear_boss_y_offset",
               "type": "float",
               "required": false,
               "default": "GEAR_BOSS_Y_OFFSET",
-              "units": "mm"
+              "units": "mm",
+              "allowed_values": null,
+              "value_doc": null
             },
             {
               "name": "pin_hole_r",
               "type": "float",
               "required": false,
               "default": "PIN_HOLE_R",
-              "units": null
+              "units": null,
+              "allowed_values": null,
+              "value_doc": null
             },
             {
               "name": "pin_hole_ys",
               "type": "tuple",
               "required": false,
               "default": "PIN_HOLE_YS",
-              "units": null
+              "units": null,
+              "allowed_values": null,
+              "value_doc": null
             },
             {
               "name": "pin_hole_z",
               "type": "float",
               "required": false,
               "default": "PIN_HOLE_Z",
-              "units": null
+              "units": null,
+              "allowed_values": null,
+              "value_doc": null
             },
             {
               "name": "pin_recess_depth",
               "type": "float",
               "required": false,
               "default": "PIN_RECESS_DEPTH",
-              "units": "mm"
+              "units": "mm",
+              "allowed_values": null,
+              "value_doc": null
             },
             {
               "name": "shaft_hole_r",
               "type": "float",
               "required": false,
               "default": "SHAFT_HOLE_R",
-              "units": null
+              "units": null,
+              "allowed_values": null,
+              "value_doc": null
             },
             {
               "name": "top_plate_z",
               "type": "float",
               "required": false,
               "default": "TOP_PLATE_Z",
-              "units": null
+              "units": null,
+              "allowed_values": null,
+              "value_doc": null
             },
             {
               "name": "arm_inner_x",
               "type": "float",
               "required": false,
               "default": "ARM_INNER_X",
-              "units": null
+              "units": null,
+              "allowed_values": null,
+              "value_doc": null
             },
             {
               "name": "top_pin_positions",
               "type": "tuple",
               "required": false,
               "default": "TOP_PIN_POSITIONS",
-              "units": null
+              "units": null,
+              "allowed_values": null,
+              "value_doc": null
             }
           ]
         }
@@ -672,14 +820,18 @@
               "type": "float",
               "required": false,
               "default": "12.0",
-              "units": null
+              "units": null,
+              "allowed_values": null,
+              "value_doc": null
             },
             {
               "name": "arm_inner_x",
               "type": "float",
               "required": false,
               "default": "6.8",
-              "units": null
+              "units": null,
+              "allowed_values": null,
+              "value_doc": null
             }
           ]
         }
@@ -702,133 +854,171 @@
               "type": "float",
               "required": false,
               "default": "OUTER_SIZE",
-              "units": null
+              "units": null,
+              "allowed_values": null,
+              "value_doc": null
             },
             {
               "name": "total_height",
               "type": "float",
               "required": false,
               "default": "TOTAL_HEIGHT",
-              "units": "mm"
+              "units": "mm",
+              "allowed_values": null,
+              "value_doc": null
             },
             {
               "name": "corner_r",
               "type": "float",
               "required": false,
               "default": "CORNER_R",
-              "units": null
+              "units": null,
+              "allowed_values": null,
+              "value_doc": null
             },
             {
               "name": "cavity_depth",
               "type": "float",
               "required": false,
               "default": "CAVITY_DEPTH",
-              "units": "mm"
+              "units": "mm",
+              "allowed_values": null,
+              "value_doc": null
             },
             {
               "name": "cavity_half_x",
               "type": "float",
               "required": false,
               "default": "CAVITY_HALF_X",
-              "units": null
+              "units": null,
+              "allowed_values": null,
+              "value_doc": null
             },
             {
               "name": "cavity_front_y",
               "type": "float",
               "required": false,
               "default": "CAVITY_FRONT_Y",
-              "units": null
+              "units": null,
+              "allowed_values": null,
+              "value_doc": null
             },
             {
               "name": "cavity_back_y",
               "type": "float",
               "required": false,
               "default": "CAVITY_BACK_Y",
-              "units": null
+              "units": null,
+              "allowed_values": null,
+              "value_doc": null
             },
             {
               "name": "cavity_corner_r",
               "type": "float",
               "required": false,
               "default": "CAVITY_CORNER_R",
-              "units": null
+              "units": null,
+              "allowed_values": null,
+              "value_doc": null
             },
             {
               "name": "servo_center_y",
               "type": "float",
               "required": false,
               "default": "SERVO_CENTER_Y",
-              "units": null
+              "units": null,
+              "allowed_values": null,
+              "value_doc": null
             },
             {
               "name": "collar_r",
               "type": "float",
               "required": false,
               "default": "COLLAR_R",
-              "units": null
+              "units": null,
+              "allowed_values": null,
+              "value_doc": null
             },
             {
               "name": "gear_boss_r",
               "type": "float",
               "required": false,
               "default": "GEAR_BOSS_R",
-              "units": null
+              "units": null,
+              "allowed_values": null,
+              "value_doc": null
             },
             {
               "name": "gear_boss_y_offset",
               "type": "float",
               "required": false,
               "default": "GEAR_BOSS_Y_OFFSET",
-              "units": "mm"
+              "units": "mm",
+              "allowed_values": null,
+              "value_doc": null
             },
             {
               "name": "pin_hole_r",
               "type": "float",
               "required": false,
               "default": "PIN_HOLE_R",
-              "units": null
+              "units": null,
+              "allowed_values": null,
+              "value_doc": null
             },
             {
               "name": "pin_hole_ys",
               "type": "tuple",
               "required": false,
               "default": "PIN_HOLE_YS",
-              "units": null
+              "units": null,
+              "allowed_values": null,
+              "value_doc": null
             },
             {
               "name": "pin_hole_z",
               "type": "float",
               "required": false,
               "default": "PIN_HOLE_Z",
-              "units": null
+              "units": null,
+              "allowed_values": null,
+              "value_doc": null
             },
             {
               "name": "pin_recess_depth",
               "type": "float",
               "required": false,
               "default": "PIN_RECESS_DEPTH",
-              "units": "mm"
+              "units": "mm",
+              "allowed_values": null,
+              "value_doc": null
             },
             {
               "name": "shaft_hole_r",
               "type": "float",
               "required": false,
               "default": "SHAFT_HOLE_R",
-              "units": null
+              "units": null,
+              "allowed_values": null,
+              "value_doc": null
             },
             {
               "name": "top_plate_z",
               "type": "float",
               "required": false,
               "default": "TOP_PLATE_Z",
-              "units": null
+              "units": null,
+              "allowed_values": null,
+              "value_doc": null
             },
             {
               "name": "top_pin_positions",
               "type": "tuple",
               "required": false,
               "default": "TOP_PIN_POSITIONS",
-              "units": null
+              "units": null,
+              "allowed_values": null,
+              "value_doc": null
             }
           ]
         }
@@ -851,42 +1041,54 @@
               "type": "float",
               "required": false,
               "default": "HEIGHT",
-              "units": "mm"
+              "units": "mm",
+              "allowed_values": null,
+              "value_doc": null
             },
             {
               "name": "outer_r",
               "type": "float",
               "required": false,
               "default": "OUTER_R",
-              "units": null
+              "units": null,
+              "allowed_values": null,
+              "value_doc": null
             },
             {
               "name": "spline_socket_depth",
               "type": "float",
               "required": false,
               "default": "SPLINE_SOCKET_DEPTH",
-              "units": "mm"
+              "units": "mm",
+              "allowed_values": null,
+              "value_doc": null
             },
             {
               "name": "spline_bore_r",
               "type": "float",
               "required": false,
               "default": "SPLINE_BORE_R",
-              "units": null
+              "units": null,
+              "allowed_values": null,
+              "value_doc": null
             },
             {
               "name": "shaft_bore_r",
               "type": "float",
               "required": false,
               "default": "SHAFT_BORE_R",
-              "units": null
+              "units": null,
+              "allowed_values": null,
+              "value_doc": null
             },
             {
               "name": "axle_hole_depth",
               "type": "float",
               "required": false,
               "default": "AXLE_HOLE_DEPTH",
-              "units": "mm"
+              "units": "mm",
+              "allowed_values": null,
+              "value_doc": null
             }
           ]
         }
@@ -909,49 +1111,63 @@
               "type": "float",
               "required": false,
               "default": "SHAFT_R",
-              "units": null
+              "units": null,
+              "allowed_values": null,
+              "value_doc": null
             },
             {
               "name": "shaft_height",
               "type": "float",
               "required": false,
               "default": "SHAFT_HEIGHT",
-              "units": "mm"
+              "units": "mm",
+              "allowed_values": null,
+              "value_doc": null
             },
             {
               "name": "cam_lift",
               "type": "float",
               "required": false,
               "default": "CAM_LIFT",
-              "units": "mm"
+              "units": "mm",
+              "allowed_values": null,
+              "value_doc": null
             },
             {
               "name": "cam_base_thickness",
               "type": "float",
               "required": false,
               "default": "CAM_BASE_THICKNESS",
-              "units": "mm"
+              "units": "mm",
+              "allowed_values": null,
+              "value_doc": null
             },
             {
               "name": "cam_r_inner",
               "type": "float",
               "required": false,
               "default": "CAM_R_INNER",
-              "units": null
+              "units": null,
+              "allowed_values": null,
+              "value_doc": null
             },
             {
               "name": "cam_r_outer",
               "type": "float",
               "required": false,
               "default": "CAM_R_OUTER",
-              "units": null
+              "units": null,
+              "allowed_values": null,
+              "value_doc": null
             },
             {
               "name": "cam_steps",
               "type": "int",
               "required": false,
               "default": "CAM_STEPS",
-              "units": null
+              "units": null,
+              "allowed_values": null,
+              "value_doc": null
             }
           ]
         }
@@ -974,77 +1190,99 @@
               "type": "str | None",
               "required": false,
               "default": "'SG90'",
-              "units": null
+              "units": null,
+              "allowed_values": null,
+              "value_doc": null
             },
             {
               "name": "spline_bore_r",
               "type": "float | None",
               "required": false,
               "default": "None",
-              "units": null
+              "units": null,
+              "allowed_values": null,
+              "value_doc": null
             },
             {
               "name": "disc_r",
               "type": "float",
               "required": false,
               "default": "DISC_R",
-              "units": null
+              "units": null,
+              "allowed_values": null,
+              "value_doc": null
             },
             {
               "name": "inner_disk_height",
               "type": "float",
               "required": false,
               "default": "INNER_DISK_HEIGHT",
-              "units": "mm"
+              "units": "mm",
+              "allowed_values": null,
+              "value_doc": null
             },
             {
               "name": "disc_height",
               "type": "float",
               "required": false,
               "default": "DISC_HEIGHT",
-              "units": "mm"
+              "units": "mm",
+              "allowed_values": null,
+              "value_doc": null
             },
             {
               "name": "spline_socket_depth",
               "type": "float",
               "required": false,
               "default": "SPLINE_SOCKET_DEPTH",
-              "units": "mm"
+              "units": "mm",
+              "allowed_values": null,
+              "value_doc": null
             },
             {
               "name": "shaft_bore_r",
               "type": "float",
               "required": false,
               "default": "SHAFT_BORE_R",
-              "units": null
+              "units": null,
+              "allowed_values": null,
+              "value_doc": null
             },
             {
               "name": "cam_lift",
               "type": "float",
               "required": false,
               "default": "CAM_LIFT",
-              "units": "mm"
+              "units": "mm",
+              "allowed_values": null,
+              "value_doc": null
             },
             {
               "name": "cam_r_inner",
               "type": "float",
               "required": false,
               "default": "CAM_R_INNER",
-              "units": null
+              "units": null,
+              "allowed_values": null,
+              "value_doc": null
             },
             {
               "name": "cam_r_outer",
               "type": "float",
               "required": false,
               "default": "CAM_R_OUTER",
-              "units": null
+              "units": null,
+              "allowed_values": null,
+              "value_doc": null
             },
             {
               "name": "cam_steps",
               "type": "int",
               "required": false,
               "default": "CAM_STEPS",
-              "units": null
+              "units": null,
+              "allowed_values": null,
+              "value_doc": null
             }
           ]
         }
@@ -1067,28 +1305,36 @@
               "type": "float",
               "required": false,
               "default": "5.0",
-              "units": null
+              "units": null,
+              "allowed_values": null,
+              "value_doc": null
             },
             {
               "name": "length",
               "type": "float",
               "required": false,
               "default": "2.5",
-              "units": "mm"
+              "units": "mm",
+              "allowed_values": null,
+              "value_doc": null
             },
             {
               "name": "flange_od",
               "type": "float",
               "required": false,
               "default": "7.0",
-              "units": null
+              "units": null,
+              "allowed_values": null,
+              "value_doc": null
             },
             {
               "name": "flange_thickness",
               "type": "float",
               "required": false,
               "default": "0.8",
-              "units": "mm"
+              "units": "mm",
+              "allowed_values": null,
+              "value_doc": null
             }
           ]
         }
@@ -1110,33 +1356,43 @@
               "name": "inner_diameter",
               "type": "float",
               "required": true,
-              "units": "mm"
+              "units": "mm",
+              "allowed_values": null,
+              "value_doc": null
             },
             {
               "name": "outer_diameter",
               "type": "float",
               "required": true,
-              "units": "mm"
+              "units": "mm",
+              "allowed_values": null,
+              "value_doc": null
             },
             {
               "name": "thickness",
               "type": "float",
               "required": true,
-              "units": "mm"
+              "units": "mm",
+              "allowed_values": null,
+              "value_doc": null
             },
             {
               "name": "flange_diameter",
               "type": "float | None",
               "required": false,
               "default": "None",
-              "units": "mm"
+              "units": "mm",
+              "allowed_values": null,
+              "value_doc": null
             },
             {
               "name": "flange_thickness",
               "type": "float | None",
               "required": false,
               "default": "None",
-              "units": "mm"
+              "units": "mm",
+              "allowed_values": null,
+              "value_doc": null
             }
           ]
         },
@@ -1189,35 +1445,45 @@
               "type": "Sequence[float]",
               "required": false,
               "default": "DEFAULT_DIAMETERS",
-              "units": null
+              "units": null,
+              "allowed_values": null,
+              "value_doc": null
             },
             {
               "name": "depth",
               "type": "float",
               "required": false,
               "default": "8.0",
-              "units": "mm"
+              "units": "mm",
+              "allowed_values": null,
+              "value_doc": null
             },
             {
               "name": "hole_pitch",
               "type": "float",
               "required": false,
               "default": "9.0",
-              "units": "mm"
+              "units": "mm",
+              "allowed_values": null,
+              "value_doc": null
             },
             {
               "name": "engrave_depth",
               "type": "float",
               "required": false,
               "default": "0.6",
-              "units": "mm"
+              "units": "mm",
+              "allowed_values": null,
+              "value_doc": null
             },
             {
               "name": "labels",
               "type": "bool",
               "required": false,
               "default": "True",
-              "units": null
+              "units": null,
+              "allowed_values": null,
+              "value_doc": null
             }
           ]
         }
@@ -1240,35 +1506,45 @@
               "type": "Sequence[float]",
               "required": false,
               "default": "DEFAULT_WIDTHS",
-              "units": null
+              "units": null,
+              "allowed_values": null,
+              "value_doc": null
             },
             {
               "name": "depth",
               "type": "float",
               "required": false,
               "default": "8.0",
-              "units": "mm"
+              "units": "mm",
+              "allowed_values": null,
+              "value_doc": null
             },
             {
               "name": "pocket_pitch",
               "type": "float",
               "required": false,
               "default": "10.0",
-              "units": "mm"
+              "units": "mm",
+              "allowed_values": null,
+              "value_doc": null
             },
             {
               "name": "engrave_depth",
               "type": "float",
               "required": false,
               "default": "0.6",
-              "units": "mm"
+              "units": "mm",
+              "allowed_values": null,
+              "value_doc": null
             },
             {
               "name": "labels",
               "type": "bool",
               "required": false,
               "default": "True",
-              "units": null
+              "units": null,
+              "allowed_values": null,
+              "value_doc": null
             }
           ]
         }
@@ -1291,49 +1567,63 @@
               "type": "float",
               "required": false,
               "default": "20.0",
-              "units": "mm"
+              "units": "mm",
+              "allowed_values": null,
+              "value_doc": null
             },
             {
               "name": "height",
               "type": "float",
               "required": false,
               "default": "12.0",
-              "units": "mm"
+              "units": "mm",
+              "allowed_values": null,
+              "value_doc": null
             },
             {
               "name": "rib_count",
               "type": "int",
               "required": false,
               "default": "30",
-              "units": null
+              "units": null,
+              "allowed_values": null,
+              "value_doc": null
             },
             {
               "name": "rib_depth",
               "type": "float",
               "required": false,
               "default": "1.0",
-              "units": "mm"
+              "units": "mm",
+              "allowed_values": null,
+              "value_doc": null
             },
             {
               "name": "shaft_diameter",
               "type": "float",
               "required": false,
               "default": "6.0",
-              "units": "mm"
+              "units": "mm",
+              "allowed_values": null,
+              "value_doc": null
             },
             {
               "name": "shaft_depth",
               "type": "float",
               "required": false,
               "default": "8.0",
-              "units": "mm"
+              "units": "mm",
+              "allowed_values": null,
+              "value_doc": null
             },
             {
               "name": "d_shaft_flat_depth",
               "type": "float",
               "required": false,
               "default": "1.0",
-              "units": "mm"
+              "units": "mm",
+              "allowed_values": null,
+              "value_doc": null
             }
           ]
         }
@@ -1355,35 +1645,45 @@
               "name": "positions",
               "type": "List[Tuple[float, float]]",
               "required": true,
-              "units": null
+              "units": null,
+              "allowed_values": null,
+              "value_doc": null
             },
             {
               "name": "height",
               "type": "float",
               "required": false,
               "default": "6.0",
-              "units": "mm"
+              "units": "mm",
+              "allowed_values": null,
+              "value_doc": null
             },
             {
               "name": "outer_diameter",
               "type": "float",
               "required": false,
               "default": "5.0",
-              "units": "mm"
+              "units": "mm",
+              "allowed_values": null,
+              "value_doc": null
             },
             {
               "name": "hole_diameter",
               "type": "float",
               "required": false,
               "default": "2.4",
-              "units": "mm"
+              "units": "mm",
+              "allowed_values": null,
+              "value_doc": null
             },
             {
               "name": "hole_depth",
               "type": "float",
               "required": false,
               "default": "5.0",
-              "units": "mm"
+              "units": "mm",
+              "allowed_values": null,
+              "value_doc": null
             }
           ]
         }
@@ -1406,35 +1706,45 @@
               "type": "float",
               "required": false,
               "default": "50.0",
-              "units": "mm"
+              "units": "mm",
+              "allowed_values": null,
+              "value_doc": null
             },
             {
               "name": "length",
               "type": "float",
               "required": false,
               "default": "50.0",
-              "units": "mm"
+              "units": "mm",
+              "allowed_values": null,
+              "value_doc": null
             },
             {
               "name": "thickness",
               "type": "float",
               "required": false,
               "default": "2.0",
-              "units": "mm"
+              "units": "mm",
+              "allowed_values": null,
+              "value_doc": null
             },
             {
               "name": "hex_radius",
               "type": "float",
               "required": false,
               "default": "4.0",
-              "units": "mm"
+              "units": "mm",
+              "allowed_values": null,
+              "value_doc": null
             },
             {
               "name": "spacing",
               "type": "float",
               "required": false,
               "default": "2.0",
-              "units": null
+              "units": null,
+              "allowed_values": null,
+              "value_doc": null
             }
           ]
         }
@@ -1457,42 +1767,54 @@
               "type": "float",
               "required": false,
               "default": "50.0",
-              "units": "mm"
+              "units": "mm",
+              "allowed_values": null,
+              "value_doc": null
             },
             {
               "name": "length",
               "type": "float",
               "required": false,
               "default": "50.0",
-              "units": "mm"
+              "units": "mm",
+              "allowed_values": null,
+              "value_doc": null
             },
             {
               "name": "thickness",
               "type": "float",
               "required": false,
               "default": "2.0",
-              "units": "mm"
+              "units": "mm",
+              "allowed_values": null,
+              "value_doc": null
             },
             {
               "name": "slot_width",
               "type": "float",
               "required": false,
               "default": "3.0",
-              "units": "mm"
+              "units": "mm",
+              "allowed_values": null,
+              "value_doc": null
             },
             {
               "name": "slot_length",
               "type": "float",
               "required": false,
               "default": "40.0",
-              "units": "mm"
+              "units": "mm",
+              "allowed_values": null,
+              "value_doc": null
             },
             {
               "name": "spacing",
               "type": "float",
               "required": false,
               "default": "3.0",
-              "units": null
+              "units": null,
+              "allowed_values": null,
+              "value_doc": null
             }
           ]
         }
@@ -1515,42 +1837,54 @@
               "type": "float",
               "required": false,
               "default": "8.0",
-              "units": "mm"
+              "units": "mm",
+              "allowed_values": null,
+              "value_doc": null
             },
             {
               "name": "length",
               "type": "float",
               "required": false,
               "default": "12.0",
-              "units": "mm"
+              "units": "mm",
+              "allowed_values": null,
+              "value_doc": null
             },
             {
               "name": "height",
               "type": "float",
               "required": false,
               "default": "6.0",
-              "units": "mm"
+              "units": "mm",
+              "allowed_values": null,
+              "value_doc": null
             },
             {
               "name": "slot_width",
               "type": "float",
               "required": false,
               "default": "5.0",
-              "units": "mm"
+              "units": "mm",
+              "allowed_values": null,
+              "value_doc": null
             },
             {
               "name": "slot_height",
               "type": "float",
               "required": false,
               "default": "2.0",
-              "units": "mm"
+              "units": "mm",
+              "allowed_values": null,
+              "value_doc": null
             },
             {
               "name": "bridge_thickness",
               "type": "float",
               "required": false,
               "default": "2.0",
-              "units": "mm"
+              "units": "mm",
+              "allowed_values": null,
+              "value_doc": null
             }
           ]
         }
@@ -1572,13 +1906,17 @@
               "name": "diameter",
               "type": "float",
               "required": true,
-              "units": "mm"
+              "units": "mm",
+              "allowed_values": null,
+              "value_doc": null
             },
             {
               "name": "flat_offset",
               "type": "float",
               "required": true,
-              "units": "mm"
+              "units": "mm",
+              "allowed_values": null,
+              "value_doc": null
             }
           ]
         }
@@ -1600,7 +1938,9 @@
               "name": "across_flats",
               "type": "float",
               "required": true,
-              "units": null
+              "units": null,
+              "allowed_values": null,
+              "value_doc": null
             }
           ]
         }
@@ -1622,19 +1962,25 @@
               "name": "diameter",
               "type": "float",
               "required": true,
-              "units": "mm"
+              "units": "mm",
+              "allowed_values": null,
+              "value_doc": null
             },
             {
               "name": "key_width",
               "type": "float",
               "required": true,
-              "units": "mm"
+              "units": "mm",
+              "allowed_values": null,
+              "value_doc": null
             },
             {
               "name": "key_depth",
               "type": "float",
               "required": true,
-              "units": "mm"
+              "units": "mm",
+              "allowed_values": null,
+              "value_doc": null
             }
           ]
         }
@@ -1656,7 +2002,9 @@
               "name": "diameter",
               "type": "float",
               "required": true,
-              "units": "mm"
+              "units": "mm",
+              "allowed_values": null,
+              "value_doc": null
             }
           ]
         }
@@ -1678,46 +2026,60 @@
               "name": "module",
               "type": "float",
               "required": true,
-              "units": null
+              "units": null,
+              "allowed_values": null,
+              "value_doc": null
             },
             {
               "name": "teeth",
               "type": "int",
               "required": true,
-              "units": null
+              "units": null,
+              "allowed_values": null,
+              "value_doc": null
             },
             {
               "name": "face_width",
               "type": "float",
               "required": true,
-              "units": "mm"
+              "units": "mm",
+              "allowed_values": null,
+              "value_doc": null
             },
             {
               "name": "helix_angle",
               "type": "float",
               "required": true,
-              "units": "deg"
+              "units": "deg",
+              "allowed_values": null,
+              "value_doc": null
             },
             {
               "name": "bore",
               "type": "float | Bore | None",
               "required": false,
               "default": "None",
-              "units": "mm"
+              "units": "mm",
+              "allowed_values": null,
+              "value_doc": null
             },
             {
               "name": "pressure_angle",
               "type": "float",
               "required": false,
               "default": "20.0",
-              "units": "deg"
+              "units": "deg",
+              "allowed_values": null,
+              "value_doc": null
             },
             {
               "name": "n_flank",
               "type": "int",
               "required": false,
               "default": "32",
-              "units": null
+              "units": null,
+              "allowed_values": null,
+              "value_doc": null
             }
           ]
         }
@@ -1739,32 +2101,42 @@
               "name": "module",
               "type": "float",
               "required": true,
-              "units": null
+              "units": null,
+              "allowed_values": null,
+              "value_doc": null
             },
             {
               "name": "length",
               "type": "float",
               "required": true,
-              "units": "mm"
+              "units": "mm",
+              "allowed_values": null,
+              "value_doc": null
             },
             {
               "name": "face_width",
               "type": "float",
               "required": true,
-              "units": "mm"
+              "units": "mm",
+              "allowed_values": null,
+              "value_doc": null
             },
             {
               "name": "thickness",
               "type": "float",
               "required": true,
-              "units": "mm"
+              "units": "mm",
+              "allowed_values": null,
+              "value_doc": null
             },
             {
               "name": "pressure_angle",
               "type": "float",
               "required": false,
               "default": "20.0",
-              "units": "deg"
+              "units": "deg",
+              "allowed_values": null,
+              "value_doc": null
             }
           ]
         }
@@ -1786,40 +2158,52 @@
               "name": "module",
               "type": "float",
               "required": true,
-              "units": null
+              "units": null,
+              "allowed_values": null,
+              "value_doc": null
             },
             {
               "name": "teeth",
               "type": "int",
               "required": true,
-              "units": null
+              "units": null,
+              "allowed_values": null,
+              "value_doc": null
             },
             {
               "name": "face_width",
               "type": "float",
               "required": true,
-              "units": "mm"
+              "units": "mm",
+              "allowed_values": null,
+              "value_doc": null
             },
             {
               "name": "bore",
               "type": "float | Bore | None",
               "required": false,
               "default": "None",
-              "units": "mm"
+              "units": "mm",
+              "allowed_values": null,
+              "value_doc": null
             },
             {
               "name": "pressure_angle",
               "type": "float",
               "required": false,
               "default": "20.0",
-              "units": "deg"
+              "units": "deg",
+              "allowed_values": null,
+              "value_doc": null
             },
             {
               "name": "n_flank",
               "type": "int",
               "required": false,
               "default": "32",
-              "units": null
+              "units": null,
+              "allowed_values": null,
+              "value_doc": null
             }
           ]
         }
@@ -1842,70 +2226,90 @@
               "type": "float",
               "required": false,
               "default": "30.0",
-              "units": "mm"
+              "units": "mm",
+              "allowed_values": null,
+              "value_doc": null
             },
             {
               "name": "leaf_a_length",
               "type": "float",
               "required": false,
               "default": "20.0",
-              "units": "mm"
+              "units": "mm",
+              "allowed_values": null,
+              "value_doc": null
             },
             {
               "name": "leaf_b_length",
               "type": "float",
               "required": false,
               "default": "20.0",
-              "units": "mm"
+              "units": "mm",
+              "allowed_values": null,
+              "value_doc": null
             },
             {
               "name": "leaf_a_width",
               "type": "float",
               "required": false,
               "default": "None",
-              "units": "mm"
+              "units": "mm",
+              "allowed_values": null,
+              "value_doc": null
             },
             {
               "name": "leaf_b_width",
               "type": "float",
               "required": false,
               "default": "None",
-              "units": "mm"
+              "units": "mm",
+              "allowed_values": null,
+              "value_doc": null
             },
             {
               "name": "thickness",
               "type": "float",
               "required": false,
               "default": "4.0",
-              "units": "mm"
+              "units": "mm",
+              "allowed_values": null,
+              "value_doc": null
             },
             {
               "name": "knuckle_diameter",
               "type": "float",
               "required": false,
               "default": "10.0",
-              "units": "mm"
+              "units": "mm",
+              "allowed_values": null,
+              "value_doc": null
             },
             {
               "name": "knuckle_count",
               "type": "int",
               "required": false,
               "default": "3",
-              "units": null
+              "units": null,
+              "allowed_values": null,
+              "value_doc": null
             },
             {
               "name": "angle",
               "type": "float",
               "required": false,
               "default": "0.0",
-              "units": "deg"
+              "units": "deg",
+              "allowed_values": null,
+              "value_doc": null
             },
             {
               "name": "profile",
               "type": "ToleranceProfile",
               "required": false,
               "default": "None",
-              "units": null
+              "units": null,
+              "allowed_values": null,
+              "value_doc": null
             }
           ]
         }
@@ -1927,20 +2331,26 @@
               "name": "width_across_flats",
               "type": "float",
               "required": true,
-              "units": null
+              "units": null,
+              "allowed_values": null,
+              "value_doc": null
             },
             {
               "name": "thickness",
               "type": "float",
               "required": true,
-              "units": "mm"
+              "units": "mm",
+              "allowed_values": null,
+              "value_doc": null
             },
             {
               "name": "profile",
               "type": "ToleranceProfile | str",
               "required": false,
               "default": "'fdm_standard'",
-              "units": null
+              "units": null,
+              "allowed_values": null,
+              "value_doc": null
             }
           ]
         }
@@ -1962,20 +2372,26 @@
               "name": "diameter",
               "type": "float",
               "required": true,
-              "units": "mm"
+              "units": "mm",
+              "allowed_values": null,
+              "value_doc": null
             },
             {
               "name": "depth",
               "type": "float",
               "required": true,
-              "units": "mm"
+              "units": "mm",
+              "allowed_values": null,
+              "value_doc": null
             },
             {
               "name": "profile",
               "type": "ToleranceProfile | str",
               "required": false,
               "default": "'fdm_standard'",
-              "units": null
+              "units": null,
+              "allowed_values": null,
+              "value_doc": null
             }
           ]
         }
@@ -1997,46 +2413,60 @@
               "name": "shaft_diameter",
               "type": "float",
               "required": true,
-              "units": "mm"
+              "units": "mm",
+              "allowed_values": null,
+              "value_doc": null
             },
             {
               "name": "shaft_depth",
               "type": "float",
               "required": true,
-              "units": "mm"
+              "units": "mm",
+              "allowed_values": null,
+              "value_doc": null
             },
             {
               "name": "head_diameter",
               "type": "float",
               "required": true,
-              "units": "mm"
+              "units": "mm",
+              "allowed_values": null,
+              "value_doc": null
             },
             {
               "name": "head_depth",
               "type": "float",
               "required": true,
-              "units": "mm"
+              "units": "mm",
+              "allowed_values": null,
+              "value_doc": null
             },
             {
               "name": "head_type",
               "type": "str",
               "required": false,
               "default": "'cylinder'",
-              "units": null
+              "units": null,
+              "allowed_values": null,
+              "value_doc": null
             },
             {
               "name": "head_angle",
               "type": "float",
               "required": false,
               "default": "90.0",
-              "units": "deg"
+              "units": "deg",
+              "allowed_values": null,
+              "value_doc": null
             },
             {
               "name": "profile",
               "type": "ToleranceProfile | str",
               "required": false,
               "default": "'fdm_standard'",
-              "units": null
+              "units": null,
+              "allowed_values": null,
+              "value_doc": null
             }
           ]
         }
@@ -2058,32 +2488,42 @@
               "name": "head_diameter",
               "type": "float",
               "required": true,
-              "units": "mm"
+              "units": "mm",
+              "allowed_values": null,
+              "value_doc": null
             },
             {
               "name": "shaft_diameter",
               "type": "float",
               "required": true,
-              "units": "mm"
+              "units": "mm",
+              "allowed_values": null,
+              "value_doc": null
             },
             {
               "name": "length",
               "type": "float",
               "required": true,
-              "units": "mm"
+              "units": "mm",
+              "allowed_values": null,
+              "value_doc": null
             },
             {
               "name": "depth",
               "type": "float",
               "required": true,
-              "units": "mm"
+              "units": "mm",
+              "allowed_values": null,
+              "value_doc": null
             },
             {
               "name": "profile",
               "type": "ToleranceProfile | str",
               "required": false,
               "default": "'fdm_standard'",
-              "units": null
+              "units": null,
+              "allowed_values": null,
+              "value_doc": null
             }
           ]
         }
@@ -2105,26 +2545,34 @@
               "name": "diameter",
               "type": "float",
               "required": true,
-              "units": "mm"
+              "units": "mm",
+              "allowed_values": null,
+              "value_doc": null
             },
             {
               "name": "length",
               "type": "float",
               "required": true,
-              "units": "mm"
+              "units": "mm",
+              "allowed_values": null,
+              "value_doc": null
             },
             {
               "name": "depth",
               "type": "float",
               "required": true,
-              "units": "mm"
+              "units": "mm",
+              "allowed_values": null,
+              "value_doc": null
             },
             {
               "name": "profile",
               "type": "ToleranceProfile | str",
               "required": false,
               "default": "'fdm_standard'",
-              "units": null
+              "units": null,
+              "allowed_values": null,
+              "value_doc": null
             }
           ]
         }
@@ -2146,26 +2594,34 @@
               "name": "top_diameter",
               "type": "float",
               "required": true,
-              "units": "mm"
+              "units": "mm",
+              "allowed_values": null,
+              "value_doc": null
             },
             {
               "name": "bottom_diameter",
               "type": "float",
               "required": true,
-              "units": "mm"
+              "units": "mm",
+              "allowed_values": null,
+              "value_doc": null
             },
             {
               "name": "depth",
               "type": "float",
               "required": true,
-              "units": "mm"
+              "units": "mm",
+              "allowed_values": null,
+              "value_doc": null
             },
             {
               "name": "profile",
               "type": "ToleranceProfile | str",
               "required": false,
               "default": "'fdm_standard'",
-              "units": null
+              "units": null,
+              "allowed_values": null,
+              "value_doc": null
             }
           ]
         }
@@ -2187,27 +2643,35 @@
               "name": "diameter",
               "type": "float",
               "required": true,
-              "units": "mm"
+              "units": "mm",
+              "allowed_values": null,
+              "value_doc": null
             },
             {
               "name": "depth",
               "type": "float",
               "required": true,
-              "units": "mm"
+              "units": "mm",
+              "allowed_values": null,
+              "value_doc": null
             },
             {
               "name": "angle",
               "type": "float",
               "required": false,
               "default": "45.0",
-              "units": "deg"
+              "units": "deg",
+              "allowed_values": null,
+              "value_doc": null
             },
             {
               "name": "profile",
               "type": "ToleranceProfile | str",
               "required": false,
               "default": "'fdm_standard'",
-              "units": null
+              "units": null,
+              "allowed_values": null,
+              "value_doc": null
             }
           ]
         }
@@ -2229,33 +2693,43 @@
               "name": "top_diameter",
               "type": "float",
               "required": true,
-              "units": "mm"
+              "units": "mm",
+              "allowed_values": null,
+              "value_doc": null
             },
             {
               "name": "bot_diameter",
               "type": "float",
               "required": true,
-              "units": "mm"
+              "units": "mm",
+              "allowed_values": null,
+              "value_doc": null
             },
             {
               "name": "depth",
               "type": "float",
               "required": true,
-              "units": "mm"
+              "units": "mm",
+              "allowed_values": null,
+              "value_doc": null
             },
             {
               "name": "through_hole",
               "type": "bool",
               "required": false,
               "default": "False",
-              "units": null
+              "units": null,
+              "allowed_values": null,
+              "value_doc": null
             },
             {
               "name": "clearance_diameter",
               "type": "float",
               "required": false,
               "default": "3.2",
-              "units": "mm"
+              "units": "mm",
+              "allowed_values": null,
+              "value_doc": null
             }
           ]
         },
@@ -2269,21 +2743,30 @@
               "type": "str",
               "required": false,
               "default": "'M3'",
-              "units": "mm"
+              "units": "mm",
+              "allowed_values": [
+                "M3",
+                "M4"
+              ],
+              "value_doc": null
             },
             {
               "name": "through_hole",
               "type": "bool",
               "required": false,
               "default": "False",
-              "units": null
+              "units": null,
+              "allowed_values": null,
+              "value_doc": null
             },
             {
               "name": "clearance_diameter",
               "type": "float",
               "required": false,
               "default": "3.2",
-              "units": "mm"
+              "units": "mm",
+              "allowed_values": null,
+              "value_doc": null
             }
           ]
         },
@@ -2297,21 +2780,34 @@
               "type": "str",
               "required": false,
               "default": "'M3'",
-              "units": "mm"
+              "units": "mm",
+              "allowed_values": [
+                "M2",
+                "M2.5",
+                "M3",
+                "M3_short",
+                "M4",
+                "M5"
+              ],
+              "value_doc": null
             },
             {
               "name": "through_hole",
               "type": "bool",
               "required": false,
               "default": "False",
-              "units": null
+              "units": null,
+              "allowed_values": null,
+              "value_doc": null
             },
             {
               "name": "clearance_diameter",
               "type": "float",
               "required": false,
               "default": "3.2",
-              "units": "mm"
+              "units": "mm",
+              "allowed_values": null,
+              "value_doc": null
             }
           ]
         }
@@ -2333,32 +2829,42 @@
               "name": "neck_width",
               "type": "float",
               "required": true,
-              "units": "mm"
+              "units": "mm",
+              "allowed_values": null,
+              "value_doc": null
             },
             {
               "name": "tail_width",
               "type": "float",
               "required": true,
-              "units": "mm"
+              "units": "mm",
+              "allowed_values": null,
+              "value_doc": null
             },
             {
               "name": "depth",
               "type": "float",
               "required": true,
-              "units": "mm"
+              "units": "mm",
+              "allowed_values": null,
+              "value_doc": null
             },
             {
               "name": "length",
               "type": "float",
               "required": true,
-              "units": "mm"
+              "units": "mm",
+              "allowed_values": null,
+              "value_doc": null
             },
             {
               "name": "clearance",
               "type": "float",
               "required": false,
               "default": "0.05",
-              "units": null
+              "units": null,
+              "allowed_values": null,
+              "value_doc": null
             }
           ]
         }
@@ -2381,49 +2887,63 @@
               "type": "float",
               "required": false,
               "default": "10.0",
-              "units": "mm"
+              "units": "mm",
+              "allowed_values": null,
+              "value_doc": null
             },
             {
               "name": "width",
               "type": "float",
               "required": false,
               "default": "5.0",
-              "units": "mm"
+              "units": "mm",
+              "allowed_values": null,
+              "value_doc": null
             },
             {
               "name": "thickness",
               "type": "float",
               "required": false,
               "default": "2.0",
-              "units": "mm"
+              "units": "mm",
+              "allowed_values": null,
+              "value_doc": null
             },
             {
               "name": "hook_depth",
               "type": "float",
               "required": false,
               "default": "1.5",
-              "units": "mm"
+              "units": "mm",
+              "allowed_values": null,
+              "value_doc": null
             },
             {
               "name": "insertion_angle",
               "type": "float",
               "required": false,
               "default": "30.0",
-              "units": "deg"
+              "units": "deg",
+              "allowed_values": null,
+              "value_doc": null
             },
             {
               "name": "retention_angle",
               "type": "float",
               "required": false,
               "default": "90.0",
-              "units": "deg"
+              "units": "deg",
+              "allowed_values": null,
+              "value_doc": null
             },
             {
               "name": "clearance",
               "type": "float",
               "required": false,
               "default": "0.2",
-              "units": null
+              "units": null,
+              "allowed_values": null,
+              "value_doc": null
             }
           ]
         }
@@ -2445,19 +2965,25 @@
               "name": "length",
               "type": "float",
               "required": true,
-              "units": "mm"
+              "units": "mm",
+              "allowed_values": null,
+              "value_doc": null
             },
             {
               "name": "width",
               "type": "float",
               "required": true,
-              "units": "mm"
+              "units": "mm",
+              "allowed_values": null,
+              "value_doc": null
             },
             {
               "name": "thickness",
               "type": "float",
               "required": true,
-              "units": "mm"
+              "units": "mm",
+              "allowed_values": null,
+              "value_doc": null
             }
           ]
         },
@@ -2485,13 +3011,17 @@
               "name": "diameter",
               "type": "float",
               "required": true,
-              "units": "mm"
+              "units": "mm",
+              "allowed_values": null,
+              "value_doc": null
             },
             {
               "name": "thickness",
               "type": "float",
               "required": true,
-              "units": "mm"
+              "units": "mm",
+              "allowed_values": null,
+              "value_doc": null
             }
           ]
         },
@@ -2531,20 +3061,26 @@
               "name": "width_flats",
               "type": "float",
               "required": true,
-              "units": null
+              "units": null,
+              "allowed_values": null,
+              "value_doc": null
             },
             {
               "name": "thickness",
               "type": "float",
               "required": true,
-              "units": "mm"
+              "units": "mm",
+              "allowed_values": null,
+              "value_doc": null
             },
             {
               "name": "thread_diameter",
               "type": "float",
               "required": false,
               "default": "0.0",
-              "units": "mm"
+              "units": "mm",
+              "allowed_values": null,
+              "value_doc": null
             }
           ]
         },
@@ -2557,7 +3093,17 @@
               "name": "size",
               "type": "str",
               "required": true,
-              "units": "mm"
+              "units": "mm",
+              "allowed_values": [
+                "M2",
+                "M2.5",
+                "M3",
+                "M4",
+                "M5",
+                "M6",
+                "M8"
+              ],
+              "value_doc": null
             }
           ]
         }
@@ -2579,20 +3125,26 @@
               "name": "width_flats",
               "type": "float",
               "required": true,
-              "units": null
+              "units": null,
+              "allowed_values": null,
+              "value_doc": null
             },
             {
               "name": "thickness",
               "type": "float",
               "required": true,
-              "units": "mm"
+              "units": "mm",
+              "allowed_values": null,
+              "value_doc": null
             },
             {
               "name": "thread_diameter",
               "type": "float",
               "required": false,
               "default": "0.0",
-              "units": "mm"
+              "units": "mm",
+              "allowed_values": null,
+              "value_doc": null
             }
           ]
         },
@@ -2605,7 +3157,16 @@
               "name": "size",
               "type": "str",
               "required": true,
-              "units": "mm"
+              "units": "mm",
+              "allowed_values": [
+                "M2.5",
+                "M3",
+                "M4",
+                "M5",
+                "M6",
+                "M8"
+              ],
+              "value_doc": null
             }
           ]
         }
@@ -2627,20 +3188,26 @@
               "name": "width_flats",
               "type": "float",
               "required": true,
-              "units": null
+              "units": null,
+              "allowed_values": null,
+              "value_doc": null
             },
             {
               "name": "thickness",
               "type": "float",
               "required": true,
-              "units": "mm"
+              "units": "mm",
+              "allowed_values": null,
+              "value_doc": null
             },
             {
               "name": "thread_diameter",
               "type": "float",
               "required": false,
               "default": "0.0",
-              "units": "mm"
+              "units": "mm",
+              "allowed_values": null,
+              "value_doc": null
             }
           ]
         },
@@ -2653,7 +3220,16 @@
               "name": "size",
               "type": "str",
               "required": true,
-              "units": "mm"
+              "units": "mm",
+              "allowed_values": [
+                "M2",
+                "M2.5",
+                "M3",
+                "M4",
+                "M5",
+                "M6"
+              ],
+              "value_doc": null
             }
           ]
         }
@@ -2675,38 +3251,50 @@
               "name": "length",
               "type": "float",
               "required": true,
-              "units": "mm"
+              "units": "mm",
+              "allowed_values": null,
+              "value_doc": null
             },
             {
               "name": "width",
               "type": "float",
               "required": true,
-              "units": "mm"
+              "units": "mm",
+              "allowed_values": null,
+              "value_doc": null
             },
             {
               "name": "thickness",
               "type": "float",
               "required": true,
-              "units": "mm"
+              "units": "mm",
+              "allowed_values": null,
+              "value_doc": null
             },
             {
               "name": "step_width",
               "type": "float",
               "required": true,
-              "units": "mm"
+              "units": "mm",
+              "allowed_values": null,
+              "value_doc": null
             },
             {
               "name": "step_height",
               "type": "float",
               "required": true,
-              "units": "mm"
+              "units": "mm",
+              "allowed_values": null,
+              "value_doc": null
             },
             {
               "name": "thread_diameter",
               "type": "float",
               "required": false,
               "default": "0.0",
-              "units": "mm"
+              "units": "mm",
+              "allowed_values": null,
+              "value_doc": null
             }
           ]
         },
@@ -2719,7 +3307,13 @@
               "name": "size",
               "type": "str",
               "required": true,
-              "units": "mm"
+              "units": "mm",
+              "allowed_values": [
+                "M3",
+                "M4",
+                "M5"
+              ],
+              "value_doc": null
             }
           ]
         }
@@ -2741,13 +3335,17 @@
               "name": "across_flats",
               "type": "float",
               "required": true,
-              "units": null
+              "units": null,
+              "allowed_values": null,
+              "value_doc": null
             },
             {
               "name": "depth",
               "type": "float",
               "required": true,
-              "units": "mm"
+              "units": "mm",
+              "allowed_values": null,
+              "value_doc": null
             }
           ]
         }
@@ -2769,19 +3367,25 @@
               "name": "diameter",
               "type": "float",
               "required": true,
-              "units": "mm"
+              "units": "mm",
+              "allowed_values": null,
+              "value_doc": null
             },
             {
               "name": "width",
               "type": "float",
               "required": true,
-              "units": "mm"
+              "units": "mm",
+              "allowed_values": null,
+              "value_doc": null
             },
             {
               "name": "depth",
               "type": "float",
               "required": true,
-              "units": "mm"
+              "units": "mm",
+              "allowed_values": null,
+              "value_doc": null
             }
           ]
         },
@@ -2794,7 +3398,15 @@
               "name": "size",
               "type": "str",
               "required": true,
-              "units": "mm"
+              "units": "mm",
+              "allowed_values": [
+                "PH00",
+                "PH0",
+                "PH1",
+                "PH2",
+                "PH3"
+              ],
+              "value_doc": null
             }
           ]
         }
@@ -2816,19 +3428,25 @@
               "name": "length",
               "type": "float",
               "required": true,
-              "units": "mm"
+              "units": "mm",
+              "allowed_values": null,
+              "value_doc": null
             },
             {
               "name": "width",
               "type": "float",
               "required": true,
-              "units": "mm"
+              "units": "mm",
+              "allowed_values": null,
+              "value_doc": null
             },
             {
               "name": "depth",
               "type": "float",
               "required": true,
-              "units": "mm"
+              "units": "mm",
+              "allowed_values": null,
+              "value_doc": null
             }
           ]
         }
@@ -2850,20 +3468,26 @@
               "name": "point_to_point_diameter",
               "type": "float",
               "required": true,
-              "units": "mm"
+              "units": "mm",
+              "allowed_values": null,
+              "value_doc": null
             },
             {
               "name": "depth",
               "type": "float",
               "required": true,
-              "units": "mm"
+              "units": "mm",
+              "allowed_values": null,
+              "value_doc": null
             },
             {
               "name": "taper_angle",
               "type": "float",
               "required": false,
               "default": "8.0",
-              "units": "deg"
+              "units": "deg",
+              "allowed_values": null,
+              "value_doc": null
             }
           ]
         },
@@ -2876,7 +3500,18 @@
               "name": "size",
               "type": "str",
               "required": true,
-              "units": "mm"
+              "units": "mm",
+              "allowed_values": [
+                "T5",
+                "T6",
+                "T8",
+                "T10",
+                "T15",
+                "T20",
+                "T25",
+                "T30"
+              ],
+              "value_doc": null
             }
           ]
         }
@@ -2898,46 +3533,69 @@
               "name": "length",
               "type": "float",
               "required": true,
-              "units": "mm"
+              "units": "mm",
+              "allowed_values": null,
+              "value_doc": null
             },
             {
               "name": "major_diameter",
               "type": "float",
               "required": true,
-              "units": "mm"
+              "units": "mm",
+              "allowed_values": null,
+              "value_doc": null
             },
             {
               "name": "head_diameter",
               "type": "float",
               "required": true,
-              "units": "mm"
+              "units": "mm",
+              "allowed_values": null,
+              "value_doc": null
             },
             {
               "name": "head_height",
               "type": "float",
               "required": true,
-              "units": "mm"
+              "units": "mm",
+              "allowed_values": null,
+              "value_doc": null
             },
             {
               "name": "head_type",
               "type": "str",
               "required": false,
               "default": "'socket'",
-              "units": null
+              "units": null,
+              "allowed_values": [
+                "socket",
+                "flat",
+                "pan"
+              ],
+              "value_doc": null
             },
             {
               "name": "drive_type",
               "type": "str",
               "required": false,
               "default": "'hex'",
-              "units": null
+              "units": null,
+              "allowed_values": [
+                "hex",
+                "phillips",
+                "slotted",
+                "torx"
+              ],
+              "value_doc": null
             },
             {
               "name": "head_angle",
               "type": "float",
               "required": false,
               "default": "82.0",
-              "units": "deg"
+              "units": "deg",
+              "allowed_values": null,
+              "value_doc": null
             }
           ]
         },
@@ -2950,27 +3608,50 @@
               "name": "size",
               "type": "str",
               "required": true,
-              "units": "mm"
+              "units": "mm",
+              "allowed_values": [
+                "4-40",
+                "6-32",
+                "8-32",
+                "10-24",
+                "1/4-20"
+              ],
+              "value_doc": null
             },
             {
               "name": "length",
               "type": "float",
               "required": true,
-              "units": "mm"
+              "units": "mm",
+              "allowed_values": null,
+              "value_doc": null
             },
             {
               "name": "head_type",
               "type": "str",
               "required": false,
               "default": "'socket'",
-              "units": null
+              "units": null,
+              "allowed_values": [
+                "socket",
+                "flat",
+                "pan"
+              ],
+              "value_doc": null
             },
             {
               "name": "drive_type",
               "type": "str",
               "required": false,
               "default": "'hex'",
-              "units": null
+              "units": null,
+              "allowed_values": [
+                "hex",
+                "phillips",
+                "slotted",
+                "torx"
+              ],
+              "value_doc": null
             }
           ]
         }
@@ -2992,65 +3673,94 @@
               "name": "length",
               "type": "float",
               "required": true,
-              "units": "mm"
+              "units": "mm",
+              "allowed_values": null,
+              "value_doc": null
             },
             {
               "name": "major_diameter",
               "type": "float",
               "required": true,
-              "units": "mm"
+              "units": "mm",
+              "allowed_values": null,
+              "value_doc": null
             },
             {
               "name": "head_diameter",
               "type": "float",
               "required": true,
-              "units": "mm"
+              "units": "mm",
+              "allowed_values": null,
+              "value_doc": null
             },
             {
               "name": "head_height",
               "type": "float",
               "required": true,
-              "units": "mm"
+              "units": "mm",
+              "allowed_values": null,
+              "value_doc": null
             },
             {
               "name": "clearance_diameter",
               "type": "float",
               "required": true,
-              "units": "mm"
+              "units": "mm",
+              "allowed_values": null,
+              "value_doc": null
             },
             {
               "name": "tap_diameter",
               "type": "float",
               "required": true,
-              "units": "mm"
+              "units": "mm",
+              "allowed_values": null,
+              "value_doc": null
             },
             {
               "name": "head_type",
               "type": "str",
               "required": false,
               "default": "'socket'",
-              "units": null
+              "units": null,
+              "allowed_values": [
+                "socket",
+                "flat",
+                "pan"
+              ],
+              "value_doc": null
             },
             {
               "name": "drive_type",
               "type": "str",
               "required": false,
               "default": "'hex'",
-              "units": null
+              "units": null,
+              "allowed_values": [
+                "hex",
+                "phillips",
+                "slotted",
+                "torx"
+              ],
+              "value_doc": null
             },
             {
               "name": "head_angle",
               "type": "float",
               "required": false,
               "default": "90.0",
-              "units": "deg"
+              "units": "deg",
+              "allowed_values": null,
+              "value_doc": null
             },
             {
               "name": "drive",
               "type": "FastenerDrive",
               "required": false,
               "default": "None",
-              "units": null
+              "units": null,
+              "allowed_values": null,
+              "value_doc": null
             }
           ]
         },
@@ -3063,27 +3773,50 @@
               "name": "size",
               "type": "str",
               "required": true,
-              "units": "mm"
+              "units": "mm",
+              "allowed_values": [
+                "M2",
+                "M2.5",
+                "M3",
+                "M4",
+                "M5"
+              ],
+              "value_doc": null
             },
             {
               "name": "length",
               "type": "float",
               "required": true,
-              "units": "mm"
+              "units": "mm",
+              "allowed_values": null,
+              "value_doc": null
             },
             {
               "name": "head_type",
               "type": "str",
               "required": false,
               "default": "'socket'",
-              "units": null
+              "units": null,
+              "allowed_values": [
+                "socket",
+                "flat",
+                "pan"
+              ],
+              "value_doc": null
             },
             {
               "name": "drive_type",
               "type": "str",
               "required": false,
               "default": "'hex'",
-              "units": null
+              "units": null,
+              "allowed_values": [
+                "hex",
+                "phillips",
+                "slotted",
+                "torx"
+              ],
+              "value_doc": null
             }
           ]
         }
@@ -3105,58 +3838,84 @@
               "name": "length",
               "type": "float",
               "required": true,
-              "units": "mm"
+              "units": "mm",
+              "allowed_values": null,
+              "value_doc": null
             },
             {
               "name": "major_diameter",
               "type": "float",
               "required": true,
-              "units": "mm"
+              "units": "mm",
+              "allowed_values": null,
+              "value_doc": null
             },
             {
               "name": "core_diameter",
               "type": "float",
               "required": true,
-              "units": "mm"
+              "units": "mm",
+              "allowed_values": null,
+              "value_doc": null
             },
             {
               "name": "pilot_diameter",
               "type": "float",
               "required": true,
-              "units": "mm"
+              "units": "mm",
+              "allowed_values": null,
+              "value_doc": null
             },
             {
               "name": "head_diameter",
               "type": "float",
               "required": true,
-              "units": "mm"
+              "units": "mm",
+              "allowed_values": null,
+              "value_doc": null
             },
             {
               "name": "head_height",
               "type": "float",
               "required": true,
-              "units": "mm"
+              "units": "mm",
+              "allowed_values": null,
+              "value_doc": null
             },
             {
               "name": "head_type",
               "type": "str",
               "required": false,
               "default": "'pan'",
-              "units": null
+              "units": null,
+              "allowed_values": [
+                "pan",
+                "flat"
+              ],
+              "value_doc": null
             },
             {
               "name": "drive_type",
               "type": "str",
               "required": false,
               "default": "'phillips'",
-              "units": null
+              "units": null,
+              "allowed_values": [
+                "phillips",
+                "hex",
+                "slotted",
+                "torx"
+              ],
+              "value_doc": null
             },
             {
               "name": "head_angle",
               "type": "float",
               "required": false,
               "default": "90.0",
-              "units": "deg"
+              "units": "deg",
+              "allowed_values": null,
+              "value_doc": null
             }
           ]
         },
@@ -3169,27 +3928,49 @@
               "name": "size",
               "type": "str",
               "required": true,
-              "units": "mm"
+              "units": "mm",
+              "allowed_values": [
+                "M2",
+                "M2.5",
+                "M3",
+                "M4",
+                "M5"
+              ],
+              "value_doc": null
             },
             {
               "name": "length",
               "type": "float",
               "required": true,
-              "units": "mm"
+              "units": "mm",
+              "allowed_values": null,
+              "value_doc": null
             },
             {
               "name": "head_type",
               "type": "str",
               "required": false,
               "default": "'pan'",
-              "units": null
+              "units": null,
+              "allowed_values": [
+                "pan",
+                "flat"
+              ],
+              "value_doc": null
             },
             {
               "name": "drive_type",
               "type": "str",
               "required": false,
               "default": "'phillips'",
-              "units": null
+              "units": null,
+              "allowed_values": [
+                "phillips",
+                "hex",
+                "slotted",
+                "torx"
+              ],
+              "value_doc": null
             }
           ]
         }
@@ -3211,32 +3992,46 @@
               "name": "length",
               "type": "float",
               "required": true,
-              "units": "mm"
+              "units": "mm",
+              "allowed_values": null,
+              "value_doc": null
             },
             {
               "name": "major_diameter",
               "type": "float",
               "required": true,
-              "units": "mm"
+              "units": "mm",
+              "allowed_values": null,
+              "value_doc": null
             },
             {
               "name": "clearance_diameter",
               "type": "float",
               "required": true,
-              "units": "mm"
+              "units": "mm",
+              "allowed_values": null,
+              "value_doc": null
             },
             {
               "name": "tap_diameter",
               "type": "float",
               "required": true,
-              "units": "mm"
+              "units": "mm",
+              "allowed_values": null,
+              "value_doc": null
             },
             {
               "name": "drive_type",
               "type": "str",
               "required": false,
               "default": "'hex'",
-              "units": null
+              "units": null,
+              "allowed_values": [
+                "hex",
+                "slotted",
+                "torx"
+              ],
+              "value_doc": null
             }
           ]
         },
@@ -3249,20 +4044,36 @@
               "name": "size",
               "type": "str",
               "required": true,
-              "units": "mm"
+              "units": "mm",
+              "allowed_values": [
+                "M2",
+                "M2.5",
+                "M3",
+                "M4",
+                "M5"
+              ],
+              "value_doc": null
             },
             {
               "name": "length",
               "type": "float",
               "required": true,
-              "units": "mm"
+              "units": "mm",
+              "allowed_values": null,
+              "value_doc": null
             },
             {
               "name": "drive_type",
               "type": "str",
               "required": false,
               "default": "'hex'",
-              "units": null
+              "units": null,
+              "allowed_values": [
+                "hex",
+                "slotted",
+                "torx"
+              ],
+              "value_doc": null
             }
           ]
         }
@@ -3284,27 +4095,50 @@
               "name": "size",
               "type": "str",
               "required": true,
-              "units": "mm"
+              "units": "mm",
+              "allowed_values": [
+                "#2",
+                "#4",
+                "#6",
+                "#8",
+                "#10",
+                "3/16"
+              ],
+              "value_doc": null
             },
             {
               "name": "length",
               "type": "float",
               "required": true,
-              "units": "mm"
+              "units": "mm",
+              "allowed_values": null,
+              "value_doc": null
             },
             {
               "name": "head_type",
               "type": "str",
               "required": false,
               "default": "'flat'",
-              "units": null
+              "units": null,
+              "allowed_values": [
+                "flat",
+                "pan"
+              ],
+              "value_doc": null
             },
             {
               "name": "drive_type",
               "type": "str",
               "required": false,
               "default": "'phillips'",
-              "units": null
+              "units": null,
+              "allowed_values": [
+                "phillips",
+                "hex",
+                "slotted",
+                "torx"
+              ],
+              "value_doc": null
             }
           ]
         }
@@ -3326,33 +4160,47 @@
               "name": "width_flats",
               "type": "float",
               "required": true,
-              "units": null
+              "units": null,
+              "allowed_values": null,
+              "value_doc": null
             },
             {
               "name": "length",
               "type": "float",
               "required": true,
-              "units": "mm"
+              "units": "mm",
+              "allowed_values": null,
+              "value_doc": null
             },
             {
               "name": "nominal_diameter",
               "type": "float",
               "required": true,
-              "units": "mm"
+              "units": "mm",
+              "allowed_values": null,
+              "value_doc": null
             },
             {
               "name": "type_",
               "type": "str",
               "required": false,
               "default": "'F-F'",
-              "units": null
+              "units": null,
+              "allowed_values": [
+                "F-F",
+                "M-F",
+                "M-M"
+              ],
+              "value_doc": null
             },
             {
               "name": "thread_length",
               "type": "float",
               "required": false,
               "default": "6.0",
-              "units": "mm"
+              "units": "mm",
+              "allowed_values": null,
+              "value_doc": null
             }
           ]
         },
@@ -3365,28 +4213,47 @@
               "name": "size",
               "type": "str",
               "required": true,
-              "units": "mm"
+              "units": "mm",
+              "allowed_values": [
+                "M2",
+                "M2.5",
+                "M3",
+                "M4",
+                "4-40",
+                "6-32"
+              ],
+              "value_doc": null
             },
             {
               "name": "length",
               "type": "float",
               "required": false,
               "default": "10.0",
-              "units": "mm"
+              "units": "mm",
+              "allowed_values": null,
+              "value_doc": null
             },
             {
               "name": "type_",
               "type": "str",
               "required": false,
               "default": "'F-F'",
-              "units": null
+              "units": null,
+              "allowed_values": [
+                "F-F",
+                "M-F",
+                "M-M"
+              ],
+              "value_doc": null
             },
             {
               "name": "thread_length",
               "type": "float",
               "required": false,
               "default": "6.0",
-              "units": "mm"
+              "units": "mm",
+              "allowed_values": null,
+              "value_doc": null
             }
           ]
         }
@@ -3409,7 +4276,9 @@
               "type": "Sequence[float]",
               "required": false,
               "default": "(0.0, 0.05, 0.1, 0.15, 0.2)",
-              "units": null
+              "units": null,
+              "allowed_values": null,
+              "value_doc": null
             }
           ]
         }
@@ -3431,21 +4300,27 @@
               "name": "radial",
               "type": "float",
               "required": true,
-              "units": null
+              "units": null,
+              "allowed_values": null,
+              "value_doc": null
             },
             {
               "name": "axial",
               "type": "float",
               "required": false,
               "default": "0.0",
-              "units": null
+              "units": null,
+              "allowed_values": null,
+              "value_doc": null
             },
             {
               "name": "slot",
               "type": "float",
               "required": false,
               "default": "0.0",
-              "units": null
+              "units": null,
+              "allowed_values": null,
+              "value_doc": null
             }
           ]
         }
@@ -3467,25 +4342,33 @@
               "name": "name",
               "type": "str",
               "required": true,
-              "units": null
+              "units": null,
+              "allowed_values": null,
+              "value_doc": null
             },
             {
               "name": "free",
               "type": "FitGrade",
               "required": true,
-              "units": null
+              "units": null,
+              "allowed_values": null,
+              "value_doc": null
             },
             {
               "name": "slip",
               "type": "FitGrade",
               "required": true,
-              "units": null
+              "units": null,
+              "allowed_values": null,
+              "value_doc": null
             },
             {
               "name": "press",
               "type": "FitGrade",
               "required": true,
-              "units": null
+              "units": null,
+              "allowed_values": null,
+              "value_doc": null
             }
           ]
         }
@@ -3508,49 +4391,63 @@
               "type": "float",
               "required": false,
               "default": "12.0",
-              "units": null
+              "units": null,
+              "allowed_values": null,
+              "value_doc": null
             },
             {
               "name": "height",
               "type": "float",
               "required": false,
               "default": "16.0",
-              "units": "mm"
+              "units": "mm",
+              "allowed_values": null,
+              "value_doc": null
             },
             {
               "name": "bearing_od",
               "type": "float",
               "required": false,
               "default": "MR85_OD",
-              "units": null
+              "units": null,
+              "allowed_values": null,
+              "value_doc": null
             },
             {
               "name": "bearing_width",
               "type": "float",
               "required": false,
               "default": "MR85_W",
-              "units": "mm"
+              "units": "mm",
+              "allowed_values": null,
+              "value_doc": null
             },
             {
               "name": "bore_diameter",
               "type": "float",
               "required": false,
               "default": "6.0",
-              "units": "mm"
+              "units": "mm",
+              "allowed_values": null,
+              "value_doc": null
             },
             {
               "name": "hex_chamfer",
               "type": "float",
               "required": false,
               "default": "0.5",
-              "units": null
+              "units": null,
+              "allowed_values": null,
+              "value_doc": null
             },
             {
               "name": "profile",
               "type": "str | None",
               "required": false,
               "default": "None",
-              "units": null
+              "units": null,
+              "allowed_values": null,
+              "value_doc": null
             }
           ]
         }
@@ -3573,119 +4470,153 @@
               "type": "float",
               "required": false,
               "default": "BODY_WIDTH",
-              "units": "mm"
+              "units": "mm",
+              "allowed_values": null,
+              "value_doc": null
             },
             {
               "name": "body_depth",
               "type": "float",
               "required": false,
               "default": "BODY_DEPTH",
-              "units": "mm"
+              "units": "mm",
+              "allowed_values": null,
+              "value_doc": null
             },
             {
               "name": "body_height",
               "type": "float",
               "required": false,
               "default": "BODY_HEIGHT",
-              "units": "mm"
+              "units": "mm",
+              "allowed_values": null,
+              "value_doc": null
             },
             {
               "name": "body_y_offset",
               "type": "float",
               "required": false,
               "default": "BODY_Y_OFFSET",
-              "units": "mm"
+              "units": "mm",
+              "allowed_values": null,
+              "value_doc": null
             },
             {
               "name": "tab_protrusion",
               "type": "float",
               "required": false,
               "default": "TAB_PROTRUSION",
-              "units": null
+              "units": null,
+              "allowed_values": null,
+              "value_doc": null
             },
             {
               "name": "tab_depth",
               "type": "float",
               "required": false,
               "default": "TAB_DEPTH",
-              "units": "mm"
+              "units": "mm",
+              "allowed_values": null,
+              "value_doc": null
             },
             {
               "name": "tab_thickness",
               "type": "float",
               "required": false,
               "default": "TAB_THICKNESS",
-              "units": "mm"
+              "units": "mm",
+              "allowed_values": null,
+              "value_doc": null
             },
             {
               "name": "tab_z_bottom",
               "type": "float",
               "required": false,
               "default": "TAB_Z_BOTTOM",
-              "units": null
+              "units": null,
+              "allowed_values": null,
+              "value_doc": null
             },
             {
               "name": "tab_hole_r",
               "type": "float",
               "required": false,
               "default": "TAB_HOLE_R",
-              "units": null
+              "units": null,
+              "allowed_values": null,
+              "value_doc": null
             },
             {
               "name": "tab_hole_y_offset",
               "type": "float",
               "required": false,
               "default": "TAB_HOLE_Y_OFFSET",
-              "units": "mm"
+              "units": "mm",
+              "allowed_values": null,
+              "value_doc": null
             },
             {
               "name": "collar_r",
               "type": "float",
               "required": false,
               "default": "COLLAR_R",
-              "units": null
+              "units": null,
+              "allowed_values": null,
+              "value_doc": null
             },
             {
               "name": "collar_height",
               "type": "float",
               "required": false,
               "default": "COLLAR_HEIGHT",
-              "units": "mm"
+              "units": "mm",
+              "allowed_values": null,
+              "value_doc": null
             },
             {
               "name": "shaft_r",
               "type": "float",
               "required": false,
               "default": "SHAFT_R",
-              "units": null
+              "units": null,
+              "allowed_values": null,
+              "value_doc": null
             },
             {
               "name": "shaft_height",
               "type": "float",
               "required": false,
               "default": "SHAFT_HEIGHT",
-              "units": "mm"
+              "units": "mm",
+              "allowed_values": null,
+              "value_doc": null
             },
             {
               "name": "corner_r",
               "type": "float",
               "required": false,
               "default": "CORNER_R",
-              "units": null
+              "units": null,
+              "allowed_values": null,
+              "value_doc": null
             },
             {
               "name": "cutter_clearance",
               "type": "float",
               "required": false,
               "default": "DEFAULT_CUTTER_CLEARANCE",
-              "units": "mm"
+              "units": "mm",
+              "allowed_values": null,
+              "value_doc": null
             },
             {
               "name": "extend_shaft_up",
               "type": "float",
               "required": false,
               "default": "DEFAULT_EXTEND_SHAFT_UP",
-              "units": null
+              "units": null,
+              "allowed_values": null,
+              "value_doc": null
             }
           ]
         }

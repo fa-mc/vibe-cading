@@ -22,6 +22,8 @@ Supports generic dimensions or manufacturer-specific profiles (Ruthex, Voron).
 
 from __future__ import annotations
 
+from typing import Literal
+
 import cadquery as cq
 
 from vibe_cading.print_settings import ToleranceProfile
@@ -104,7 +106,7 @@ class HeatSetInsert:
     # --- Standard Presets ---
 
     @classmethod
-    def voron(cls, size: str = "M3", through_hole: bool = False, clearance_diameter: float = 3.2) -> HeatSetInsert:
+    def voron(cls, size: Literal["M3", "M4"] = "M3", through_hole: bool = False, clearance_diameter: float = 3.2) -> HeatSetInsert:
         """Standard insert void sizes specified by the Voron Design manual.
 
         Typical Voron insert for M3 is M3x5x4.
@@ -118,7 +120,7 @@ class HeatSetInsert:
         return cls(through_hole=through_hole, clearance_diameter=clearance_diameter, **profiles[size])
 
     @classmethod
-    def ruthex(cls, size: str = "M3", through_hole: bool = False, clearance_diameter: float = 3.2) -> HeatSetInsert:
+    def ruthex(cls, size: Literal["M2", "M2.5", "M3", "M3_short", "M4", "M5"] = "M3", through_hole: bool = False, clearance_diameter: float = 3.2) -> HeatSetInsert:
         """Ruthex / CNC Kitchen geometry standard.
 
         Slightly wider / longer than Voron specs.
