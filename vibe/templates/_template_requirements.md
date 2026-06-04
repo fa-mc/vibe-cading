@@ -22,6 +22,7 @@
 
 ## Non-Functional Constraints
 <!-- Performance, memory, latency, backward-compatibility, config conventions, etc. -->
+<!-- If you assert a wall-time / build-time / CI-step budget at a named entry point, ground it per INSTRUCTIONS.md §4 "Entry-Point Full-Execution Probe": measure the real command end-to-end, not a component decomposition. -->
 - 
 
 ## Known Domain Constraints
