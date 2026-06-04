@@ -13,6 +13,8 @@
 # You should have received a copy of the GNU Affero General Public License
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
+from typing import Literal
+
 import cadquery as cq
 
 IMPERIAL_SIZES = {
@@ -31,8 +33,8 @@ class ImperialMachineScrew:
         major_diameter: float,
         head_diameter: float,
         head_height: float,
-        head_type: str = "socket",
-        drive_type: str = "hex",
+        head_type: Literal["socket", "flat", "pan"] = "socket",
+        drive_type: Literal["hex", "phillips", "slotted", "torx"] = "hex",
         head_angle: float = 82.0
     ):
         self.length = float(length)
@@ -44,7 +46,7 @@ class ImperialMachineScrew:
         self.head_angle = float(head_angle)
 
     @classmethod
-    def from_size(cls, size: str, length: float, head_type: str = "socket", drive_type: str = "hex") -> "ImperialMachineScrew":
+    def from_size(cls, size: Literal["4-40", "6-32", "8-32", "10-24", "1/4-20"], length: float, head_type: Literal["socket", "flat", "pan"] = "socket", drive_type: Literal["hex", "phillips", "slotted", "torx"] = "hex") -> "ImperialMachineScrew":
         size = size.lower()
         if size not in IMPERIAL_SIZES:
             raise ValueError(f"Unsupported imperial size: {size}. Available: {list(IMPERIAL_SIZES.keys())}")

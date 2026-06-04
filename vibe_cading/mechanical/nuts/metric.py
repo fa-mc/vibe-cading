@@ -18,6 +18,9 @@ Standard metric nuts.
 Includes Hex nuts (ISO 4032), Nyloc nuts (DIN 985), and Square nuts (DIN 562).
 """
 from __future__ import annotations
+
+from typing import Literal
+
 import cadquery as cq
 
 class MetricHexNut:
@@ -39,7 +42,7 @@ class MetricHexNut:
         self.radius = self.width_flats / 1.7320508075688772
 
     @classmethod
-    def from_size(cls, size: str) -> "MetricHexNut":
+    def from_size(cls, size: Literal["M2", "M2.5", "M3", "M4", "M5", "M6", "M8"]) -> "MetricHexNut":
         if size not in cls.DIMENSIONS:
             raise ValueError(f"Unknown nut size {size}. Supported: {list(cls.DIMENSIONS.keys())}")
         dims = cls.DIMENSIONS[size]
@@ -176,6 +179,14 @@ class MetricNylocNut(MetricHexNut):
         "M8": {"thread_diameter": 8.0, "width_flats": 13.0, "thickness": 8.0},
     }
 
+    @classmethod
+    def from_size(cls, size: Literal["M2.5", "M3", "M4", "M5", "M6", "M8"]) -> "MetricNylocNut":
+        # Own override (not inherited) so the engine_api enum advertises the
+        # Nyloc-specific size set — DIN 985 Nyloc has no "M2", unlike the
+        # parent hex-nut DIMENSIONS.  Geometry is unchanged: delegate to the
+        # parent factory, which reads ``cls.DIMENSIONS`` (here MetricNyloc's).
+        return super().from_size(size)
+
 class MetricSquareNut:
     """Standard Metric Square Nut generator (DIN 562)."""
     DIMENSIONS = {
@@ -193,7 +204,7 @@ class MetricSquareNut:
         self.thread_diameter = float(thread_diameter)
 
     @classmethod
-    def from_size(cls, size: str) -> "MetricSquareNut":
+    def from_size(cls, size: Literal["M2", "M2.5", "M3", "M4", "M5", "M6"]) -> "MetricSquareNut":
         if size not in cls.DIMENSIONS:
             raise ValueError(f"Unknown nut size {size}. Supported: {list(cls.DIMENSIONS.keys())}")
         dims = cls.DIMENSIONS[size]

@@ -17,6 +17,9 @@
 Hammer T-Nuts (often used for aluminium 2020/3030 extrusions).
 """
 from __future__ import annotations
+
+from typing import Literal
+
 import cadquery as cq
 
 class TNut:
@@ -37,7 +40,7 @@ class TNut:
         self.base_thickness = self.thickness - self.step_height
 
     @classmethod
-    def from_size(cls, size: str) -> "TNut":
+    def from_size(cls, size: Literal["M3", "M4", "M5"]) -> "TNut":
         if size not in cls.DIMENSIONS:
             raise ValueError(f"Unknown T-nut size {size}. Supported: {list(cls.DIMENSIONS.keys())}")
         dims = cls.DIMENSIONS[size]
