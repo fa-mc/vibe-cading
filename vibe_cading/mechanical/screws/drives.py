@@ -27,6 +27,8 @@ other cutter producer in the library.
 
 import math
 from abc import ABC, abstractmethod
+from typing import Literal
+
 import cadquery as cq
 
 from vibe_cading.print_settings import ToleranceProfile
@@ -127,7 +129,7 @@ class PhillipsDrive(FastenerDrive):
         self.depth = depth
 
     @classmethod
-    def from_size(cls, size: str) -> "PhillipsDrive":
+    def from_size(cls, size: Literal["PH00", "PH0", "PH1", "PH2", "PH3"]) -> "PhillipsDrive":
         """Instantiate a Phillips drive cutter based on industry standard (e.g. 'PH1', 'PH2')."""
         size = size.upper()
         if size not in cls.PH_SIZES:
@@ -179,7 +181,7 @@ class TorxDrive(FastenerDrive):
         self.taper_angle = float(taper_angle)
 
     @classmethod
-    def from_size(cls, size: str) -> "TorxDrive":
+    def from_size(cls, size: Literal["T5", "T6", "T8", "T10", "T15", "T20", "T25", "T30"]) -> "TorxDrive":
         size = size.upper()
         if size not in cls.TORX_SIZES:
             raise ValueError(f"Unknown Torx size: {size}. Available sizes: {list(cls.TORX_SIZES.keys())}")

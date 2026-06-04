@@ -13,6 +13,8 @@
 # You should have received a copy of the GNU Affero General Public License
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
+from typing import Literal
+
 import cadquery as cq
 import math
 from vibe_cading.mechanical.screws.drives import FastenerDrive, HexDrive, PhillipsDrive, SlottedDrive, TorxDrive
@@ -35,8 +37,8 @@ class MetricMachineScrew:
         head_height: float,
         clearance_diameter: float,
         tap_diameter: float,
-        head_type: str = "socket",
-        drive_type: str = "hex",
+        head_type: Literal["socket", "flat", "pan"] = "socket",
+        drive_type: Literal["hex", "phillips", "slotted", "torx"] = "hex",
         head_angle: float = 90.0,
         drive: FastenerDrive = None
     ):
@@ -52,7 +54,7 @@ class MetricMachineScrew:
         self.drive = drive
 
     @classmethod
-    def from_size(cls, size: str, length: float, head_type: str = "socket", drive_type: str = "hex") -> "MetricMachineScrew":
+    def from_size(cls, size: Literal["M2", "M2.5", "M3", "M4", "M5"], length: float, head_type: Literal["socket", "flat", "pan"] = "socket", drive_type: Literal["hex", "phillips", "slotted", "torx"] = "hex") -> "MetricMachineScrew":
         """Factory method to create a MetricMachineScrew from a standardized string identifier (e.g., 'M3')."""
         size = size.upper()
         if size not in METRIC_SIZES:

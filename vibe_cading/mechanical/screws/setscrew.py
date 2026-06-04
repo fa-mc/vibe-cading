@@ -13,6 +13,8 @@
 # You should have received a copy of the GNU Affero General Public License
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
+from typing import Literal
+
 import cadquery as cq
 
 SET_SCREW_SIZES = {
@@ -33,7 +35,7 @@ class SetScrew:
         major_diameter: float,
         clearance_diameter: float,
         tap_diameter: float,
-        drive_type: str = "hex"
+        drive_type: Literal["hex", "slotted", "torx"] = "hex"
     ):
         self.length = float(length)
         self.major_diameter = float(major_diameter)
@@ -42,7 +44,7 @@ class SetScrew:
         self.drive_type = drive_type
 
     @classmethod
-    def from_size(cls, size: str, length: float, drive_type: str = "hex") -> "SetScrew":
+    def from_size(cls, size: Literal["M2", "M2.5", "M3", "M4", "M5"], length: float, drive_type: Literal["hex", "slotted", "torx"] = "hex") -> "SetScrew":
         size = size.upper()
         if size not in SET_SCREW_SIZES:
             raise ValueError(f"Unsupported grub screw size: {size}. Available: {list(SET_SCREW_SIZES.keys())}")
