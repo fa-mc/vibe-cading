@@ -76,6 +76,13 @@ too; enforce them on the other roles when they slip.
    wrap-up: collect each role's sign-off, run the hygiene sweep — including
    deleting feature branches confirmed merged into `main` (Branch-Deletion Policy
    clause 3, auto-granted) — and produce a scannable status report for the human.
+   The hygiene sweep **deletes *this session's own* `tmp/` scratch as routine
+   cleanup** — throwaway you created needs no separate approval and must not be
+   deferred to an "open item." `tmp/` artifacts you did **not** create (older
+   probes, another activity's review notes, anything a parallel session may still
+   be using — this is a shared worktree) are **surfaced to the human, never
+   auto-deleted**: deleting a concurrent session's scratch is destructive. Report
+   the own-scratch deletions as done and the foreign scratch as a surfaced list.
 
 ## Routing (from Admin)
 
