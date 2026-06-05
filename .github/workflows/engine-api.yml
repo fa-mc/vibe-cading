@@ -1,11 +1,11 @@
 name: engine-api
 
 # Guards `engine_api.json` against drift from `vibe_cading/**` and `parts/**`.
-# The artifact is a tracked file at the repo root that the platform's MCP
-# `***REMOVED***` tool consumes; if it falls out of sync, downstream LLM
-# code-gen breaks.
+# The artifact is a tracked file at the repo root that downstream LLM code-gen
+# tooling consumes; if it falls out of sync, downstream code-gen breaks.
 #
-# See `.agents/plans/engine-api-json.md` §6 for design notes.
+# See `CONTRIBUTING.md` §"Engine API Artifact" and the extractor at
+# `tools/engine_api/extractor.py` for the schema contract and regeneration flow.
 
 on:
   pull_request:
