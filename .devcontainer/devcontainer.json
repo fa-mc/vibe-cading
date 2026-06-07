@@ -11,7 +11,8 @@
         "vscode": {
             "extensions": [
                 "bernhard-42.ocp-cad-viewer",
-                "Anthropic.claude-code"
+                "Anthropic.claude-code",
+                "SimonSiefke.svg-preview"
             ]
         }
     },
