@@ -49,14 +49,14 @@ This project uses a structured workflow for complex tasks. Four **Contributor Ro
 
 ## Invoking Roles
 
-Each contributor role's canonical persona is tracked under `vibe/agents/` (tool-neutral). For Claude Code specifically, `tools/init-claude-runtime.sh` regenerates per-clone runtime aliases at `.claude/agents/<name>.md` that delegate back to the canonical content; the `.claude/` tree itself is git-ignored. The four roles below are shipped; **PM** (backlog prioritisation) is intentionally not shipped — the human contributor drives it, or loads their own PM persona from `~/.claude/` per-host. The human also remains the final acceptance authority for merges and project policy.
+Each contributor role's canonical persona is tracked under `vibe/agents/` (tool-neutral). For Claude Code, `tools/init-claude-runtime.sh` regenerates per-clone runtime aliases at `.claude/agents/<name>.md` that delegate back to the canonical content; the `.claude/` tree itself is git-ignored. For Google Antigravity (agy), you can define a subagent dynamically by loading the system prompt from the canonical file. The four roles below are shipped; **PM** (backlog prioritisation) is intentionally not shipped — the human contributor drives it. The human also remains the final acceptance authority for merges and project policy.
 
-| Role | Canonical persona | How to invoke (Claude Code) |
-|---|---|---|
-| Admin | `vibe/agents/admin.md` | Ask *"use the admin agent to ..."* / `@admin`, or invoke directly via the `Agent` tool with `subagent_type: "admin"` |
-| Designer | `vibe/agents/designer.md` | Ask *"use the designer agent to ..."*, or invoke directly via the `Agent` tool with `subagent_type: "designer"` |
-| TL | `vibe/agents/tl.md` | Ask *"use the tl agent to ..."* / `@tl`, or invoke directly via the `Agent` tool with `subagent_type: "tl"` (architecturally-significant work only) |
-| Developer | `vibe/agents/developer.md` | Ask *"use the developer agent to ..."*, or invoke directly via the `Agent` tool with `subagent_type: "developer"` |
+| Role | Canonical persona | How to invoke (Claude Code) | How to invoke (Google Antigravity) |
+|---|---|---|---|
+| Admin | `vibe/agents/admin.md` | Ask *"use the admin agent to ..."* / `@admin`, or invoke directly via the `Agent` tool with `subagent_type: "admin"` | Invoke a subagent defined with the system prompt from `vibe/agents/admin.md` |
+| Designer | `vibe/agents/designer.md` | Ask *"use the designer agent to ..."*, or invoke directly via the `Agent` tool with `subagent_type: "designer"` | Invoke a subagent defined with the system prompt from `vibe/agents/designer.md` |
+| TL | `vibe/agents/tl.md` | Ask *"use the tl agent to ..."* / `@tl`, or invoke directly via the `Agent` tool with `subagent_type: "tl"` (architecturally-significant work only) | Invoke a subagent defined with the system prompt from `vibe/agents/tl.md` (architecturally-significant work only) |
+| Developer | `vibe/agents/developer.md` | Ask *"use the developer agent to ..."*, or invoke directly via the `Agent` tool with `subagent_type: "developer"` | Invoke a subagent defined with the system prompt from `vibe/agents/developer.md` |
 
 ## Design Brief Format
 

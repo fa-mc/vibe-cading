@@ -6,11 +6,11 @@ The purpose of this repository is to provide a universal toolkit of reusable mec
 
 Tolerances are driven by a per-printer profile system you calibrate once (see [Print Tolerances & Calibration](#print-tolerances--calibration) below) — shipped defaults work, but `slip.radial` is the one knob almost every contributor re-tunes for their machine.
 
-Models are built with AI assistance via [Claude Code](https://claude.com/claude-code). Project
+Models are built with AI assistance via [Claude Code](https://claude.com/claude-code) or [Google Antigravity](https://github.com/google/antigravity). Project
 agent personas and slash commands live under [vibe/agents/](vibe/agents/) and
 [vibe/commands/](vibe/commands/) (tracked, tool-neutral); the runtime
-`.claude/` tree is per-clone scratch, populated by
-[tools/init-claude-runtime.sh](tools/init-claude-runtime.sh).
+`.claude/` or `.agents/skills/` trees are per-clone scratch, populated by
+[tools/init-claude-runtime.sh](tools/init-claude-runtime.sh) or [tools/init-agy-runtime.sh](tools/init-agy-runtime.sh) respectively.
 
 ---
 
@@ -63,12 +63,14 @@ The OCP viewer backend runs on port **3939** and is forwarded to your host autom
 
 Since this repository is managed via a multi-role AI Agentic Workflow, you should initialize your local settings upon cloning the repository.
 
-Open Claude Code in this workspace and ask it to initialize the project, e.g.:
+Open your agent host (e.g. Claude Code or Google Antigravity) in this workspace and ask it to initialize the project, e.g.:
 ```
 please initialize the project
 ```
 
-Claude Code will read `CLAUDE.md`, create the local `tmp/` and `.agents/plans/` folders for tool analysis, copy `print_profiles.json.example` → `print_profiles_user.json` so you can configure your manufacturing tolerance profiles, and run `tools/init-claude-runtime.sh` to populate the per-clone `.claude/` runtime aliases that Claude Code uses to discover the project's `admin`/`designer`/`tl`/`developer` subagents and slash commands.
+The agent will read the onboarding instructions, create the local `tmp/` and `.agents/plans/` folders for tool analysis, copy `print_profiles.json.example` → `print_profiles_user.json` so you can configure your manufacturing tolerance profiles, and run the appropriate host-platform scaffolder:
+- For **Claude Code**: runs `tools/init-claude-runtime.sh` to populate the per-clone `.claude/` runtime aliases (discovering subagents and slash commands).
+- For **Google Antigravity**: runs `tools/init-agy-runtime.sh` to populate the per-clone `.agents/skills/` runtime skills.
 
 > Four contributor roles are shipped under `vibe/agents/`: `admin` (workflow governance & instruction maintenance), `designer` (domain reasoning & design briefs), `tl` (code architecture & shared-contract stewardship — invoked for architecturally-significant work only), and `developer` (per-part implementation & validation). Only the **PM** role (backlog prioritisation) is not shipped — the human contributor drives it, and remains the final acceptance authority for merges and project policy above all shipped roles. Maintainers who prefer a dedicated PM agent can load their own persona from `~/.claude/`.
 

@@ -5,7 +5,7 @@ These instructions form the foundational, project-agnostic rules for all AI agen
 This file is the **tool-neutral** canonical instruction set for vibe-cading. Each AI-coding host (Claude Code, GitHub Copilot, Cursor, Aider, etc.) loads it through whatever import or pointer mechanism the host provides; host-specific mechanisms (subagent invocation, slash-command paths, runtime alias scaffolding) live in the host's own instruction file (e.g. `CLAUDE.md`).
 
 **Provider-neutral by design.** Concretely: the whole `vibe/` tree — this file plus `vibe/agents/`, `vibe/commands/`, and `vibe/templates/` — is the host-agnostic source every agent onboards from, and the root [`AGENTS.md`](../AGENTS.md) is the universal entry point that routes here. Two rules follow:
-- **Onboarding (every agent, every host):** treat the neutral `vibe/` content as the project requirements. Anything host-specific — a host's subagent/slash-command mechanics, the `.claude/` tree, `tools/init-claude-runtime.sh` — is *that one host's* implementation detail: use it only if it is **your** host's, otherwise ignore it. You are not missing a requirement by skipping another host's glue.
+- **Onboarding (every agent, every host):** treat the neutral `vibe/` content as the project requirements. Anything host-specific — a host's subagent/slash-command/skills mechanics, the `.claude/` or `.agents/` tree, `tools/init-claude-runtime.sh` or `tools/init-agy-runtime.sh` — is *that one host's* implementation detail: use it only if it is **your** host's, otherwise ignore it. You are not missing a requirement by skipping another host's glue.
 - **Authoring (whoever edits the instruction graph):** keep the `vibe/` tree free of *unlabeled* host-specific references. Cite `vibe/INSTRUCTIONS.md` — never `CLAUDE.md` — as the home of conventions and procedures. Any concrete host artifact (`CLAUDE.md`, `~/.claude/`, a host's `Agent`/`Task` tool, a `/`-command or skill) must either live in that host's own file or appear as an explicitly **labeled** example ("for Claude Code: …"). Cross-host-generic terms (an agent / "subagent" spawn, an `@role` mention) are fine. Host-specific setup steps belong in the host file, not baked into a neutral procedure.
 
 Project-specific instructions further down inherit from and build upon the universal rules.
@@ -170,7 +170,7 @@ implement the brief.
 When initializing the project or workspace, you must:
 1. Create local `.gitignore`d directories if they don't exist (`tmp/`, `.agents/plans/`).
 2. Copy `print_profiles.json.example` to `print_profiles_user.json` so the user can configure their specific 3D printer tolerances.
-3. Run any host-platform-specific runtime scaffolder if your agent host requires one (e.g., for Claude Code: `tools/init-claude-runtime.sh` — see the host's own instruction file for details).
+3. Run any host-platform-specific runtime scaffolder if your agent host requires one (e.g., for Claude Code: `tools/init-claude-runtime.sh`; for Google Antigravity: `tools/init-agy-runtime.sh` — see the host's or agent entry file for details).
 
 ### Visual Contract Deliverable (CAD tasks)
 

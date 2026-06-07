@@ -22,6 +22,7 @@ RUN apt-get update && apt-get install -y \
     gnupg \
     ca-certificates \
     sudo \
+    xdg-utils \
     && rm -rf /var/lib/apt/lists/*
 
 # Install GitHub CLI (gh) from the official apt repository
