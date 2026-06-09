@@ -90,7 +90,7 @@ Only the **`pm`** role (backlog prioritisation across many tasks) is **intention
 3. The **developer** auto-transitions on your approval and implements the brief.
 4. The developer runs the validation tools (§7) before declaring complete.
 
-*Note: `.agents/` is gitignored and stages AI artefacts locally. Persona/command sources are tracked under [`vibe/agents/`](vibe/agents/) and [`vibe/commands/`](vibe/commands/); Claude Code picks them up via per-clone runtime aliases under `.claude/` populated by [`tools/init-claude-runtime.sh`](tools/init-claude-runtime.sh), while Google Antigravity (agy) populates them under `.agents/skills/` via [`tools/init-agy-runtime.sh`](tools/init-agy-runtime.sh).*
+*Note: `.agents/` is gitignored and stages AI artefacts locally. Persona/command sources are tracked under [`vibe/agents/`](vibe/agents/) and [`vibe/commands/`](vibe/commands/); Claude Code picks them up via per-clone runtime aliases under `.claude/` populated by [`tools/init-claude-runtime.sh`](tools/init-claude-runtime.sh), while Google Antigravity (agy) generates per-clone command *skills* under `.agents/skills/` via [`tools/init-agy-runtime.sh`](tools/init-agy-runtime.sh) (its personas are loaded directly from the canonical `vibe/agents/` files).*
 
 ---
 
