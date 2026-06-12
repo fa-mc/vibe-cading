@@ -176,21 +176,21 @@ When initializing the project or workspace, you must:
 
 A design artifact whose deliverable is a new CAD model class — or which changes existing **visible** geometry (axis convention, hole pattern, mating-face datum, dimensions affecting orientation) — **MUST** include a co-located preview SVG as a first-class design deliverable. Numeric dimensions remain primary; the SVG is the *visual contract* that complements them and exists specifically to catch axis-orientation, hole-pattern, and convention errors that are invisible in numeric specs alone.
 
-**Naming and location.** Co-locate the SVG with the design artifact:
-- `.agents/plans/<YYYY-MM-DD>-<task-slug>_design_iso_ne.svg` — mandatory primary view.
-- `.agents/plans/<YYYY-MM-DD>-<task-slug>_design_top.svg` — additional view for hole-pattern-bearing or asymmetric geometry (optional but encouraged).
-- `.agents/plans/<YYYY-MM-DD>-<task-slug>_design_front.svg` — additional view for asymmetric profiles (optional).
+**Naming and location.** Place the SVG in the root `visual_contracts/` directory:
+- `visual_contracts/<YYYY-MM-DD>-<task-slug>_design_iso_ne.svg` — mandatory primary view.
+- `visual_contracts/<YYYY-MM-DD>-<task-slug>_design_top.svg` — additional view for hole-pattern-bearing or asymmetric geometry (optional but encouraged).
+- `visual_contracts/<YYYY-MM-DD>-<task-slug>_design_front.svg` — additional view for asymmetric profiles (optional).
 
-These SVGs are **git-tracked** alongside the design artifact (orthographic SVGs are ~20–165 KB each after the 3 dp coordinate-rounding pass in `tools/preview.py`; trivial storage, diffable, blame-able). The heavy tail (~120–165 KB) is multi-pocket sweep gauges with engraved `cq.Workplane.text()` labels — label glyphs tessellate into many curved edges, which dominates the file. Add no broad ignore for `.agents/plans/*.svg` — these are intentional deliverables.
+These SVGs are **git-tracked** inside the `visual_contracts/` directory (orthographic SVGs are ~20–165 KB each after the 3 dp coordinate-rounding pass in `tools/preview.py`; trivial storage, diffable, blame-able). The heavy tail (~120–165 KB) is multi-pocket sweep gauges with engraved `cq.Workplane.text()` labels — label glyphs tessellate into many curved edges, which dominates the file.
 
 **Generation mechanism.** The designer subagent generates the SVG by either:
-- **(a) Class already exists** — run `python3 tools/preview.py <module.path.Class> --params <key=value>... --views iso_ne` and copy the resulting SVG from `tmp/preview/` to the design-artifact location.
-- **(b) Class does not exist yet** — write a `tmp/visualise_<task-slug>.py` probe that constructs the proposed geometry using `cadquery` primitives, exports an iso-projection SVG via `cq.exporters.export(workplane, str(svg_path))`, and copy to the design-artifact location. Clean up the probe after.
+- **(a) Class already exists** — run `python3 tools/preview.py <module.path.Class> --params <key=value>... --views iso_ne` and copy the resulting SVG from `tmp/preview/` to the `visual_contracts/` directory.
+- **(b) Class does not exist yet** — write a `tmp/visualise_<task-slug>.py` probe that constructs the proposed geometry using `cadquery` primitives, exports an iso-projection SVG via `cq.exporters.export(workplane, str(svg_path))`, and copy to the `visual_contracts/` directory. Clean up the probe after.
 
-**Embed in the design artifact.** Reference the SVG in the Architecture section immediately after the textual approach description:
+**Embed in the design artifact.** Reference the SVG in the Architecture section immediately after the textual approach description, using a relative path:
 
 ```markdown
-![Design preview — iso_ne](2026-MM-DD-task-slug_design_iso_ne.svg)
+![Design preview — iso_ne](../../visual_contracts/2026-MM-DD-task-slug_design_iso_ne.svg)
 ```
 
 **Gate enforcement.**

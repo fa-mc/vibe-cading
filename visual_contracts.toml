@@ -1,5 +1,5 @@
 # ── Visual-contract manifest ──────────────────────────────────────────────────
-# Each [[contract]] entry registers one tracked .agents/plans/*_design_*.svg
+# Each [[contract]] entry registers one tracked visual_contracts/*_design_*.svg
 # visual contract.  tools/check_visual_contract_freshness.py regenerates each
 # via tools/preview.py's export_previews() and byte-compares against the
 # committed file (with a coverage gate against unregistered design SVGs), so
@@ -38,21 +38,21 @@
 # ── LegoTechnicBeam (length_in_studs is a REQUIRED arg — no default) ───────────
 
 [[contract]]
-svg   = ".agents/plans/2026-05-15-lego-technic-beam_design_iso_ne.svg"
+svg   = "visual_contracts/2026-05-15-lego-technic-beam_design_iso_ne.svg"
 model = "vibe_cading.lego.technic_beam.LegoTechnicBeam"
 view  = "iso_ne"
 [contract.params]
 length_in_studs = 5
 
 [[contract]]
-svg   = ".agents/plans/2026-05-15-lego-technic-beam_design_top.svg"
+svg   = "visual_contracts/2026-05-15-lego-technic-beam_design_top.svg"
 model = "vibe_cading.lego.technic_beam.LegoTechnicBeam"
 view  = "top"
 [contract.params]
 length_in_studs = 5
 
 [[contract]]
-svg   = ".agents/plans/2026-05-15-lego-technic-beam_design_front.svg"
+svg   = "visual_contracts/2026-05-15-lego-technic-beam_design_front.svg"
 model = "vibe_cading.lego.technic_beam.LegoTechnicBeam"
 view  = "front"
 [contract.params]
@@ -61,14 +61,14 @@ length_in_studs = 5
 # ── AxleHoleGauge (defaults) ───────────────────────────────────────────────────
 
 [[contract]]
-svg   = ".agents/plans/2026-05-20-axle-hole-tip-to-tip-gauge_design_iso_ne.svg"
+svg   = "visual_contracts/2026-05-20-axle-hole-tip-to-tip-gauge_design_iso_ne.svg"
 model = "vibe_cading.lego.axle_hole_gauge.AxleHoleGauge"
 view  = "iso_ne"
 [contract.params]
 labels = false
 
 [[contract]]
-svg   = ".agents/plans/2026-05-20-axle-hole-tip-to-tip-gauge_design_top.svg"
+svg   = "visual_contracts/2026-05-20-axle-hole-tip-to-tip-gauge_design_top.svg"
 model = "vibe_cading.lego.axle_hole_gauge.AxleHoleGauge"
 view  = "top"
 [contract.params]
@@ -77,14 +77,14 @@ labels = false
 # ── AxleCrossHoleGauge (defaults) ──────────────────────────────────────────────
 
 [[contract]]
-svg   = ".agents/plans/2026-05-21-axle-cross-hole-gauge_design_iso_ne.svg"
+svg   = "visual_contracts/2026-05-21-axle-cross-hole-gauge_design_iso_ne.svg"
 model = "vibe_cading.lego.axle_cross_hole_gauge.AxleCrossHoleGauge"
 view  = "iso_ne"
 [contract.params]
 labels = false
 
 [[contract]]
-svg   = ".agents/plans/2026-05-21-axle-cross-hole-gauge_design_top.svg"
+svg   = "visual_contracts/2026-05-21-axle-cross-hole-gauge_design_top.svg"
 model = "vibe_cading.lego.axle_cross_hole_gauge.AxleCrossHoleGauge"
 view  = "top"
 [contract.params]
@@ -93,14 +93,14 @@ labels = false
 # ── M3 calibration gauges (defaults) ───────────────────────────────────────────
 
 [[contract]]
-svg   = ".agents/plans/2026-05-23-calibration-helper-generic_design_m3_clearance_iso_ne.svg"
+svg   = "visual_contracts/2026-05-23-calibration-helper-generic_design_m3_clearance_iso_ne.svg"
 model = "vibe_cading.mechanical.calibration.m3_clearance_gauge.MThreeClearanceGauge"
 view  = "iso_ne"
 [contract.params]
 labels = false
 
 [[contract]]
-svg   = ".agents/plans/2026-05-23-calibration-helper-generic_design_m3_nut_pocket_iso_ne.svg"
+svg   = "visual_contracts/2026-05-23-calibration-helper-generic_design_m3_nut_pocket_iso_ne.svg"
 model = "vibe_cading.mechanical.calibration.m3_nut_pocket_gauge.MThreeNutPocketGauge"
 view  = "iso_ne"
 [contract.params]

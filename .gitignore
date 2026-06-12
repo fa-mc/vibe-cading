@@ -15,17 +15,13 @@ examples/build/
 *.stp
 *.step
 *.svg
+!visual_contracts/*.svg
 /memories/session/ideas.md
 
 # Agent files (legacy + Copilot prompt scratch space)
-# Note: structured as cascading rules so visual-contract SVGs under
-# .agents/plans/ are git-tracked per the rule codified in commit 905ab19,
-# while the rest of .agents/ (plans markdown, INDEX, lookback, etc.) stays
+# Note: The .agents/ directory (plans markdown, INDEX, lookback, etc.) stays
 # scratch-only and untracked.
 .agents/*
-!.agents/plans/
-.agents/plans/*
-!.agents/plans/*.svg
 .agent/
 .agent
 

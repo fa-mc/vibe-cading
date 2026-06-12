@@ -24,10 +24,10 @@
      Embed the co-located iso_ne preview SVG immediately below.
      Optional for refactors / internal API changes / non-CAD tasks. -->
 
-![Design preview — iso_ne](<YYYY-MM-DD>-<task-slug>_design_iso_ne.svg)
+![Design preview — iso_ne](../../visual_contracts/<YYYY-MM-DD>-<task-slug>_design_iso_ne.svg)
 
 <!-- Optional additional views for asymmetric or hole-pattern-bearing geometry:
-     ![top](<slug>_design_top.svg)  ![front](<slug>_design_front.svg) -->
+     ![top](../../visual_contracts/<slug>_design_top.svg)  ![front](../../visual_contracts/<slug>_design_front.svg) -->
 
 ### Alternatives rejected
 <!-- - Option X: rejected because ... -->
