@@ -1,0 +1,14 @@
+literal:vibe-cading-platform==>***REMOVED***
+literal:new SaaS strategy==>***REMOVED***
+literal:query_engine_api==>***REMOVED***
+literal:HE Phase 1 effort==>***REMOVED*** effort
+literal:private platform worker==>***REMOVED***
+literal:the platform team==>***REMOVED***
+literal:FastAPI SSE==>***REMOVED***
+literal:Docker sandbox==>***REMOVED***
+literal:/tmp/vibe-cading-prepurge-backup.git==>***REMOVED***
+literal:vibe-cading-prepurge==>***REMOVED***
+literal:docs/business-strategy.md==>***REMOVED***
+literal:docs/archive/mcp-integration-plan.md==>***REMOVED***
+literal:docs/mcp-integration-plan.md==>***REMOVED***
+literal:docs/knowledge_base/mcp_architecture_rules.md==>***REMOVED***

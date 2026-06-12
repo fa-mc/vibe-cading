@@ -79,11 +79,11 @@ This workspace utilizes a structured, multi-role agentic workflow.
   - **Maintainer Role (Human or Bring-Your-Own-Agent):**
     - `PM`: Backlog curation and cross-task prioritisation — not shipped; the human contributor drives it (or supplies their own PM persona). The human also remains the final acceptance authority for merges and project policy, above all shipped roles.
 - **Artefact Management:**
-  - **Design Briefs & Plans:** Tracked in `.agents/plans/` (git-ignored).
+  - **Design Briefs & Plans:** Tracked in `docs/design_plans/`.
   - **Session Backlog/Ideas:** Parked under `/memories/session/ideas.md` to defer non-immediate refactors.
 - **Knowledge Base First:** Before assuming Lego-Technic dimensions, screw conventions, agentic-workflow shape, or other domain context, consult the workspace's `docs/` tree (especially `docs/lego-technic.md`, `docs/screws.md`, `docs/agentic-workflow.md`, and `docs/knowledge_base/`). The knowledge base is the source of truth; do not infer from memory or surface pattern-matching.
 - **Meta-Investigation First:** When asked to investigate agent behavior, update instructions, or modify prompts/personas/skills, read the currently active instruction files (this file, `vibe/agents/<role>.md`, `docs/agentic-workflow.md`) before proposing changes.
-- **Artifact-Driven Handoffs:** When a non-trivial root cause is established, capture the finding in a durable artifact under `tmp/` or `.agents/plans/` before handing off for architectural review or downstream implementation. Verbal handoffs are insufficient — the artifact is the contract between roles.
+- **Artifact-Driven Handoffs:** When a non-trivial root cause is established, capture the finding in a durable artifact under `tmp/` or `docs/design_plans/` before handing off for architectural review or downstream implementation. Verbal handoffs are insufficient — the artifact is the contract between roles.
 - **Seamless Role Transitions:** Transition seamlessly between included roles (or invoke the next step) without asking the user for confirmation if there is no ambiguity. Never instruct the user to copy-paste prompts to facilitate a hand-off.
 - **Role Activation Protocol:** Whenever a transition into a named role is required — whether triggered by the host's subagent mechanism, a slash command, or an explicit `@role` mention in chat — read the persona file before adopting it. Do not infer the persona from memory or prior context.
   - **`@admin`, `@designer`, `@tl`, `@developer` (project-tracked):** Read [vibe/agents/`<role>`.md](agents/) before adopting the persona. The file is the source of truth for responsibilities, validation gates, and routing rules.
@@ -156,8 +156,8 @@ specification.
 - **Contributor Roles (canonical persona content under `vibe/agents/`):** `admin` (workflow governance & instruction maintenance), `designer` (domain reasoning & design briefs), `tl` (code architecture & shared-contract stewardship), `developer` (per-part code structure, implementation & execution).
 - **Maintainer Role (Bring-Your-Own / Human):** PM (backlog curation & cross-task prioritisation) is not shipped; the human contributor drives it and remains the final acceptance authority for merges and project policy.
 
-**Artefact locations** (git-ignored):
-- Design briefs: `.agents/plans/`
+**Artefact locations**:
+- Design briefs: `docs/design_plans/`
 - Session backlog / Parking lot: `/memories/session/ideas.md` (Store ideas, refactors, or tooling improvements that emerge during the session but should not be acted upon immediately).
 
 **Key rule:** The Developer must not interpret ambiguous reference material
@@ -168,7 +168,7 @@ implement the brief.
 
 **Workspace Initialization:**
 When initializing the project or workspace, you must:
-1. Create local `.gitignore`d directories if they don't exist (`tmp/`, `.agents/plans/`).
+1. Create local `.gitignore`d directories if they don't exist (`tmp/`).
 2. Copy `print_profiles.json.example` to `print_profiles_user.json` so the user can configure their specific 3D printer tolerances.
 3. Run any host-platform-specific runtime scaffolder if your agent host requires one (e.g., for Claude Code: `tools/init-claude-runtime.sh` — see the host's own instruction file for details).
 
@@ -198,13 +198,13 @@ These SVGs are **git-tracked** inside the `visual_contracts/` directory (orthogr
 - **Step 5 Phase A (developer impl)** MUST regenerate the SVG from the implemented class via `tools/preview.py` and overwrite the committed file as a final implementation task.
 - **Step 5 Phase B (TL review)** MUST confirm the regenerated SVG visually matches the design's intent — gross geometry, axis convention, hole pattern. Minor differences from intermediate-construction artifacts are acceptable; axis/orientation/topology mismatches are blocking findings.
 
-**Freshness enforcement & canonical profile.** Every tracked `_design_*.svg` MUST be registered in [`visual_contracts.toml`](../visual_contracts.toml) with its source `(model, view, params)`. The CI `Visual contract freshness` step (`tools/check_visual_contract_freshness.py`) regenerates each registered contract and byte-compares it against the committed file (plus a coverage gate: any unregistered tracked design SVG fails CI), so the `committed == regenerable` invariant cannot silently break when a model class is refactored. **Contracts MUST be reproducible from tracked repo state alone**: they are rendered with the shipped default tolerance profile (`fdm_standard`), and the check **forces that profile** (env-neutralized) so a contributor's local `.env` `PRINT_PROFILE` / `print_profiles_user.json` calibration cannot make CI report false drift. When you legitimately change visible geometry, refresh and commit the new bytes in the same PR via `python3 tools/check_visual_contract_freshness.py --update`. *(Rationale: the 2026-06-01 freshness work found 5 contracts that had been rendered under a contributor's local `bambu_p1s` profile and were irreproducible in CI — see `.agents/plans/2026-05-29-visual-contract-freshness_design.md`.)*
+**Freshness enforcement & canonical profile.** Every tracked `_design_*.svg` MUST be registered in [`visual_contracts.toml`](../visual_contracts.toml) with its source `(model, view, params)`. The CI `Visual contract freshness` step (`tools/check_visual_contract_freshness.py`) regenerates each registered contract and byte-compares it against the committed file (plus a coverage gate: any unregistered tracked design SVG fails CI), so the `committed == regenerable` invariant cannot silently break when a model class is refactored. **Contracts MUST be reproducible from tracked repo state alone**: they are rendered with the shipped default tolerance profile (`fdm_standard`), and the check **forces that profile** (env-neutralized) so a contributor's local `.env` `PRINT_PROFILE` / `print_profiles_user.json` calibration cannot make CI report false drift. When you legitimately change visible geometry, refresh and commit the new bytes in the same PR via `python3 tools/check_visual_contract_freshness.py --update`. *(Rationale: the 2026-06-01 freshness work found 5 contracts that had been rendered under a contributor's local `bambu_p1s` profile and were irreproducible in CI — see `docs/design_plans/2026-05-29-visual-contract-freshness_design.md`.)*
 
 **Host-dependent rendering — never byte-pin `cq.text()` in a contract.** `cq.Workplane.text()` glyph tessellation depends on the host's fontconfig-resolved font and freetype version (`font="Arial"` resolves to a host-specific binary), so it is **not** byte-reproducible between the CI runner and a contributor's clone — it must never be byte-pinned in a visual contract. A model that engraves labels MUST expose a `labels: bool = True` knob (default `True` preserves engravings for physical prints / `build.py` / `tools/view.py`), route the engraving through the shared `cq_utils.engraved_labels(...)` helper, and register its contract row with `labels = false` — so the contract pins host-independent **geometry** (block, holes/pockets, axis convention — what the contract exists to protect) rather than host-dependent glyph soup. *(Rationale: the 2026-06-02 freshness work — PR #19 — first failed CI on exactly the 6 text-bearing gauge contracts while the 3 text-free beam contracts reproduced; same OCCT version, so it was font drift, not a real regression.)*
 
 **Scope carve-outs.** Optional for: refactors, internal API changes, additive-only changes that don't alter visual outcome, instruction / config / tooling tasks. If you're uncertain whether a task changes visible geometry, default to including the SVG — the overhead (~1000 tokens, ~3 min per cycle, and a file in the ~20–165 KB range noted above — ~100 KB typical, the upper end being text-label sweep gauges) is small relative to the cost of an axis-convention error escaping to Phase D.
 
-**Why this rule exists.** The 2026-05-17 LegoTechnicBeam post-mortem (see `.agents/plans/2026-05-15-lego-technic-beam_design.md`) traced a hole-axis convention error through req → design → impl → four independent reviews to Phase D, where the user caught it visually in the OCP viewer. Every reviewer verified internal consistency; none verified that the convention matched what the contributor would actually see. An iso_ne preview embedded at Step 4 would have surfaced the error before any code was written.
+**Why this rule exists.** The 2026-05-17 LegoTechnicBeam post-mortem (see `docs/design_plans/2026-05-15-lego-technic-beam_design.md`) traced a hole-axis convention error through req → design → impl → four independent reviews to Phase D, where the user caught it visually in the OCP viewer. Every reviewer verified internal consistency; none verified that the convention matched what the contributor would actually see. An iso_ne preview embedded at Step 4 would have surfaced the error before any code was written.
 
 ## Multi-Part Assemblies
 

@@ -1,5 +1,5 @@
 # Design: [Task Name]
-<!-- Filename: YYYY-MM-DD-<task-slug>_design.md  (tracked in git under .agents/plans/) -->
+<!-- Filename: YYYY-MM-DD-<task-slug>_design.md  (tracked in git under docs/design_plans/) -->
 
 ## Meta
 - **Requirements ref**: <!-- path to YYYY-MM-DD-<task-slug>_req.md -->
