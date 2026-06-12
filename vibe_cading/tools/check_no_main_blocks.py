@@ -73,7 +73,7 @@ def find_violations(roots: list[pathlib.Path]) -> list[pathlib.Path]:
 
 
 def main() -> int:
-    repo_root = pathlib.Path(__file__).resolve().parent.parent
+    repo_root = pathlib.Path(__file__).resolve().parent.parent.parent
     roots = [repo_root / "vibe_cading", repo_root / "parts"]
     violations = find_violations(roots)
     if violations:

@@ -12,20 +12,20 @@ on:
     paths:
       - "vibe_cading/**"
       - "parts/**"
-      - "tools/engine_api/**"
-      - "tools/gen_engine_api.py"
-      - "tools/validate_engine_api.py"
-      - "engine_api.json"
+      - "vibe_cading/tools/engine_api/**"
+      - "vibe_cading/tools/gen_engine_api.py"
+      - "vibe_cading/tools/validate_engine_api.py"
+      - "vibe_cading/engine_api.json"
       - ".github/workflows/engine-api.yml"
   push:
     branches: [main]
     paths:
       - "vibe_cading/**"
       - "parts/**"
-      - "tools/engine_api/**"
-      - "tools/gen_engine_api.py"
-      - "tools/validate_engine_api.py"
-      - "engine_api.json"
+      - "vibe_cading/tools/engine_api/**"
+      - "vibe_cading/tools/gen_engine_api.py"
+      - "vibe_cading/tools/validate_engine_api.py"
+      - "vibe_cading/engine_api.json"
       - ".github/workflows/engine-api.yml"
 
 permissions:
@@ -43,6 +43,6 @@ jobs:
           # pure stdlib so we do not need a matrix.
           python-version: "3.11"
       - name: Regenerate engine_api.json (in memory) and diff against tree
-        run: python3 tools/gen_engine_api.py --check
+        run: python3 vibe_cading/tools/gen_engine_api.py --check
       - name: Validate engine_api.json against schema invariants
-        run: python3 tools/validate_engine_api.py
+        run: python3 vibe_cading/tools/validate_engine_api.py

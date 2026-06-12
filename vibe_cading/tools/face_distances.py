@@ -45,7 +45,7 @@ from pathlib import Path
 import OCP.BRepAdaptor as ba
 import OCP.GeomAbs as ga
 
-from tools.step_primitives import StepLoadError, face_area, load_step, vec3
+from vibe_cading.tools.step_primitives import StepLoadError, face_area, load_step, vec3
 
 
 def _dot(a: dict, b: dict) -> float:

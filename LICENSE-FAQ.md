@@ -92,3 +92,11 @@ When in doubt, the question to ask is: **am I distributing the library code (or 
 - **License-interpretation edge cases that affect your project:** consult a lawyer. The maintainers cannot give legal advice.
 - **AGPLv3 in general:** the [Free Software Foundation's GPL FAQ](https://www.gnu.org/licenses/gpl-faq.html) is the authoritative plain-language reference.
 - **Project-specific questions about contribution mechanics:** open a [GitHub Discussion](https://github.com/fa-mc/vibe-cading/discussions) or an issue tagged `discussion`.
+
+---
+
+## Commercial Licensing
+
+If your use case requires keeping modifications closed-source, embedding `vibe-cading` in a proprietary desktop application, or offering it as a SaaS without offering source code to remote users, a commercial license is available.
+
+Please contact **licensing@vibe-cading.com** to discuss dual-licensing options.

@@ -21,8 +21,8 @@ from vibe_cading.lego.constants import (
     AXLE_ARM_WIDTH,
     AXLE_ARM_PROTRUSION,
     AXLE_LENGTH_PER_STUD,
-    DEFAULT_LEAD_IN,
-    DEFAULT_CORNER_RADIUS,
+    LEAD_IN,
+    CORNER_RADIUS,
 )
 
 
@@ -50,8 +50,8 @@ class TechnicAxle:
     ARM_PROTRUSION: float = AXLE_ARM_PROTRUSION
     LENGTH_PER_STUD: float = AXLE_LENGTH_PER_STUD
     DEFAULT_CLEARANCE: float = 0.0
-    DEFAULT_LEAD_IN: float = DEFAULT_LEAD_IN
-    DEFAULT_CORNER_RADIUS: float = DEFAULT_CORNER_RADIUS
+    DEFAULT_LEAD_IN: float = LEAD_IN
+    DEFAULT_CORNER_RADIUS: float = CORNER_RADIUS
 
     def __init__(self, studs: int | None = None, clearance: float = DEFAULT_CLEARANCE, lead_in: float = DEFAULT_LEAD_IN, corner_radius: float = DEFAULT_CORNER_RADIUS):
         self.studs = studs

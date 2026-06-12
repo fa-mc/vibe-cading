@@ -13,17 +13,4 @@
 # You should have received a copy of the GNU Affero General Public License
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
-"""vibe-cading library package — parametric CadQuery primitives.
-
-Top-level marker so ``vibe_cading.*`` resolves as a regular package
-(not a namespace package).  Per the design Round 5.5 "two-level
-__init__.py discipline", this file intentionally does NOT re-export
-anything from sub-packages — contributors import the symbols they need
-from the leaf package that owns them (e.g.
-``from vibe_cading.mechanical.screws import MetricMachineScrew``).
-"""
-
-try:
-    from .__commit__ import __commit__
-except ImportError:
-    __commit__ = "unknown"
+__commit__ = "dfeed0c744a2138b8e97378a986f21729ccd61c8"

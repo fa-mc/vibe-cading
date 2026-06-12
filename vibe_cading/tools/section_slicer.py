@@ -53,7 +53,7 @@ from OCP.GeomAbs import (
     GeomAbs_BezierCurve,
 )
 
-from tools.step_primitives import StepLoadError, load_step
+from vibe_cading.tools.step_primitives import StepLoadError, load_step
 
 
 # Axis label → (normal direction, projection axes for 2D SVG)

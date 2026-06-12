@@ -68,7 +68,17 @@ def load_env_file(path: Path | str | None = None) -> None:
     by the shell or CI) wins over the file.  This matches the inline parsers
     that previously lived in ``print_settings.py`` and ``lego/constants.py``.
     """
-    env_path = Path(path) if path is not None else _REPO_ROOT / ".env"
+    if path is not None:
+        env_path = Path(path)
+    else:
+        env_var = os.getenv("VIBE_ENV_PATH")
+        if env_var:
+            env_path = Path(env_var)
+        elif (Path.cwd() / ".env").exists():
+            env_path = Path.cwd() / ".env"
+        else:
+            env_path = _REPO_ROOT / ".env"
+
     if not env_path.exists():
         return
 

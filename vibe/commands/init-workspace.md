@@ -10,8 +10,8 @@ Perform the workspace initialization steps documented in `vibe/INSTRUCTIONS.md` 
 4. If your agent host requires a runtime-alias/skill scaffolder to surface the
    canonical personas/commands under `vibe/`, run it now. This step is
    host-specific:
-   - For Claude Code: run `tools/init-claude-runtime.sh` (documented in `CLAUDE.md`).
-   - For Google Antigravity (agy): run `tools/init-agy-runtime.sh`.
+   - For Claude Code: run `vibe_cading/tools/init-claude-runtime.sh` (documented in `CLAUDE.md`).
+   - For Google Antigravity (agy): run `vibe_cading/tools/init-agy-runtime.sh`.
    *(Re-run the appropriate script after editing any file under `vibe/agents/` or `vibe/commands/`.)*
 5. Report what changed (or "already initialized" for files that were already present).
 

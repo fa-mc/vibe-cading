@@ -4622,6 +4622,251 @@
         }
       ],
       "result_accessor": ".solid"
+    },
+    {
+      "module": "vibe_cading.tools.check_visual_contract_freshness",
+      "name": "Contract",
+      "fqn": "vibe_cading.tools.check_visual_contract_freshness.Contract",
+      "doc": "One manifest row: which committed SVG, which class+view+params produce it.\n\n``svg`` is stored both as the manifest-relative string (for human-readable\noutput that matches what a contributor typed) and as an absolute path\nresolved against the repo root (the source of truth for byte comparison).",
+      "constructors": [
+        {
+          "kind": "init",
+          "name": "__init__",
+          "doc": null,
+          "params": [
+            {
+              "name": "svg",
+              "type": "str",
+              "required": true,
+              "units": null,
+              "allowed_values": null,
+              "value_doc": null
+            },
+            {
+              "name": "model",
+              "type": "str",
+              "required": true,
+              "units": null,
+              "allowed_values": null,
+              "value_doc": null
+            },
+            {
+              "name": "view",
+              "type": "str",
+              "required": true,
+              "units": null,
+              "allowed_values": null,
+              "value_doc": null
+            },
+            {
+              "name": "params",
+              "type": "dict | None",
+              "required": true,
+              "units": null,
+              "allowed_values": null,
+              "value_doc": null
+            },
+            {
+              "name": "repo_root",
+              "type": "Path",
+              "required": true,
+              "units": null,
+              "allowed_values": null,
+              "value_doc": null
+            }
+          ]
+        }
+      ],
+      "result_accessor": ".solid"
+    },
+    {
+      "module": "vibe_cading.tools.engine_api.extractor",
+      "name": "ClassRecord",
+      "fqn": "vibe_cading.tools.engine_api.extractor.ClassRecord",
+      "doc": "A discovered class record.",
+      "constructors": [
+        {
+          "kind": "init",
+          "name": "__init__",
+          "doc": null,
+          "params": [
+            {
+              "name": "module",
+              "type": "str",
+              "required": true,
+              "units": null,
+              "allowed_values": null,
+              "value_doc": null
+            },
+            {
+              "name": "name",
+              "type": "str",
+              "required": true,
+              "units": null,
+              "allowed_values": null,
+              "value_doc": null
+            },
+            {
+              "name": "fqn",
+              "type": "str",
+              "required": true,
+              "units": null,
+              "allowed_values": null,
+              "value_doc": null
+            },
+            {
+              "name": "doc",
+              "type": "str | None",
+              "required": true,
+              "units": null,
+              "allowed_values": null,
+              "value_doc": null
+            },
+            {
+              "name": "constructors",
+              "type": "list[Constructor]",
+              "required": true,
+              "units": null,
+              "allowed_values": null,
+              "value_doc": null
+            },
+            {
+              "name": "result_accessor",
+              "type": "str | None",
+              "required": true,
+              "units": null,
+              "allowed_values": null,
+              "value_doc": null
+            }
+          ]
+        }
+      ],
+      "result_accessor": ".solid"
+    },
+    {
+      "module": "vibe_cading.tools.engine_api.extractor",
+      "name": "Constructor",
+      "fqn": "vibe_cading.tools.engine_api.extractor.Constructor",
+      "doc": "A constructor entry: ``__init__`` or a public classmethod.",
+      "constructors": [
+        {
+          "kind": "init",
+          "name": "__init__",
+          "doc": null,
+          "params": [
+            {
+              "name": "kind",
+              "type": "str",
+              "required": true,
+              "units": null,
+              "allowed_values": null,
+              "value_doc": null
+            },
+            {
+              "name": "name",
+              "type": "str",
+              "required": true,
+              "units": null,
+              "allowed_values": null,
+              "value_doc": null
+            },
+            {
+              "name": "doc",
+              "type": "str | None",
+              "required": true,
+              "units": null,
+              "allowed_values": null,
+              "value_doc": null
+            },
+            {
+              "name": "params",
+              "type": "list[Param]",
+              "required": false,
+              "default": "field(default_factory=list)",
+              "units": null,
+              "allowed_values": null,
+              "value_doc": null
+            }
+          ]
+        }
+      ],
+      "result_accessor": ".solid"
+    },
+    {
+      "module": "vibe_cading.tools.engine_api.extractor",
+      "name": "Param",
+      "fqn": "vibe_cading.tools.engine_api.extractor.Param",
+      "doc": "A constructor / classmethod parameter record.",
+      "constructors": [
+        {
+          "kind": "init",
+          "name": "__init__",
+          "doc": null,
+          "params": [
+            {
+              "name": "name",
+              "type": "str",
+              "required": true,
+              "units": null,
+              "allowed_values": null,
+              "value_doc": null
+            },
+            {
+              "name": "type",
+              "type": "str",
+              "required": true,
+              "units": null,
+              "allowed_values": null,
+              "value_doc": null
+            },
+            {
+              "name": "required",
+              "type": "bool",
+              "required": true,
+              "units": null,
+              "allowed_values": null,
+              "value_doc": null
+            },
+            {
+              "name": "default",
+              "type": "str | None",
+              "required": false,
+              "default": "None",
+              "units": null,
+              "allowed_values": null,
+              "value_doc": null
+            },
+            {
+              "name": "units",
+              "type": "str | None",
+              "required": false,
+              "default": "None",
+              "units": null,
+              "allowed_values": null,
+              "value_doc": null
+            },
+            {
+              "name": "allowed_values",
+              "type": "list | None",
+              "required": false,
+              "default": "None",
+              "units": null,
+              "allowed_values": null,
+              "value_doc": null
+            },
+            {
+              "name": "value_doc",
+              "type": "dict | None",
+              "required": false,
+              "default": "None",
+              "units": null,
+              "allowed_values": null,
+              "value_doc": null
+            }
+          ]
+        }
+      ],
+      "result_accessor": ".solid"
     }
   ]
 }

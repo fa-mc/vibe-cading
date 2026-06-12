@@ -541,15 +541,16 @@ def test_deep_merge_null_leaf_in_override_only_subtree_raises():
 # --------------------------------------------------------------------------
 
 def _import_print_settings_against(tmp_path, monkeypatch):
-    """Re-import ``print_settings`` with its repo-root re-pointed at ``tmp_path``.
+    """Re-import ``print_settings`` with its files re-pointed at ``tmp_path``.
 
-    The loader resolves files relative to ``_REPO_ROOT`` (= ``Path(__file__).parent.parent``).
     To exercise the file-resolution chain without touching real repo files,
-    monkeypatch ``_REPO_ROOT`` on the freshly-imported module and reset
-    the deprecation set.
+    monkeypatch _resolve_shipped_file and _resolve_user_file to point to
+    tmp_path.
     """
     importlib.reload(print_settings_module)
     monkeypatch.setattr(print_settings_module, "_REPO_ROOT", tmp_path)
+    monkeypatch.setattr(print_settings_module, "_resolve_shipped_file", lambda: tmp_path / "print_profiles.json" if (tmp_path / "print_profiles.json").exists() else None)
+    monkeypatch.setattr(print_settings_module, "_resolve_user_file", lambda: tmp_path / "print_profiles_user.json" if (tmp_path / "print_profiles_user.json").exists() else None)
     print_settings_module._emitted_deprecations.clear()
     return print_settings_module
 

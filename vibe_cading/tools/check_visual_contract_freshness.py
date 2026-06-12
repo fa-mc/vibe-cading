@@ -104,9 +104,9 @@ os.environ["PRINT_PROFILE"] = "fdm_standard"
 # tools/model_loader.py owns sys.path management.  Add REPO_ROOT here so the
 # ``from tools.preview import export_previews`` line below resolves; the loader
 # then inserts REPO_ROOT idempotently for the model imports it performs.
-REPO_ROOT = Path(__file__).resolve().parents[1]
+REPO_ROOT = Path(__file__).resolve().parents[2]
 sys.path.insert(0, str(REPO_ROOT))
-from tools.preview import export_previews  # noqa: E402
+from vibe_cading.tools.preview import export_previews  # noqa: E402
 
 # Defaults are anchored to REPO_ROOT (derived from __file__), never to the
 # process cwd, so the tool and its coverage glob behave identically whether

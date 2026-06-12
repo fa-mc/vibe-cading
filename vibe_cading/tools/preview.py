@@ -65,13 +65,13 @@ from pathlib import Path
 
 import cadquery as cq
 
-REPO_ROOT  = Path(__file__).resolve().parent.parent
+REPO_ROOT  = Path(__file__).resolve().parent.parent.parent
 
 # tools/model_loader.py owns sys.path management — see its module docstring
 # for the contract.  Add REPO_ROOT here so the
 # ``from tools.model_loader import …`` line below resolves.
 sys.path.insert(0, str(REPO_ROOT))
-from tools.model_loader import instantiate, parse_params  # noqa: E402
+from vibe_cading.tools.model_loader import instantiate, parse_params  # noqa: E402
 
 # ── Named view registry ───────────────────────────────────────────────────────
 # Each entry is (projection_direction_vector,).  The direction points FROM the

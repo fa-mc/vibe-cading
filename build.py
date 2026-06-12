@@ -21,8 +21,8 @@ import cadquery as cq
 # (e.g. ``vibe_cading.mechanical.hinge.PrintInPlaceHinge`` or
 # ``parts.arrma_vorteks_223s.esc_mount.EscMount``) resolve.  See
 # ``tools/model_loader.py`` for the full sys.path contract.
-sys.path.insert(0, str(Path(__file__).resolve().parent))  # for tools.* import
-from tools.model_loader import ensure_models_on_path, load_solid  # noqa: E402
+sys.path.insert(0, str(Path(__file__).resolve().parent))  # for vibe_cading.* import
+from vibe_cading.tools.model_loader import ensure_models_on_path, load_solid  # noqa: E402
 
 REPO_ROOT  = Path(__file__).parent
 OUTPUT_DIR = REPO_ROOT / "output"
@@ -87,7 +87,7 @@ if __name__ == "__main__":
     import subprocess
     import sys
     print("Checking license headers...")
-    res = subprocess.run(["python3", "tools/check_license_headers.py"])
+    res = subprocess.run(["python3", "vibe_cading/tools/check_license_headers.py"])
     if res.returncode != 0:
         sys.exit(res.returncode)
     main()

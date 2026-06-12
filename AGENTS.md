@@ -49,12 +49,12 @@ its own thin pointer file plus any runtime scaffolding it needs:
 
 | Host | Entry file | Notes |
 |---|---|---|
-| **Claude Code** | [`CLAUDE.md`](CLAUDE.md) | Imports `vibe/INSTRUCTIONS.md` and adds Claude-specific subagent invocation. Per-clone runtime aliases under `.claude/` are seeded by [`tools/init-claude-runtime.sh`](tools/init-claude-runtime.sh). **These are Claude-only — other hosts ignore `CLAUDE.md`, `.claude/`, and that script.** |
-| **Google Antigravity (agy)** | this `AGENTS.md` | Points at the same canonical `vibe/INSTRUCTIONS.md`. Per-clone runtime skills under `.agents/skills/` are seeded by [`tools/init-agy-runtime.sh`](tools/init-agy-runtime.sh). **These are Antigravity-only — other hosts ignore that script and the `.agents/skills/` directory.** |
+| **Claude Code** | [`CLAUDE.md`](CLAUDE.md) | Imports `vibe/INSTRUCTIONS.md` and adds Claude-specific subagent invocation. Per-clone runtime aliases under `.claude/` are seeded by [`vibe_cading/tools/init-claude-runtime.sh`](vibe_cading/tools/init-claude-runtime.sh). **These are Claude-only — other hosts ignore `CLAUDE.md`, `.claude/`, and that script.** |
+| **Google Antigravity (agy)** | this `AGENTS.md` | Points at the same canonical `vibe/INSTRUCTIONS.md`. Per-clone runtime skills under `.agents/skills/` are seeded by [`vibe_cading/tools/init-agy-runtime.sh`](vibe_cading/tools/init-agy-runtime.sh). **These are Antigravity-only — other hosts ignore that script and the `.agents/skills/` directory.** |
 | **Any other host** | this `AGENTS.md` | Points at the same canonical `vibe/INSTRUCTIONS.md`. A host that prefers a native file (e.g. `.github/copilot-instructions.md`, `.cursor/rules/`) can add one that likewise imports `vibe/INSTRUCTIONS.md`; none ship yet. |
 
 If you are *not* on Claude Code, you can disregard the entire `.claude/` tree,
-`tools/init-claude-runtime.sh`, and any Claude-specific subagent / slash-command mechanics.
+`vibe_cading/tools/init-claude-runtime.sh`, and any Claude-specific subagent / slash-command mechanics.
 Similarly, if you are *not* on Google Antigravity (agy), you can disregard
-`tools/init-agy-runtime.sh` and the generated `.agents/skills/` directories.
+`vibe_cading/tools/init-agy-runtime.sh` and the generated `.agents/skills/` directories.
 These are host-specific implementation details, not universal project requirements.

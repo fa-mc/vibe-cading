@@ -51,7 +51,7 @@ import OCP.BRepAdaptor as ba
 import OCP.GeomAbs as ga
 from OCP.TopAbs import TopAbs_REVERSED
 
-from tools.step_primitives import StepLoadError, face_area, load_step, vec3
+from vibe_cading.tools.step_primitives import StepLoadError, face_area, load_step, vec3
 
 
 def _coaxial(a_loc, a_dir, b_loc, b_dir, tol: float = 0.1, ang_tol: float = 0.01) -> bool:

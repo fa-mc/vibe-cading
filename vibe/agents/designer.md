@@ -124,7 +124,7 @@ After completing the brief and verifying the quality checklist, you **MUST**:
    geometry: generate and embed the visual contract SVG before
    presenting.** Per the *Visual Contract Deliverable (CAD tasks)*
    rule in [vibe/INSTRUCTIONS.md](../INSTRUCTIONS.md), run
-   `tools/preview.py` (existing class) or write a `tmp/visualise_*.py`
+   `vibe_cading/tools/preview.py` (existing class) or write a `tmp/visualise_*.py`
    probe (new class), copy the SVG to
    `.agents/plans/<task-slug>_design_iso_ne.svg`, and embed it in
    the design artifact's Architecture section via

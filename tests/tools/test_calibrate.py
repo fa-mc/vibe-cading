@@ -1,4 +1,4 @@
-"""Tests for ``tools/calibrate.py``.
+"""Tests for ``vibe_cading/tools/calibrate.py``.
 
 Covers the design's 28-row Tests table for the helper itself (test
 rows 1–21 and 26; gauge geometry rows 22–23 in
@@ -22,11 +22,11 @@ import pytest
 
 
 _REPO_ROOT = Path(__file__).resolve().parent.parent.parent
-_CALIBRATE_SCRIPT = _REPO_ROOT / "tools" / "calibrate.py"
+_CALIBRATE_SCRIPT = _REPO_ROOT / "vibe_cading" / "tools" / "calibrate.py"
 
 
 def _load_calibrate(monkeypatch):
-    """Load ``tools/calibrate.py`` fresh, pointing at a tempfile.
+    """Load ``vibe_cading/tools/calibrate.py`` fresh, pointing at a tempfile.
 
     ``monkeypatch`` is a pytest fixture used to swap the module-level
     ``_USER_FILE`` constant for a per-test tempfile path AFTER load.
@@ -800,7 +800,7 @@ def test_no_third_party_imports():
     import ast
 
     targets = [
-        _REPO_ROOT / "tools" / "calibrate.py",
+        _REPO_ROOT / "vibe_cading" / "tools" / "calibrate.py",
         _REPO_ROOT / "vibe_cading" / "mechanical" / "calibration"
         / "__init__.py",
         _REPO_ROOT / "vibe_cading" / "mechanical" / "calibration"
