@@ -126,6 +126,20 @@ def _export_step(solid, out_path: Path) -> None:
     print(f"STEP     {out_path}")
 
 
+def _prepare_shape(solid):
+    """If a Workplane wraps a Compound shape, extract the shape so ocp_vscode can tessellate it."""
+    import cadquery as cq
+    if isinstance(solid, cq.Workplane):
+        try:
+            val = solid.val()
+            if isinstance(val, cq.Compound):
+                return val
+        except Exception:
+            pass
+    return solid
+
+
+
 def view_single(model_path: str, params: dict, reset: bool = True,
                export: Path | None = None) -> None:
     """Instantiate one model class and push it to the OCP viewer."""
@@ -143,7 +157,7 @@ def view_single(model_path: str, params: dict, reset: bool = True,
     if reset:
         reset_show()
 
-    show(solid, names=[class_name])
+    show(_prepare_shape(solid), names=[class_name])
     print(f"Showing  {class_name}")
 
 
@@ -191,7 +205,8 @@ def view_multiple(model_paths: list[str], params: dict, reset: bool = True,
     if reset:
         reset_show()
 
-    show(*solids, names=names, colors=colors)
+    prepared_solids = [_prepare_shape(s) for s in solids]
+    show(*prepared_solids, names=names, colors=colors)
     print(f"Showing  {', '.join(names)}")
 
 
@@ -245,7 +260,8 @@ def view_demo(model_path: str, params: dict, reset: bool = True,
     if reset:
         reset_show()
 
-    show(*solids, names=names, colors=colors)
+    prepared_solids = [_prepare_shape(s) for s in solids]
+    show(*prepared_solids, names=names, colors=colors)
     print(f"Showing demo  {model_path}  ({len(parts)} parts)")
 
 
@@ -291,7 +307,8 @@ def view_assembly(module_path: str, reset: bool = True,
     if reset:
         reset_show()
 
-    show(*solids, names=names, colors=colors)
+    prepared_solids = [_prepare_shape(s) for s in solids]
+    show(*prepared_solids, names=names, colors=colors)
     print(f"Showing assembly  {module_path}  ({len(parts)} parts)")
 
 

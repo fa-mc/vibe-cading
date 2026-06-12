@@ -38,7 +38,7 @@ The repo ships a VS Code Dev Container with everything pre-installed (Python 3.1
 **First-clone checklist:**
 
 1. **Reopen in Container** when VS Code prompts.
-2. **Initialize the workspace.** From inside Claude Code: *"please initialize the project"*. This creates `tmp/` and `.agents/plans/`, copies `print_profiles.json.example` → `print_profiles_user.json`, and runs [`tools/init-claude-runtime.sh`](tools/init-claude-runtime.sh) to populate the per-clone `.claude/` runtime aliases. (Equivalent manual steps are documented in [vibe/INSTRUCTIONS.md](vibe/INSTRUCTIONS.md) §*Workspace Initialization*.)
+2. **Initialize the workspace.** From inside your AI agent host (e.g. Claude Code or Google Antigravity): *"please initialize the project"*. This creates `tmp/` and `.agents/plans/`, copies `print_profiles.json.example` → `print_profiles_user.json`, and runs the host-specific runtime scaffolder ([`tools/init-claude-runtime.sh`](tools/init-claude-runtime.sh) for Claude Code, or [`tools/init-agy-runtime.sh`](tools/init-agy-runtime.sh) for Antigravity) to populate per-clone runtime aliases/skills. (Equivalent manual steps are documented in [vibe/INSTRUCTIONS.md](vibe/INSTRUCTIONS.md) §*Workspace Initialization*.)
 3. **Calibrate your printer's `slip.radial`.** The shipped `fdm_standard` profile is a reasonable starting point, but the slip fit for Lego pins/axles is printer-specific. Print the axle gauge and run `python3 tools/calibrate.py slip` — the calibrated value lands in your gitignored `print_profiles_user.json`. Full procedure in [README.md > Print Tolerances & Calibration](README.md#print-tolerances--calibration).
 4. **Try an example.** `python3 examples/lego_technic_beam.py` writes a STEP file under `examples/build/` — confirms your environment works end-to-end.
 
@@ -90,7 +90,7 @@ Only the **`pm`** role (backlog prioritisation across many tasks) is **intention
 3. The **developer** auto-transitions on your approval and implements the brief.
 4. The developer runs the validation tools (§7) before declaring complete.
 
-*Note: `.agents/` is gitignored and stages AI artefacts locally. Persona/command sources are tracked under [`vibe/agents/`](vibe/agents/) and [`vibe/commands/`](vibe/commands/); Claude Code picks them up via per-clone runtime aliases under `.claude/` populated by [`tools/init-claude-runtime.sh`](tools/init-claude-runtime.sh).*
+*Note: `.agents/` is gitignored and stages AI artefacts locally. Persona/command sources are tracked under [`vibe/agents/`](vibe/agents/) and [`vibe/commands/`](vibe/commands/); Claude Code picks them up via per-clone runtime aliases under `.claude/` populated by [`tools/init-claude-runtime.sh`](tools/init-claude-runtime.sh), while Google Antigravity (agy) generates per-clone command *skills* under `.agents/skills/` via [`tools/init-agy-runtime.sh`](tools/init-agy-runtime.sh) (its personas are loaded directly from the canonical `vibe/agents/` files).*
 
 ---
 
