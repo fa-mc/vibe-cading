@@ -45,7 +45,7 @@ jobs:
           done
           echo "py_compile: $checked file(s) checked, $empty empty __init__.py skipped"
       - name: Check no __main__ blocks under vibe_cading/ or parts/ (AST)
-        run: python tools/check_no_main_blocks.py
+        run: python vibe_cading/tools/check_no_main_blocks.py
       - name: Check no __main__ blocks under vibe_cading/ or parts/ (grep belt-and-braces)
         run: |
           set -euo pipefail
@@ -57,9 +57,9 @@ jobs:
         run: |
           set -euo pipefail
           # Matches both `from ocp_vscode import …` and `import ocp_vscode`.
-          matches=$(grep -rlE '(from|import) ocp_vscode' vibe_cading/ parts/ tools/ || true)
-          # Allow exactly tools/view.py and nothing else.
-          unexpected=$(echo "$matches" | grep -vE '^tools/view\.py$' || true)
+          matches=$(grep -rlE '(from|import) ocp_vscode' vibe_cading/ parts/ || true)
+          # Allow exactly vibe_cading/tools/view.py and nothing else.
+          unexpected=$(echo "$matches" | grep -vE '^vibe_cading/tools/view\.py$' || true)
           if [ -n "$unexpected" ]; then
             echo "Unexpected ocp_vscode importers:" >&2
             echo "$unexpected" >&2
@@ -117,7 +117,7 @@ jobs:
               ignore="${IGNORE_OVERRIDES[$model]:-0}"
               echo "::: $model (--ignore $ignore)"
               # shellcheck disable=SC2086
-              if python3 tools/check_topology.py "$model" $pstr --ignore "$ignore"; then
+              if python3 vibe_cading/tools/check_topology.py "$model" $pstr --ignore "$ignore"; then
                   passed=$((passed + 1))
               else
                   failed=$((failed + 1))
@@ -136,4 +136,4 @@ jobs:
         # validated.  `python3` here is the 3.11 + cadquery interpreter
         # actions/setup-python pins (same one build.py and the topology step
         # use).  Local contributors run it as `python3.11`.
-        run: python3 tools/check_visual_contract_freshness.py
+        run: python3 vibe_cading/tools/check_visual_contract_freshness.py

@@ -484,7 +484,7 @@ def _resolve_shipped_file() -> Path | Any | None:
             return resource
     except (ImportError, Exception):
         pass
-    path = _REPO_ROOT / "print_profiles.json"
+    path = _REPO_ROOT / "vibe_cading" / "print_profiles.json"
     return path if path.exists() else None
 
 
