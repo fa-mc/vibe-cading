@@ -132,6 +132,10 @@ but are not actively being driven. Curated by PM. Promote to
 [`.agents/plans/INDEX.md`](.agents/plans/INDEX.md) when an item earns a
 design slot.
 
+### Admin follow-ups
+
+- **Upstream Security Rule to `core-agents`:** Propose the "Never Leak Secrets" rule (codified in `vibe/INSTRUCTIONS.md` prohibiting literal secrets in command histories/transcripts) upstream to the `core-agents` shared instruction set (e.g. `base/instructions/base.md`). This ensures all host platforms natively inherit the safeguard.
+
 ### Pre-OSS publication checklist (release-blockers for v1)
 
 Added 2026-05-14 per user direction. These are gates on the v1 OSS publication — not deferred features. Owner: human contributor at release-prep time; PM curates status. Promote any non-trivial item to [`docs/design_plans/INDEX.md`](docs/design_plans/INDEX.md) before execution.

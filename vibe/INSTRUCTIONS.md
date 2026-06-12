@@ -171,6 +171,7 @@ When initializing the project or workspace, you must:
 1. Create local `.gitignore`d directories if they don't exist (`tmp/`).
 2. Copy `print_profiles.json.example` to `print_profiles_user.json` so the user can configure their specific 3D printer tolerances.
 3. Run any host-platform-specific runtime scaffolder if your agent host requires one (e.g., for Claude Code: `tools/init-claude-runtime.sh`; for Google Antigravity: `tools/init-agy-runtime.sh` — see the host's or agent entry file for details).
+4. If you need to interact with GitHub (e.g. checking issues or PRs via `gh`), authenticate by extracting the `GH_TOKEN` from the `.env` file (e.g., `export $(grep GH_TOKEN .env | xargs) && gh ...`).
 
 ### Visual Contract Deliverable (CAD tasks)
 
