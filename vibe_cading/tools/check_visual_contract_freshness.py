@@ -101,9 +101,10 @@ from pathlib import Path
 # is unaffected; only a self-inflicted local override of fdm_standard would drift.
 os.environ["PRINT_PROFILE"] = "fdm_standard"
 
-# tools/model_loader.py owns sys.path management.  Add REPO_ROOT here so the
-# ``from tools.preview import export_previews`` line below resolves; the loader
-# then inserts REPO_ROOT idempotently for the model imports it performs.
+# vibe_cading/tools/model_loader.py owns sys.path management.  Add REPO_ROOT
+# here so the ``from vibe_cading.tools.preview import export_previews`` line
+# below resolves; the loader then inserts REPO_ROOT idempotently for the model
+# imports it performs.
 REPO_ROOT = Path(__file__).resolve().parents[2]
 sys.path.insert(0, str(REPO_ROOT))
 from vibe_cading.tools.preview import export_previews  # noqa: E402

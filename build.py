@@ -20,7 +20,7 @@ import cadquery as cq
 # on ``sys.path`` so that fully-qualified dotted paths in ``build.toml``
 # (e.g. ``vibe_cading.mechanical.hinge.PrintInPlaceHinge`` or
 # ``parts.arrma_vorteks_223s.esc_mount.EscMount``) resolve.  See
-# ``tools/model_loader.py`` for the full sys.path contract.
+# ``vibe_cading/tools/model_loader.py`` for the full sys.path contract.
 sys.path.insert(0, str(Path(__file__).resolve().parent))  # for vibe_cading.* import
 from vibe_cading.tools.model_loader import ensure_models_on_path, load_solid  # noqa: E402
 

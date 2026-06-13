@@ -170,7 +170,7 @@ Full calibration workflow, fit-grade taxonomy, and field-level deep-merge semant
 
 ## 📦 11. Engine API Artifact
 
-[`vibe_cading/engine_api.json`](vibe_cading/engine_api.json) at the repo root is a machine-readable index of every public model class in `vibe_cading/**` and `parts/**`. Downstream LLM code-gen tooling consumes it to call engine classes deterministically. It is generated, not hand-written, and **must stay in sync with `vibe_cading/**` + `parts/**`**.
+[`vibe_cading/engine_api.json`](vibe_cading/engine_api.json) is a machine-readable index of every public model class in `vibe_cading/**` and `parts/**`. Downstream LLM code-gen tooling consumes it to call engine classes deterministically. It is generated, not hand-written, and **must stay in sync with `vibe_cading/**` + `parts/**`**.
 
 **Regenerate after editing any model class:**
 

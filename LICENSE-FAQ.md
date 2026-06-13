@@ -40,7 +40,7 @@ If you **distribute** the modified or extended library — pushing to a public G
 - Your modifications must also be released under AGPLv3.
 - You must make the **complete corresponding source** available to recipients (typically by linking to a public repository).
 - You must preserve the copyright notice and AGPLv3 header on the original files, and add your own attribution to files you change substantially.
-- New `.py` files you add under `vibe_cading/`, `parts/`, or `tools/` must carry the AGPLv3 header (see [CONTRIBUTING.md §1](CONTRIBUTING.md#-1-license--cla)).
+- New `.py` files you add under `vibe_cading/`, `parts/`, or `vibe_cading/tools/` must carry the AGPLv3 header (see [CONTRIBUTING.md §1](CONTRIBUTING.md#-1-license--cla)).
 
 This applies whether your new class lives in a downstream fork or is shipped as a third-party plugin / package that imports from `vibe_cading`.
 

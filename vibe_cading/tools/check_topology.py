@@ -24,9 +24,10 @@ import os
 import argparse
 import cadquery as cq
 
-# tools/model_loader.py owns sys.path management.  Add REPO_ROOT here so the
-# ``from tools.model_loader import …`` resolves; the loader then inserts
-# REPO_ROOT + MODELS_DIR idempotently for the model imports below.
+# vibe_cading/tools/model_loader.py owns sys.path management.  Add REPO_ROOT
+# here so the ``from vibe_cading.tools.model_loader import …`` resolves; the
+# loader then inserts REPO_ROOT + MODELS_DIR idempotently for the model
+# imports below.
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "..")))
 from vibe_cading.tools.model_loader import instantiate, parse_params  # noqa: E402
 

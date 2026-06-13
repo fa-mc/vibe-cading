@@ -2,10 +2,9 @@
 
 Focus: the matched-surrounding-quote stripping in :func:`load_env_file`.
 The project's own ``.env`` / ``.env.example`` write quoted values
-(``PRINT_PROFILE="bambu_p1s__pla_overture"``,
-``DEFAULT_CORNER_RADIUS="0.4"``); the parser must strip the quote
-characters so they never leak into the env var (which would break
-profile-name lookups and ``float()`` casts).
+(e.g. ``PRINT_PROFILE="bambu_p1s__pla_overture"``); the parser must strip
+the quote characters so they never leak into the env var (which would break
+profile-name lookups).
 """
 
 from __future__ import annotations

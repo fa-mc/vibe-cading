@@ -67,9 +67,9 @@ import cadquery as cq
 
 REPO_ROOT  = Path(__file__).resolve().parent.parent.parent
 
-# tools/model_loader.py owns sys.path management — see its module docstring
-# for the contract.  Add REPO_ROOT here so the
-# ``from tools.model_loader import …`` line below resolves.
+# vibe_cading/tools/model_loader.py owns sys.path management — see its module
+# docstring for the contract.  Add REPO_ROOT here so the
+# ``from vibe_cading.tools.model_loader import …`` line below resolves.
 sys.path.insert(0, str(REPO_ROOT))
 from vibe_cading.tools.model_loader import instantiate, parse_params  # noqa: E402
 

@@ -22,8 +22,6 @@ Update values here and they propagate to all models that import from this module
 All measurements are in millimetres (mm).
 """
 
-import os
-
 from vibe_cading._env import load_env_file
 
 # Seed environment from REPO_ROOT/.env if present (shared parser; see vibe_cading._env).
