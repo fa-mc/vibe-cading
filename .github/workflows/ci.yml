@@ -49,8 +49,14 @@ jobs:
       - name: Check no __main__ blocks under vibe_cading/ or parts/ (grep belt-and-braces)
         run: |
           set -euo pipefail
-          if grep -rlE 'if __name__ == "__main__"' vibe_cading/ parts/; then
-            echo "Forbidden __main__ block found in vibe_cading/ or parts/" >&2
+          # vibe_cading/tools/ holds the sanctioned CLI entry points, which
+          # legitimately carry __main__ guards — exclude them (same carve-out
+          # as the AST checker above).
+          matches=$(grep -rlE 'if __name__ == "__main__"' vibe_cading/ parts/ || true)
+          unexpected=$(echo "$matches" | grep -vE '^vibe_cading/tools/' || true)
+          if [ -n "$unexpected" ]; then
+            echo "Forbidden __main__ block found in vibe_cading/ or parts/:" >&2
+            echo "$unexpected" >&2
             exit 1
           fi
       - name: Check no ocp_vscode imports outside vibe_cading/tools/view.py
