@@ -53,7 +53,7 @@ jobs:
             echo "Forbidden __main__ block found in vibe_cading/ or parts/" >&2
             exit 1
           fi
-      - name: Check no ocp_vscode imports outside tools/view.py
+      - name: Check no ocp_vscode imports outside vibe_cading/tools/view.py
         run: |
           set -euo pipefail
           # Matches both `from ocp_vscode import …` and `import ocp_vscode`.
@@ -70,12 +70,12 @@ jobs:
       - name: Build smoke (python build.py)
         # Catches OCCT/CadQuery runtime regressions that pytest/py_compile miss
         # (boolean kernel failures, geometry-assertion breakage, topology drift).
-        # Also enforces AGPLv3 headers via tools/check_license_headers.py
+        # Also enforces AGPLv3 headers via vibe_cading/tools/check_license_headers.py
         # (build.py.__main__ runs it before the build).
         # Outputs land under output/ which is gitignored — nothing is committed.
         run: python build.py
       - name: Topology check
-        # Runs tools/check_topology.py against every [[build]] entry in
+        # Runs vibe_cading/tools/check_topology.py against every [[build]] entry in
         # build.toml.  Fails on any disconnected-body regression (floating
         # artifacts, failed boolean cuts, un-merged outer components) that
         # `python build.py` itself would silently pass.
@@ -129,7 +129,7 @@ jobs:
           [[ "$failed" -eq 0 ]] || exit 1
       - name: Visual contract freshness
         # Regenerates every .agents/plans/*_design_*.svg registered in
-        # visual_contracts.toml via tools/preview.py's export_previews() and
+        # visual_contracts.toml via vibe_cading/tools/preview.py's export_previews() and
         # byte-compares against the committed file; fails on drift or on a
         # tracked design SVG missing from the manifest (coverage gate).  Runs
         # after Build smoke / Topology check so CadQuery is installed +
