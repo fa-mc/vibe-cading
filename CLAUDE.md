@@ -1,5 +1,9 @@
 @vibe/INSTRUCTIONS.md
 
+## Universal Safety Invariants
+
+- **Never Leak Secrets:** Never copy-paste, echo, or embed literal secret values (like API keys, tokens, or passwords) into command-line invocations, tool arguments, or conversational text. This creates a severe security breach by exposing credentials in command histories, agent transcripts, and logs. Always parse and source secrets dynamically using safe shell mechanisms (e.g. `export $(grep GH_TOKEN .env | xargs) && gh ...`).
+
 # Claude Code Specifics
 
 The canonical, tool-neutral instruction set for this project is imported above
