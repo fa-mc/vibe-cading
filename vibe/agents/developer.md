@@ -74,7 +74,7 @@ Designer, and TL).
 **Escalate to the TL (by invoking the `tl` subagent)** when a decision is
 *architecturally significant* — it changes the shared surface rather than one part:
 - A new reusable primitive, base class, or `Protocol`/`ABC` contract is needed, or an existing one must change shape.
-- A refactor would span multiple model families, or change a `tools/` CLI's interface.
+- A refactor would span multiple model families, or change a `vibe_cading/tools/` CLI's interface.
 - A `cq_utils.py` helper or a project-wide convention needs adding or altering.
 
 **Handle yourself (no escalation needed):**

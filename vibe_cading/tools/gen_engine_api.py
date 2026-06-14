@@ -45,12 +45,12 @@ from pathlib import Path
 
 # Make ``tools.engine_api`` importable when this script is invoked
 # directly (``python3 tools/gen_engine_api.py``). The repo root is the
-# parent of ``tools/``.
-_REPO_ROOT = Path(__file__).resolve().parent.parent
+# parent of ``vibe_cading/tools/``.
+_REPO_ROOT = Path(__file__).resolve().parent.parent.parent
 if str(_REPO_ROOT) not in sys.path:
     sys.path.insert(0, str(_REPO_ROOT))
 
-from tools.engine_api.extractor import (  # noqa: E402  (import after sys.path tweak)
+from vibe_cading.tools.engine_api.extractor import (  # noqa: E402  (import after sys.path tweak)
     SCHEMA_VERSION,
     extract_classes,
 )
@@ -90,8 +90,8 @@ def main(argv: list[str] | None = None) -> int:
     parser.add_argument(
         "--out",
         type=Path,
-        default=_REPO_ROOT / "engine_api.json",
-        help="Output path (default: <repo>/engine_api.json).",
+        default=_REPO_ROOT / "vibe_cading" / "engine_api.json",
+        help="Output path (default: <repo>/vibe_cading/engine_api.json).",
     )
     parser.add_argument(
         "--check",

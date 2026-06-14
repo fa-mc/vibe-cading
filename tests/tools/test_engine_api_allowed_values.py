@@ -51,12 +51,12 @@ _REPO_ROOT = Path(__file__).resolve().parents[2]
 if str(_REPO_ROOT) not in sys.path:
     sys.path.insert(0, str(_REPO_ROOT))
 
-from tools.engine_api import extractor as E  # noqa: E402
-from tools.engine_api.extractor import (  # noqa: E402
+from vibe_cading.tools.engine_api import extractor as E  # noqa: E402
+from vibe_cading.tools.engine_api.extractor import (  # noqa: E402
     SCHEMA_VERSION,
     extract_classes,
 )
-import tools.validate_engine_api as V  # noqa: E402
+import vibe_cading.tools.validate_engine_api as V  # noqa: E402
 
 
 # ---------------------------------------------------------------------------
@@ -68,7 +68,7 @@ import tools.validate_engine_api as V  # noqa: E402
 def artifact() -> dict:
     """The committed ``engine_api.json`` payload."""
     return json.loads(
-        (_REPO_ROOT / "engine_api.json").read_text(encoding="utf-8")
+        (_REPO_ROOT / "vibe_cading" / "engine_api.json").read_text(encoding="utf-8")
     )
 
 
@@ -592,7 +592,7 @@ def test_validator_rejects_non_string_entry():
 def test_validator_passes_real_artifact():
     """Row 9: the real committed artifact validates clean."""
     payload = json.loads(
-        (_REPO_ROOT / "engine_api.json").read_text(encoding="utf-8")
+        (_REPO_ROOT / "vibe_cading" / "engine_api.json").read_text(encoding="utf-8")
     )
     errors, _ = V.validate(payload)
     assert errors == [], errors
@@ -665,7 +665,7 @@ def test_validator_rejects_wrong_schema_version():
 def test_extractor_imports_are_pure_stdlib():
     """Row 13 (R12): the extractor imports only the four stdlib modules."""
     tree = ast.parse(
-        (_REPO_ROOT / "tools" / "engine_api" / "extractor.py").read_text(
+        (_REPO_ROOT / "vibe_cading" / "tools" / "engine_api" / "extractor.py").read_text(
             encoding="utf-8"
         )
     )
@@ -690,12 +690,12 @@ def test_extractor_imports_are_pure_stdlib():
 def test_gen_check_green_and_deterministic():
     """Row 14 (R5/R10): gen --check exits 0; two builds are byte-identical."""
     proc = subprocess.run(
-        [sys.executable, "tools/gen_engine_api.py", "--check"],
+        [sys.executable, "vibe_cading/tools/gen_engine_api.py", "--check"],
         cwd=_REPO_ROOT, capture_output=True, text=True,
     )
     assert proc.returncode == 0, proc.stderr
     # Two in-memory builds are byte-identical (determinism).
-    from tools.gen_engine_api import _build_payload, _serialize
+    from vibe_cading.tools.gen_engine_api import _build_payload, _serialize
     a = _serialize(_build_payload(_REPO_ROOT))
     b = _serialize(_build_payload(_REPO_ROOT))
     assert a == b

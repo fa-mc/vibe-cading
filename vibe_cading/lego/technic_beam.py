@@ -20,7 +20,7 @@ from vibe_cading.lego.constants import (
     BEAM_END_RADIUS,
     BEAM_THICKNESS,
     BEAM_WIDTH,
-    DEFAULT_LEAD_IN,
+    LEAD_IN,
     STUD_PITCH,
 )
 from vibe_cading.lego.cutters.technic_pin_hole import TechnicPinHole
@@ -212,7 +212,7 @@ class LegoTechnicBeam:
             f"translation-Z sign wrong (0 edges → cutter outside beam) or selector "
             f"predicate drifted (radius/z tolerances)."
         )
-        body = body.edges(chamfer_selector).chamfer(DEFAULT_LEAD_IN)
+        body = body.edges(chamfer_selector).chamfer(LEAD_IN)
 
         # ── Step 5: FR16 single-solid topological guard ──────────────────────
         solid_count = len(body.solids().vals())

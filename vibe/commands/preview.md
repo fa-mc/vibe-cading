@@ -1,12 +1,12 @@
 ---
-description: Run tools/preview.py for a model class and inspect the resulting SVGs
+description: Run vibe_cading/tools/preview.py for a model class and inspect the resulting SVGs
 argument-hint: <module.path.ClassName> [--views top front left ...] [--params key=value ...]
 ---
 
 Run the orthographic preview pipeline for the model `$ARGUMENTS` exactly as documented in `vibe/INSTRUCTIONS.md` under "Asset Validation":
 
 ```
-python3 tools/preview.py $ARGUMENTS
+python3 vibe_cading/tools/preview.py $ARGUMENTS
 ```
 
 Then:

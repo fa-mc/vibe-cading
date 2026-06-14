@@ -68,7 +68,7 @@ too; enforce them on the other roles when they slip.
    for the design brief (with its visual-contract SVG for CAD geometry), pull in
    the **TL** when the work is architecturally significant (a new shared
    abstraction, a `cq_utils`/base-class change, a cross-cutting refactor, a
-   `tools/` CLI rewrite), then hand to the **Developer** for implementation. For a
+   `vibe_cading/tools/` CLI rewrite), then hand to the **Developer** for implementation. For a
    trivial task, transition directly to the appropriate worker role. Never add a
    `[[build]]` entry to `build.toml` without explicit user approval.
 

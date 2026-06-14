@@ -53,7 +53,7 @@ per-clone scratch (git-ignored, except for `.claude/settings.json`).
 To populate `.claude/agents/` and `.claude/commands/` with runtime aliases
 that delegate to the canonical content under `vibe/`, run:
 
-    tools/init-claude-runtime.sh
+    vibe_cading/tools/init-claude-runtime.sh
 
 This script is idempotent and safe to re-run. Run it after every fresh clone,
 and again after editing any file under `vibe/agents/` or `vibe/commands/` so
@@ -66,4 +66,4 @@ Steps 1–2 of workspace initialization are described in
 session specifically, also run step 3:
 
 3. Seed the per-clone `.claude/` runtime aliases by running
-   `tools/init-claude-runtime.sh` (see *`.claude/` runtime aliases* above).
+   `vibe_cading/tools/init-claude-runtime.sh` (see *`.claude/` runtime aliases* above).

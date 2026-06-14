@@ -35,11 +35,13 @@ import sys
 from pathlib import Path
 
 # Same sys.path shim as ``gen_engine_api.py`` so direct invocation works.
-_REPO_ROOT = Path(__file__).resolve().parent.parent
+_REPO_ROOT = Path(__file__).resolve().parent.parent.parent
 if str(_REPO_ROOT) not in sys.path:
     sys.path.insert(0, str(_REPO_ROOT))
 
-from tools.engine_api.extractor import SCHEMA_VERSION  # noqa: E402
+from vibe_cading.tools.engine_api.extractor import (  # noqa: E402
+    SCHEMA_VERSION,
+)  # noqa: E402
 
 _VALID_KINDS = {"init", "classmethod", "factory"}
 # Allowed values for a param's ``units`` field. ``None`` means "no unit
@@ -304,8 +306,8 @@ def main(argv: list[str] | None = None) -> int:
     parser.add_argument(
         "--path",
         type=Path,
-        default=_REPO_ROOT / "engine_api.json",
-        help="Path to engine_api.json (default: <repo>/engine_api.json).",
+        default=_REPO_ROOT / "vibe_cading" / "engine_api.json",
+        help="Path to engine_api.json (default: <repo>/vibe_cading/engine_api.json).",
     )
     args = parser.parse_args(argv)
 

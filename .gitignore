@@ -44,3 +44,4 @@ machine_profiles_user.json
 build/
 dist/
 .eggs/
+vibe_cading/__commit__.py

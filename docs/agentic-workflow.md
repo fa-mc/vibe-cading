@@ -8,7 +8,7 @@ This project uses a structured workflow for complex tasks. Four **Contributor Ro
 |---|---|---|
 | **Admin** | Contributor | Workflow governance and the instruction set (`vibe/INSTRUCTIONS.md`, role files, docs, and the active host instruction file — e.g. `CLAUDE.md` for Claude Code). Clarifies requirements, runs mid-session interventions, initiates the design flow, and orchestrates wrap-ups. Diagnoses and routes; does not write model code, design briefs, or architectural blueprints. Surfaces policy-level changes to the human for sign-off. |
 | **Designer** | Contributor | Domain reasoning and brainstorming. Pre-digests reference material, resolves design ambiguity, chooses dimensions and constraints. Produces a design brief — *what* to build and *why*. Reviews Developer output against acceptance criteria. |
-| **TL** | Contributor | Code/system architecture: shared abstractions, component boundaries, base-class and `Protocol`/`ABC` contracts, cross-cutting refactors, `tools/` CLI design, and post-implementation architectural review. **Invoked for architecturally-significant work only** — a new shared abstraction, a `cq_utils.py` / base-class change, a refactor spanning multiple model families. Everyday single-part creation flows Designer → Developer without it. |
+| **TL** | Contributor | Code/system architecture: shared abstractions, component boundaries, base-class and `Protocol`/`ABC` contracts, cross-cutting refactors, `vibe_cading/tools/` CLI design, and post-implementation architectural review. **Invoked for architecturally-significant work only** — a new shared abstraction, a `cq_utils.py` / base-class change, a refactor spanning multiple model families. Everyday single-part creation flows Designer → Developer without it. |
 | **Developer** | Contributor | Per-part code structure (classes, methods, build pipeline). Implements the design brief, runs analysis tools, validates output. Escalates design blockers to the Designer and architecturally-significant decisions to the TL. |
 
 ## Phases
@@ -49,7 +49,7 @@ This project uses a structured workflow for complex tasks. Four **Contributor Ro
 
 ## Invoking Roles
 
-Each contributor role's canonical persona is tracked under `vibe/agents/` (tool-neutral). For Claude Code, `tools/init-claude-runtime.sh` regenerates per-clone runtime aliases at `.claude/agents/<name>.md` that delegate back to the canonical content; the `.claude/` tree itself is git-ignored. For Google Antigravity (agy), you can define a subagent dynamically by loading the system prompt from the canonical file. The four roles below are shipped; **PM** (backlog prioritisation) is intentionally not shipped — the human contributor drives it. The human also remains the final acceptance authority for merges and project policy.
+Each contributor role's canonical persona is tracked under `vibe/agents/` (tool-neutral). For Claude Code, `vibe_cading/tools/init-claude-runtime.sh` regenerates per-clone runtime aliases at `.claude/agents/<name>.md` that delegate back to the canonical content; the `.claude/` tree itself is git-ignored. For Google Antigravity (agy), you can define a subagent dynamically by loading the system prompt from the canonical file. The four roles below are shipped; **PM** (backlog prioritisation) is intentionally not shipped — the human contributor drives it. The human also remains the final acceptance authority for merges and project policy.
 
 | Role | Canonical persona | How to invoke (Claude Code) | How to invoke (Google Antigravity) |
 |---|---|---|---|

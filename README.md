@@ -10,7 +10,7 @@ Models are built with AI assistance via [Claude Code](https://claude.com/claude-
 agent personas and slash commands live under [vibe/agents/](vibe/agents/) and
 [vibe/commands/](vibe/commands/) (tracked, tool-neutral); the runtime
 `.claude/` or `.agents/skills/` trees are per-clone scratch, populated by
-[tools/init-claude-runtime.sh](tools/init-claude-runtime.sh) or [tools/init-agy-runtime.sh](tools/init-agy-runtime.sh) respectively.
+[vibe_cading/tools/init-claude-runtime.sh](vibe_cading/tools/init-claude-runtime.sh) or [vibe_cading/tools/init-agy-runtime.sh](vibe_cading/tools/init-agy-runtime.sh) respectively.
 
 ---
 
@@ -69,8 +69,8 @@ please initialize the project
 ```
 
 The agent will read the onboarding instructions, create the local `tmp/` and `.agents/plans/` folders for tool analysis, copy `print_profiles.json.example` → `print_profiles_user.json` so you can configure your manufacturing tolerance profiles, and run the appropriate host-platform scaffolder:
-- For **Claude Code**: runs `tools/init-claude-runtime.sh` to populate the per-clone `.claude/` runtime aliases (discovering subagents and slash commands).
-- For **Google Antigravity**: runs `tools/init-agy-runtime.sh` to populate the per-clone `.agents/skills/` runtime skills.
+- For **Claude Code**: runs `vibe_cading/tools/init-claude-runtime.sh` to populate the per-clone `.claude/` runtime aliases (discovering subagents and slash commands).
+- For **Google Antigravity**: runs `vibe_cading/tools/init-agy-runtime.sh` to populate the per-clone `.agents/skills/` runtime skills.
 
 > Four contributor roles are shipped under `vibe/agents/`: `admin` (workflow governance & instruction maintenance), `designer` (domain reasoning & design briefs), `tl` (code architecture & shared-contract stewardship — invoked for architecturally-significant work only), and `developer` (per-part implementation & validation). Only the **PM** role (backlog prioritisation) is not shipped — the human contributor drives it, and remains the final acceptance authority for merges and project policy above all shipped roles. Maintainers who prefer a dedicated PM agent can load their own persona from `~/.claude/`.
 
@@ -121,7 +121,7 @@ param_a = 10.0
 param_b = 5.0
 ```
 
-4. Iterate locally with `python3 tools/preview.py <module.path.YourClass>` (orthographic SVGs) or `python3 tools/view.py <module.path.YourClass>` (live OCP CAD Viewer on port 3939). Run `python build.py` to verify the registered output.
+4. Iterate locally with `python3 vibe_cading/tools/preview.py <module.path.YourClass>` (orthographic SVGs) or `python3 vibe_cading/tools/view.py <module.path.YourClass>` (live OCP CAD Viewer on port 3939). Run `python build.py` to verify the registered output.
 
 ---
 
@@ -149,8 +149,8 @@ Key constants are centralised in [`vibe_cading/lego/constants.py`](vibe_cading/l
 
 > **TL;DR for new contributors.** The shipped `print_profiles.json` is a *starting point*, not a contract. After cloning:
 > 1. Copy `print_profiles.json.example` → `print_profiles_user.json` (the workspace initializer does this).
-> 2. Export the axle gauge to STEP and slice/print it on your machine: `python3 tools/view.py vibe_cading.lego.axle_hole_gauge.AxleHoleGauge --export tmp/axle_gauge.step` (preview first with `tools/preview.py … --views iso_ne` if you want to confirm it looks right).
-> 3. Run `python3 tools/calibrate.py slip` — it writes the measured `slip.radial` into your gitignored `print_profiles_user.json`.
+> 2. Export the axle gauge to STEP and slice/print it on your machine: `python3 vibe_cading/tools/view.py vibe_cading.lego.axle_hole_gauge.AxleHoleGauge --export tmp/axle_gauge.step` (preview first with `vibe_cading/tools/preview.py … --views iso_ne` if you want to confirm it looks right).
+> 3. Run `python3 vibe_cading/tools/calibrate.py slip` — it writes the measured `slip.radial` into your gitignored `print_profiles_user.json`.
 > 4. Set `PRINT_PROFILE=<your_profile>` in `.env` (defaults to `fdm_standard`).
 >
 > `slip.radial` is the one knob almost everyone re-tunes; `free` and `press` defaults work for most FDM printers out of the box.
@@ -174,14 +174,14 @@ For the full taxonomy reference — what each fit grade (`free` / `slip` / `pres
 
 The resolved `slip` grade then carries `radial = 0.11` (your override) together with `axial = 0.20` and `slot = 0.10` inherited from the shipped `fdm_standard`. A typo'd leaf key (e.g. `radail`) is silently ignored downstream — the resolved tolerance falls back to the shipped value. A `null` override (e.g. `{"slot": null}`) is rejected with a clear error rather than silently zeroing.
 
-**Calibration helper.** Once you've printed a calibration gauge, run `python3 tools/calibrate.py` to write the calibrated value directly into your `print_profiles_user.json`:
+**Calibration helper.** Once you've printed a calibration gauge, run `python3 vibe_cading/tools/calibrate.py` to write the calibrated value directly into your `print_profiles_user.json`:
 
 ```bash
-python3 tools/calibrate.py                  # walk free.radial → press.radial
-python3 tools/calibrate.py free             # calibrate only free.radial
-python3 tools/calibrate.py press            # calibrate only press.radial
-python3 tools/calibrate.py slip             # opt-in: calibrate slip.radial (Lego axle)
-python3 tools/calibrate.py free --diameter 3.30 --yes \
+python3 vibe_cading/tools/calibrate.py                  # walk free.radial → press.radial
+python3 vibe_cading/tools/calibrate.py free             # calibrate only free.radial
+python3 vibe_cading/tools/calibrate.py press            # calibrate only press.radial
+python3 vibe_cading/tools/calibrate.py slip             # opt-in: calibrate slip.radial (Lego axle)
+python3 vibe_cading/tools/calibrate.py free --diameter 3.30 --yes \
     --profile bambu_p1s__pla_overture       # one-shot non-interactive
 ```
 
@@ -195,12 +195,13 @@ v1 calibratable knobs and their default gauges:
 | `press.radial`| `MThreeNutPocketGauge` (M3 nut press-fit pocket)                      | `MetricHexNut.DIMENSIONS["M3"]["width_flats"] = 5.5 mm` |
 | `slip.radial` | `AxleHoleGauge` (Lego axle slip fit — opt-in via `slip` subcommand)   | `AXLE_HOLE_TIP_TO_TIP = 4.80 mm`                      |
 
-Print the gauge first with `python3 tools/preview.py <module.path.GaugeClass> --views iso_ne` to see what you're going to print, then run the matching `tools/calibrate.py <knob>`. For the slip-fit calibration procedure (axle judging criteria), see [docs/lego-technic.md](docs/lego-technic.md) > *Tuning Tolerances*.
+Print the gauge first with `python3 vibe_cading/tools/preview.py <module.path.GaugeClass> --views iso_ne` to see what you're going to print, then run the matching `vibe_cading/tools/calibrate.py <knob>`. For the slip-fit calibration procedure (axle judging criteria), see [docs/lego-technic.md](docs/lego-technic.md) > *Tuning Tolerances*.
 
 ---
 
 ## License
 
 [AGPLv3](LICENSE). See [LICENSE-FAQ.md](LICENSE-FAQ.md) for a plain-language
-guide to what AGPLv3 means for printing parts, forking the library, running it
-as a network service, and the relationship to the CLA.
+guide to what this means for your projects.
+
+For commercial or closed-source use cases that are incompatible with AGPLv3, dual-licensing is available. Contact licensing@vibe-cading.com for details.

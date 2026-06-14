@@ -70,7 +70,7 @@ from typing import Any
 # any cwd (mirrors build.py:24). Required when invoked via
 # ``python tools/calibrate.py …`` without PYTHONPATH set — most notably
 # by tests/tools/test_calibrate.py which subprocess.runs the --help path.
-_REPO_ROOT = Path(__file__).resolve().parent.parent
+_REPO_ROOT = Path(__file__).resolve().parent.parent.parent
 if str(_REPO_ROOT) not in sys.path:
     sys.path.insert(0, str(_REPO_ROOT))
 

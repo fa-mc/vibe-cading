@@ -60,7 +60,7 @@ import OCP.GProp as gprop
 from OCP.TopAbs import TopAbs_FACE, TopAbs_EDGE, TopAbs_VERTEX, TopAbs_WIRE
 from OCP.TopExp import TopExp_Explorer
 
-from tools.step_primitives import StepLoadError, load_step
+from vibe_cading.tools.step_primitives import StepLoadError, load_step
 
 
 def _count_shapes(occ_shape, shape_type) -> int:

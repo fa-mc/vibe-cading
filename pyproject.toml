@@ -1,0 +1,25 @@
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[project]
+name = "vibe_cading"
+version = "0.1.0"
+description = "Vibe-cading CAD engine"
+readme = "README.md"
+requires-python = ">=3.10"
+dependencies = [
+    "cadquery",
+]
+
+[tool.hatch.build.hooks.custom]
+path = "hatch_build.py"
+
+[tool.hatch.build.targets.wheel]
+packages = ["vibe_cading"]
+
+[tool.hatch.build.targets.sdist]
+include = [
+    "/vibe_cading",
+    "/hatch_build.py",
+]

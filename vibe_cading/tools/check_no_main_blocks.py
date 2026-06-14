@@ -25,6 +25,9 @@ nodes and fails non-zero on the literal AST shape
 
 ``experiments/`` is intentionally not walked — it holds R&D code that may
 keep ad-hoc execution entry points outside the OSS surface contract.
+The ``vibe_cading/tools/`` subtree is likewise excluded: those are the
+sanctioned CLI entry points and legitimately carry ``__main__`` guards
+(they lived outside ``vibe_cading/`` before the pip-package refactor).
 
 Stdlib-only.  AST (not regex) so string literals inside docstrings or
 example blocks do not false-positive.
@@ -54,13 +57,23 @@ def _is_main_guard(node: ast.AST) -> bool:
     return left_is_name and right_is_main
 
 
-def find_violations(roots: list[pathlib.Path]) -> list[pathlib.Path]:
-    """Return the list of model files containing a top-level main guard."""
+def find_violations(
+    roots: list[pathlib.Path],
+    exclude: list[pathlib.Path] | None = None,
+) -> list[pathlib.Path]:
+    """Return the list of model files containing a top-level main guard.
+
+    Paths under any directory in *exclude* are skipped — see :func:`main` for
+    the ``vibe_cading/tools/`` carve-out (sanctioned CLI entry points).
+    """
+    exclude = exclude or []
     bad: list[pathlib.Path] = []
     for root in roots:
         if not root.exists():
             continue
         for path in sorted(root.rglob("*.py")):
+            if any(path.is_relative_to(ex) for ex in exclude):
+                continue
             try:
                 tree = ast.parse(path.read_text(encoding="utf-8"), filename=str(path))
             except SyntaxError as exc:                      # pragma: no cover
@@ -73,9 +86,16 @@ def find_violations(roots: list[pathlib.Path]) -> list[pathlib.Path]:
 
 
 def main() -> int:
-    repo_root = pathlib.Path(__file__).resolve().parent.parent
+    repo_root = pathlib.Path(__file__).resolve().parent.parent.parent
     roots = [repo_root / "vibe_cading", repo_root / "parts"]
-    violations = find_violations(roots)
+    # vibe_cading/tools/ holds the sanctioned CLI entry points (preview, view,
+    # calibrate, the check_* scripts, …).  They are *meant* to be runnable as
+    # ``python -m vibe_cading.tools.<name>`` / ``python vibe_cading/tools/<name>.py``
+    # and so legitimately carry ``if __name__ == "__main__":`` guards.  The
+    # no-main-block rule targets model class files, not the tools — which lived
+    # outside vibe_cading/ (and were never scanned) before the pip-package move.
+    exclude = [repo_root / "vibe_cading" / "tools"]
+    violations = find_violations(roots, exclude)
     if violations:
         print("Forbidden `if __name__ == \"__main__\":` blocks found in:")
         for v in violations:

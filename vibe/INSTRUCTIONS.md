@@ -5,7 +5,7 @@ These instructions form the foundational, project-agnostic rules for all AI agen
 This file is the **tool-neutral** canonical instruction set for vibe-cading. Each AI-coding host (Claude Code, GitHub Copilot, Cursor, Aider, etc.) loads it through whatever import or pointer mechanism the host provides; host-specific mechanisms (subagent invocation, slash-command paths, runtime alias scaffolding) live in the host's own instruction file (e.g. `CLAUDE.md`).
 
 **Provider-neutral by design.** Concretely: the whole `vibe/` tree — this file plus `vibe/agents/`, `vibe/commands/`, and `vibe/templates/` — is the host-agnostic source every agent onboards from, and the root [`AGENTS.md`](../AGENTS.md) is the universal entry point that routes here. Two rules follow:
-- **Onboarding (every agent, every host):** treat the neutral `vibe/` content as the project requirements. Anything host-specific — a host's subagent/slash-command/skills mechanics, the `.claude/` tree or the `.agents/skills/` directory, `tools/init-claude-runtime.sh` or `tools/init-agy-runtime.sh` — is *that one host's* implementation detail: use it only if it is **your** host's, otherwise ignore it. You are not missing a requirement by skipping another host's glue.
+- **Onboarding (every agent, every host):** treat the neutral `vibe/` content as the project requirements. Anything host-specific — a host's subagent/slash-command/skills mechanics, the `.claude/` tree or the `.agents/skills/` directory, `vibe_cading/tools/init-claude-runtime.sh` or `vibe_cading/tools/init-agy-runtime.sh` — is *that one host's* implementation detail: use it only if it is **your** host's, otherwise ignore it. You are not missing a requirement by skipping another host's glue.
 - **Authoring (whoever edits the instruction graph):** keep the `vibe/` tree free of *unlabeled* host-specific references. Cite `vibe/INSTRUCTIONS.md` — never `CLAUDE.md` — as the home of conventions and procedures. Any concrete host artifact (`CLAUDE.md`, `~/.claude/`, a host's `Agent`/`Task` tool, a `/`-command or skill) must either live in that host's own file or appear as an explicitly **labeled** example ("for Claude Code: …"). Cross-host-generic terms (an agent / "subagent" spawn, an `@role` mention) are fine. Host-specific setup steps belong in the host file, not baked into a neutral procedure.
 
 Project-specific instructions further down inherit from and build upon the universal rules.
@@ -21,9 +21,9 @@ Project-specific instructions further down inherit from and build upon the unive
 - **Strict File Placement (No Root Clutter):** NEVER create temporary, test, debug, validation, or patch scripts (e.g., `test_*.py`, `temp.js`, `foo.txt`) in the root directory. ALL ad-hoc scripts MUST be created and executed inside a dedicated `tmp/` or `.agents/tmp/` folder.
 - **No Inline-Code-in-Shell Workflows:** Treat inline-code execution via shell flags (e.g. `python3 -c`, `node -e`, `bash -c` with embedded script bodies) as disallowed for normal agent workflows. Write a full script into `tmp/` first and run it cleanly. Do not combine inline code with pipes, shell redirects, or complex quoting — these are a reliable source of quoting bugs, partial execution, and silently truncated logic.
 - **Configuration Protection:** NEVER delete, rename, or autonomously modify `.env` or user-local configuration files (even if untracked by git) unless explicitly instructed.
-- **No Agent Memory Stash:** Do not store user-requested files, deliverables, or repository assets in internal agent memory paths. Put requested outputs in the workspace paths the user asked for (typically under `tmp/`, `vibe_cading/`, `parts/`, or `tools/`).
+- **No Agent Memory Stash:** Do not store user-requested files, deliverables, or repository assets in internal agent memory paths. Put requested outputs in the workspace paths the user asked for (typically under `tmp/`, `vibe_cading/`, `parts/`, or `vibe_cading/tools/`).
 - **Tool Cleanliness:** Clean up any temporary refactoring scripts, downloaded manuals, or research junction files as soon as the task is successfully applied.
-- **Utility Reuse:** Before writing a new helper, validation script, or geometric primitive, inspect the workspace for an existing reusable utility. The canonical locations are `tools/` (CLI utilities — preview, section_slicer, hole_finder, etc.) and `vibe_cading/cq_utils.py` (CadQuery primitives shared across model classes). Save frequently-needed helpers there rather than duplicating them inline in model files or leaving them under `tmp/`.
+- **Utility Reuse:** Before writing a new helper, validation script, or geometric primitive, inspect the workspace for an existing reusable utility. The canonical locations are `vibe_cading/tools/` (CLI utilities — preview, section_slicer, hole_finder, etc.) and `vibe_cading/cq_utils.py` (CadQuery primitives shared across model classes). Save frequently-needed helpers there rather than duplicating them inline in model files or leaving them under `tmp/`.
 - **Git Commits:** Do not commit changes using git unless specifically asked to in the **current user prompt**. A request to commit in a previous turn does **not** carry over to subsequent tasks. Always ask for confirmation before committing.
 - **Scoped Staging:** NEVER use `git add .`, `git add -A`, or `git commit -a` unless explicitly instructed. Always stage with `git add <specific_file_path>` for only the files modified for the current task. Broad staging sweeps accidentally capture sensitive files (`.env`, `print_profiles_user.json`), large binaries (STEP / STL outputs under `build/`), or unrelated in-progress work from parallel streams.
 - **TODO direct-push carve-out:** Commits touching only `TODO.md` (backlog / follow-up tracking entries) push directly to `origin/main` and skip the PR cycle. If the harness blocks direct-to-default-branch commits, commit on a tiny chore branch and fast-forward `main` to it before pushing. Substantive code changes still use the standard branch + PR + `pr-review-cycle` flow — this carve-out is specifically for backlog-tracking docs.
@@ -56,10 +56,10 @@ Project-specific instructions further down inherit from and build upon the unive
   4. **If the probe disconfirms the hypothesis, return to step 1** at the next-most-relevant code location. Do NOT iterate probe variations on a falsified hypothesis — that is a tunnel-vision pattern in disguise.
   5. Hand off to architectural review with the RCA artifact before patching.
 - **Tunnel Vision Circuit-Breaker:** If you have edited the same file more than twice attempting to fix the same failing assertion, geometric mismatch, or boolean-cut artifact, STOP. Do not make a third edit. Re-derive the root cause from first principles or escalate. Repeated edits to the same file are a reliable signal the hypothesis is wrong.
-- **Fast-Feedback Gate:** NEVER use `python build.py` (full model-tree rebuild) or `boolean_diff.py` against a full reference STEP as iterative debugging tools. First isolate the root cause using fast, targeted tools — `tools/preview.py <module.path.ClassName>` for a single class, `tools/section_slicer.py` for an internal cavity, or a `tmp/` probe that exercises just the failing primitive. Only run the full build / volume diff as a single-pass final verification once the fix is confirmed by a fast tool.
-- **Representative-Scale Verification (Pre-Merge Final Pass):** When a task ships a new model class, a change to `build.toml`-registered geometry, or a tool whose only true exercise is the **full model-tree rebuild** (`python build.py`) or a **full-reference volume diff** (`tools/boolean_diff.py` against a complete reference STEP), the design's Tests table MUST include at least one **pre-merge** row that runs that real path once — exercising the actual build pipeline / full-volume comparison, not just the fast single-class `preview.py` / `section_slicer.py` probes used during iteration. Fast targeted tools (per the Fast-Feedback Gate above) are necessary for iteration but NOT sufficient for sign-off: they bypass the build-manifest wiring, cross-class union seams, and full-volume residuals that only surface at whole-tree scale. A *post-merge* full build does NOT substitute — deferring the only full-scale exercise to post-merge means a merged model carries unquantified build-integration and volume-fidelity risk. This is the final-verification complement of the Fast-Feedback Gate: that rule forbids the full build as an *iterative* tool; this rule requires it as the *single-pass pre-merge gate*.
-- **Entry-Point Full-Execution Probe (contract-grounding scale check):** When a requirements or design artifact asserts a wall-time / memory / build-time / CI-step-duration budget at a **named entry point** — a CLI such as `tools/calibrate.py --help`, the full `python build.py` rebuild, a CI step, or any `tools/*.py` command — the probe that *grounds* that budget MUST measure the entry point's **actual command end-to-end** (run the real invocation once on a minimal-but-realistic input and report total cost), NOT a decomposition of its components. A probe that times one component in isolation (a single import, one helper call, a stratified sample of an inner function) and then *sums or extrapolates* to a budget is structurally unsound: the measured component can pass cleanly while an un-measured sibling cost — a different layer of the call chain, import-cascade or arg-parse overhead, per-iteration work outside the sampled function — dominates the entry point's real cost, so the human signs off on a budget that was never measured against the path it constrains. Run this probe **before** the budget is locked at the requirements-approval gate, not deferred to implementation. This is the *contract-grounding* sibling of **Representative-Scale Verification** above (which requires the Tests-table row to exercise the real full-scale path before merge) and the lifecycle-earlier complement of the **Fast-Feedback Gate** (which forbids the slow full path only as an *iterative debugging* tool): a fast targeted probe is fine for mechanism choice during discovery, but it cannot be the sole evidence behind a budget claim at a named entry point. *(Concrete vibe-cading shape: a `--help` "Runtime budget" is grounded by timing the real `python3 tools/<tool>.py --help` command — which is why such a tool lazy-imports CadQuery so `--help` skips the import cascade — not by timing the module import in isolation; a `python build.py` rebuild-time budget is grounded by one real full-tree build, not by summing per-class `preview.py` times.)*
-- **Wire-Format Contract Verification:** Before writing code that consumes STEP-analysis output (`tools/face_catalog.py --json`, `tools/hole_finder.py --json`), `tools/engine_api/` contracts, or any external library output, first verify the exact wire format by running the producer once against a known input and reading the raw output. Never assume field names, axis conventions, or feature counts from documentation alone — always confirm from live output.
+- **Fast-Feedback Gate:** NEVER use `python build.py` (full model-tree rebuild) or `boolean_diff.py` against a full reference STEP as iterative debugging tools. First isolate the root cause using fast, targeted tools — `vibe_cading/tools/preview.py <module.path.ClassName>` for a single class, `vibe_cading/tools/section_slicer.py` for an internal cavity, or a `tmp/` probe that exercises just the failing primitive. Only run the full build / volume diff as a single-pass final verification once the fix is confirmed by a fast tool.
+- **Representative-Scale Verification (Pre-Merge Final Pass):** When a task ships a new model class, a change to `build.toml`-registered geometry, or a tool whose only true exercise is the **full model-tree rebuild** (`python build.py`) or a **full-reference volume diff** (`vibe_cading/tools/boolean_diff.py` against a complete reference STEP), the design's Tests table MUST include at least one **pre-merge** row that runs that real path once — exercising the actual build pipeline / full-volume comparison, not just the fast single-class `preview.py` / `section_slicer.py` probes used during iteration. Fast targeted tools (per the Fast-Feedback Gate above) are necessary for iteration but NOT sufficient for sign-off: they bypass the build-manifest wiring, cross-class union seams, and full-volume residuals that only surface at whole-tree scale. A *post-merge* full build does NOT substitute — deferring the only full-scale exercise to post-merge means a merged model carries unquantified build-integration and volume-fidelity risk. This is the final-verification complement of the Fast-Feedback Gate: that rule forbids the full build as an *iterative* tool; this rule requires it as the *single-pass pre-merge gate*.
+- **Entry-Point Full-Execution Probe (contract-grounding scale check):** When a requirements or design artifact asserts a wall-time / memory / build-time / CI-step-duration budget at a **named entry point** — a CLI such as `vibe_cading/tools/calibrate.py --help`, the full `python build.py` rebuild, a CI step, or any `vibe_cading/tools/*.py` command — the probe that *grounds* that budget MUST measure the entry point's **actual command end-to-end** (run the real invocation once on a minimal-but-realistic input and report total cost), NOT a decomposition of its components. A probe that times one component in isolation (a single import, one helper call, a stratified sample of an inner function) and then *sums or extrapolates* to a budget is structurally unsound: the measured component can pass cleanly while an un-measured sibling cost — a different layer of the call chain, import-cascade or arg-parse overhead, per-iteration work outside the sampled function — dominates the entry point's real cost, so the human signs off on a budget that was never measured against the path it constrains. Run this probe **before** the budget is locked at the requirements-approval gate, not deferred to implementation. This is the *contract-grounding* sibling of **Representative-Scale Verification** above (which requires the Tests-table row to exercise the real full-scale path before merge) and the lifecycle-earlier complement of the **Fast-Feedback Gate** (which forbids the slow full path only as an *iterative debugging* tool): a fast targeted probe is fine for mechanism choice during discovery, but it cannot be the sole evidence behind a budget claim at a named entry point. *(Concrete vibe-cading shape: a `--help` "Runtime budget" is grounded by timing the real `python3 vibe_cading/tools/<tool>.py --help` command — which is why such a tool lazy-imports CadQuery so `--help` skips the import cascade — not by timing the module import in isolation; a `python build.py` rebuild-time budget is grounded by one real full-tree build, not by summing per-class `preview.py` times.)*
+- **Wire-Format Contract Verification:** Before writing code that consumes STEP-analysis output (`vibe_cading/tools/face_catalog.py --json`, `vibe_cading/tools/hole_finder.py --json`), `vibe_cading/tools/engine_api/` contracts, or any external library output, first verify the exact wire format by running the producer once against a known input and reading the raw output. Never assume field names, axis conventions, or feature counts from documentation alone — always confirm from live output.
 - **Cross-Host Reproducibility Verification:** A `committed == regenerable` gate (the visual-contract freshness check, or any check that regenerates an artifact and byte-compares it against a committed file) MUST be certified on a **different host or in CI** — NOT only in a clean `git worktree` on the same machine. A clean worktree neutralizes gitignored *local files* (`.env`, `print_profiles_user.json`) but still shares the host's fonts, freetype, and OCCT build, so any artifact whose bytes depend on the *host environment* — notably `cq.Workplane.text()` glyph tessellation — reproduces falsely (passes locally, drifts in CI). The committed artifact must be a pure function of *tracked* repo state; if a byte differs by host, that input does not belong in the byte-compared artifact (e.g. render visual contracts label-free — see the §Visual Contract Deliverable *Host-dependent rendering* note). *(Rationale: PR #19's freshness check passed 9/9 in a same-container clean worktree but failed 6/9 in CI — host-font glyph drift, not a real regression.)*
 - **Debugging Anti-Loop Rule:** NEVER get trapped in blind retry loops (e.g., repeated test timeouts). If an operation fails iteratively, drop down to faster, isolated scripts or unit tests to inspect the exact data layer. Stop brute-forcing and fundamentally evaluate the root cause.
 - **No Duct-Tape Fixes:** Do not apply hacky patches to dodge systemic issues (e.g., raw pip installs to bypass container environments). Fix issues definitively at the core codebase or architectural level only after the root cause is irrefutably proven.
@@ -103,6 +103,7 @@ This workspace utilizes a structured, multi-role agentic workflow.
 - **Proactive Escalation:** If you are blocked by undocumented behavior, face repeated failures, or identify a systematic gap in prompt instructions, seamlessly halt and escalate to the **User (Admin)** for clarification and to patch the workflow/knowledge gap. Do not guess.
 - **Principled-Over-Expedient Path Default:** For a path/routing choice between a more principled option and a more expedient one — independent fresh-context review vs in-place review, full Designer design-flow vs a direct code edit, isolated branch + PR vs editing `main` in place, writing a requirements/design brief first vs jumping straight to implementation — default to the more principled path whenever the cost gap is small (rule of thumb: ≤ ~1 hour extra wall-clock, no material new resource cost). Declare the choice and proceed; do not pause to ask. Pause and surface the choice only when ANY of these fire: (a) a materially large cost gap; (b) an irreversible action; (c) genuinely ambiguous scope; (d) a choice affecting shared state; (e) an explicit human gate (e.g. design-brief user approval). The user already made the principled-vs-expedient meta-call by adopting this workflow — do not re-litigate it per decision.
 - **Conserve Context Window:** Treat the orchestrator's token budget AND the user's per-message cognitive load as scarce resources; at every routing and status-surface choice, prefer the leaner path. Concretely: (1) when a step needs verbose tool output — multi-file reads, log dumps, repeated STEP-analysis runs, more than ~2 chained tool calls — spawn a subagent to absorb it rather than carrying the raw output in the orchestrator (the Subagent Outcome Discipline above is the mechanism); (2) when extending an instruction or doc file, prefer a ≤1-line pointer to the authoritative section over restating its content inline; (3) when pinging the user at a decision point, give field-structured, <30-second-scannable status — never a dense ID dump or jargon-laden subagent summary passed through unmodified. These are positive design defaults, not anti-patterns to avoid. *Earns-its-keep exceptions:* cold-start rules every agent reads once per session, the triggering-incident note that explains why a rule exists, and structured summary fields that make a status ping more scannable — keep these even though they cost tokens.
+- **Never Leak Secrets:** Never copy-paste, echo, or embed literal secret values (like API keys, tokens, or passwords) into command-line invocations, tool arguments, or conversational text. This creates a severe security breach by exposing credentials in command histories, agent transcripts, and logs. Always parse and source secrets dynamically using safe shell mechanisms (e.g. `export $(grep GH_TOKEN .env | xargs) && gh ...`).
 
 
 # Project-Specific Instructions: Vibe-Cading
@@ -170,7 +171,7 @@ implement the brief.
 When initializing the project or workspace, you must:
 1. Create local `.gitignore`d directories if they don't exist (`tmp/`).
 2. Copy `print_profiles.json.example` to `print_profiles_user.json` so the user can configure their specific 3D printer tolerances.
-3. Run any host-platform-specific runtime scaffolder if your agent host requires one (e.g., for Claude Code: `tools/init-claude-runtime.sh`; for Google Antigravity: `tools/init-agy-runtime.sh` — see the host's or agent entry file for details).
+3. Run any host-platform-specific runtime scaffolder if your agent host requires one (e.g., for Claude Code: `vibe_cading/tools/init-claude-runtime.sh`; for Google Antigravity: `vibe_cading/tools/init-agy-runtime.sh` — see the host's or agent entry file for details).
 4. If you need to interact with GitHub (e.g. checking issues or PRs via `gh`), authenticate by extracting the `GH_TOKEN` from the `.env` file (e.g., `export $(grep GH_TOKEN .env | xargs) && gh ...`).
 
 ### Visual Contract Deliverable (CAD tasks)
@@ -182,10 +183,10 @@ A design artifact whose deliverable is a new CAD model class — or which change
 - `visual_contracts/<YYYY-MM-DD>-<task-slug>_design_top.svg` — additional view for hole-pattern-bearing or asymmetric geometry (optional but encouraged).
 - `visual_contracts/<YYYY-MM-DD>-<task-slug>_design_front.svg` — additional view for asymmetric profiles (optional).
 
-These SVGs are **git-tracked** inside the `visual_contracts/` directory (orthographic SVGs are ~20–165 KB each after the 3 dp coordinate-rounding pass in `tools/preview.py`; trivial storage, diffable, blame-able). The heavy tail (~120–165 KB) is multi-pocket sweep gauges with engraved `cq.Workplane.text()` labels — label glyphs tessellate into many curved edges, which dominates the file.
+These SVGs are **git-tracked** inside the `visual_contracts/` directory (orthographic SVGs are ~20–165 KB each after the 3 dp coordinate-rounding pass in `vibe_cading/tools/preview.py`; trivial storage, diffable, blame-able). The heavy tail (~120–165 KB) is multi-pocket sweep gauges with engraved `cq.Workplane.text()` labels — label glyphs tessellate into many curved edges, which dominates the file.
 
 **Generation mechanism.** The designer subagent generates the SVG by either:
-- **(a) Class already exists** — run `python3 tools/preview.py <module.path.Class> --params <key=value>... --views iso_ne` and copy the resulting SVG from `tmp/preview/` to the `visual_contracts/` directory.
+- **(a) Class already exists** — run `python3 vibe_cading/tools/preview.py <module.path.Class> --params <key=value>... --views iso_ne` and copy the resulting SVG from `tmp/preview/` to the `visual_contracts/` directory.
 - **(b) Class does not exist yet** — write a `tmp/visualise_<task-slug>.py` probe that constructs the proposed geometry using `cadquery` primitives, exports an iso-projection SVG via `cq.exporters.export(workplane, str(svg_path))`, and copy to the `visual_contracts/` directory. Clean up the probe after.
 
 **Embed in the design artifact.** Reference the SVG in the Architecture section immediately after the textual approach description, using a relative path:
@@ -196,12 +197,12 @@ These SVGs are **git-tracked** inside the `visual_contracts/` directory (orthogr
 
 **Gate enforcement.**
 - **Step 4 (human design gate)** MUST NOT proceed without at least the `_iso_ne.svg` embedded in the artifact. The human reviewer sees the geometry, not just numeric specs.
-- **Step 5 Phase A (developer impl)** MUST regenerate the SVG from the implemented class via `tools/preview.py` and overwrite the committed file as a final implementation task.
+- **Step 5 Phase A (developer impl)** MUST regenerate the SVG from the implemented class via `vibe_cading/tools/preview.py` and overwrite the committed file as a final implementation task.
 - **Step 5 Phase B (TL review)** MUST confirm the regenerated SVG visually matches the design's intent — gross geometry, axis convention, hole pattern. Minor differences from intermediate-construction artifacts are acceptable; axis/orientation/topology mismatches are blocking findings.
 
-**Freshness enforcement & canonical profile.** Every tracked `_design_*.svg` MUST be registered in [`visual_contracts.toml`](../visual_contracts.toml) with its source `(model, view, params)`. The CI `Visual contract freshness` step (`tools/check_visual_contract_freshness.py`) regenerates each registered contract and byte-compares it against the committed file (plus a coverage gate: any unregistered tracked design SVG fails CI), so the `committed == regenerable` invariant cannot silently break when a model class is refactored. **Contracts MUST be reproducible from tracked repo state alone**: they are rendered with the shipped default tolerance profile (`fdm_standard`), and the check **forces that profile** (env-neutralized) so a contributor's local `.env` `PRINT_PROFILE` / `print_profiles_user.json` calibration cannot make CI report false drift. When you legitimately change visible geometry, refresh and commit the new bytes in the same PR via `python3 tools/check_visual_contract_freshness.py --update`. *(Rationale: the 2026-06-01 freshness work found 5 contracts that had been rendered under a contributor's local `bambu_p1s` profile and were irreproducible in CI — see `docs/design_plans/2026-05-29-visual-contract-freshness_design.md`.)*
+**Freshness enforcement & canonical profile.** Every tracked `_design_*.svg` MUST be registered in [`visual_contracts.toml`](../visual_contracts.toml) with its source `(model, view, params)`. The CI `Visual contract freshness` step (`vibe_cading/tools/check_visual_contract_freshness.py`) regenerates each registered contract and byte-compares it against the committed file (plus a coverage gate: any unregistered tracked design SVG fails CI), so the `committed == regenerable` invariant cannot silently break when a model class is refactored. **Contracts MUST be reproducible from tracked repo state alone**: they are rendered with the shipped default tolerance profile (`fdm_standard`), and the check **forces that profile** (env-neutralized) so a contributor's local `.env` `PRINT_PROFILE` / `print_profiles_user.json` calibration cannot make CI report false drift. When you legitimately change visible geometry, refresh and commit the new bytes in the same PR via `python3 vibe_cading/tools/check_visual_contract_freshness.py --update`. *(Rationale: the 2026-06-01 freshness work found 5 contracts that had been rendered under a contributor's local `bambu_p1s` profile and were irreproducible in CI — see `docs/design_plans/2026-05-29-visual-contract-freshness_design.md`.)*
 
-**Host-dependent rendering — never byte-pin `cq.text()` in a contract.** `cq.Workplane.text()` glyph tessellation depends on the host's fontconfig-resolved font and freetype version (`font="Arial"` resolves to a host-specific binary), so it is **not** byte-reproducible between the CI runner and a contributor's clone — it must never be byte-pinned in a visual contract. A model that engraves labels MUST expose a `labels: bool = True` knob (default `True` preserves engravings for physical prints / `build.py` / `tools/view.py`), route the engraving through the shared `cq_utils.engraved_labels(...)` helper, and register its contract row with `labels = false` — so the contract pins host-independent **geometry** (block, holes/pockets, axis convention — what the contract exists to protect) rather than host-dependent glyph soup. *(Rationale: the 2026-06-02 freshness work — PR #19 — first failed CI on exactly the 6 text-bearing gauge contracts while the 3 text-free beam contracts reproduced; same OCCT version, so it was font drift, not a real regression.)*
+**Host-dependent rendering — never byte-pin `cq.text()` in a contract.** `cq.Workplane.text()` glyph tessellation depends on the host's fontconfig-resolved font and freetype version (`font="Arial"` resolves to a host-specific binary), so it is **not** byte-reproducible between the CI runner and a contributor's clone — it must never be byte-pinned in a visual contract. A model that engraves labels MUST expose a `labels: bool = True` knob (default `True` preserves engravings for physical prints / `build.py` / `vibe_cading/tools/view.py`), route the engraving through the shared `cq_utils.engraved_labels(...)` helper, and register its contract row with `labels = false` — so the contract pins host-independent **geometry** (block, holes/pockets, axis convention — what the contract exists to protect) rather than host-dependent glyph soup. *(Rationale: the 2026-06-02 freshness work — PR #19 — first failed CI on exactly the 6 text-bearing gauge contracts while the 3 text-free beam contracts reproduced; same OCCT version, so it was font drift, not a real regression.)*
 
 **Scope carve-outs.** Optional for: refactors, internal API changes, additive-only changes that don't alter visual outcome, instruction / config / tooling tasks. If you're uncertain whether a task changes visible geometry, default to including the SVG — the overhead (~1000 tokens, ~3 min per cycle, and a file in the ~20–165 KB range noted above — ~100 KB typical, the upper end being text-label sweep gauges) is small relative to the cost of an axis-convention error escaping to Phase D.
 
@@ -233,17 +234,17 @@ prevents untested or intermediate models from polluting the output tree.
 
 Model class files must **not** contain `ocp_vscode` imports or
 `if __name__ == "__main__":` viewer blocks.  Keep class files as pure class
-definitions.  This rule is **CI-enforced** via `tools/check_no_main_blocks.py`
+definitions.  This rule is **CI-enforced** via `vibe_cading/tools/check_no_main_blocks.py`
 (AST walker, runs in `.github/workflows/ci.yml`); a violating commit fails
 the lint step.  No `vibe_cading/**/*.py` or `parts/**/*.py` file may import
-`ocp_vscode` either — `tools/view.py` is the only sanctioned `ocp_vscode`
+`ocp_vscode` either — `vibe_cading/tools/view.py` is the only sanctioned `ocp_vscode`
 consumer.
 
-Use the dedicated `tools/view.py` entry point instead:
+Use the dedicated `vibe_cading/tools/view.py` entry point instead:
 
-    python3 tools/view.py <module.path.ClassName> [--params key=value ...]
-    python3 tools/view.py vibe_cading.rc.servo.sg90.Sg90Servo
-    python3 tools/view.py vibe_cading.rc.servo.sg90.Sg90Servo --params body_width=23.0
+    python3 vibe_cading/tools/view.py <module.path.ClassName> [--params key=value ...]
+    python3 vibe_cading/tools/view.py vibe_cading.rc.servo.sg90.Sg90Servo
+    python3 vibe_cading/tools/view.py vibe_cading.rc.servo.sg90.Sg90Servo --params body_width=23.0
 
 ### Class-scoped demos via `--demo` and `demo()` classmethod
 
@@ -265,29 +266,29 @@ def demo(cls, **kwargs) -> list[tuple[cq.Workplane, str, str]]:
 
 Trigger it with `--demo`:
 
-    python3 tools/view.py vibe_cading.mechanical.screws.metric.MetricMachineScrew --demo
-    python3 tools/view.py vibe_cading.mechanical.joints.snap_fit.CantileverSnapFit --demo
-    python3 tools/view.py <Class> --demo --export tmp/demo.step
+    python3 vibe_cading/tools/view.py vibe_cading.mechanical.screws.metric.MetricMachineScrew --demo
+    python3 vibe_cading/tools/view.py vibe_cading.mechanical.joints.snap_fit.CantileverSnapFit --demo
+    python3 vibe_cading/tools/view.py <Class> --demo --export tmp/demo.step
 
 Each returned tuple is `(solid, name, color)` — the same triple shape that
-`assemble()` returns; `tools/view.py` reuses the assembly path's palette
+`assemble()` returns; `vibe_cading/tools/view.py` reuses the assembly path's palette
 and positioning logic.  `--params key=value` is forwarded as `**kwargs`;
 demos that don't read parameters simply ignore them.
 
 **When to add a `demo()` classmethod:** add one only when a single-instance
-`tools/view.py <ClassName>` invocation is *insufficient* — i.e. the
+`vibe_cading/tools/view.py <ClassName>` invocation is *insufficient* — i.e. the
 demonstration genuinely needs a multi-instance comparison, a factory-built
 non-default configuration, helper-Workplane construction (e.g.
 `cq.Workplane().box(...).cut(joint.female())`), or a `to_cutter()` overlay
 beside its corresponding `.solid`.  Trivial single-instance demos do **not**
-earn a `demo()` — `tools/view.py <ClassName> [--params …]` already covers
+earn a `demo()` — `vibe_cading/tools/view.py <ClassName> [--params …]` already covers
 them, and adding a classmethod with one line of `cls()` ceremony is dead
 weight.
 
 **Signature contract:** `demo` MUST be a `@classmethod` with the exact
 signature `def demo(cls, **kwargs) -> list[tuple[cq.Workplane, str, str]]`.
 A class lacking `demo()` raises a helpful `AttributeError` from
-`view.py --demo`.  The name `demo` is reserved by `tools/engine_api/extractor.py`
+`view.py --demo`.  The name `demo` is reserved by `vibe_cading/tools/engine_api/extractor.py`
 and is excluded from the engine_api wire contract.
 
 ### Assembly modules
@@ -295,10 +296,10 @@ and is excluded from the engine_api wire contract.
 For assemblies that need multiple parts shown with positional offsets, create a
 dedicated assembly module (e.g. `vibe_cading/lego_adapters/servos/sg90/servo_mount.py`)
 that exposes a top-level `assemble()` function returning a list of
-`(solid, name, color)` tuples.  `tools/view.py` will call `assemble()` when
+`(solid, name, color)` tuples.  `vibe_cading/tools/view.py` will call `assemble()` when
 `--assembly` is passed:
 
-    python3 tools/view.py --assembly vibe_cading.lego_adapters.servos.sg90.servo_mount
+    python3 vibe_cading/tools/view.py --assembly vibe_cading.lego_adapters.servos.sg90.servo_mount
 
 `assemble()` is module-level (cross-class compositions); `demo()` is
 class-scoped (single-class demonstrations).  Use whichever ownership shape
@@ -413,7 +414,7 @@ Z values at their shared boundary, preventing coincident faces.
 **Symptom:** Unbounded tangent vectors applied to structural corner fillets in 2D profile generation cause the local geometry to "overshoot" available chord distance and violently whip backwards. This generates jagged, retrograde "hooks" that survive general extrusion/boolean topology checks completely undetected because they form a mathematically closed valid solid. Testing the abstract math curve prior to array concatenation does not catch these bounding overlaps.
 
 **Fix:**
-1. **Mandatory Monotonicity Check:** The Developer MUST run `tools/check_polar_monotonicity.py <module.path.ClassName>._method_name` on any function returning a complex concatenated radial/polar 2D sequence (like ramps or gears). The script mathematically proves the finalized point sequence only moves forward without geometric back-tracking.
+1. **Mandatory Monotonicity Check:** The Developer MUST run `vibe_cading/tools/check_polar_monotonicity.py <module.path.ClassName>._method_name` on any function returning a complex concatenated radial/polar 2D sequence (like ramps or gears). The script mathematically proves the finalized point sequence only moves forward without geometric back-tracking.
 2. **Bounded Fillets:** Never feed infinite rays or raw vectors blindly into `_fillet_corner` when the shared segment between two adjacent bounds is physically limited. Always supply a literal adjacent real-world target vector coordinate, and ensure structural tools natively enforce maximum proportional bounds (e.g., capping tangent scaling at `< 0.49` length).
 
 
@@ -422,7 +423,7 @@ Z values at their shared boundary, preventing coincident faces.
 After generating or modifying a model, always validate it visually using the
 preview tool:
 
-    python3 tools/preview.py <module.path.ClassName>
+    python3 vibe_cading/tools/preview.py <module.path.ClassName>
 
 This writes orthographic SVGs to `tmp/preview/` (git-ignored):
 
@@ -439,10 +440,10 @@ and a custom output directory via `--out DIR`.
 
 Use `--views` to export any combination of named views:
 
-    python3 tools/preview.py <model> --views top front left right bottom
-    python3 tools/preview.py <model> --views iso_ne iso_sw   # 45° diagonals
-    python3 tools/preview.py <model> --views all             # every angle
-    python3 tools/preview.py --list-views                    # show all names
+    python3 vibe_cading/tools/preview.py <model> --views top front left right bottom
+    python3 vibe_cading/tools/preview.py <model> --views iso_ne iso_sw   # 45° diagonals
+    python3 vibe_cading/tools/preview.py <model> --views all             # every angle
+    python3 vibe_cading/tools/preview.py --list-views                    # show all names
 
 Available view names (run `--list-views` for the full list):
 
@@ -522,7 +523,7 @@ before writing any model code.
 
 ### STEP analysis tools
 
-All tools live in `tools/` and accept a `.step` / `.stp` path as the first
+All tools live in `vibe_cading/tools/` and accept a `.step` / `.stp` path as the first
 argument.  Every tool supports `--json` for machine-readable output.
 
 | Tool | Purpose | Key flags |
@@ -589,7 +590,7 @@ to be omitted in earlier iterations.
 
 After building the model, compare it against the STEP reference:
 
-    python3 tools/boolean_diff.py reference.step module.ClassName --model --align-bbox
+    python3 vibe_cading/tools/boolean_diff.py reference.step module.ClassName --model --align-bbox
 
 This reports volume delta, intersection, missing/extra material, and Jaccard
 similarity.  Use `--export` to write residual STEP files for inspection.
@@ -612,4 +613,4 @@ When generating gauge blocks, parameter sweeps, or test fits to dial in toleranc
 - **Material-Specific Screw Tolerances:** When designing an object that mounts using generic screws, the implementation's `__init__` should accept a `material` (or `profile`) string keyword argument (default `"PLA"` / `"fdm_standard"`). It should use `from vibe_cading.print_settings import get_profile` to resolve a `ToleranceProfile`, and pass it as `profile=...` to any screw `.to_cutter()` method.  The profile carries radial and axial allowances per fit grade — do not hardcode fixed manual clearance float values or thread separate `radial_allowance` / `head_recess_depth` parameters through call sites (those legacy helpers are gone).
 
 ## Licensing & Open Source
-- **AGPLv3 Headers:** Any new Python file created in the `vibe_cading/`, `parts/`, or `tools/` directories MUST include the AGPLv3 header at the very top. Look at an existing file for the exact text containing "vibe-cading is free software: you can redistribute it and/or modify". Empty `__init__.py` files are exempt.
+- **AGPLv3 Headers:** Any new Python file created in the `vibe_cading/`, `parts/`, or `vibe_cading/tools/` directories MUST include the AGPLv3 header at the very top. Look at an existing file for the exact text containing "vibe-cading is free software: you can redistribute it and/or modify". Empty `__init__.py` files are exempt.

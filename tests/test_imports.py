@@ -43,7 +43,7 @@ from pathlib import Path
 import pytest
 
 _REPO_ROOT = Path(__file__).resolve().parent.parent
-_ENGINE_API_JSON = _REPO_ROOT / "engine_api.json"
+_ENGINE_API_JSON = _REPO_ROOT / "vibe_cading" / "engine_api.json"
 
 
 def _load_engine_api_classes() -> list[tuple[str, str, str]]:

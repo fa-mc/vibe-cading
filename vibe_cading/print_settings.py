@@ -112,14 +112,25 @@ alongside a nested ``free`` dict) is detected as nested by
 file does not produce this combination.
 """
 
+from __future__ import annotations
+
 import json
 import os
 import sys
 import warnings
 from pathlib import Path
 from dataclasses import dataclass
+from typing import TYPE_CHECKING
 
 from vibe_cading._env import load_env_file
+
+if TYPE_CHECKING:  # pragma: no cover - typing only
+    # ``importlib.resources.files()`` returns a ``Traversable`` (not a
+    # ``pathlib.Path``); both expose ``.open()`` / ``.is_file()`` / ``.name``,
+    # so the loader treats them uniformly.  Imported under TYPE_CHECKING to
+    # avoid a runtime dependency on the resource-abc module location, which
+    # moved between Python 3.10 and 3.11.
+    from importlib.abc import Traversable
 
 # Seed environment from REPO_ROOT/.env if present (shared parser; see vibe_cading._env).
 load_env_file()
@@ -474,14 +485,34 @@ def _deep_merge_profiles(
 _REPO_ROOT = Path(__file__).parent.parent
 
 
-def _resolve_shipped_file() -> Path | None:
+def _resolve_shipped_file() -> Path | Traversable | None:
     """Resolve the shipped-defaults file path, or ``None`` if absent."""
-    path = _REPO_ROOT / "print_profiles.json"
+    try:
+        from importlib.resources import files
+        resource = files("vibe_cading").joinpath("print_profiles.json")
+        if resource.is_file():
+            return resource
+    except Exception:
+        # Any failure resolving the packaged resource (package not importable,
+        # importlib edge case) is non-fatal — fall through to the REPO_ROOT path.
+        pass
+    path = _REPO_ROOT / "vibe_cading" / "print_profiles.json"
     return path if path.exists() else None
 
 
-def _resolve_user_file() -> Path | None:
+def _resolve_user_file() -> Path | Traversable | None:
     """Resolve the user-override file path, or ``None`` if absent."""
+    # 1. Env Var override
+    env_path = os.getenv("VIBE_PRINT_PROFILES_USER_PATH")
+    if env_path:
+        p = Path(env_path)
+        if p.exists():
+            return p
+    # 2. Current working directory
+    cwd_path = Path.cwd() / "print_profiles_user.json"
+    if cwd_path.exists():
+        return cwd_path
+    # 3. Fallback to repo root
     path = _REPO_ROOT / "print_profiles_user.json"
     return path if path.exists() else None
 
@@ -517,7 +548,7 @@ def _load_json_profiles() -> dict:
     shipped_file = _resolve_shipped_file()
     if shipped_file is not None:
         try:
-            with open(shipped_file, "r") as f:
+            with shipped_file.open("r") as f:
                 shipped_raw = json.load(f)
             shipped_norm = _normalise_raw_profiles(shipped_raw)
         except Exception as e:
@@ -527,7 +558,7 @@ def _load_json_profiles() -> dict:
     user_file = _resolve_user_file()
     if user_file is not None:
         try:
-            with open(user_file, "r") as f:
+            with user_file.open("r") as f:
                 user_raw = json.load(f)
             user_norm = _normalise_raw_profiles(user_raw)
         except Exception as e:

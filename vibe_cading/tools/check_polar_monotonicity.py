@@ -17,11 +17,12 @@ import sys
 import math
 from pathlib import Path
 
-# tools/model_loader.py owns sys.path management.  Add REPO_ROOT here so the
-# ``from tools.model_loader import …`` resolves; ``load_class`` then inserts
-# REPO_ROOT + MODELS_DIR idempotently for the model imports below.
-sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
-from tools.model_loader import load_class  # noqa: E402
+# vibe_cading/tools/model_loader.py owns sys.path management.  Add REPO_ROOT
+# here so the ``from vibe_cading.tools.model_loader import …`` resolves;
+# ``load_class`` then inserts REPO_ROOT + MODELS_DIR idempotently for the
+# model imports below.
+sys.path.insert(0, str(Path(__file__).resolve().parent.parent.parent))
+from vibe_cading.tools.model_loader import load_class  # noqa: E402
 
 
 def analyze_profile(pts, tolerance=-0.01):

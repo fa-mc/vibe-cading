@@ -52,10 +52,10 @@ from OCP.gp import gp_Trsf, gp_Vec
 from OCP.TopExp import TopExp_Explorer
 from OCP.TopAbs import TopAbs_SOLID
 
-REPO_ROOT = Path(__file__).resolve().parent.parent
+REPO_ROOT = Path(__file__).resolve().parent.parent.parent
 sys.path.insert(0, str(REPO_ROOT))
 
-from tools.step_primitives import StepLoadError, load_step  # noqa: E402
+from vibe_cading.tools.step_primitives import StepLoadError, load_step  # noqa: E402
 
 
 def _volume(occ_shape) -> float:

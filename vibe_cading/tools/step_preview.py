@@ -41,11 +41,11 @@ from pathlib import Path
 import cadquery as cq
 
 # Re-use the named-view registry and SVG fixer from preview.py
-REPO_ROOT = Path(__file__).resolve().parent.parent
-sys.path.insert(0, str(REPO_ROOT / "tools"))
+REPO_ROOT = Path(__file__).resolve().parent.parent.parent
+sys.path.insert(0, str(REPO_ROOT))
 
-from preview import NAMED_VIEWS, DEFAULT_VIEWS, _fix_svg_viewport
-from tools.step_primitives import StepLoadError, load_step
+from vibe_cading.tools.preview import NAMED_VIEWS, DEFAULT_VIEWS, _fix_svg_viewport
+from vibe_cading.tools.step_primitives import StepLoadError, load_step
 
 
 def export_step_previews(

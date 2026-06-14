@@ -90,13 +90,14 @@ import importlib
 import sys
 from pathlib import Path
 
-REPO_ROOT  = Path(__file__).resolve().parent.parent
+REPO_ROOT  = Path(__file__).resolve().parent.parent.parent
 
-# tools/model_loader.py owns sys.path management.  Add REPO_ROOT here so the
-# ``from tools.model_loader import …`` line below resolves; the loader then
-# inserts REPO_ROOT idempotently for downstream model imports.
+# vibe_cading/tools/model_loader.py owns sys.path management.  Add REPO_ROOT
+# here so the ``from vibe_cading.tools.model_loader import …`` line below
+# resolves; the loader then inserts REPO_ROOT idempotently for downstream
+# model imports.
 sys.path.insert(0, str(REPO_ROOT))
-from tools.model_loader import (  # noqa: E402
+from vibe_cading.tools.model_loader import (  # noqa: E402
     ensure_models_on_path,
     instantiate,
     load_class,

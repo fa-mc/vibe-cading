@@ -22,8 +22,6 @@ Update values here and they propagate to all models that import from this module
 All measurements are in millimetres (mm).
 """
 
-import os
-
 from vibe_cading._env import load_env_file
 
 # Seed environment from REPO_ROOT/.env if present (shared parser; see vibe_cading._env).
@@ -97,5 +95,5 @@ AXLE_HOLE_TIP_TO_TIP: float = 4.80
 AXLE_HOLE_ARM_WIDTH:  float = 1.83
 
 # ── Shared geometry defaults ──────────────────────────────────────────────────
-DEFAULT_CORNER_RADIUS: float = float(os.getenv("DEFAULT_CORNER_RADIUS", "0.4")) # Inner concave corner fillet radius (mm) — TechnicAxle
-DEFAULT_LEAD_IN: float = float(os.getenv("DEFAULT_LEAD_IN", "0.3"))             # End-face chamfer for easy sliding (mm)
+CORNER_RADIUS: float = 0.4                                      # Inner concave corner fillet radius (mm) — TechnicAxle
+LEAD_IN: float = 0.3                                            # End-face chamfer for easy sliding (mm)
