@@ -53,7 +53,13 @@ from OCP.GeomAbs import (
     GeomAbs_BezierCurve,
 )
 
-from vibe_cading.tools.step_primitives import StepLoadError, load_step
+# Ensure the repo root is on sys.path so the absolute import below resolves
+# when this script is run directly (python vibe_cading/tools/<name>.py) without
+# an installed package / PYTHONPATH.  Mirrors boolean_diff.py.
+REPO_ROOT = Path(__file__).resolve().parent.parent.parent
+sys.path.insert(0, str(REPO_ROOT))
+
+from vibe_cading.tools.step_primitives import StepLoadError, load_step  # noqa: E402
 
 
 # Axis label → (normal direction, projection axes for 2D SVG)
