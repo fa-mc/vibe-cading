@@ -97,6 +97,10 @@ jobs:
         # module and the step runs the wrong script (ModuleNotFoundError:
         # cadquery). pyproject-build runs as a script, so cwd is off sys.path
         # and no shadowing occurs. Do not "simplify" this back to python -m build.
+        # PYTHONPATH is also cleared so an entry pointing at the repo root (e.g.
+        # a devcontainer's PYTHONPATH=<repo>) can't reintroduce the shadow.
+        env:
+          PYTHONPATH: ""
         run: pyproject-build
 
       - name: Built-commit provenance assertion (real release only)
