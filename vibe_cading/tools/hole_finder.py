@@ -51,7 +51,13 @@ import OCP.BRepAdaptor as ba
 import OCP.GeomAbs as ga
 from OCP.TopAbs import TopAbs_REVERSED
 
-from vibe_cading.tools.step_primitives import StepLoadError, face_area, load_step, vec3
+# Ensure the repo root is on sys.path so the absolute import below resolves
+# when this script is run directly (python vibe_cading/tools/<name>.py) without
+# an installed package / PYTHONPATH.  Mirrors boolean_diff.py.
+REPO_ROOT = Path(__file__).resolve().parent.parent.parent
+sys.path.insert(0, str(REPO_ROOT))
+
+from vibe_cading.tools.step_primitives import StepLoadError, face_area, load_step, vec3  # noqa: E402
 
 
 def _coaxial(a_loc, a_dir, b_loc, b_dir, tol: float = 0.1, ang_tol: float = 0.01) -> bool:
