@@ -614,3 +614,4 @@ When generating gauge blocks, parameter sweeps, or test fits to dial in toleranc
 
 ## Licensing & Open Source
 - **AGPLv3 Headers:** Any new Python file created in the `vibe_cading/`, `parts/`, or `vibe_cading/tools/` directories MUST include the AGPLv3 header at the very top. Look at an existing file for the exact text containing "vibe-cading is free software: you can redistribute it and/or modify". Empty `__init__.py` files are exempt.
+- **Release versioning:** The pip package follows SemVer — `pyproject.toml` `[project].version` is the single source of truth (re-exported as `vibe_cading.__version__`), bumped in the **same PR** that changes the public surface; the 40-char `vibe_cading.__commit__` SHA is build provenance, not the version. Full policy and release-cut process: [docs/releasing.md](../docs/releasing.md).

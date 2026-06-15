@@ -27,3 +27,14 @@ try:
     from .__commit__ import __commit__
 except ImportError:
     __commit__ = "unknown"
+
+# ``__version__`` is sourced from installed package metadata so
+# ``pyproject.toml`` ``[project].version`` stays the single source of truth
+# (see docs/releasing.md). A source checkout that was never ``pip install``-ed
+# has no metadata, so fall back to a clearly-marked sentinel instead of raising.
+from importlib.metadata import version as _pkg_version, PackageNotFoundError
+
+try:
+    __version__ = _pkg_version("vibe_cading")
+except PackageNotFoundError:  # running from a source checkout, not installed
+    __version__ = "0.0.0+unknown"

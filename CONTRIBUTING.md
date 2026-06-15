@@ -187,4 +187,15 @@ The validator hard-fails on `schema_version` mismatch so the bump is forced to b
 
 ---
 
+## 🚀 12. Releasing & Versioning
+
+The full release-number policy and cut-a-release workflow live in [docs/releasing.md](docs/releasing.md). In short:
+
+- The package follows **SemVer**. `pyproject.toml` `[project].version` is the single source of truth, re-exported as `vibe_cading.__version__`. While pre-1.0, a **minor** bump signals a breaking public-surface change and a **patch** bump an additive/backward-compatible one.
+- **Bump the version in the same PR** that changes the public surface (model class signatures, `cq_utils`, `print_settings`, `tools/` CLIs, `engine_api.json`, the top-level re-export set). An absent-or-wrong bump is a blocking review finding — same discipline as `schema_version` above.
+- `vibe_cading.__commit__` (40-char git SHA, injected by `hatch_build.py`) is **build provenance**, distinct from the version — never hand-edited.
+- Releases are cut by tagging `vX.Y.Z` on `main`; PyPI publication stays gated (see [docs/releasing.md](docs/releasing.md)).
+
+---
+
 Thanks for contributing — we look forward to your PRs!
