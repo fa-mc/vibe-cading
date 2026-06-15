@@ -1,0 +1,157 @@
+# Tag-driven build + GitHub Release, with a gated PyPI trusted-publishing step.
+#
+# Canonical design: docs/releasing.md ("Cutting a release" + Decision log).
+#
+# Two entry points:
+#   1. push a tag matching v*  -> real release: build, assert tag == version &&
+#      built __commit__ == tagged SHA, attach artifacts to a GitHub Release, and
+#      (only if vars.PYPI_PUBLISH == 'true') publish to PyPI.
+#   2. workflow_dispatch with reserve_version set  -> reserve-only name claim:
+#      build a throwaway placeholder version and publish it to PyPI. The version
+#      override happens on the runner only; pyproject.toml's tracked 0.1.0 is
+#      never committed.
+#
+# The workflow filename (release.yml) and the publish job's environment (pypi)
+# MUST match the PyPI Trusted Publisher (pending publisher) config exactly, or
+# OIDC publishing fails.
+
+name: release
+
+on:
+  push:
+    tags:
+      - "v*"
+  workflow_dispatch:
+    inputs:
+      reserve_version:
+        description: "Publish a throwaway placeholder version to PyPI to reserve the project name, e.g. 0.0.1. Leave blank for a normal release."
+        required: false
+        default: ""
+
+# Least privilege at the top level: only the publish job elevates to id-token.
+permissions:
+  contents: read
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          # Full history so hatch_build.py's `git rev-parse HEAD` resolves the
+          # real build SHA (a shallow checkout would break provenance stamping).
+          fetch-depth: 0
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Install build tooling
+        run: pip install build
+
+      - name: Reserve-path version override (runner-only, never committed)
+        # When dispatched with a reserve_version, rewrite the tracked
+        # version = "0.1.0" line to the placeholder on the runner only. This
+        # lets us publish a throwaway 0.0.1 to claim the PyPI name without
+        # permanently changing pyproject.toml's real 0.1.0.
+        if: github.event_name == 'workflow_dispatch' && inputs.reserve_version != ''
+        run: |
+          set -euo pipefail
+          ver='${{ inputs.reserve_version }}'
+          echo "Reserve path: overriding pyproject.toml version -> ${ver}"
+          python - "$ver" <<'PY'
+          import re, sys
+          ver = sys.argv[1]
+          path = "pyproject.toml"
+          with open(path) as f:
+              text = f.read()
+          new, n = re.subn(r'(?m)^version\s*=\s*".*"$', f'version = "{ver}"', text)
+          if n != 1:
+              raise SystemExit(f"expected exactly 1 version line, replaced {n}")
+          with open(path, "w") as f:
+              f.write(new)
+          print(f"pyproject.toml version set to {ver}")
+          PY
+
+      - name: Tag/version consistency assertion (real release only)
+        # On a tag push, the tag (minus leading v) must equal the tracked
+        # pyproject.toml version. Fail loudly on mismatch so a mis-tagged
+        # release can never publish.
+        if: startsWith(github.ref, 'refs/tags/v')
+        run: |
+          set -euo pipefail
+          tag="${GITHUB_REF#refs/tags/v}"
+          proj="$(python -c "import tomllib; print(tomllib.load(open('pyproject.toml','rb'))['project']['version'])")"
+          echo "tag=${tag} pyproject=${proj}"
+          if [ "$tag" != "$proj" ]; then
+            echo "::error::tag v${tag} does not match pyproject.toml version ${proj}" >&2
+            exit 1
+          fi
+
+      - name: Build sdist + wheel
+        run: python -m build
+
+      - name: Built-commit provenance assertion (real release only)
+        # The wheel embeds vibe_cading.__commit__ (stamped by hatch_build.py).
+        # Assert it equals the tagged commit SHA so the published artifact is
+        # provably built from the tagged tree.
+        if: startsWith(github.ref, 'refs/tags/v')
+        run: |
+          set -euo pipefail
+          pip install --force-reinstall --no-deps dist/*.whl
+          built="$(python -c "import vibe_cading; print(vibe_cading.__commit__)")"
+          echo "built __commit__=${built} GITHUB_SHA=${GITHUB_SHA}"
+          if [ "$built" != "$GITHUB_SHA" ]; then
+            echo "::error::built __commit__ ${built} != tagged commit ${GITHUB_SHA}" >&2
+            exit 1
+          fi
+
+      - name: Upload dist artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: dist
+          path: dist/
+
+  publish-pypi:
+    needs: build
+    runs-on: ubuntu-latest
+    # Environment name MUST be "pypi" to match the PyPI Trusted Publisher config.
+    environment: pypi
+    permissions:
+      id-token: write  # OIDC token for trusted publishing — no stored PyPI secret.
+    # Gate: publish ONLY when either
+    #   (a) a workflow_dispatch supplied a non-empty reserve_version (name-claim), or
+    #   (b) a tag push AND the maintainer has opened the gate (vars.PYPI_PUBLISH == 'true').
+    # Normal tag releases stay gated-off by default until vars.PYPI_PUBLISH is set,
+    # matching docs/releasing.md Decision 1 (demand gate for the public release).
+    if: >
+      (github.event_name == 'workflow_dispatch' && inputs.reserve_version != '') ||
+      (startsWith(github.ref, 'refs/tags/v') && vars.PYPI_PUBLISH == 'true')
+    steps:
+      - name: Download dist artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: dist
+          path: dist/
+
+      - name: Publish to PyPI (trusted publishing / OIDC)
+        uses: pypa/gh-action-pypi-publish@release/v1
+
+  github-release:
+    needs: build
+    runs-on: ubuntu-latest
+    # Tag pushes only — skip for the workflow_dispatch reserve path.
+    if: startsWith(github.ref, 'refs/tags/v')
+    permissions:
+      contents: write  # create the GitHub Release and upload assets to it.
+    steps:
+      - name: Download dist artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: dist
+          path: dist/
+
+      - name: Create GitHub Release and attach artifacts
+        uses: softprops/action-gh-release@v2
+        with:
+          files: dist/*
