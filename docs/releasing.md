@@ -70,7 +70,7 @@ drift out of band.
 ## Changelog
 
 `CHANGELOG.md` ([Keep a Changelog](https://keepachangelog.com/) format) is **started at the
-first post-#27 release** — history is *not* retroactively seeded. From that release on it
+first post-#30 release** — history is *not* retroactively seeded. From that release on it
 carries an `## [Unreleased]` section at the top; every public-surface PR adds its entry
 there, and cutting a release renames `Unreleased` to the new version + date.
 
@@ -95,7 +95,7 @@ wiring step) automates build + publish; a human only bumps the version and pushe
 
 | # | Decision | Resolution |
 |---|---|---|
-| 1 | PyPI publish trigger | **Confirmed 2026-06-15:** keep the demand gate for the supported public release; **reserve the `vibe-cading` PyPI name now** via a placeholder/yanked `0.1.0` (name-squatting is the only *irreversible* risk). The reservation is a public AGPL publish → it is the maintainer's (`@biz`) action; tracked under *Outstanding setup* below, not yet executed. |
+| 1 | PyPI publish trigger | **Confirmed 2026-06-15:** keep the demand gate for the supported public release; **reserve the `vibe-cading` PyPI name now** via a placeholder/yanked `0.1.0` (name-squatting is the only *irreversible* risk). The reservation is a public AGPL publish → it is the maintainer's call; tracked under *Outstanding setup* below, not yet executed. |
 | 2 | Tag-on-`main` vs `release/*` branch | **Confirmed 2026-06-15:** tag `vX.Y.Z` directly on `main`; no `release/*` branches. |
 | 3 | Publish mechanism | **Confirmed: GitHub Actions release workflow** (`.github/workflows/release.yml`) using trusted publishing (OIDC) — no hand-managed PyPI token. |
 | 4 | `CHANGELOG.md` adoption | **Confirmed: start at the first post-#30 release**, no retroactive seeding. |
@@ -106,5 +106,5 @@ wiring step) automates build + publish; a human only bumps the version and pushe
 These follow-up actions implement the confirmed policy; none block the rule from being in force:
 
 1. **Create `.github/workflows/release.yml`** — tag-triggered build (`python -m build`) + version/SHA assertions + GitHub Release upload, with a trusted-publishing PyPI step gated behind Decision 1.
-2. **Reserve the `vibe-cading` PyPI name** (maintainer / `@biz`) — placeholder or yanked `0.1.0` under the project's PyPI trusted-publisher config.
+2. **Reserve the `vibe-cading` PyPI name** (maintainer action) — placeholder or yanked `0.1.0` under the project's PyPI trusted-publisher config.
 3. **Start `CHANGELOG.md`** at the first post-#30 release (Decision 4).
