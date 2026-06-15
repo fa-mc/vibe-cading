@@ -55,9 +55,11 @@ jobs:
         # lets us publish a throwaway 0.0.1 to claim the PyPI name without
         # permanently changing pyproject.toml's real 0.1.0.
         if: github.event_name == 'workflow_dispatch' && inputs.reserve_version != ''
+        env:
+          RESERVE_VERSION: ${{ inputs.reserve_version }}
         run: |
           set -euo pipefail
-          ver='${{ inputs.reserve_version }}'
+          ver="$RESERVE_VERSION"
           echo "Reserve path: overriding pyproject.toml version -> ${ver}"
           python - "$ver" <<'PY'
           import re, sys
