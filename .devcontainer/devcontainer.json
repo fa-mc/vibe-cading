@@ -27,7 +27,8 @@
         // "remoteUser" above and the /home/<user>/.claude target below — neither
         // can interpolate the Dockerfile ARG. Overriding only USER_UID/USER_GID
         // (the common non-1000-host case) needs no change here.
-        "source=${localEnv:HOME}${localEnv:USERPROFILE}/.claude,target=/home/vscode/.claude,type=bind,consistency=cached"
+        "source=${localEnv:HOME}${localEnv:USERPROFILE}/.claude,target=/home/vscode/.claude,type=bind,consistency=cached",
+        "source=${localEnv:HOME}${localEnv:USERPROFILE}/.gemini,target=/home/vscode/.gemini,type=bind,consistency=cached"
     ],
     "remoteEnv": {
         "SSH_AUTH_SOCK": "/ssh-agent",
