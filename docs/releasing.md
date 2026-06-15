@@ -84,7 +84,7 @@ wiring step) automates build + publish; a human only bumps the version and pushe
 3. Merge that PR to `main`.
 4. Tag the merge commit `vX.Y.Z` (annotated tag) and push the tag — this **triggers the
    release workflow**.
-5. The workflow runs `python -m build`, asserts the embedded `vibe_cading.__commit__`
+5. The workflow runs `pyproject-build`, asserts the embedded `vibe_cading.__commit__`
    matches the tagged commit and `vibe_cading.__version__` matches the tag, then attaches
    the wheel + sdist to a GitHub Release.
 6. **PyPI upload** is a final workflow step using **trusted publishing** (OIDC — no stored
