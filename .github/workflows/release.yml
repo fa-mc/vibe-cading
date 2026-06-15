@@ -91,7 +91,17 @@ jobs:
           fi
 
       - name: Build sdist + wheel
-        run: python -m build
+        # Invoke the `pyproject-build` console script, NOT `python -m build`:
+        # `python -m build` prepends cwd to sys.path, so the repo's local
+        # build.py (the CadQuery model-tree rebuild) shadows the PyPA `build`
+        # module and the step runs the wrong script (ModuleNotFoundError:
+        # cadquery). pyproject-build runs as a script, so cwd is off sys.path
+        # and no shadowing occurs. Do not "simplify" this back to python -m build.
+        # PYTHONPATH is also cleared so an entry pointing at the repo root (e.g.
+        # a devcontainer's PYTHONPATH=<repo>) can't reintroduce the shadow.
+        env:
+          PYTHONPATH: ""
+        run: pyproject-build
 
       - name: Built-commit provenance assertion (real release only)
         # The wheel embeds vibe_cading.__commit__ (stamped by hatch_build.py).
