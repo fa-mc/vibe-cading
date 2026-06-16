@@ -5,14 +5,42 @@ build-backend = "hatchling.build"
 [project]
 name = "vibe_cading"
 version = "0.1.0"
-description = "Vibe-cading CAD engine"
+description = "Parametric CadQuery models for mechanical parts, RC hardware, and Lego Technic adapters"
 readme = "README.md"
 license = "AGPL-3.0-or-later"
 license-files = ["LICENSE", "LICENSE-FAQ.md"]
-requires-python = ">=3.10"
+authors = [{ name = "madMarcus" }]
+requires-python = ">=3.11"
+keywords = [
+    "cad",
+    "cadquery",
+    "3d-printing",
+    "parametric",
+    "lego-technic",
+    "rc",
+    "mechanical",
+    "stl",
+    "step",
+]
+classifiers = [
+    "Development Status :: 3 - Alpha",
+    "Intended Audience :: Manufacturing",
+    "Intended Audience :: Developers",
+    "Topic :: Scientific/Engineering",
+    "Topic :: Multimedia :: Graphics :: 3D Modeling",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+    "Operating System :: OS Independent",
+]
 dependencies = [
     "cadquery",
 ]
+
+[project.urls]
+Homepage = "https://github.com/fa-mc/vibe-cading"
+Repository = "https://github.com/fa-mc/vibe-cading"
+Issues = "https://github.com/fa-mc/vibe-cading/issues"
 
 [tool.hatch.build.hooks.custom]
 path = "hatch_build.py"
