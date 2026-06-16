@@ -38,8 +38,12 @@ jobs:
     steps:
       - uses: actions/checkout@v4
         with:
-          # Full history so hatch_build.py's `git rev-parse HEAD` resolves the
-          # real build SHA (a shallow checkout would break provenance stamping).
+          # Full history so an in-tree `git rev-parse HEAD` resolves the real
+          # build SHA. NOTE: the default `pyproject-build` builds the wheel from
+          # the unpacked *sdist* in an isolated dir with no `.git`, so the wheel's
+          # provenance actually comes from the VIBE_BUILD_SHA env on the build
+          # step below, not from git. fetch-depth:0 is kept for the sdist-from-
+          # source git read and general correctness.
           fetch-depth: 0
 
       - uses: actions/setup-python@v5
@@ -99,8 +103,18 @@ jobs:
         # and no shadowing occurs. Do not "simplify" this back to python -m build.
         # PYTHONPATH is also cleared so an entry pointing at the repo root (e.g.
         # a devcontainer's PYTHONPATH=<repo>) can't reintroduce the shadow.
+        #
+        # VIBE_BUILD_SHA stamps build provenance: the wheel is built from the
+        # unpacked sdist (no .git), so hatch_build.py's `git rev-parse HEAD`
+        # fails and falls back to this env var. Setting it to github.sha makes
+        # the embedded vibe_cading.__commit__ equal the built commit, which the
+        # provenance assertion below requires. (Note: vibe_cading/__commit__.py
+        # is gitignored, so building the wheel in-tree with `--wheel` would omit
+        # it entirely — the env-stamp on the default sdist->wheel path is the
+        # reliable route. See docs/releasing.md Outstanding setup.)
         env:
           PYTHONPATH: ""
+          VIBE_BUILD_SHA: ${{ github.sha }}
         run: pyproject-build
 
       - name: Built-commit provenance assertion (real release only)
