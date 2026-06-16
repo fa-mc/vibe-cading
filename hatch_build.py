@@ -1,12 +1,21 @@
+import os
 import subprocess
 from hatchling.builders.hooks.plugin.interface import BuildHookInterface
 
 class CustomBuildHook(BuildHookInterface):
     def initialize(self, version, build_data):
+        # Resolve the build-provenance SHA. Git is authoritative for an in-tree
+        # build (a developer's source checkout). But the CI release path builds
+        # the wheel from the unpacked *sdist* in an isolated dir with no `.git`,
+        # so `git rev-parse` fails there; fall back to the VIBE_BUILD_SHA env var
+        # (the release workflow sets it to the tagged commit) before giving up.
+        # The env name is host-neutral on purpose — the GitHub-specific mapping
+        # (VIBE_BUILD_SHA=${{ github.sha }}) lives in .github/workflows/release.yml,
+        # not here. See docs/releasing.md ("Two distinct identifiers").
         try:
             sha = subprocess.check_output(["git", "rev-parse", "HEAD"]).decode().strip()
         except Exception:
-            sha = "unknown"
+            sha = os.environ.get("VIBE_BUILD_SHA", "").strip() or "unknown"
         header = """# This file is part of vibe-cading.
 #
 # vibe-cading is free software: you can redistribute it and/or modify
