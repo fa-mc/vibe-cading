@@ -86,7 +86,8 @@ wiring step) automates build + publish; a human only bumps the version and pushe
    release workflow**.
 5. The workflow runs `pyproject-build`, asserts the embedded `vibe_cading.__commit__`
    matches the tagged commit and `vibe_cading.__version__` matches the tag, then attaches
-   the wheel + sdist to a GitHub Release.
+   the wheel + sdist to a GitHub Release. *(The `__commit__` assertion needs the
+   provenance fix in Outstanding setup item 4 before the first real tag release.)*
 6. **PyPI upload** is a final workflow step using **trusted publishing** (OIDC — no stored
    API token), **gated** behind the publication trigger (see Decision&nbsp;1). Until that
    gate opens, the workflow stops at the GitHub-Release artifacts.
@@ -95,7 +96,7 @@ wiring step) automates build + publish; a human only bumps the version and pushe
 
 | # | Decision | Resolution |
 |---|---|---|
-| 1 | PyPI publish trigger | **Confirmed 2026-06-15:** keep the demand gate for the supported public release; **reserve the `vibe-cading` PyPI name now** via a placeholder/yanked `0.1.0` (name-squatting is the only *irreversible* risk). The reservation is a public AGPL publish → it is the maintainer's call; tracked under *Outstanding setup* below, not yet executed. |
+| 1 | PyPI publish trigger | **Confirmed 2026-06-15:** keep the demand gate for the supported public release; reserved the `vibe-cading` PyPI name via a placeholder `0.0.1` (a throwaway preserving `0.1.0` for the first real release), published 2026-06-15 and to be yanked. Name-squatting was the only *irreversible* risk; the reservation is a public AGPL publish, made as a maintainer action. |
 | 2 | Tag-on-`main` vs `release/*` branch | **Confirmed 2026-06-15:** tag `vX.Y.Z` directly on `main`; no `release/*` branches. |
 | 3 | Publish mechanism | **Confirmed: GitHub Actions release workflow** (`.github/workflows/release.yml`) using trusted publishing (OIDC) — no hand-managed PyPI token. |
 | 4 | `CHANGELOG.md` adoption | **Confirmed: start at the first post-#30 release**, no retroactive seeding. |
@@ -103,8 +104,9 @@ wiring step) automates build + publish; a human only bumps the version and pushe
 
 ## Outstanding setup
 
-These follow-up actions implement the confirmed policy; none block the rule from being in force:
+Status of the follow-up actions that implement the confirmed policy:
 
-1. **Create `.github/workflows/release.yml`** — tag-triggered build (`python -m build`) + version/SHA assertions + GitHub Release upload, with a trusted-publishing PyPI step gated behind Decision 1.
-2. **Reserve the `vibe-cading` PyPI name** (maintainer action) — placeholder or yanked `0.1.0` under the project's PyPI trusted-publisher config.
-3. **Start `CHANGELOG.md`** at the first post-#30 release (Decision 4).
+1. ✅ **Done — `.github/workflows/release.yml`** (PRs #35, #36): tag-triggered `pyproject-build` + version/SHA assertions + GitHub Release upload, with a trusted-publishing PyPI step gated behind Decision 1. *(#36 fixed a build-invocation bug: the repo's local `build.py` shadowed the PyPA `build` module under `python -m build`; the step now uses `pyproject-build` with `PYTHONPATH` cleared.)*
+2. ✅ **Done — `vibe-cading` PyPI name reserved** (2026-06-15): published `0.0.1` via the workflow's reserve path (a throwaway, *not* `0.1.0`, so `0.1.0` stays free for the first real release), to be yanked. The trusted-publisher config (environment `pypi`) is confirmed working end-to-end.
+3. ⬜ **Start `CHANGELOG.md`** at the first post-#30 release (Decision 4).
+4. ⬜ **Fix `__commit__` provenance on the real-release path** — *blocks the first real `vX.Y.Z` tag release; the reserve path is unaffected because it does not assert provenance.* `pyproject-build` builds the wheel from the unpacked **sdist** in an isolated dir with no `.git`, so `hatch_build.py`'s `git rev-parse HEAD` fails and `vibe_cading.__commit__` falls back to `unknown`. The "Cutting a release" step-5 assertion `built __commit__ == tagged SHA` would then fail. Fix direction: build the wheel **directly from the source tree** (where `.git` is present) — e.g. `pyproject-build --wheel` for the wheel plus a separate `--sdist`, or stamp `__commit__` from `$GITHUB_SHA` in the workflow. Validate with a throwaway dry-run tag before cutting the first real release.
