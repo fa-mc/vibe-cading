@@ -149,7 +149,7 @@ Added 2026-05-14 per user direction. These are gates on the v1 OSS publication �
 
 ### Deferred features (gated on real demand)
 
-- **Pip-installable distribution + PyPI publication.** Deferred 2026-05-14: pip-installability was judged a speculative seam — one hypothetical consumer doesn't justify the packaging effort + ongoing PyPI maintenance. The `vibe_cading/` namespace is structurally pip-ready (a future PR adds `pyproject.toml` + `[tool.setuptools.packages.find].exclude` for `parts`/`experiments` + version metadata; ships to PyPI). **Trigger condition to revisit:** a real external user requests `pip install vibe-cading`. Until then, distribution = `git clone`.
+- **Pip-installable distribution + PyPI publication.** ✅ **Shipped 2026-06** (no longer deferred): packaged as a `hatchling` wheel (`pyproject.toml`, #30); gated release workflow with PyPI **trusted publishing** added ([.github/workflows/release.yml](.github/workflows/release.yml), #35/#36); the `vibe-cading` PyPI name **reserved** via a yanked `0.0.1` placeholder (`0.1.0` preserved for the first real release; the release gate stays closed until repo variable `PYPI_PUBLISH` is set). Versioning policy + release-cut process: [docs/releasing.md](docs/releasing.md). **Before the first real `v0.1.0` tag** (tracked in docs/releasing.md *Outstanding setup*): fix `__commit__` provenance (wheel-from-sdist loses `.git`), start `CHANGELOG.md`, and apply the one-line step-5 doc-mechanism correction.
 
 ### Parked refactors — from 2026-05-09 TL deep-modules review (resolved 2026-05-15)
 
