@@ -64,9 +64,9 @@ If your network service uses `vibe-cading` **only on the backend** and your user
 The two are complementary, not redundant.
 
 - **AGPLv3** governs how *users and downstream redistributors* may use, modify, and redistribute the library.
-- The **Contributor License Agreement** (CLA) governs how *upstream contributions* enter this repository. Every PR is checked by the [CLA Assistant bot](.github/workflows/cla.yml); first-time contributors sign with the magic phrase documented in [CONTRIBUTING.md §1](CONTRIBUTING.md#-1-license--cla). Signatures are recorded in [`signatures/version1/cla.json`](signatures/version1/cla.json).
+- The **Contributor License Agreement** (CLA) governs how *upstream contributions* enter this repository. Every PR is checked by the [CLA Assistant bot](.github/workflows/cla.yml); first-time contributors sign with the magic phrase documented in [CONTRIBUTING.md §1](CONTRIBUTING.md#-1-license--cla). Signatures are recorded in [`signatures/version2/cla.json`](signatures/version2/cla.json). The full agreement is in [CLA.md](CLA.md).
 
-By signing the CLA you confirm two things: (1) your contribution is licensed under AGPLv3, and (2) you have the right to submit it (i.e. you wrote it, or your employer has authorized you to contribute it). The CLA does **not** assign copyright to the project — you retain copyright on your contributions; the CLA only grants the project the licensing terms it needs to ship them under AGPLv3.
+By signing the CLA you agree to three things: (1) you **retain copyright** on your contributions — the CLA does **not** assign copyright to the project; (2) you grant the project a license to use your contributions under AGPLv3 **and** under separate commercial license terms — this is what lets the project offer the commercial-license edition (above) over an engine that includes your contribution, without re-contacting every contributor; and (3) you have the right to submit the contribution (you wrote it, or your employer has authorized it). In return, the project commits to keep your contribution available to the public under AGPLv3 — the commercial grant is **additional**, not a replacement.
 
 ---
 
