@@ -15,10 +15,7 @@
     • [PROJECT_NAME] → vibe-cading.
     • Submission → the CLA Assistant magic-phrase flow (see "How to sign").
     • Media licenses (§2.3) → AGPLv3 (same as the Material).
-
-  ONE value still needs setting before this is adopted:
-    • [JURISDICTION] in §6.1 — the governing-law state/country. Set it to the
-      maintainer's jurisdiction.
+    • Governing law (§6.1) → the State of California, USA.
 
   No lawyer is required to adopt this standard template. Optional only:
   have counsel glance at it at the first real commercial-license deal or a
@@ -171,8 +168,8 @@ OTHERWISE) UPON WHICH THE CLAIM IS BASED.
 ### 6. Miscellaneous
 
 6.1 This Agreement will be governed by and construed in accordance with the laws
-of **[JURISDICTION — set to the maintainer's state/country before adoption]**
-excluding its conflicts of law provisions. Under certain circumstances, the
+of the State of California, United States of America excluding its conflicts
+of law provisions. Under certain circumstances, the
 governing law in this section might be superseded by the United Nations
 Convention on Contracts for the International Sale of Goods ("UN Convention")
 and the parties intend to avoid the application of the UN Convention to this
