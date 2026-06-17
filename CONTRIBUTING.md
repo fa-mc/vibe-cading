@@ -12,11 +12,11 @@ This project is built using an **AI-first, Agentic Workflow**. Please skim the d
 
 `vibe-cading` is licensed under **[AGPLv3](LICENSE)**. For a plain-language guide to what that means in practice (printing parts, forking, network deployment, CLA interaction), see [LICENSE-FAQ.md](LICENSE-FAQ.md).
 
-**Contributor License Agreement.** Every PR is checked by the CLA Assistant bot ([`.github/workflows/cla.yml`](.github/workflows/cla.yml)). On your first PR the bot will comment with a link to this file; reply on the PR thread with exactly:
+**Contributor License Agreement.** Every PR is checked by the CLA Assistant bot ([`.github/workflows/cla.yml`](.github/workflows/cla.yml)). On your first PR the bot will comment with a link to the [CLA document](CLA.md); reply on the PR thread with exactly:
 
 > `I have read the CLA Document and I hereby sign the CLA`
 
-Your signature is recorded in [`signatures/version1/cla.json`](signatures/version1/cla.json) and covers all of your future contributions. By signing, you agree that your contributions are licensed under AGPLv3 and that you have the right to submit them.
+Your signature is recorded in [`signatures/version2/cla.json`](signatures/version2/cla.json) and covers all of your future contributions. By signing, you agree to the [Contributor License Agreement](CLA.md): you **keep copyright** on your contributions, and you grant the project the right to license them under AGPLv3 **and** under separate commercial terms (so the project can offer both its open-source and commercial editions). The project commits to keep your contributions available under AGPLv3.
 
 **AGPLv3 header.** Every new `.py` file under [`vibe_cading/`](vibe_cading/), [`parts/`](parts/), or [`vibe_cading/tools/`](vibe_cading/tools/) must carry the AGPLv3 header at the top (copy from any existing file — look for the *"vibe-cading is free software"* block). Empty `__init__.py` files are exempt. This is enforced by [`vibe_cading/tools/check_license_headers.py`](vibe_cading/tools/check_license_headers.py) which runs inside `python build.py` (and therefore the CI build-smoke step).
 
