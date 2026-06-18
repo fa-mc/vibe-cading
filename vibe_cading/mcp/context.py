@@ -46,7 +46,7 @@ from vibe_cading.print_settings import ToleranceProfile, get_profile
 # "two version fields" discussion in the design).  Adding a name to
 # CONTEXT_CONSTANTS or a pointer to DOC_POINTERS is an *additive* bump
 # (1.0 -> 1.1); removing/renaming a field is a *breaking* bump (1.0 -> 2.0).
-CONTEXT_SCHEMA_VERSION = "1.0"
+CONTEXT_SCHEMA_VERSION = "1.1"
 
 # The curated allowlist: the load-bearing real-Lego *nominal* subset a model
 # author actually needs to place geometry on the 8 mm stud grid.  These are
@@ -62,14 +62,16 @@ CONTEXT_SCHEMA_VERSION = "1.0"
 # live through ``tolerance_profile`` (matching how constants.py routes fits
 # through the profile, not the constant).
 #
-# NB (branch state): the design's allowlist also lists the studded-System block
-# nominals BLOCK_PLAY / BLOCK_WALL / BLOCK_ROOF / CLUTCH_TUBE_OD.  Those
-# constants land with the LegoBlock generator, which is NOT present on this
-# branch (they live on the unmerged feat/lego-block-generator sibling).  Per the
-# anti-drift invariant — the allowlist must contain only names that *resolve*,
-# or the context payload lies — they are intentionally omitted here.  Adding
-# them once LegoBlock merges to main is an additive CONTEXT_SCHEMA_VERSION bump
-# (1.0 -> 1.1), exactly the additive event the policy describes.
+# Studded-System block nominals (BLOCK_PLAY / BLOCK_WALL / BLOCK_ROOF /
+# CLUTCH_TUBE_OD) land with the LegoBlock generator, now merged to main, so they
+# resolve on constants.py and are surfaced below.  They are the real-Lego /
+# FDM-design nominals a System-block author needs (footprint shrink, wall and
+# roof thicknesses, underside clutch-tube Ø); the fussy clutch-tube *bore* fit is
+# deliberately NOT a constant — LegoBlock sizes it live from the active
+# ToleranceProfile, so it flows through ``tolerance_profile`` like every other
+# printer-tuned fit, never the allowlist.  Surfacing this complete block nominal
+# set is the additive CONTEXT_SCHEMA_VERSION bump (1.0 -> 1.1) the policy above
+# describes.
 CONTEXT_CONSTANTS: tuple[str, ...] = (
     # Grid & stud
     "STUD_PITCH", "PLATE_HEIGHT", "BRICK_HEIGHT", "STUD_DIAMETER", "STUD_HEIGHT",
@@ -81,6 +83,8 @@ CONTEXT_CONSTANTS: tuple[str, ...] = (
     "AXLE_TIP_TO_TIP", "AXLE_LENGTH_PER_STUD",
     # Technic axle hole (cross profile, real-Lego nominal)
     "AXLE_HOLE_TIP_TO_TIP", "AXLE_HOLE_ARM_WIDTH",
+    # Studded-System block (LegoBlock)
+    "BLOCK_PLAY", "BLOCK_WALL", "BLOCK_ROOF", "CLUTCH_TUBE_OD",
 )
 
 # Doc *pointers* — path + optional in-page anchor.  NOT prose: the consumer

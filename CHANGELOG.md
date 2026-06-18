@@ -29,3 +29,14 @@ section to the new version and date.
 - `engine_api.json` wire contract (carries its own `schema_version`).
 - Build provenance: `vibe_cading.__version__` (from package metadata) and
   `vibe_cading.__commit__` (build-stamped git SHA).
+- MCP (stdio) interface — `python -m vibe_cading.mcp`: a `vibe_cading.mcp`
+  subpackage exposing the engine's deterministic introspection tools
+  (`list_engine_classes`, `query_engine_class`, `get_design_context`) plus a
+  local `compile_model`, over MCP stdio (JSON-RPC on stdin/stdout — no network
+  listener, no API key). `mcp` ships as an optional `[mcp]` extra
+  (`pip install -e ".[mcp]"`, pinned `mcp>=1,<2`), so a plain install never
+  pulls the SDK's ASGI tree; a two-layer CI guard
+  (`tools/check_mcp_import_isolation.py`) enforces that `vibe_cading.mcp` never
+  enters the library import graph. `get_design_context` surfaces the curated
+  Lego nominal allowlist (incl. the studded-System block nominals) + the live
+  tolerance profile + doc pointers. (RFC #41.)

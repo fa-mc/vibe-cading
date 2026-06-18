@@ -54,6 +54,14 @@ from vibe_cading.print_settings import get_profile          # noqa: E402
 # Test #4 — payload shape + live profile (env-neutralized value pinning)
 # --------------------------------------------------------------------------
 
+def test_context_schema_version_is_additively_bumped():
+    # Literal pin (not self-referential against the imported constant): surfacing
+    # the studded-System block nominals is the additive 1.0 -> 1.1 bump the
+    # context schema policy describes, so the bump is intentional-gated here.
+    assert CONTEXT_SCHEMA_VERSION == "1.1"
+    assert get_design_context()["schema_version"] == "1.1"
+
+
 def test_context_payload_shape():
     ctx = get_design_context()
     assert ctx["schema_version"] == CONTEXT_SCHEMA_VERSION
@@ -119,6 +127,19 @@ def test_context_constants_values_are_live():
     ctx = get_design_context()
     for name, value in ctx["constants"].items():
         assert value == getattr(constants, name)
+
+
+def test_context_constants_include_block_nominals():
+    # The studded-System block (LegoBlock) nominal set is surfaced (1.0 -> 1.1
+    # additive bump): each name appears in the payload with its constants.py
+    # value.  Gates the new surface so it cannot silently regress.
+    ctx = get_design_context()
+    block_nominals = ("BLOCK_PLAY", "BLOCK_WALL", "BLOCK_ROOF", "CLUTCH_TUBE_OD")
+    for name in block_nominals:
+        assert name in ctx["constants"], (
+            f"block nominal {name!r} missing from get_design_context payload"
+        )
+        assert ctx["constants"][name] == getattr(constants, name)
 
 
 # --------------------------------------------------------------------------
