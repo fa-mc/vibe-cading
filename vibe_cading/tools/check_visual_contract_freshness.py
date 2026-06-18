@@ -18,7 +18,7 @@
 Visual-contract SVG freshness check.
 
 Enforces the ``committed == regenerable`` invariant for the project's visual
-contracts: every tracked ``.agents/plans/*_design_*.svg`` registered in
+contracts: every tracked ``visual_contracts/*_design_*.svg`` registered in
 ``visual_contracts.toml`` is re-rendered from its source class and byte-compared
 against the committed file.  A drifted contract (the model class was refactored
 but the committed SVG was never refreshed) fails the check.
@@ -48,11 +48,11 @@ Usage
                   exits 0; does NOT fail on diff.
     --manifest    Override the manifest path (default: <repo>/visual_contracts.toml).
     --plans-dir   Override the design-SVG directory the coverage gate globs
-                  (default: <repo>/.agents/plans).
+                  (default: <repo>/visual_contracts).
 
 The ``--manifest`` / ``--plans-dir`` overrides exist so negative-path tests can
 exercise the gates against a ``tmp/`` scratch manifest + dir without perturbing
-the tracked ``.agents/plans/`` tree.
+the tracked ``visual_contracts/`` tree.
 
 Interpreter note
 ----------------
@@ -114,7 +114,12 @@ from vibe_cading.tools.preview import export_previews  # noqa: E402
 # invoked from the repo root (CI) or any subdirectory (a contributor's editor
 # terminal).  --manifest / --plans-dir override these for scratch-dir testing.
 DEFAULT_MANIFEST = REPO_ROOT / "visual_contracts.toml"
-DEFAULT_PLANS_DIR = REPO_ROOT / ".agents" / "plans"
+# Design SVGs are tracked under visual_contracts/ — NOT .agents/plans, which was
+# the pre-pip-package location.  The default was never repointed after the move,
+# so the coverage gate silently globbed a nonexistent dir (always empty → no-op)
+# until this fix.  The --plans-dir flag name is kept (negative-path tests pass it
+# explicitly); only the default value changes to the real design-SVG directory.
+DEFAULT_PLANS_DIR = REPO_ROOT / "visual_contracts"
 
 # Coverage-gate glob: every tracked design SVG follows the *_design_*.svg
 # naming the Visual Contract rule mandates, so this glob tracks the rule.
@@ -272,7 +277,7 @@ def main() -> int:
     parser.add_argument(
         "--plans-dir",
         default=str(DEFAULT_PLANS_DIR),
-        help="Directory the coverage gate globs (default: <repo>/.agents/plans).",
+        help="Directory the coverage gate globs (default: <repo>/visual_contracts).",
     )
     args = parser.parse_args()
 
