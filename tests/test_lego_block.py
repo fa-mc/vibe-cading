@@ -22,11 +22,21 @@ Design reference: ``docs/design_plans/2026-06-17-lego-brick-2x3_design.md``.
 """
 
 import dataclasses
+import math
 
 import pytest
 
 from vibe_cading.lego.block import LegoBlock
-from vibe_cading.lego.constants import PLATE_HEIGHT, STUD_DIAMETER, STUD_HEIGHT, STUD_PITCH
+from vibe_cading.lego.constants import (
+    BLOCK_PLAY,
+    BLOCK_ROOF,
+    BLOCK_WALL,
+    CLUTCH_TUBE_OD,
+    PLATE_HEIGHT,
+    STUD_DIAMETER,
+    STUD_HEIGHT,
+    STUD_PITCH,
+)
 from vibe_cading.print_settings import get_profile
 
 PLAY = 0.2
@@ -81,6 +91,36 @@ def test_tube_presence_rule(sx: int, sy: int, expect_tube: bool) -> None:
     ys = block._grid_centres(sy)
     has_interior_vertex = bool(xs[:-1]) and bool(ys[:-1])
     assert has_interior_vertex is expect_tube
+
+
+def _analytic_volume(b: LegoBlock) -> float:
+    """Closed-form volume: outer box − cavity + clutch-tube annuli + studs.
+
+    The tube-annulus term is non-zero iff a 2×2 cluster exists, so matching the
+    built solid's volume to this formula asserts — on the actual geometry — that
+    the underside tubes are present exactly where the rule says and absent
+    elsewhere (a missing/extra tube shifts the volume out of tolerance)."""
+    foot_x = b.studs_x * STUD_PITCH - BLOCK_PLAY
+    foot_y = b.studs_y * STUD_PITCH - BLOCK_PLAY
+    height = b.plates * PLATE_HEIGHT
+    cavity_h = height - BLOCK_ROOF
+    box = foot_x * foot_y * height
+    cavity = (foot_x - 2 * BLOCK_WALL) * (foot_y - 2 * BLOCK_WALL) * cavity_h
+    n_tubes = max(0, b.studs_x - 1) * max(0, b.studs_y - 1)
+    tube = n_tubes * math.pi / 4 * (CLUTCH_TUBE_OD ** 2 - b.clutch_bore_diameter ** 2) * cavity_h
+    n_studs = b.studs_x * b.studs_y if b.studded else 0
+    studs = n_studs * math.pi / 4 * STUD_DIAMETER ** 2 * STUD_HEIGHT
+    return box - cavity + tube + studs
+
+
+@pytest.mark.parametrize(
+    "sx,sy,plates,studded",
+    [(2, 3, 3, True), (2, 2, 3, True), (1, 4, 3, True), (4, 1, 1, True), (2, 3, 1, False)],
+)
+def test_volume_matches_analytic(sx: int, sy: int, plates: int, studded: bool) -> None:
+    """Built-solid volume equals the analytic model incl. the tube-annulus term."""
+    b = LegoBlock(sx, sy, plates=plates, studded=studded)
+    assert b.solid.val().Volume() == pytest.approx(_analytic_volume(b), rel=1e-3)
 
 
 def test_factory_equivalence() -> None:

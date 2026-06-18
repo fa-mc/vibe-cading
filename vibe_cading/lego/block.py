@@ -28,6 +28,12 @@ from vibe_cading.lego.constants import (
 )
 from vibe_cading.print_settings import ToleranceProfile, get_profile
 
+# Entry overcut for the clutch bore: extend the bore below the Z=0 rim so its
+# entry face is not coincident with the body bottom face. Coincident boolean
+# faces are an OCCT reliability hazard (see Known Modelling Pitfalls). The bore
+# stays blind at the top (terminates at the roof underside, no overcut there).
+_BORE_ENTRY_OVERCUT: float = 0.1
+
 
 class LegoBlock:
     """Parametric studded Lego System block — brick / plate / tile generator.
@@ -50,8 +56,9 @@ class LegoBlock:
     * **Top** studs (``studded=True``) or smooth (``studded=False`` → tile).
     * **Underside** hollowed to ``BLOCK_WALL`` walls + ``BLOCK_ROOF`` top plate,
       with clutch tubes auto-placed **only where a 2x2 stud cluster exists**
-      (both dims >= 2).  A 1xN or 1x1 block has no tubes — it clutches by wall
-      friction, exactly as the real-Lego part does (tubes need a 2x2 cluster).
+      (both dims >= 2).  A 1xN or 1x1 block has no tubes — it relies on wall
+      friction (this model omits the small anti-stud ribs that real 1xN Lego
+      bricks add; proper clutch tubes need a 2x2 stud cluster).
 
     Origin convention
     -----------------
@@ -152,7 +159,8 @@ class LegoBlock:
         adjacent studs in both axes — so a tube exists only when the footprint
         has a 2x2 stud cluster (``studs_x >= 2 and studs_y >= 2``).  For a 1xN or
         1x1 block both interior-vertex lists are empty, so no tube is added and
-        the block clutches purely by wall friction (real-Lego behaviour).
+        the block relies on wall friction (this model omits the small anti-stud
+        ribs real 1xN Lego bricks use).
 
         Tubes span the full cavity height so their tops fuse into the roof
         underside, keeping the result a single contiguous solid.
@@ -172,11 +180,16 @@ class LegoBlock:
             .extrude(cavity_h)
         )
         # Profile-driven clutch bore (see __init__): grips a stud from below.
+        # Extend the entry below Z=0 by _BORE_ENTRY_OVERCUT so the bore mouth is
+        # not coincident with the body bottom face; the terminal stays at cavity_h
+        # (blind, closed by the roof — never overcut into the roof). The extra
+        # cutter volume sits in empty space below Z=0, so the solid is unchanged.
         bores = (
             cq.Workplane("XY")
+            .workplane(offset=-_BORE_ENTRY_OVERCUT)
             .pushPoints(tube_pts)
             .circle(self.clutch_bore_diameter / 2)
-            .extrude(cavity_h)
+            .extrude(cavity_h + _BORE_ENTRY_OVERCUT)
         )
         return body.union(tubes).cut(bores)
 
