@@ -37,6 +37,15 @@ dependencies = [
     "cadquery",
 ]
 
+[project.optional-dependencies]
+# AI interface (MCP stdio server, `python -m vibe_cading.mcp`).
+# Pinned `>=1,<2` because the `mcp` SDK's v2 line is alpha/imminent — an
+# unpinned bump must never break a clone mid-launch, and (the whole point of
+# making this an *extra*) a transitive break in the mcp → starlette / uvicorn /
+# pydantic tree must never leak onto a plain `pip install vibe_cading`.  See
+# docs/design_plans/2026-06-18-mcp-subpackage_design.md (R5).
+mcp = ["mcp>=1,<2"]
+
 [project.urls]
 Homepage = "https://github.com/fa-mc/vibe-cading"
 Repository = "https://github.com/fa-mc/vibe-cading"
