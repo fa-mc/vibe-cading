@@ -27,9 +27,10 @@ Owns the two responsibilities the design assigns this file:
    stdin/stdout) — no network listener, no port, no API key.
 
 This is one of exactly two files (with ``server.py``) permitted to import the
-``mcp`` SDK.  It carries no ``if __name__ == "__main__":`` guard (a ``__main__``
-module body runs directly under ``python -m``), so it does not trip
-``check_no_main_blocks.py``.
+``mcp`` SDK.  It carries no ``__name__``-comparison guard (a ``__main__`` module
+body runs directly under ``python -m``), so it does not trip
+``check_no_main_blocks.py`` — and this docstring deliberately avoids spelling
+out the literal guarded form, which the grep belt-and-braces twin would match.
 
 > **AGPL §13 posture.**  The stdio transport is intentionally **not** an AGPL
 > §13 network-interaction surface — stdin/stdout is not "interacting through a
