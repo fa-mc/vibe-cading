@@ -309,6 +309,161 @@
       "result_accessor": ".solid"
     },
     {
+      "module": "vibe_cading.lego.block",
+      "name": "LegoBlock",
+      "fqn": "vibe_cading.lego.block.LegoBlock",
+      "doc": "Parametric studded Lego System block \u2014 brick / plate / tile generator.\n\nOne class spans the whole studded-System family on the 8 mm stud grid; the\nmember you want is a *parameter set*, not a subclass.  Use the convenience\nfactories for the common members:\n\n    LegoBlock(2, 3)            # 2x3 brick (the default: plates=3, studded)\n    LegoBlock.brick(2, 4)      # 3-plate-tall studded brick\n    LegoBlock.plate(2, 4)      # 1-plate-tall studded plate\n    LegoBlock.tile(2, 4)       # 1-plate-tall smooth tile (no studs)\n    LegoBlock(2, 4, plates=6)  # double-height brick\n\nGeometry\n--------\n* **Footprint** ``studs_x x studs_y`` studs; outer edge along each axis is\n  ``n * STUD_PITCH - BLOCK_PLAY`` (the real-Lego 0.2 mm pack gap).\n* **Height** ``plates * PLATE_HEIGHT`` (plate = 1, brick = 3, double = 6).\n* **Top** studs (``studded=True``) or smooth (``studded=False`` \u2192 tile).\n* **Underside** hollowed to ``BLOCK_WALL`` walls + ``BLOCK_ROOF`` top plate,\n  with clutch tubes auto-placed **only where a 2x2 stud cluster exists**\n  (both dims >= 2).  A 1xN or 1x1 block has no tubes \u2014 it clutches by wall\n  friction, exactly as the real-Lego part does (tubes need a 2x2 cluster).\n\nOrigin convention\n-----------------\nThe block is **centred in XY** about ``(0, 0)`` and its **bottom clutch rim\nsits at Z = 0** \u2014 that bottom face is the primary mating interface (it grips\nthe studs of the block below), so it lands on the project zero-datum plane.\nThe body roof is at ``Z = plates * PLATE_HEIGHT``; stud tops are\n``STUD_HEIGHT`` above that.  Studs point **+Z**.\n\nParameters\n----------\nstuds_x, studs_y:\n    Footprint in studs along X and Y.  Both must be >= 1.\nplates:\n    Height in plate units (1 plate = ``PLATE_HEIGHT`` = 3.2 mm).  Must be\n    >= 1.  Integer plate-units keep every block on the System stacking grid.\nstudded:\n    Whether the top face carries studs.  ``False`` yields a smooth tile.\nprofile:\n    Manufacturing tolerance profile that sizes the underside clutch bore.\n    Defaults to the active profile from\n    ``vibe_cading.print_settings.get_profile()`` (env ``PRINT_PROFILE`` \u2192\n    ``fdm_standard``).  The clutch bore is the part's only fit-sensitive\n    feature; everything else is nominal real-Lego geometry.",
+      "constructors": [
+        {
+          "kind": "init",
+          "name": "__init__",
+          "doc": null,
+          "params": [
+            {
+              "name": "studs_x",
+              "type": "int",
+              "required": true,
+              "units": null,
+              "allowed_values": null,
+              "value_doc": null
+            },
+            {
+              "name": "studs_y",
+              "type": "int",
+              "required": true,
+              "units": null,
+              "allowed_values": null,
+              "value_doc": null
+            },
+            {
+              "name": "plates",
+              "type": "int",
+              "required": false,
+              "default": "PLATES_PER_BRICK",
+              "units": null,
+              "allowed_values": null,
+              "value_doc": null
+            },
+            {
+              "name": "studded",
+              "type": "bool",
+              "required": false,
+              "default": "True",
+              "units": null,
+              "allowed_values": null,
+              "value_doc": null
+            },
+            {
+              "name": "profile",
+              "type": "ToleranceProfile | None",
+              "required": false,
+              "default": "None",
+              "units": null,
+              "allowed_values": null,
+              "value_doc": null
+            }
+          ]
+        },
+        {
+          "kind": "classmethod",
+          "name": "brick",
+          "doc": "A standard 3-plate-tall studded brick (9.6 mm body).",
+          "params": [
+            {
+              "name": "studs_x",
+              "type": "int",
+              "required": true,
+              "units": null,
+              "allowed_values": null,
+              "value_doc": null
+            },
+            {
+              "name": "studs_y",
+              "type": "int",
+              "required": true,
+              "units": null,
+              "allowed_values": null,
+              "value_doc": null
+            },
+            {
+              "name": "profile",
+              "type": "ToleranceProfile | None",
+              "required": false,
+              "default": "None",
+              "units": null,
+              "allowed_values": null,
+              "value_doc": null
+            }
+          ]
+        },
+        {
+          "kind": "classmethod",
+          "name": "plate",
+          "doc": "A 1-plate-tall studded plate (3.2 mm body).",
+          "params": [
+            {
+              "name": "studs_x",
+              "type": "int",
+              "required": true,
+              "units": null,
+              "allowed_values": null,
+              "value_doc": null
+            },
+            {
+              "name": "studs_y",
+              "type": "int",
+              "required": true,
+              "units": null,
+              "allowed_values": null,
+              "value_doc": null
+            },
+            {
+              "name": "profile",
+              "type": "ToleranceProfile | None",
+              "required": false,
+              "default": "None",
+              "units": null,
+              "allowed_values": null,
+              "value_doc": null
+            }
+          ]
+        },
+        {
+          "kind": "classmethod",
+          "name": "tile",
+          "doc": "A 1-plate-tall smooth tile (3.2 mm body, no studs).",
+          "params": [
+            {
+              "name": "studs_x",
+              "type": "int",
+              "required": true,
+              "units": null,
+              "allowed_values": null,
+              "value_doc": null
+            },
+            {
+              "name": "studs_y",
+              "type": "int",
+              "required": true,
+              "units": null,
+              "allowed_values": null,
+              "value_doc": null
+            },
+            {
+              "name": "profile",
+              "type": "ToleranceProfile | None",
+              "required": false,
+              "default": "None",
+              "units": null,
+              "allowed_values": null,
+              "value_doc": null
+            }
+          ]
+        }
+      ],
+      "result_accessor": ".solid"
+    },
+    {
       "module": "vibe_cading.lego.cutters.technic_axle_hole",
       "name": "TechnicAxleHole",
       "fqn": "vibe_cading.lego.cutters.technic_axle_hole.TechnicAxleHole",
