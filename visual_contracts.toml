@@ -58,6 +58,20 @@ view  = "front"
 [contract.params]
 length_in_studs = 5
 
+# ── LegoBlock (studs_x / studs_y are REQUIRED args; canonical = 2x3 brick) ─────
+# Single-instance contract: the default 2x3 brick (plates=3, studded=True).
+# The full brick/plate/tile/1xN family is reproducible live via
+# `view.py vibe_cading.lego.block.LegoBlock --demo` (a 4-block compound is not a
+# single-class preview, so it is not byte-pinned here).  Text-free → no labels knob.
+
+[[contract]]
+svg   = "visual_contracts/2026-06-17-lego-block_design_iso_ne.svg"
+model = "vibe_cading.lego.block.LegoBlock"
+view  = "iso_ne"
+[contract.params]
+studs_x = 2
+studs_y = 3
+
 # ── AxleHoleGauge (defaults) ───────────────────────────────────────────────────
 
 [[contract]]
