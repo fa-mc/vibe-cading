@@ -65,7 +65,13 @@ def _build_payload(repo_root: Path) -> dict:
         for d in (repo_root / "vibe_cading", repo_root / "parts")
         if d.exists()
     ]
-    records = extract_classes(roots)
+    # ``vibe_cading/mcp/`` is the MCP-server runtime entry point — it lives
+    # inside the walked ``vibe_cading`` root, so (unlike ``experiments/``)
+    # it cannot be kept out of the catalog by omission; exclude its subtree
+    # explicitly so a future *public* mcp class never leaks into the JSON.
+    records = extract_classes(
+        roots, exclude=[repo_root / "vibe_cading" / "mcp"]
+    )
     return {
         "schema_version": SCHEMA_VERSION,
         "classes": [r.to_dict() for r in records],

@@ -677,9 +677,13 @@ def test_extractor_imports_are_pure_stdlib():
         elif isinstance(node, ast.ImportFrom) and node.module:
             imported.add(node.module.split(".")[0])
     # `__future__` is a stdlib pseudo-module; the real runtime deps are
-    # the four below — no CadQuery / third-party import added.
+    # the ones below — all stdlib, no CadQuery / third-party import added.
+    # ``collections`` enters via ``from collections.abc import Iterable``
+    # (the ``exclude`` param's type hint on ``extract_classes``).
     imported.discard("__future__")
-    assert imported == {"ast", "sys", "dataclasses", "pathlib"}, imported
+    assert imported == {
+        "ast", "sys", "collections", "dataclasses", "pathlib",
+    }, imported
 
 
 # ---------------------------------------------------------------------------
@@ -780,3 +784,88 @@ def test_synthesized_dataclass_literal_field_emits_allowed_values():
     assert params["label"]["value_doc"] is None
     assert params["count"]["type"] == "int"
     assert params["count"]["allowed_values"] is None
+
+
+# ---------------------------------------------------------------------------
+# TL-1 — ``vibe_cading/mcp/`` exclusion seam + leak gate (RFC #41 follow-up)
+#
+# ``vibe_cading/mcp/`` is the MCP-server runtime entry point. It lives
+# *inside* the walked ``vibe_cading`` root, so — unlike ``experiments/``,
+# which is excluded by being absent from ``roots`` — it can only be kept
+# out of the class catalog by an explicit ``exclude=`` subtree on
+# ``extract_classes`` (wired in ``gen_engine_api._build_payload``). These
+# two tests are belt-and-braces: (a) a committed-artifact gate proving no
+# ``vibe_cading.mcp`` class ships in the JSON today, and (b) an efficacy
+# unit test proving the ``exclude`` param actively *drops* a public class
+# it would otherwise catalog. Mirrors the spirit of the ``*Protocol``-leak
+# exclusion (extractor ``_base_is_protocol`` + ``test_emitted_site_count``).
+# ---------------------------------------------------------------------------
+
+
+def test_no_mcp_class_in_committed_artifact(artifact):
+    """Committed-artifact gate: no class fqn starts with ``vibe_cading.mcp``.
+
+    A *public* class added under the mcp subpackage would leak into the
+    catalog (the subtree sits inside the walked ``vibe_cading`` root) and
+    break ``gen_engine_api.py --check``. Today mcp's only internal type is
+    underscored (``_ToolError``), but this pins the invariant against a
+    future public class.
+    """
+    leaked = [
+        c["fqn"]
+        for c in artifact["classes"]
+        if c["fqn"].startswith("vibe_cading.mcp")
+    ]
+    assert leaked == [], (
+        f"mcp class(es) leaked into engine_api.json: {leaked}. The "
+        "vibe_cading/mcp/ subtree must stay excluded via "
+        "extract_classes(..., exclude=[...]) in gen_engine_api._build_payload."
+    )
+
+
+def test_exclude_param_drops_planted_class_only(tmp_path):
+    """Efficacy: ``exclude=`` drops a class it would otherwise catalog.
+
+    Builds a tiny fixture tree with a **public** class in an excluded
+    subdir AND a **public** class in a non-excluded sibling dir. The
+    excluded class must be absent while the sibling is present — without
+    the planted-in-excluded-dir class this test would pass vacuously, so
+    it proves the exclusion is *active*, not merely "nothing was there".
+    """
+    root = tmp_path / "pkg"
+    excluded_subdir = root / "skipme"
+    sibling_dir = root / "keepme"
+    excluded_subdir.mkdir(parents=True)
+    sibling_dir.mkdir(parents=True)
+
+    # A public, non-abstract class with an __init__ in EACH dir, so both
+    # would be discoverable absent any exclusion (control + treatment).
+    planted = (
+        "class ExcludedWidget:\n"
+        "    def __init__(self, size: float):\n"
+        "        self.size = size\n"
+    )
+    sibling = (
+        "class SiblingWidget:\n"
+        "    def __init__(self, size: float):\n"
+        "        self.size = size\n"
+    )
+    (excluded_subdir / "mod.py").write_text(planted, encoding="utf-8")
+    (sibling_dir / "mod.py").write_text(sibling, encoding="utf-8")
+
+    # Baseline: with NO exclusion, BOTH classes are catalogued. This pins
+    # the control — proving the planted class is genuinely discoverable, so
+    # the treatment-run absence below is the exclusion's doing, not a
+    # fixture that never produced the class in the first place.
+    baseline = {r.name for r in extract_classes([root])}
+    assert {"ExcludedWidget", "SiblingWidget"} <= baseline
+
+    # Treatment: excluding ``skipme/`` drops ExcludedWidget but keeps the
+    # sibling.
+    names = {r.name for r in extract_classes([root], exclude=[excluded_subdir])}
+    assert "ExcludedWidget" not in names, (
+        "exclude= failed to drop a class under the excluded subtree"
+    )
+    assert "SiblingWidget" in names, (
+        "exclude= wrongly dropped a class outside the excluded subtree"
+    )

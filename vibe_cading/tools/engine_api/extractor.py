@@ -56,6 +56,7 @@ from __future__ import annotations
 
 import ast
 import sys
+from collections.abc import Iterable
 from dataclasses import dataclass, field
 from pathlib import Path
 
@@ -182,7 +183,10 @@ class ClassRecord:
 # ---------------------------------------------------------------------------
 
 
-def extract_classes(roots: list[Path]) -> list[ClassRecord]:
+def extract_classes(
+    roots: list[Path],
+    exclude: Iterable[Path] | None = None,
+) -> list[ClassRecord]:
     """Walk *roots* and return discovered class records.
 
     Each root is treated as a directory; ``*.py`` files beneath it are
@@ -192,17 +196,39 @@ def extract_classes(roots: list[Path]) -> list[ClassRecord]:
     this resolves to the current working directory, which the CLI sets to
     the repo root.
 
+    *exclude* is an optional iterable of directories whose subtree is
+    skipped during the walk (default ``None`` = no exclusions, so every
+    existing caller keeps its full coverage). Unlike ``experiments/``,
+    which is excluded simply by being *absent* from ``roots``, a subtree
+    such as ``vibe_cading/mcp/`` lives *inside* the walked ``vibe_cading``
+    root and cannot be omitted that way — it needs this explicit seam.
+    The ``mcp`` subpackage is a runtime MCP-server entry point that
+    imports an optional third-party SDK; its classes are server plumbing,
+    never catalog model classes, so any *public* class added there must
+    not leak into ``engine_api.json``.
+
     Records are returned in deterministic order (FQN ascending) so the
     JSON output is stable across runs and platforms.
     """
     records: list[ClassRecord] = []
     seen_fqns: set[str] = set()
 
+    # Resolve the excluded directories once so the per-file membership test
+    # below compares fully-resolved ``Path.parents`` against fully-resolved
+    # exclude dirs (``py_path`` is itself resolved via ``root.resolve()``).
+    resolved_exclude = [Path(p).resolve() for p in (exclude or ())]
+
     for root in roots:
         root = root.resolve()
         repo_root = root.parent
         for py_path in sorted(root.rglob("*.py")):
             if "__pycache__" in py_path.parts:
+                continue
+            # Skip any file living under an excluded subtree (e.g.
+            # ``vibe_cading/mcp/``). This is the seam that keeps an
+            # inside-a-walked-root subpackage out of the class catalog;
+            # see the *exclude* note in the docstring above.
+            if any(excl in py_path.parents for excl in resolved_exclude):
                 continue
             module = _module_path(py_path, repo_root)
             try:
