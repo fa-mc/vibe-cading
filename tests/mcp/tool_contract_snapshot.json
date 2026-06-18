@@ -1,0 +1,107 @@
+{
+  "tool_contract_version": "1.0",
+  "tools": [
+    {
+      "description": "Compile a model class locally to STEP/STL/SVG artifact files (and optional inline SVG text).",
+      "input_schema": {
+        "additionalProperties": false,
+        "properties": {
+          "class_path": {
+            "description": "Dotted 'module.ClassName' path of the model to compile.",
+            "type": "string"
+          },
+          "outputs": {
+            "description": "Artifact formats to produce. Defaults to [\"step\"].",
+            "items": {
+              "enum": [
+                "step",
+                "stl",
+                "svg"
+              ],
+              "type": "string"
+            },
+            "type": "array"
+          },
+          "params": {
+            "description": "Constructor kwargs as a JSON object (e.g. {\"length_in_studs\": 5}).",
+            "type": "object"
+          },
+          "return_inline": {
+            "description": "Opt-in inline SVG text (svg only, under a 256 KiB cap). Defaults to false.",
+            "type": "boolean"
+          },
+          "views": {
+            "description": "View names for svg output (used only when 'svg' in outputs). Defaults to [\"iso_ne\"].",
+            "items": {
+              "type": "string"
+            },
+            "type": "array"
+          }
+        },
+        "required": [
+          "class_path"
+        ],
+        "type": "object"
+      },
+      "name": "compile_model"
+    },
+    {
+      "description": "Return the live tolerance profile, curated Lego/Technic nominal constants, and documentation pointers.",
+      "input_schema": {
+        "additionalProperties": false,
+        "properties": {
+          "profile": {
+            "description": "Optional tolerance-profile name (e.g. 'fdm_standard'); absent \u21d2 the resolved default (honours .env PRINT_PROFILE).",
+            "type": "string"
+          }
+        },
+        "type": "object"
+      },
+      "name": "get_design_context"
+    },
+    {
+      "description": "List the engine's model classes (from the committed engine_api.json), with optional module-prefix / name-substring filters.",
+      "input_schema": {
+        "additionalProperties": false,
+        "properties": {
+          "module_prefix": {
+            "description": "Filter to classes whose fqn or module starts with this prefix (e.g. 'vibe_cading.mechanical').",
+            "type": "string"
+          },
+          "name_contains": {
+            "description": "Filter to classes whose short name contains this substring (case-insensitive).",
+            "type": "string"
+          }
+        },
+        "type": "object"
+      },
+      "name": "list_engine_classes"
+    },
+    {
+      "description": "Return the full record (constructors, doc, result accessor) for one engine class by fqn or short name.",
+      "input_schema": {
+        "additionalProperties": false,
+        "properties": {
+          "class_key": {
+            "description": "The class to look up.  Matched against fqn first (exact); if match='short' or the key has no '.', falls back to the short class name.",
+            "type": "string"
+          },
+          "match": {
+            "default": "exact",
+            "description": "'exact' matches fqn (with short-name fallback when the key has no dot); 'short' forces short-name matching.",
+            "enum": [
+              "exact",
+              "short"
+            ],
+            "type": "string"
+          }
+        },
+        "required": [
+          "class_key"
+        ],
+        "type": "object"
+      },
+      "name": "query_engine_class"
+    }
+  ]
+}
