@@ -22,7 +22,7 @@ jobs:
       # validating against a real fork PR that the bot's GraphQL calls
       # still succeed.
       actions: write        # action calls workflow_runs API (e6583e7)
-      contents: write       # update signatures/version2/cla.json on the default branch
+      contents: write       # update signatures/version2/cla.json on the cla-signatures branch
       pull-requests: write  # post the CLA comment on the PR
       statuses: write       # mark the CLA check status on the PR
     steps:
@@ -34,10 +34,20 @@ jobs:
         # to this repo from fork-PR context.
         uses: cla-assistant/github-action@ca4a40a7d1004f18d9960b404b97e5f30a505a08
         env:
+          # GITHUB_TOKEN suffices: signatures are written to the UNPROTECTED
+          # cla-signatures branch (see `branch:` below), so no privileged
+          # PERSONAL_ACCESS_TOKEN / bypass credential is needed. Do NOT add one
+          # back — a long-lived admin PAT readable from this pull_request_target
+          # (fork-PR) context is a secret-exfiltration surface.
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          PERSONAL_ACCESS_TOKEN: ${{ secrets.PERSONAL_ACCESS_TOKEN }}
         with:
           path-to-signatures: 'signatures/version2/cla.json'
           path-to-document: 'https://github.com/fa-mc/vibe-cading/blob/main/CLA.md'
-          branch: 'main'
+          # Store the signature ledger on the dedicated, UNPROTECTED
+          # `cla-signatures` orphan branch — NOT on `main`. main's
+          # branch-protection ruleset forbids the bot's direct push (it would
+          # fail with "Repository rule violations found"); writing the ledger
+          # off-main keeps main fully protected with no bot bypass actor and no
+          # admin PAT. Do NOT change this back to `main`. See CONTRIBUTING.md §1.
+          branch: 'cla-signatures'
           allowlist: 'dependabot[bot],greenkeeper[bot]'
