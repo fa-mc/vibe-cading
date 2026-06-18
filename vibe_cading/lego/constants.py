@@ -94,6 +94,27 @@ AXLE_LENGTH_PER_STUD: float = 8.0  # Axle length per stud unit (mm)
 AXLE_HOLE_TIP_TO_TIP: float = 4.80
 AXLE_HOLE_ARM_WIDTH:  float = 1.83
 
+# ── Lego System Block (studded brick / plate / tile) ─────────────────────────
+# Geometry for the studded-System family (LegoBlock).  Distinguish two kinds of
+# value below: real-Lego *nominal* dimensions (fixed reference geometry) vs.
+# *FDM design defaults* (printability choices, not measured Lego values).
+#
+#   * BLOCK_PLAY 0.2  — real-Lego nominal: the footprint of an n-stud edge is
+#     n*8 - 0.2 mm, i.e. a 0.1 mm gap per side so neighbouring blocks pack on the
+#     8 mm grid without interference.  This is a by-design Lego gap, independent
+#     of printer, so it is a plain nominal constant (not a printer-tuned fit).
+#   * CLUTCH_TUBE_OD 6.51 — real-Lego nominal underside clutch-tube outer Ø.  The
+#     tube *bore* (which grips a stud from below) is NOT a constant here: LegoBlock
+#     sizes it from the active ToleranceProfile as STUD_DIAMETER + 2*slip.radial,
+#     so the fussy clutch fit is user-calibratable and decoupled from the stud Ø.
+#   * BLOCK_WALL 1.5 / BLOCK_ROOF 1.0 — FDM design defaults: real Lego walls are
+#     ~1.2 mm, but 1.5 mm prints more reliably; the roof (top plate under the
+#     studs) is ~1.0 mm as on real Lego.  Structural choices, not fit clearances.
+BLOCK_PLAY: float = 0.2        # Footprint shrink vs nominal n*8 (real-Lego, 0.1/side)
+BLOCK_WALL: float = 1.5        # Outer wall thickness (FDM design default)
+BLOCK_ROOF: float = 1.0        # Top-plate thickness under the studs (mm)
+CLUTCH_TUBE_OD: float = 6.51   # Underside clutch-tube outer Ø (real-Lego nominal)
+
 # ── Shared geometry defaults ──────────────────────────────────────────────────
 CORNER_RADIUS: float = 0.4                                      # Inner concave corner fillet radius (mm) — TechnicAxle
 LEAD_IN: float = 0.3                                            # End-face chamfer for easy sliding (mm)
