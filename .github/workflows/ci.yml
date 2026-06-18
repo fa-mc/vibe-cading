@@ -71,6 +71,26 @@ jobs:
             echo "$unexpected" >&2
             exit 1
           fi
+      - name: MCP import isolation (Layer A AST + Layer B live-import)
+        # The optional vibe_cading.mcp subpackage and the `mcp` SDK MUST NOT leak
+        # onto library-only consumers (design R7).  `mcp` is intentionally NOT
+        # installed in this lint stage, so Layer B ("import vibe_cading leaves
+        # sys.modules free of mcp / vibe_cading.mcp.*") is a meaningful no-leak
+        # assertion here.  Stdlib-only; runs before CadQuery / the SDK exist.
+        run: python vibe_cading/tools/check_mcp_import_isolation.py
+      - name: MCP import isolation (grep belt-and-braces twin)
+        run: |
+          set -euo pipefail
+          # vibe_cading/mcp/ legitimately imports the SDK in __main__.py /
+          # server.py; vibe_cading/tools/ are CLI entry points (same carve-out
+          # as the no-main-block / ocp_vscode guards).  Subtract both.
+          matches=$(grep -rlE '(from|import) (mcp|vibe_cading\.mcp)' vibe_cading/ parts/ || true)
+          unexpected=$(echo "$matches" | grep -vE '^vibe_cading/(mcp|tools)/' || true)
+          if [ -n "$unexpected" ]; then
+            echo "Forbidden mcp / vibe_cading.mcp import found outside the carve-out:" >&2
+            echo "$unexpected" >&2
+            exit 1
+          fi
       - name: Pytest (unit + smoke tests)
         run: python -m pytest tests/ -v
       - name: Build smoke (python build.py)
@@ -143,3 +163,18 @@ jobs:
         # actions/setup-python pins (same one build.py and the topology step
         # use).  Local contributors run it as `python3.11`.
         run: python3 vibe_cading/tools/check_visual_contract_freshness.py
+      - name: MCP SDK tests (install the [mcp] extra, run smoke + contract snapshot)
+        # Runs LAST, after every CadQuery-bearing step and after the MCP import
+        # isolation step (so Layer B above asserted `mcp` ABSENT in the lint
+        # stage — installing the SDK here does not retroactively affect it).
+        # The smoke + snapshot tests are gated with pytest.importorskip("mcp"):
+        # they SKIP in the earlier Pytest step (mcp absent) and run for real
+        # here once the optional extra is installed.  See the design's OQ6
+        # CI-wiring table + Challenge-F env matrix.
+        run: |
+          set -euo pipefail
+          pip install -e ".[mcp]"
+          python -m pytest \
+            tests/mcp/test_stdio_smoke.py \
+            tests/mcp/test_tool_contract_snapshot.py \
+            -v
