@@ -463,8 +463,136 @@ The `engine_api` AST extractor (`gen_engine_api.py` → `extractor.py`) walks **
 <!-- Step 5 automated loop — no human input needed until Human Final Approval. -->
 
 ### TL Review
-- [ ] **TL sign-off** — implementation matches design; tests pass; no unintended scope creep; strict-ops pass
-- TL review notes:
+- [x] **TL sign-off** — implementation matches design; tests pass; no unintended scope creep; strict-ops pass
+- TL review notes (fresh-context `tl` subagent, 2026-06-18 — opened every file under review; did not trust the developer summary):
+
+  **Verdict: PASS.** The implementation is a faithful, architecturally-sound
+  realization of the approved design. I independently re-ran the verification
+  gates and opened all six package files, the isolation guard, the engine_api
+  extractor, the CI/pyproject/README diffs, and all eight test files. The
+  thin-adapter posture holds end-to-end: zero domain logic, zero re-derivation,
+  surgical SDK isolation. **One non-blocking finding (TL-1), correctly deferred
+  with a required tracking action.** Sign-off granted.
+
+  **Gates re-run live this session (not taken on trust):**
+  - `check_mcp_import_isolation.py` — Layer A **and** Layer B both green (rc=0).
+  - `gen_engine_api.py --check` — green (rc=0); `engine_api.json` is a clean
+    70-class catalog with **no** `vibe_cading.mcp.*` entry.
+  - `pytest tests/mcp/ tests/tools/test_check_mcp_import_isolation.py` — **44
+    passed**. `flake8` on all new files — clean.
+  - `mcp 1.28.0` is installed in this container, so the SDK-gated rows (smoke,
+    snapshot, `_dispatch` adapter) ran for real here, not skipped.
+
+  **Design conformance (§1) — all confirmed by reading the files:**
+  - 6-file package; the `mcp` SDK appears **only** in `__main__.py` (`:64,66`)
+    and `server.py` (`:48-49`). `tools.py` / `context.py` / `contract.py` are
+    SDK-free; SDK pulled lazily *inside* `compile_model` (`tools.py:406-408`),
+    never at module top — Layer B proves `import vibe_cading` leaves
+    `sys.modules` free of `mcp`/`vibe_cading.mcp.*`.
+  - Introspection reads committed `engine_api.json` (`tools.py:104,114`); **no**
+    request-time AST walk. `compile_model` reuses `parse_params` via the
+    object→`k=v` shim (`:343-353,412`), `instantiate` (`:421`), and
+    `resolve_solid` (`:455`) — **not** a bare `.solid` (R4 MUST-NOT honored);
+    SVG routes through `export_previews(..., quiet=True)` (`:486`); the only new
+    `cq.exporters` call is for STEP/STL binary formats (`:472`).
+  - File-path default + 256 KiB inline-SVG cap (`MAX_INLINE_SVG_BYTES`,
+    `:59`, applied `:510`); STEP/STL never inlined. Structured `isError`
+    envelope owned solely by `server.py`'s adapter (`_dispatch` `:78-98`);
+    handlers return plain dicts — no escaping traceback (the broad catch-all at
+    `server.py:91` and `tools.py:473,492` is the last-resort `compile_failed`).
+  - `TOOL_CONTRACT_VERSION` single-sourced in `contract.py:62`, echoed on every
+    result, and snapshot-tested against the **live SDK-registered** tool defs
+    (`test_tool_contract_snapshot.py:51-65` introspects `build_server()`, not a
+    hand-list — genuine drift detection). AGPL header verbatim on all 6 new
+    `vibe_cading/**` files + the new tool + all 8 test files.
+
+  **Integration seams (§2):** the adapter seam genuinely keeps `tools.py`
+  SDK-free — `server.py` binds `types.Tool`/`TextContent`/`CallToolResult`
+  around the SDK-free `TOOLS` registry in one place (`:108-133`). CI wiring
+  matches the design table: Layer A + Layer B + grep twin in the `mcp`-absent
+  lint stage (`ci.yml` +`MCP import isolation` steps), SDK smoke/snapshot in a
+  final step gated behind `pip install -e ".[mcp]"`. Tests, Success Criteria
+  1–10, and Tests-table rows #1–#15 all exist and assert what they claim
+  (error-mapping test exercises both the handler layer *and* the `_dispatch`
+  envelope conversion incl. the "no traceback escapes" assertion; the context
+  value-pinning test correctly forces `PRINT_PROFILE=fdm_standard` *before*
+  importing `print_settings` and compares against a fresh `get_profile()`, not
+  literals — the C1 host-drift fix is real).
+
+  **Deviation adjudication (§4) — assessed independently:**
+  - **D-ALLOWLIST — ACCEPTED, sound, nothing owed now.** Verified `BLOCK_PLAY`/
+    `BLOCK_WALL`/`BLOCK_ROOF`/`CLUTCH_TUBE_OD` are absent on this branch (they
+    live on the unmerged `feat/lego-block-generator`). The design's own
+    anti-drift invariant *requires* shipping only names that resolve — shipping
+    the 4 absent names would make test #5 red and the payload lie. The
+    15-name tuple is the correct content; the mechanism (curated tuple +
+    resolve+float test) is unchanged. The additive-`schema_version`-on-merge
+    plan is exactly the policy `contract.py`/`context.py:65-72` already
+    documents. The branch-isolation reasoning is correct. *Nothing owed on this
+    branch.* Follow-up cost if forgotten: zero on this branch; one additive-bump
+    PR once LegoBlock lands (already captured in the `context.py:65-72` comment).
+  - **D-SDK — ACCEPTED, consistent, no hidden shallowness.** The low-level
+    decorator registration form (`@server.list_tools()` / `@server.call_tool()`)
+    is fully consistent with the `server.py`/`tools.py` split: handlers stay
+    plain `(dict)->dict`, the decorator closure in `server.py:117-133` owns all
+    SDK ceremony. The developer's discovery that the SDK runs
+    `jsonschema.validate(arguments, inputSchema)` *before* the handler is a
+    *strengthening*, not a gap — schema `required`/`additionalProperties:false`
+    are genuinely SDK-enforced, and the handler-level `bad_params` checks are a
+    belt-and-braces second layer. No escalation needed; concur.
+  - **D-TOOLERROR — ruling below.**
+
+  **TL-1 (non-blocking) — D-TOOLERROR extractor exclusion: DEFER to a tracked
+  follow-up, NOT fix-now-inline. Underscore on this PR is sufficient.**
+  I opened the extractor before ruling. Decisive correction to the escalation's
+  framing: **the extractor has no subtree-exclusion mechanism.**
+  `extract_classes(roots)` (`extractor.py:185`) walks `root.rglob("*.py")` and
+  its *only* path filter is `__pycache__` (`:205`); class-level exclusions are
+  by naming/base convention (leading `_` `:274`, ABC/Protocol bases `:287-289`,
+  `@abstractmethod` `:296`, the `demo` classmethod `:410`). `experiments/` is
+  **not** excluded by a subtree filter — it is excluded by *omission from the
+  roots list* in `gen_engine_api.py:63-67` (which passes only `vibe_cading/` +
+  `parts/`). `vibe_cading/mcp/` sits *inside* the `vibe_cading/` root that IS
+  walked, so there is no "analogous to experiments/" one-liner to mirror — the
+  correct fix must *introduce* an exclusion seam on the shared extractor (an
+  `exclude=` param on `extract_classes`, or a narrow per-class guard, or a
+  `*Protocol`-style leak-gate test). That is a shared `vibe_cading/tools/`
+  engine_api CLI change with genuine design choices — it lands squarely in
+  **two PR-follow-up carve-outs** (out-of-scope code touching files unrelated to
+  the MCP package's subject **+** architectural shape) and therefore is
+  correctly *deferred*, not forced inline into this PR.
+  - **The `_ToolError` underscore is the correct immediate fix** and is
+    sufficient for *this* PR: `gen_engine_api.py --check` is green and
+    `engine_api.json` carries no MCP entry (both verified live). The underscore
+    is also the right visibility on its own merits — clients only ever see the
+    JSON `{error_code,message,detail}` envelope, never the Python type.
+  - **Required tracking action (so the deferral is honest, not rot — Post-Fix
+    Hardening / defense-in-depth):** add a `TODO.md` row for the latent
+    extractor gap, and the follow-up MUST land a **durable regression guard** —
+    a test asserting no `vibe_cading.mcp.*` fqn appears in `engine_api.json`,
+    mirroring the existing `*Protocol`-leak gate the extractor docstring already
+    references (`extractor.py:281`). Without that guard, the next public class in
+    the MCP package silently re-bites. *(The TODO row is a backlog-tracking doc
+    edit — per the TODO direct-push carve-out it may go straight to `main`; the
+    extractor fix itself is a normal branch + PR.)*
+  - **Predicted cost of the deferral:** bounded and low. The leak can only
+    recur if a contributor adds a *public* (non-`_`, non-ABC/Protocol) class to
+    `vibe_cading/mcp/` — none is planned. Worst case if it recurs *and* the
+    guard is also absent: one red `gen_engine_api.py --check` in that future PR
+    (caught in CI, never shipped) costing ~1 dev-cycle to underscore-rename or
+    add the exclusion. With the regression-guard test in the follow-up, even
+    that is caught by name at authoring time. This does not cross the
+    blocking threshold (no consumer-visible defect, no unquantified-risk merge).
+
+  **Workspace hygiene / strict-ops (§5) — clean.** Working tree clean
+  (`git status` empty). Commits scoped: `473db82` = guard + extra + CI + guard
+  tests (5 files); `032fa44` = package + tools + tests + the design's
+  `## Implementation Status` fill-in (16 files). No `git add -A` sweep
+  artifacts, no `tmp/` junk, no secrets. **Verified the design body was NOT
+  re-committed** — the only `.md` change in `60bdf5e..HEAD` is the Phase-A
+  `## Implementation Status` section replacing its placeholder template
+  (`+33/-5`); the design through Step 4 sign-off is byte-untouched, exactly as
+  the developer claimed.
 
 ### Domain Expert Review *(N/A — domain integrity gate is NO)*
 - [ ] **Domain expert sign-off**
