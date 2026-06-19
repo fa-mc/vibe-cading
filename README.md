@@ -59,7 +59,7 @@ This project runs in a **VS Code Dev Container** — no manual installation requ
 
 The OCP viewer backend runs on port **3939** and is forwarded to your host automatically.
 
-**AI interface (optional):** to drive the engine from an MCP client (Claude Desktop, Cursor, or any MCP client), install the optional extra and run the stdio server: `pip install -e ".[mcp]"` then `python -m vibe_cading.mcp`. The `mcp` SDK is **not** pulled in by a plain `pip install vibe_cading` — it is an opt-in extra so library-only consumers never pay its dependency weight.
+**AI interface (optional):** to drive the engine from an MCP client (Claude Desktop, Cursor, or any MCP client), install the optional extra and run the stdio server: `pip install -e ".[mcp]"` then `python -m vibe_cading.mcp`. The `mcp` SDK is **not** pulled in by a plain `pip install vibe_cading` — it is an opt-in extra so library-only consumers never pay its dependency weight. See **[docs/mcp.md](docs/mcp.md)** for the full guide — client setup, the four tools, response/error shapes, and versioning.
 
 ### Workspace Initialization
 
