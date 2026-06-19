@@ -9,7 +9,7 @@
 
 ## Problem Statement
 
-Seven STEP-analysis CLI tools (`tools/face_catalog.py`, `tools/hole_finder.py`, `tools/face_distances.py`, `tools/step_summary.py`, `tools/section_slicer.py`, `tools/boolean_diff.py`, `tools/step_preview.py`) each independently import the same OCP namespaces (`OCP.BRepAdaptor`, `OCP.BRepGProp`, `OCP.GeomAbs`, `OCP.GProp`, `OCP.TopAbs`, `OCP.TopExp`) and re-define the same tiny helpers. `_vec3` appears in three tools verbatim; `_face_area` in three tools verbatim; `_count_shapes` would help two more tools but lives only in `step_summary.py`. None of the tools share a STEP-load Adapter that handles file existence, empty-shape error reporting, or future `workspace://` URI translation per `docs/knowledge_base/mcp_architecture_rules.md`. Surfaced as Candidate 5 of the structural review at `tmp/structural-review-2026-05-08.md`.
+Seven STEP-analysis CLI tools (`tools/face_catalog.py`, `tools/hole_finder.py`, `tools/face_distances.py`, `tools/step_summary.py`, `tools/section_slicer.py`, `tools/boolean_diff.py`, `tools/step_preview.py`) each independently import the same OCP namespaces (`OCP.BRepAdaptor`, `OCP.BRepGProp`, `OCP.GeomAbs`, `OCP.GProp`, `OCP.TopAbs`, `OCP.TopExp`) and re-define the same tiny helpers. `_vec3` appears in three tools verbatim; `_face_area` in three tools verbatim; `_count_shapes` would help two more tools but lives only in `step_summary.py`. None of the tools share a STEP-load Adapter that handles file existence, empty-shape error reporting, or future URI-based input translation. Surfaced as Candidate 5 of the structural review at `tmp/structural-review-2026-05-08.md`.
 
 ## User Story / Motivation
 
@@ -28,11 +28,11 @@ As a contributor adding a new STEP-analysis tool (e.g. a future "diff a STEP fil
 
 - No new third-party pip dependencies. OCP and CadQuery already pulled in by the consuming tools.
 - The Module MUST be a thin wrapper: the goal is concentrating duplicate helpers, not adding a heavy abstraction layer over OCP.
-- The Module's API MUST be stable enough that future tools (workspace-URI-aware, caching, etc.) can extend it without breaking the seven existing call-sites.
+- The Module's API MUST be stable enough that future tools (URI-aware, caching, etc.) can extend it without breaking the seven existing call-sites.
 
 ## Known Domain Constraints
 
-- `docs/knowledge_base/mcp_architecture_rules.md` mandates `workspace://` URI return shape for tools the platform consumes via MCP. The shared STEP-load function should be designed so a future `workspace://` URI translator can plug in without re-touching all seven tools — but the URI logic itself is OUT of scope for this refactor (the platform isn't consuming these CLIs over MCP today).
+- A possible future requirement is a URI-based return shape for tools consumed over MCP. The shared STEP-load function should be designed so a future URI translator can plug in without re-touching all seven tools — but the URI logic itself is OUT of scope for this refactor (nothing consumes these CLIs over MCP today).
 - `tools/engine_api/extractor.py` is pure-AST and CadQuery-agnostic per `.agents/plans/engine-api-json.md` §1. The new STEP-primitives Module is the OPPOSITE — it imports OCP and CadQuery directly. Sibling location under `tools/engine_api/` is acceptable only if the extractor's no-CadQuery property is preserved (different files; clear separation).
 
 ## Out of Scope
@@ -41,7 +41,7 @@ As a contributor adding a new STEP-analysis tool (e.g. a future "diff a STEP fil
 - Changes to the `--json` output schema of any of the seven tools. JSON wire format is preserved exactly.
 - Performance optimization (caching of expensive STEP loads is interesting future work but not this refactor).
 - Adding new analysis primitives beyond the duplicate-extraction set.
-- `workspace://` URI translation. Captured in the Open Questions to ensure the API design doesn't preclude it, but the implementation is deferred.
+- URI-based input translation. Captured in the Open Questions to ensure the API design doesn't preclude it, but the implementation is deferred.
 
 ## Open Questions
 

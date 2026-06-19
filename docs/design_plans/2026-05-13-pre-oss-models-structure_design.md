@@ -1921,11 +1921,7 @@ byte-perfect under header-normalised hashing).
     `PKG-INFO`.  Confirmed `pip install -e .` is **not** advertised
     in any tracked documentation
     (`git grep -n 'pip install -e \.' README.md CONTRIBUTING.md docs/`
-    → zero hits); the `pyproject` references that survive under
-    `docs/archive/mcp-integration-plan.md` and
-    `docs/knowledge_base/mcp_architecture_rules.md` are
-    *warnings against* modifying a pyproject.toml in the engine
-    submodule, not invitations to create one — left intact.
+    → zero hits).
 
 **Deviations + justification:**
 
@@ -2550,7 +2546,7 @@ The refactor is OSS-ready. Sign-off recorded in §Sign-off below.
 | **B1** (`MetricMachineScrew.to_cutter()` `profile=None` crash) | OPEN | **RESOLVED** | `vibe_cading/mechanical/screws/metric.py:161` now reads `prof = profile if profile is not None else get_profile()`, matching the sibling fallback pattern in WoodScrew / PlasticsScrew / SetScrew / ImperialMachineScrew. Re-ran the canonical `docs/screws.md` repro `python3 -c "from vibe_cading.mechanical.screws import MetricMachineScrew as M; M.from_size('M3', length=15, head_type='socket').to_cutter(fit='clearance')"` — exits 0 returning a `Workplane` (was: `AttributeError: 'NoneType' object has no attribute 'free'`). Inline comment at the fix site cites "B1 (TL review 2026-05-14)" and documents the geometry-neutrality rationale — proactive-documentation rule honored. |
 | **B2** (`README.md` / `CONTRIBUTING.md` `models/` references) | OPEN | **RESOLVED** | `git grep -n 'models/' README.md CONTRIBUTING.md` → zero hits. `git grep -nE 'AxleSleeve\|HexWheelHub\|BaseJoint' README.md CONTRIBUTING.md` → zero hits. Every README class-index entry (`vibe_cading/lego/technic_axle.py`, `vibe_cading/lego/cutters/technic_axle_hole.py`, `vibe_cading/lego_adapters/technic_axle_to_bearing_sleeve.py`, `vibe_cading/rc/freespin_hex_hub.py`, `parts/arrma_vorteks_223s/esc_mount.py`) exists on disk AND its import path resolves via `python3 -c "from <module> import <Class>"` (verified all 5 by direct import). The added `FreespinHexHub` row correctly surfaces the Phase-1 rename. Cross-doc check: zero residual `models/(lego\|mechanical\|rc\|xlego\|technic_ball_bearing)` references in `docs/`, `vibe/`, or `CLAUDE.md`. |
 | **B3** (named test files do not exist; Success Criteria 6 unsatisfied) | OPEN | **RESOLVED** | All four named modules present: `tests/test_protocols.py` (290 lines, 82 cases), `tests/test_tolerance_profile.py` (230 lines, 12 cases), `tests/test_imports.py` (103 lines, 62 cases driven from `engine_api.json`), `tests/test_cutter_overcut.py` (201 lines, 11 cases). Full suite: **168 passed + 2 xfailed** in 4.02s. **Regression-gate validity probe:** I re-introduced the B1 bug by patching out the fallback (`prof = profile  # B1 bug re-introduced for test`) and re-ran `pytest tests/test_protocols.py -k MetricMachineScrew` — `test_to_cutter_default_args[MetricMachineScrew]` **failed** exactly as intended, with the precise `AttributeError: 'NoneType' object has no attribute 'free'` trace that B1 originally surfaced. Restored cleanly; full suite re-passes. This is a load-bearing piece of evidence that the protocol test is not merely shaped like a regression gate but is one. |
-| **N1** (stale `pyproject.toml` + `vibe_cading.egg-info/`) | OPEN | **RESOLVED** | `ls pyproject.toml vibe_cading.egg-info` → both absent. `git grep -n 'pip install -e \.' README.md CONTRIBUTING.md docs/` → zero hits (no docs advertise pip-installable usage, so deletion is safe). The two surviving `pyproject` references under `docs/archive/mcp-integration-plan.md` and `docs/knowledge_base/mcp_architecture_rules.md` are warnings *against* modifying a `pyproject.toml` in the engine submodule — correctly left intact. |
+| **N1** (stale `pyproject.toml` + `vibe_cading.egg-info/`) | OPEN | **RESOLVED** | `ls pyproject.toml vibe_cading.egg-info` → both absent. `git grep -n 'pip install -e \.' README.md CONTRIBUTING.md docs/` → zero hits (no docs advertise pip-installable usage, so deletion is safe). |
 
 #### Fix-pass-introduced findings (deviations + new surfaces audited)
 
