@@ -130,7 +130,7 @@ We are expanding this repository into a broader Code-CAD mechanical toolkit. Her
 
 Short-lived items, ideas, and parked refactors that surfaced during a session
 but are not actively being driven. Curated by PM. Promote to
-[`.agents/plans/INDEX.md`](.agents/plans/INDEX.md) when an item earns a
+[`docs/design_plans/INDEX.md`](docs/design_plans/INDEX.md) when an item earns a
 design slot.
 
 ### Admin follow-ups

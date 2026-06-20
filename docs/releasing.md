@@ -79,6 +79,14 @@ there, and cutting a release renames `Unreleased` to the new version + date.
 A **GitHub Actions release workflow** (`.github/workflows/release.yml`, added with the
 wiring step) automates build + publish; a human only bumps the version and pushes the tag.
 
+**Before merging the release PR, run the reference-doc freshness sweep** (see
+*Reference-Doc Freshness* in [`vibe/INSTRUCTIONS.md`](../vibe/INSTRUCTIONS.md)): run
+`python3 vibe_cading/tools/check_doc_links.py` (the link/path gate, also enforced in CI)
+**and** review the reference docs (`docs/lego-technic.md`, `docs/print-tolerances.md`,
+`docs/screws.md`, and the `README.md` dimension/path tables) against current code for
+value / line-anchor / symbol drift. Fix any drift in the release PR — these docs are
+user-facing, so a stale number ships for the whole release cycle otherwise.
+
 1. Confirm `CHANGELOG.md` `Unreleased` is complete for everything since the last tag.
 2. Bump `[project].version`; move `Unreleased` → a dated `[x.y.z]` section.
 3. Merge that PR to `main`.

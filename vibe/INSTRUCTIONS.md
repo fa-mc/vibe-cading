@@ -145,7 +145,36 @@ This codebase must be maintained at a high standard of structural quality and re
 
 ## Reference Docs
 - [docs/lego-technic.md](../docs/lego-technic.md) — Lego Technic part dimensions (beams, pins, axles, holes, gears, tolerances)
+- [docs/print-tolerances.md](../docs/print-tolerances.md) — Fit-grade / allowance tolerance model (`free`/`slip`/`press` × `radial`/`axial`/`slot`) and which model classes read which knob
+- [docs/screws.md](../docs/screws.md) — Fastener reference (metric / imperial sizes, drive types, fit semantics)
+- [docs/mcp.md](../docs/mcp.md) — MCP interface (engine tools over stdio for LLM clients)
 - [docs/agentic-workflow.md](../docs/agentic-workflow.md) — Multi-role agentic workflow (Admin / Designer / TL / Developer)
+
+## Reference-Doc Freshness
+
+The user-facing reference docs above — `README.md` dimension/path/symbol tables and
+`docs/{lego-technic,print-tolerances,screws}.md` — are hand-written prose that *cites the
+code*: constants, tool CLI paths, public class/method names, the tolerance-profile model.
+Unlike the visual-contract SVGs and `engine_api.json` (regenerated and byte-checked in
+CI), this prose has no auto-regeneration, so it drifts silently when the code it describes
+changes. Two gates keep it honest:
+
+1. **Automated (per-PR):** `vibe_cading/tools/check_doc_links.py` runs in CI and fails on
+   any broken relative link / dead file path in the tracked docs. It catches the
+   *dead-path* class (a moved or renamed tool) but **not** wrong numeric values or stale
+   `#Lnn` line-anchors (the file still resolves) — those are the sweep's job.
+2. **Sweep (triggered):** when a change touches code the reference docs cite — a constant
+   in `vibe_cading/lego/constants.py`, a `vibe_cading/tools/*` CLI path/name, a public
+   model class or method name, or the `vibe_cading/print_settings.py` tolerance model —
+   refresh every doc that cites it **in the same PR**, re-deriving each value/anchor from
+   the live source. And **before any release or major update**, run the full sweep over
+   the reference-doc set (see [docs/releasing.md](../docs/releasing.md)).
+
+*Why this rule exists:* the 2026-06-20 docs-accuracy pass found wrong axle dimensions, six
+dead `calibrate.py` links, drifted line-anchors, and renamed methods (`.to_cutter` →
+`.pocket`) that had accumulated because nothing tied the code change to the doc refresh. A
+release-only sweep ships user-facing errors for a whole cycle; the per-PR link gate is the
+cheap half that pays for itself.
 
 ## Agentic Workflow
 
