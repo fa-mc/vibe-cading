@@ -156,6 +156,15 @@ jobs:
           echo "================================================================"
           echo "$passed / $total targets passed, $failed failed"
           [[ "$failed" -eq 0 ]] || exit 1
+      - name: Doc link check
+        # Validates that every relative *file* link in the tracked Markdown
+        # docs still resolves on disk, so a rename/move can't silently rot a
+        # cross-reference.  Skips docs/design_plans/ (frozen historical briefs
+        # intentionally cite removed / tmp/ paths) and validates only the file's
+        # existence, not the #anchor (v1).  Stdlib-only — no CadQuery / SDK — so
+        # it would run as early as the lint stage; kept beside the freshness
+        # gate as the docs-integrity sibling.
+        run: python3 vibe_cading/tools/check_doc_links.py
       - name: Visual contract freshness
         # Regenerates every .agents/plans/*_design_*.svg registered in
         # visual_contracts.toml via vibe_cading/tools/preview.py's export_previews() and
