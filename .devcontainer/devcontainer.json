@@ -21,13 +21,14 @@
     ],
     "remoteUser": "vscode",
     "updateRemoteUserUID": true,
-    // Path-identity worktree layout: mount the PROJECT ROOT
-    // at the identical host==container path so every sibling worktree resolves the
-    // same from host and container; workspaceFolder selects the opened checkout
-    // (main, or a <slug> stream worktree). Migrated 2026-06-20 from the flat
-    // /workspaces/vibe-cading layout.
+    // Path-identity worktree layout: mount the whole PROJECT ROOT at the identical
+    // host==container path so every sibling worktree — and its .git, which points
+    // back into main/.git/worktrees/ — resolves the same from host and container.
+    // The container always opens in `main` (the only checkout that runs Claude);
+    // work in sibling worktrees by `cd`-ing to them within this same container.
+    // Migrated 2026-06-20 from the flat /workspaces/vibe-cading layout.
     "workspaceMount": "source=/workspaces/vibe-cading,target=/workspaces/vibe-cading,type=bind",
-    "workspaceFolder": "/workspaces/vibe-cading/${localWorkspaceFolderBasename}",
+    "workspaceFolder": "/workspaces/vibe-cading/main",
     "mounts": [
         "source=${localEnv:HOME}/.ssh,target=/tmp/host-ssh,type=bind,readonly",
         // If you override USERNAME (default "vscode") via build args, also update
@@ -35,33 +36,32 @@
         // can interpolate the Dockerfile ARG. Overriding only USER_UID/USER_GID
         // (the common non-1000-host case) needs no change here.
         "source=${localEnv:HOME}${localEnv:USERPROFILE}/.claude,target=/home/vscode/.claude,type=bind,consistency=cached",
-        // Per-project credentials isolation: override ONLY .credentials.json with a
-        // project-scoped host file (seeded by initializeCommand below) while the rest
-        // of ~/.claude (settings, memory, history) stays shared. Prevents the
-        // single-use OAuth-refresh race where concurrent devcontainers sharing one
-        // host ~/.claude evict each other's token and force constant re-logins.
-        // This nested mount MUST stay AFTER the broad ~/.claude mount above so the
-        // more-specific path wins. In the path-identity layout ${localWorkspaceFolderBasename}
-        // is the opened *worktree* slug (main, or a <slug> stream), so credentials are
-        // isolated PER WORKTREE — concurrent sibling-worktree containers no longer race
-        // on the single-use OAuth refresh. Caveat: two checkouts that share a basename
-        // (e.g. the "main" worktree of two different projects) still collide — give one
-        // a distinct folder name if you run them at once.
-        "source=${localEnv:HOME}${localEnv:USERPROFILE}/.claude-creds/${localWorkspaceFolderBasename}/.credentials.json,target=/home/vscode/.claude/.credentials.json,type=bind,consistency=cached",
+        // Credentials isolation keyed to the PROJECT. Claude only runs in this
+        // project's `main` checkout, so per-worktree granularity isn't needed — what
+        // matters is isolating THIS project's token from OTHER projects' containers
+        // that bind-mount the same host ~/.claude. Override ONLY .credentials.json
+        // with a project-scoped host file (seeded by initializeCommand below); the
+        // rest of ~/.claude (settings, memory, history) stays shared. Prevents the
+        // single-use OAuth-refresh eviction race across projects. MUST stay AFTER the
+        // broad ~/.claude mount above so the more-specific path wins. Keyed on the
+        // literal project name, NOT ${localWorkspaceFolderBasename}: that resolves to
+        // the opened folder basename (`main`), so every project's main checkout would
+        // otherwise collide on ~/.claude-creds/main/.
+        "source=${localEnv:HOME}${localEnv:USERPROFILE}/.claude-creds/vibe-cading/.credentials.json,target=/home/vscode/.claude/.credentials.json,type=bind,consistency=cached",
         "source=${localEnv:HOME}${localEnv:USERPROFILE}/.gemini,target=/home/vscode/.gemini,type=bind,consistency=cached"
     ],
     // Seed the per-project credentials file on first create: make the dir, then
     // copy the shared token in once (or touch an empty file if none exists yet) so
     // the nested bind mount above always has a real host file to bind. Idempotent.
-    "initializeCommand": "mkdir -p ${localEnv:HOME}${localEnv:USERPROFILE}/.claude-creds/${localWorkspaceFolderBasename} && { [ -f ${localEnv:HOME}${localEnv:USERPROFILE}/.claude-creds/${localWorkspaceFolderBasename}/.credentials.json ] || cp ${localEnv:HOME}${localEnv:USERPROFILE}/.claude/.credentials.json ${localEnv:HOME}${localEnv:USERPROFILE}/.claude-creds/${localWorkspaceFolderBasename}/.credentials.json 2>/dev/null || touch ${localEnv:HOME}${localEnv:USERPROFILE}/.claude-creds/${localWorkspaceFolderBasename}/.credentials.json; }",
+    "initializeCommand": "mkdir -p ${localEnv:HOME}${localEnv:USERPROFILE}/.claude-creds/vibe-cading && { [ -f ${localEnv:HOME}${localEnv:USERPROFILE}/.claude-creds/vibe-cading/.credentials.json ] || cp ${localEnv:HOME}${localEnv:USERPROFILE}/.claude/.credentials.json ${localEnv:HOME}${localEnv:USERPROFILE}/.claude-creds/vibe-cading/.credentials.json 2>/dev/null || touch ${localEnv:HOME}${localEnv:USERPROFILE}/.claude-creds/vibe-cading/.credentials.json; }",
     "remoteEnv": {
         "SSH_AUTH_SOCK": "/ssh-agent",
-        "PYTHONPATH": "/workspaces/vibe-cading/${localWorkspaceFolderBasename}"
+        "PYTHONPATH": "/workspaces/vibe-cading/main"
     },
     // SSH key copy is best-effort: copy only files the container user can READ
     // (skip root-owned files like a known_hosts written by a root-context process
     // into the shared host ~/.ssh — `cp -a` aborts postCreate with exit 1 on an
     // unreadable source). `cp -p` keeps mode/timestamps but not ownership (avoids
     // the non-root chown EPERM); the chmod steps below then normalize perms.
-    "postCreateCommand": "git config --global --add safe.directory /workspaces/vibe-cading/${localWorkspaceFolderBasename} && sudo chown -R \"$(id -u):$(id -g)\" /workspaces/vibe-cading/${localWorkspaceFolderBasename} && mkdir -p \"$HOME/.ssh\" && { find /tmp/host-ssh -maxdepth 1 -type f -readable -exec cp -p {} \"$HOME/.ssh/\" \\; || true; } && chmod 700 \"$HOME/.ssh\" && find \"$HOME/.ssh\" -maxdepth 1 -type f ! -name '*.pub' -exec chmod 600 {} + && find \"$HOME/.ssh\" -maxdepth 1 -name '*.pub' -exec chmod 644 {} +"
+    "postCreateCommand": "git config --global --add safe.directory /workspaces/vibe-cading/main && sudo chown -R \"$(id -u):$(id -g)\" /workspaces/vibe-cading/main && mkdir -p \"$HOME/.ssh\" && { find /tmp/host-ssh -maxdepth 1 -type f -readable -exec cp -p {} \"$HOME/.ssh/\" \\; || true; } && chmod 700 \"$HOME/.ssh\" && find \"$HOME/.ssh\" -maxdepth 1 -type f ! -name '*.pub' -exec chmod 600 {} + && find \"$HOME/.ssh\" -maxdepth 1 -name '*.pub' -exec chmod 644 {} +"
 }
