@@ -28,8 +28,23 @@
         // can interpolate the Dockerfile ARG. Overriding only USER_UID/USER_GID
         // (the common non-1000-host case) needs no change here.
         "source=${localEnv:HOME}${localEnv:USERPROFILE}/.claude,target=/home/vscode/.claude,type=bind,consistency=cached",
+        // Per-project credentials isolation: override ONLY .credentials.json with a
+        // project-scoped host file (seeded by initializeCommand below) while the rest
+        // of ~/.claude (settings, memory, history) stays shared. Prevents the
+        // single-use OAuth-refresh race where concurrent devcontainers sharing one
+        // host ~/.claude evict each other's token and force constant re-logins.
+        // This nested mount MUST stay AFTER the broad ~/.claude mount above so the
+        // more-specific path wins. Caveat: keyed on ${localWorkspaceFolderBasename},
+        // so it isolates across DIFFERENT projects but NOT across two concurrent
+        // clones of THIS repo (same basename) — swap in a more unique suffix if you
+        // run two vibe-cading clones at once.
+        "source=${localEnv:HOME}${localEnv:USERPROFILE}/.claude-creds/${localWorkspaceFolderBasename}/.credentials.json,target=/home/vscode/.claude/.credentials.json,type=bind,consistency=cached",
         "source=${localEnv:HOME}${localEnv:USERPROFILE}/.gemini,target=/home/vscode/.gemini,type=bind,consistency=cached"
     ],
+    // Seed the per-project credentials file on first create: make the dir, then
+    // copy the shared token in once (or touch an empty file if none exists yet) so
+    // the nested bind mount above always has a real host file to bind. Idempotent.
+    "initializeCommand": "mkdir -p ${localEnv:HOME}${localEnv:USERPROFILE}/.claude-creds/${localWorkspaceFolderBasename} && { [ -f ${localEnv:HOME}${localEnv:USERPROFILE}/.claude-creds/${localWorkspaceFolderBasename}/.credentials.json ] || cp ${localEnv:HOME}${localEnv:USERPROFILE}/.claude/.credentials.json ${localEnv:HOME}${localEnv:USERPROFILE}/.claude-creds/${localWorkspaceFolderBasename}/.credentials.json 2>/dev/null || touch ${localEnv:HOME}${localEnv:USERPROFILE}/.claude-creds/${localWorkspaceFolderBasename}/.credentials.json; }",
     "remoteEnv": {
         "SSH_AUTH_SOCK": "/ssh-agent",
         "PYTHONPATH": "/workspaces/vibe-cading"

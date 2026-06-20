@@ -135,7 +135,9 @@ design slot.
 
 ### Admin follow-ups
 
-- **Upstream Security Rule to `core-agents`:** Propose the "Never Leak Secrets" rule (codified in `vibe/INSTRUCTIONS.md` prohibiting literal secrets in command histories/transcripts) upstream to the `core-agents` shared instruction set (e.g. `base/instructions/base.md`). This ensures all host platforms natively inherit the safeguard.
+- ~~**Upstream Security Rule to `core-agents`:** Propose the "Never Leak Secrets" rule (codified in `vibe/INSTRUCTIONS.md` prohibiting literal secrets in command histories/transcripts) upstream to the `core-agents` shared instruction set (e.g. `base/instructions/base.md`).~~ — **DONE.** The "Never Leak Secrets" rule was adopted into the upstream base instruction set; vibe-cading's three inline copies (`CLAUDE.md`, `AGENTS.md`, `vibe/INSTRUCTIONS.md`) now carry the same safeguard, modernized to the auto-export sourcing idiom (`set -a && . ./.env && set +a`) away from the fragile `export $(grep … | xargs)` extraction.
+
+- **Adopt the branch-first edit guard (deferred, gated on worktree workflow).** A Claude Code `PreToolUse` hook is available that DENIES code Edits/Writes while the default checkout's `HEAD` is on `main` (docs/`TODO.md`/`vibe/` stay editable), enforcing the existing "branch before code" discipline mechanically. Deferred at maintainer direction pending the move to a git-worktree layout; re-evaluate once worktrees are in use. (Note: the in-container `jq` dependency is currently absent — the hook fails open without it, so install `jq` when adopting.)
 
 ### Pre-OSS publication checklist (release-blockers for v1)
 
