@@ -21,6 +21,13 @@
     ],
     "remoteUser": "vscode",
     "updateRemoteUserUID": true,
+    // Path-identity worktree layout: mount the PROJECT ROOT
+    // at the identical host==container path so every sibling worktree resolves the
+    // same from host and container; workspaceFolder selects the opened checkout
+    // (main, or a <slug> stream worktree). Migrated 2026-06-20 from the flat
+    // /workspaces/vibe-cading layout.
+    "workspaceMount": "source=/workspaces/vibe-cading,target=/workspaces/vibe-cading,type=bind",
+    "workspaceFolder": "/workspaces/vibe-cading/${localWorkspaceFolderBasename}",
     "mounts": [
         "source=${localEnv:HOME}/.ssh,target=/tmp/host-ssh,type=bind,readonly",
         // If you override USERNAME (default "vscode") via build args, also update
@@ -34,10 +41,12 @@
         // single-use OAuth-refresh race where concurrent devcontainers sharing one
         // host ~/.claude evict each other's token and force constant re-logins.
         // This nested mount MUST stay AFTER the broad ~/.claude mount above so the
-        // more-specific path wins. Caveat: keyed on ${localWorkspaceFolderBasename},
-        // so it isolates across DIFFERENT projects but NOT across two concurrent
-        // clones of THIS repo (same basename) — swap in a more unique suffix if you
-        // run two vibe-cading clones at once.
+        // more-specific path wins. In the path-identity layout ${localWorkspaceFolderBasename}
+        // is the opened *worktree* slug (main, or a <slug> stream), so credentials are
+        // isolated PER WORKTREE — concurrent sibling-worktree containers no longer race
+        // on the single-use OAuth refresh. Caveat: two checkouts that share a basename
+        // (e.g. the "main" worktree of two different projects) still collide — give one
+        // a distinct folder name if you run them at once.
         "source=${localEnv:HOME}${localEnv:USERPROFILE}/.claude-creds/${localWorkspaceFolderBasename}/.credentials.json,target=/home/vscode/.claude/.credentials.json,type=bind,consistency=cached",
         "source=${localEnv:HOME}${localEnv:USERPROFILE}/.gemini,target=/home/vscode/.gemini,type=bind,consistency=cached"
     ],
@@ -47,7 +56,12 @@
     "initializeCommand": "mkdir -p ${localEnv:HOME}${localEnv:USERPROFILE}/.claude-creds/${localWorkspaceFolderBasename} && { [ -f ${localEnv:HOME}${localEnv:USERPROFILE}/.claude-creds/${localWorkspaceFolderBasename}/.credentials.json ] || cp ${localEnv:HOME}${localEnv:USERPROFILE}/.claude/.credentials.json ${localEnv:HOME}${localEnv:USERPROFILE}/.claude-creds/${localWorkspaceFolderBasename}/.credentials.json 2>/dev/null || touch ${localEnv:HOME}${localEnv:USERPROFILE}/.claude-creds/${localWorkspaceFolderBasename}/.credentials.json; }",
     "remoteEnv": {
         "SSH_AUTH_SOCK": "/ssh-agent",
-        "PYTHONPATH": "/workspaces/vibe-cading"
+        "PYTHONPATH": "/workspaces/vibe-cading/${localWorkspaceFolderBasename}"
     },
-    "postCreateCommand": "git config --global --add safe.directory /workspaces/vibe-cading && sudo chown -R \"$(id -u):$(id -g)\" /workspaces/vibe-cading && mkdir -p \"$HOME/.ssh\" && cp -a /tmp/host-ssh/. \"$HOME/.ssh/\" && chmod 700 \"$HOME/.ssh\" && find \"$HOME/.ssh\" -maxdepth 1 -type f ! -name '*.pub' -exec chmod 600 {} + && find \"$HOME/.ssh\" -maxdepth 1 -name '*.pub' -exec chmod 644 {} +"
+    // SSH key copy is best-effort: copy only files the container user can READ
+    // (skip root-owned files like a known_hosts written by a root-context process
+    // into the shared host ~/.ssh — `cp -a` aborts postCreate with exit 1 on an
+    // unreadable source). `cp -p` keeps mode/timestamps but not ownership (avoids
+    // the non-root chown EPERM); the chmod steps below then normalize perms.
+    "postCreateCommand": "git config --global --add safe.directory /workspaces/vibe-cading/${localWorkspaceFolderBasename} && sudo chown -R \"$(id -u):$(id -g)\" /workspaces/vibe-cading/${localWorkspaceFolderBasename} && mkdir -p \"$HOME/.ssh\" && { find /tmp/host-ssh -maxdepth 1 -type f -readable -exec cp -p {} \"$HOME/.ssh/\" \\; || true; } && chmod 700 \"$HOME/.ssh\" && find \"$HOME/.ssh\" -maxdepth 1 -type f ! -name '*.pub' -exec chmod 600 {} + && find \"$HOME/.ssh\" -maxdepth 1 -name '*.pub' -exec chmod 644 {} +"
 }
