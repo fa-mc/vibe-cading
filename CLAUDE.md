@@ -2,7 +2,7 @@
 
 ## Universal Safety Invariants
 
-- **Never Leak Secrets:** Never copy-paste, echo, or embed literal secret values (like API keys, tokens, or passwords) into command-line invocations, tool arguments, or conversational text. This creates a severe security breach by exposing credentials in command histories, agent transcripts, and logs. Always parse and source secrets dynamically using safe shell mechanisms (e.g. `export $(grep GH_TOKEN .env | xargs) && gh ...`).
+- **Never Leak Secrets:** Never copy-paste, echo, or embed literal secret values (like API keys, tokens, or passwords) into command-line invocations, tool arguments, or conversational text. This creates a severe security breach by exposing credentials in command histories, agent transcripts, and logs. Always source secrets dynamically and reference them by name (double-quoted). Prefer auto-export sourcing — `set -a && . ./.env && set +a && gh ...` — so the tool reads the value straight from the environment (`gh` reads `$GH_TOKEN`); never interpolate the literal value into a command. Avoid fragile extraction idioms like `export $(grep … | xargs)`, which word-split and corrupt values containing spaces, quotes, or shell metacharacters.
 
 # Claude Code Specifics
 
