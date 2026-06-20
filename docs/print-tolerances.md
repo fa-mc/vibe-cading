@@ -18,10 +18,10 @@ The project models a hardware fit as one of three physical archetypes. Picking t
 
 ### Why the shipped values look the way they do
 
-Read [`_FALLBACK_PROFILES["fdm_standard"]`](../vibe_cading/print_settings.py#L628) for the source-of-truth values:
+Read [`_FALLBACK_PROFILES["fdm_standard"]`](../vibe_cading/print_settings.py#L575) for the source-of-truth values:
 
 - **`free` is three times looser than `slip`** (`0.15` vs `0.05`). A screw shank passing through a hole has all the headroom it wants — the walls are not load-bearing — so we err generously. A slip-fit bearing seat is dimensionally meaningful — the wall *is* the contact surface — so we err tight.
-- **`press` is the tightest** (`0.04`). A press joint relies on interference; *adding* radial clearance defeats it. The shipped value is calibrated assuming a typical FDM `0.4 mm` nozzle's hole-shrink behavior, so the printed hole still binds. On a printer that prints holes oversize you may need `press.radial` slightly negative — calibrate with [`tools/calibrate.py press`](../tools/calibrate.py).
+- **`press` is the tightest** (`0.04`). A press joint relies on interference; *adding* radial clearance defeats it. The shipped value is calibrated assuming a typical FDM `0.4 mm` nozzle's hole-shrink behavior, so the printed hole still binds. On a printer that prints holes oversize you may need `press.radial` slightly negative — calibrate with [`vibe_cading/tools/calibrate.py press`](../vibe_cading/tools/calibrate.py).
 
 ### Worked example (one consumer per grade)
 
@@ -32,13 +32,13 @@ Read [`_FALLBACK_PROFILES["fdm_standard"]`](../vibe_cading/print_settings.py#L62
 | `slip`  | [`TechnicPinHole.standard`](../vibe_cading/lego/cutters/technic_pin_hole.py) (default) | `bore = PIN_HOLE_DIAMETER + 2 * profile.slip.radial`         | D = 4.8 mm | 4.80 + 2·0.05 = **4.90 mm**        |
 | `press` | [`Bearing.outer_pocket`](../vibe_cading/mechanical/bearings.py#L81) | `r = D_outer/2 + profile.press.radial`                        | D = 10.0 mm | 10.00 + 2·0.04 = **10.08 mm**     |
 
-(`+0.04` on a press pocket sounds like it *loosens* the joint — it does, by exactly enough that an OD-`10.00 mm` bearing presses into a `10.08 mm` printed hole rather than failing to insert at all. Recalibrate against your own printer with [`tools/calibrate.py press`](../tools/calibrate.py).)
+(`+0.04` on a press pocket sounds like it *loosens* the joint — it does, by exactly enough that an OD-`10.00 mm` bearing presses into a `10.08 mm` printed hole rather than failing to insert at all. Recalibrate against your own printer with [`vibe_cading/tools/calibrate.py press`](../vibe_cading/tools/calibrate.py).)
 
 ---
 
 ## 2. The Three Allowances: `radial` / `axial` / `slot`
 
-Each `FitGrade` carries three orthogonal numeric fields (see [`FitGrade`](../vibe_cading/print_settings.py#L259-L279)). They are independent because they map to physically distinct FDM failure modes — radial can't compensate for layer-line sag, and slot can't compensate for round-feature shrink. A consumer reads only the fields its geometry needs.
+Each `FitGrade` carries three orthogonal numeric fields (see [`FitGrade`](../vibe_cading/print_settings.py#L242-L261)). They are independent because they map to physically distinct FDM failure modes — radial can't compensate for layer-line sag, and slot can't compensate for round-feature shrink. A consumer reads only the fields its geometry needs.
 
 ### 2.1 `radial` — half-extra-material on diameter
 
@@ -61,16 +61,16 @@ Each `FitGrade` carries three orthogonal numeric fields (see [`FitGrade`](../vib
 | `HexPocket.to_cutter`                                                                          | `free`  | [`holes.py:440`](../vibe_cading/mechanical/holes.py#L440)                                        |
 | `MetricMachineScrew.to_cutter` (delegates to `CounterboreHole`)                                | `free`  | [`screws/metric.py:137-138`](../vibe_cading/mechanical/screws/metric.py#L137)                    |
 | `MetricHexNut.to_cutter(fit="captive")`                                                        | `free`  | [`nuts/metric.py:106`](../vibe_cading/mechanical/nuts/metric.py#L106) (via `CaptiveNutPocket`)   |
-| `MetricHexNut.to_cutter(fit="press")` (synthesises `prof.press` onto `effective.free`)         | `press` | [`nuts/metric.py:74`](../vibe_cading/mechanical/nuts/metric.py#L74)                              |
-| `MetricSquareNut.to_cutter`                                                                    | `free`  | [`nuts/metric.py:214`](../vibe_cading/mechanical/nuts/metric.py#L214)                            |
-| `TNut.to_cutter` (pocket + slot)                                                               | `free`  | [`nuts/tnut.py:75`](../vibe_cading/mechanical/nuts/tnut.py#L75), [`nuts/tnut.py:93`](../vibe_cading/mechanical/nuts/tnut.py#L93) |
+| `MetricHexNut.to_cutter(fit="press")` (synthesises `prof.press` onto `effective.free`)         | `press` | [`nuts/metric.py:119`](../vibe_cading/mechanical/nuts/metric.py#L119)                            |
+| `MetricSquareNut.to_cutter`                                                                    | `free`  | [`nuts/metric.py:225`](../vibe_cading/mechanical/nuts/metric.py#L225)                            |
+| `TNut.to_cutter` (pocket + slot)                                                               | `free`  | [`nuts/tnut.py:78`](../vibe_cading/mechanical/nuts/tnut.py#L78), [`nuts/tnut.py:96`](../vibe_cading/mechanical/nuts/tnut.py#L96) |
 | `Bearing.outer_pocket`                                                                         | `press` | [`bearings.py:81`](../vibe_cading/mechanical/bearings.py#L81)                                    |
 | `Bearing.shaft_cutter`                                                                         | `slip`  | [`bearings.py:105`](../vibe_cading/mechanical/bearings.py#L105)                                  |
-| `DiscMagnet.to_cutter`                                                                         | `slip`  | [`magnets.py:43`](../vibe_cading/mechanical/magnets.py#L43)                                      |
-| `BarMagnet.to_cutter`                                                                          | `slip`  | [`magnets.py:115`](../vibe_cading/mechanical/magnets.py#L115)                                    |
-| `Standoff.to_cutter`                                                                           | `free`  | [`standoffs.py:84`](../vibe_cading/mechanical/standoffs.py#L84)                                  |
+| `DiscMagnet.pocket`                                                                            | `slip`  | [`magnets.py:43`](../vibe_cading/mechanical/magnets.py#L43)                                      |
+| `BarMagnet.pocket`                                                                             | `slip`  | [`magnets.py:115`](../vibe_cading/mechanical/magnets.py#L115)                                    |
+| `HexStandoff.to_cutter`                                                                        | `free`  | [`standoffs.py:87`](../vibe_cading/mechanical/standoffs.py#L87)                                  |
 | `PrintInPlaceHinge` (clearance + face gap)                                                     | `free`  | [`hinge.py:58-59`](../vibe_cading/mechanical/hinge.py#L58)                                       |
-| `TechnicAxleHole` (`TIP_TO_TIP` cross envelope; chooses grade by `fit=` kwarg)                 | `slip`* | [`technic_axle_hole.py:114`](../vibe_cading/lego/cutters/technic_axle_hole.py#L114)              |
+| `TechnicAxleHole` (`TIP_TO_TIP` cross envelope; chooses grade by `fit=` kwarg)                 | `slip`* | [`technic_axle_hole.py:147`](../vibe_cading/lego/cutters/technic_axle_hole.py#L147)              |
 | `TechnicPinHole.standard` (round pin socket bore; chooses grade by `fit=` kwarg; counterbore stays at nominal) | `slip`* | [`technic_pin_hole.py`](../vibe_cading/lego/cutters/technic_pin_hole.py)                         |
 | `FreespinHexHub` (bearing pocket lateral inflation)                                            | `free`  | [`freespin_hex_hub.py:137`](../vibe_cading/rc/freespin_hex_hub.py#L137)                          |
 
@@ -90,13 +90,13 @@ Each `FitGrade` carries three orthogonal numeric fields (see [`FitGrade`](../vib
 |------------------------------------------------------------------------------------------------|---------|--------------------------------------------------------------------------------------------------|
 | `CounterboreHole.to_cutter` (head recess depth: `z_recess = -tol.free.axial`)                  | `free`  | [`holes.py:166`](../vibe_cading/mechanical/holes.py#L166)                                        |
 | `MetricMachineScrew.to_cutter` (head recess; delegates to `CounterboreHole`)                   | `free`  | [`screws/metric.py:138`](../vibe_cading/mechanical/screws/metric.py#L138)                        |
-| `MetricHexNut.to_cutter` (pocket depth inflation)                                              | `free`  | [`nuts/metric.py:130`](../vibe_cading/mechanical/nuts/metric.py#L130)                            |
-| `MetricSquareNut.to_cutter`                                                                    | `free`  | [`nuts/metric.py:215`](../vibe_cading/mechanical/nuts/metric.py#L215)                            |
-| `TNut.to_cutter` (depth inflation per side)                                                    | `free`  | [`nuts/tnut.py:76`](../vibe_cading/mechanical/nuts/tnut.py#L76), [`nuts/tnut.py:94`](../vibe_cading/mechanical/nuts/tnut.py#L94) |
+| `MetricHexNut.to_cutter` (pocket depth inflation)                                              | `free`  | [`nuts/metric.py:133`](../vibe_cading/mechanical/nuts/metric.py#L133)                            |
+| `MetricSquareNut.to_cutter`                                                                    | `free`  | [`nuts/metric.py:226`](../vibe_cading/mechanical/nuts/metric.py#L226)                            |
+| `TNut.to_cutter` (depth inflation per side)                                                    | `free`  | [`nuts/tnut.py:79`](../vibe_cading/mechanical/nuts/tnut.py#L79), [`nuts/tnut.py:97`](../vibe_cading/mechanical/nuts/tnut.py#L97) |
 | `Bearing.outer_pocket` (depth clearance)                                                       | `press` | [`bearings.py:82`](../vibe_cading/mechanical/bearings.py#L82)                                    |
-| `DiscMagnet.to_cutter` (depth clearance)                                                       | `slip`  | [`magnets.py:44`](../vibe_cading/mechanical/magnets.py#L44)                                      |
-| `BarMagnet.to_cutter` (Z clearance)                                                            | `slip`  | [`magnets.py:116`](../vibe_cading/mechanical/magnets.py#L116)                                    |
-| `Standoff.to_cutter` (depth allowance)                                                         | `free`  | [`standoffs.py:85`](../vibe_cading/mechanical/standoffs.py#L85)                                  |
+| `DiscMagnet.pocket` (depth clearance)                                                          | `slip`  | [`magnets.py:44`](../vibe_cading/mechanical/magnets.py#L44)                                      |
+| `BarMagnet.pocket` (Z clearance)                                                               | `slip`  | [`magnets.py:116`](../vibe_cading/mechanical/magnets.py#L116)                                    |
+| `HexStandoff.to_cutter` (depth allowance)                                                      | `free`  | [`standoffs.py:88`](../vibe_cading/mechanical/standoffs.py#L88)                                  |
 | `FreespinHexHub` (bearing pocket axial — `prof.free.axial + 0.5`)                              | `free`  | [`freespin_hex_hub.py:147`](../vibe_cading/rc/freespin_hex_hub.py#L147)                          |
 
 Most through-hole consumers (`ClearanceHole`, `CountersinkHole`, etc.) do *not* read `axial` — they bake a fixed 100 mm overcut on both ends instead (see [`holes.py:36-38`](../vibe_cading/mechanical/holes.py#L36)).
@@ -105,7 +105,7 @@ Most through-hole consumers (`ClearanceHole`, `CountersinkHole`, etc.) do *not* 
 
 **What it modifies:** an *additional* half-width on top of `radial`, applied **only** to narrow-slot widths (currently the arm width of a Lego Technic `+` cross axle hole).
 
-**Why it's a separate knob:** a narrow `+` cross slot prints tighter on FDM than the round envelope of the same nominal — corner blowout from the perimeter tool path closes the slot more aggressively than it closes a circular hole. The two failure modes are physically distinct, so they need distinct knobs. See the [`FitGrade.slot` docstring](../vibe_cading/print_settings.py#L270-L279) for the rationale.
+**Why it's a separate knob:** a narrow `+` cross slot prints tighter on FDM than the round envelope of the same nominal — corner blowout from the perimeter tool path closes the slot more aggressively than it closes a circular hole. The two failure modes are physically distinct, so they need distinct knobs. See the [`FitGrade.slot` docstring](../vibe_cading/print_settings.py#L252-L261) for the rationale.
 
 **Shipped `fdm_standard` values:** `free=0.0`, `slip=0.10`, `press=0.0`. Only the `slip.slot=0.10` is non-zero — the FDM conservative floor for slip-fit Lego axle holes. Resin and CNC profiles ship all-zero (no narrow-slot failure mode on those processes).
 
@@ -113,7 +113,7 @@ Most through-hole consumers (`ClearanceHole`, `CountersinkHole`, etc.) do *not* 
 
 | Consumer                                            | Field           | Reference                                                                            |
 |-----------------------------------------------------|-----------------|--------------------------------------------------------------------------------------|
-| `TechnicAxleHole.ARM_WIDTH` (the narrow `+` arms)   | `grade.slot`    | [`technic_axle_hole.py:120`](../vibe_cading/lego/cutters/technic_axle_hole.py#L120)  |
+| `TechnicAxleHole.ARM_WIDTH` (the narrow `+` arms)   | `grade.slot`    | [`technic_axle_hole.py:153`](../vibe_cading/lego/cutters/technic_axle_hole.py#L153)  |
 
 A new consumer that reads `slot` would be any cutter whose narrow-slot geometry experiences corner blowout — for example a future `TechnicAxleStub` or any custom narrow-`+` profile. Round-envelope features (everything else in the library today) leave `slot` at its `0.0` default and read only `radial` + `axial`.
 
@@ -121,7 +121,7 @@ A new consumer that reads `slot` would be any cutter whose narrow-slot geometry 
 
 ## 3. Shipped Profile Reference
 
-The three shipped profiles in [`_FALLBACK_PROFILES`](../vibe_cading/print_settings.py#L628-L646) resolve to the following 27 leaf-float values when passed through [`_profile_from_nested`](../vibe_cading/print_settings.py#L362) (i.e. the per-field defaults in [`_fitgrade_from_dict`](../vibe_cading/print_settings.py#L338) fill any missing leaf with `0.0`). These tuples are pinned in [`tests/test_tolerance_profile.py`](../tests/test_tolerance_profile.py) T9b — `test_shipped_profiles_pinned_tuples` — and a regression in any of the 27 values fails that test loudly.
+The three shipped profiles in [`_FALLBACK_PROFILES`](../vibe_cading/print_settings.py#L575-L593) resolve to the following 27 leaf-float values when passed through [`_profile_from_nested`](../vibe_cading/print_settings.py#L344) (i.e. the per-field defaults in [`_fitgrade_from_dict`](../vibe_cading/print_settings.py#L320) fill any missing leaf with `0.0`). These tuples are pinned in [`tests/test_tolerance_profile.py`](../tests/test_tolerance_profile.py) T9b — `test_shipped_profiles_pinned_tuples` — and a regression in any of the 27 values fails that test loudly.
 
 | Profile          | `free.radial` | `free.axial` | `free.slot` | `slip.radial` | `slip.axial` | `slip.slot` | `press.radial` | `press.axial` | `press.slot` |
 |------------------|---------------|--------------|-------------|---------------|--------------|-------------|----------------|---------------|--------------|
@@ -131,7 +131,7 @@ The three shipped profiles in [`_FALLBACK_PROFILES`](../vibe_cading/print_settin
 
 **How to read the table:**
 
-- `fdm_standard` is the safest default — loosest radials and largest axials, plus the conservative narrow-slot floor on `slip.slot`. It's also the hardcoded fallback when no profile name is configured (see [`get_default_profile_name`](../vibe_cading/print_settings.py#L225)).
+- `fdm_standard` is the safest default — loosest radials and largest axials, plus the conservative narrow-slot floor on `slip.slot`. It's also the hardcoded fallback when no profile name is configured (see [`get_default_profile_name`](../vibe_cading/print_settings.py#L224)).
 - `resin_precise` is ~3× tighter radially and ~4× tighter axially than `fdm_standard` — resin parts shrink uniformly and don't sag.
 - `cnc` is ~10× tighter than `fdm_standard` and the only profile that ships `press.radial=0.0` — on a machined part the nominal IS the final dimension.
 
@@ -143,13 +143,13 @@ The project ships defaults forgiving enough that most users never tune — only 
 
 ### v1 user-tunable knobs (calibration helper coverage)
 
-[`tools/calibrate.py`](../tools/calibrate.py) walks the three radial knobs interactively:
+[`vibe_cading/tools/calibrate.py`](../vibe_cading/tools/calibrate.py) walks the three radial knobs interactively:
 
 | Knob          | Why it earns a calibration cycle                                                                            | Calibration command                       |
 |---------------|-------------------------------------------------------------------------------------------------------------|-------------------------------------------|
-| `free.radial` | M3 clearance holes are the most common consumer — wrong here, every plate binds.                            | `python3 tools/calibrate.py free`         |
-| `press.radial`| Press fits are unforgiving: too loose and the nut spins, too tight and the print cracks.                    | `python3 tools/calibrate.py press`        |
-| `slip.radial` | Lego axle slip fit is the canonical "must feel right" interface — opt-in only.                              | `python3 tools/calibrate.py slip`         |
+| `free.radial` | M3 clearance holes are the most common consumer — wrong here, every plate binds.                            | `python3 vibe_cading/tools/calibrate.py free`  |
+| `press.radial`| Press fits are unforgiving: too loose and the nut spins, too tight and the print cracks.                    | `python3 vibe_cading/tools/calibrate.py press` |
+| `slip.radial` | Lego axle slip fit is the canonical "must feel right" interface — opt-in only.                              | `python3 vibe_cading/tools/calibrate.py slip`  |
 
 The helper prints the gauge, you measure the best-fitting variant, the tool back-solves the radial allowance via `radial = (D − N) / 2` against the live source-of-truth nominal, and atomically writes it to your `print_profiles_user.json` via per-knob field-level merge. See the README's [Print Tolerances & Calibration](../README.md#print-tolerances--calibration) section for the full workflow including non-interactive `--yes` flags.
 
@@ -165,7 +165,7 @@ The helper prints the gauge, you measure the best-fitting variant, the tool back
 
 ## 5. User Override Patterns (the field-level merge contract)
 
-User overrides in `print_profiles_user.json` recursively deep-merge onto the shipped defaults, **leaf-wins**. You override exactly the knob you measured; siblings inherit. See [`_deep_merge_profiles`](../vibe_cading/print_settings.py#L406) for the full semantics.
+User overrides in `print_profiles_user.json` recursively deep-merge onto the shipped defaults, **leaf-wins**. You override exactly the knob you measured; siblings inherit. See [`_deep_merge_profiles`](../vibe_cading/print_settings.py#L388) for the full semantics.
 
 ### Worked example: a fresh user-key entry
 
@@ -188,7 +188,7 @@ Resolved `ToleranceProfile.slip` for `bambu_p1s__pla_overture`:
 
 ### Critical: field-level merge inherits from the **matched parent key**, not the `fdm_standard` floor
 
-The deep-merge walks per-top-level-key. A fresh `bambu_p1s__pla_overture` entry has *no* shipped sibling to inherit from — the merge takes the user dict verbatim, and the per-field defaults in [`_fitgrade_from_dict`](../vibe_cading/print_settings.py#L338) (where `default_slot=0.0`) fill in the missing leaves. The shipped `fdm_standard.slip.slot=0.10` floor does **not** carry over.
+The deep-merge walks per-top-level-key. A fresh `bambu_p1s__pla_overture` entry has *no* shipped sibling to inherit from — the merge takes the user dict verbatim, and the per-field defaults in [`_fitgrade_from_dict`](../vibe_cading/print_settings.py#L320) (where `default_slot=0.0`) fill in the missing leaves. The shipped `fdm_standard.slip.slot=0.10` floor does **not** carry over.
 
 This is the **surface-not-seed** contract the calibration helper warns about. If you want the FDM narrow-slot floor in your custom profile, you must restate it explicitly:
 
@@ -201,7 +201,7 @@ This is the **surface-not-seed** contract the calibration helper warns about. If
 }
 ```
 
-If you instead override **inside** the shipped `fdm_standard` key — `{"fdm_standard": {"slip": {"radial": 0.11}}}` — the deep-merge **does** inherit siblings from the shipped grade, because there's a matched parent dict to recurse into. See the T9 fixture in [`tests/test_tolerance_profile.py:672`](../tests/test_tolerance_profile.py#L672) for the pinned tuple.
+If you instead override **inside** the shipped `fdm_standard` key — `{"fdm_standard": {"slip": {"radial": 0.11}}}` — the deep-merge **does** inherit siblings from the shipped grade, because there's a matched parent dict to recurse into. See the T9 fixture in [`tests/test_tolerance_profile.py:418`](../tests/test_tolerance_profile.py#L418) for the pinned tuple.
 
 ### User key convention
 
@@ -215,7 +215,7 @@ The shipped keys (`fdm_standard`, `resin_precise`, `cnc`) are coarse-default cat
 
 ### Null and type-mismatch are hard errors
 
-A `null` leaf or a type-mismatched override (e.g. user puts a primitive where the shipped profile has a dict) raises `ValueError` with the JSON-pointer-style key path. Silent "reset to default via null" is too easy a foot-gun and `null` is not a tolerance-domain-valid value. See [`_deep_merge_profiles` branches (e) and (f)](../vibe_cading/print_settings.py#L460-L471).
+A `null` leaf or a type-mismatched override (e.g. user puts a primitive where the shipped profile has a dict) raises `ValueError` with the JSON-pointer-style key path. Silent "reset to default via null" is too easy a foot-gun and `null` is not a tolerance-domain-valid value. See [`_deep_merge_profiles` branches (e) and (f)](../vibe_cading/print_settings.py#L434-L453).
 
 ### Unknown leaf keys silently pass through
 

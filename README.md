@@ -4,7 +4,7 @@ A robust, AI-friendly, parametric Code-CAD library written in Python using [CadQ
 
 The purpose of this repository is to provide a universal toolkit of reusable mechanical components (screws, heat-set inserts, hex nuts, joints, bearings, and enclosures). It also features practical examples demonstrating how to use these primitives to build parts that interface **RC (radio-controlled) components** with **Lego Technic** assemblies (motor mounts, ESC holders, axle adapters, etc.).
 
-Tolerances are driven by a per-printer profile system you calibrate once (see [Print Tolerances & Calibration](#print-tolerances--calibration) below) — shipped defaults work, but `slip.radial` is the one knob almost every contributor re-tunes for their machine.
+Tolerances are driven by a per-machine/material **tolerance-profile** system you calibrate once (see [Print Tolerances & Calibration](#print-tolerances--calibration) below) — shipped defaults work, but `slip.radial` is the one knob almost every contributor re-tunes for their machine.
 
 Models are built with AI assistance via [Claude Code](https://claude.com/claude-code) or [Google Antigravity](https://github.com/google/antigravity). Project
 agent personas and slash commands live under [vibe/agents/](vibe/agents/) and
@@ -78,7 +78,7 @@ The agent will read the onboarding instructions, create the local `tmp/` and `.a
 
 **Manufacturing & Tolerance Profiles:**
 This repository uses a global tolerance configuration system to ensure parts fit together correctly based on your specific manufacturing method (e.g. FDM vs Resin 3D printing). 
-- **`print_profiles.json`**: Checked into version control. Contains defaults (like `fdm_standard`, `resin_precise`).
+- **`vibe_cading/print_profiles.json`**: Checked into version control. Contains defaults (like `fdm_standard`, `resin_precise`).
 - **`print_profiles_user.json`**: Untracked (gitignored). Use this to override specific fields in the default profiles or define entirely new profiles without creating a dirty git history. Your fields are recursively deep-merged into the defaults — override a single leaf and the sibling fields inherit from the shipped grade (see [Print Tolerances & Calibration](#print-tolerances--calibration) below).
 - **`.env`**: Untracked. You can set `PRINT_PROFILE=your_profile_name` here to define the global fallback profile used across all CAD scripts.
 
@@ -157,7 +157,7 @@ Key constants are centralised in [`vibe_cading/lego/constants.py`](vibe_cading/l
 >
 > `slip.radial` is the one knob almost everyone re-tunes; `free` and `press` defaults work for most FDM printers out of the box.
 
-Printed fits are printer- and material-dependent: the same model bores a tight hole on one machine and a loose one on another. Dimensional *nominals* in the library are fixed real-world geometry; the per-machine clearance is carried separately by a `ToleranceProfile`. The project ships profiles (`fdm_standard`, `resin_precise`, `cnc`) in `print_profiles.json`; override them per-machine in the gitignored `print_profiles_user.json` and select the active one with `PRINT_PROFILE`.
+Printed fits are printer- and material-dependent: the same model bores a tight hole on one machine and a loose one on another. Dimensional *nominals* in the library are fixed real-world geometry; the per-machine clearance is carried separately by a `ToleranceProfile`. The project ships profiles (`fdm_standard`, `resin_precise`, `cnc`) in `vibe_cading/print_profiles.json`; override them per-machine in the gitignored `print_profiles_user.json` and select the active one with `PRINT_PROFILE`.
 
 For the full taxonomy reference — what each fit grade (`free` / `slip` / `press`) means physically, what each allowance (`radial` / `axial` / `slot`) modifies geometrically, which model classes read which knob, and the shipped 27-leaf-float snapshot — see [docs/print-tolerances.md](docs/print-tolerances.md). The rest of this section is the calibration workflow.
 
