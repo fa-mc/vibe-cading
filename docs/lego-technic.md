@@ -23,9 +23,9 @@ printing clearances for functional fits.
 
 | Property                      | Value   | Notes                                     |
 |-------------------------------|---------|-------------------------------------------|
-| Technic pin hole diameter     | 4.8 mm  | Nominal; use 4.85 mm for printed parts    |
-| Technic axle hole (cross)     | 4.80 mm | Nominal; defaults to 4.82 mm for FDM |
-| Cross axle flat-to-flat       | 1.83 mm | Nominal; defaults to 1.64 mm for FDM |
+| Technic pin hole diameter     | 4.8 mm  | Nominal (`PIN_HOLE_DIAMETER`); `TechnicPinHole` bores nominal + 2 × `slip.radial` → ≈ 4.90 mm on `fdm_standard` |
+| Technic axle hole (cross)     | 4.80 mm | Nominal (`AXLE_HOLE_TIP_TO_TIP`); `TechnicAxleHole` cuts nominal + 2 × `slip.radial` → ≈ 4.90 mm on `fdm_standard` |
+| Cross axle flat-to-flat       | 1.83 mm | Nominal (`AXLE_HOLE_ARM_WIDTH`); cut nominal + 2 × `slip.radial` + 2 × `slip.slot` → ≈ 2.13 mm on `fdm_standard` (the extra `slot` term widens the narrow `+` arm only) |
 | Technic hole center spacing   | 8.0 mm  | Same as stud pitch                        |
 | Hole center from part edge    | 4.0 mm  | Half the stud pitch                       |
 
@@ -35,11 +35,11 @@ printing clearances for functional fits.
 
 | Property                  | Value   | Notes                                              |
 |---------------------------|---------|----------------------------------------------------|
-| Axle cross tip-to-tip     | 4.75 mm | Outer diameter of the + profile                    |
-| Axle cross flat-to-flat   | 1.78 mm | Width across flats of the + profile                |
+| Axle cross tip-to-tip     | 4.78 mm | Outer diameter of the + profile (`AXLE_TIP_TO_TIP`)|
+| Axle cross flat-to-flat   | 1.79 mm | Width across flats of the + profile (`AXLE_ARM_WIDTH`)|
 | Axle arm protrusion       | 1.50 mm | How far each arm extends past the flat face        |
 | Axle length per stud unit | 8.0 mm  | e.g. a 3-stud axle is 24 mm long                   |
-| Printed axle clearance    | 0 mm    | No clearance; size axle holes to exact tip-to-tip  |
+| Printed axle-hole clearance | profile-driven | Hole cutters add `2 × slip.radial` (round) / `+ 2 × slip.slot` (cross arm) on top of the fixed nominal — calibrate the profile, not the axle solid; see *Tuning Tolerances* and `docs/print-tolerances.md` |
 
 ---
 
@@ -110,16 +110,24 @@ that needs free rotation (e.g. suspension arms, steering linkages).
 
 ### Pin Hole Tolerances for 3D Printing
 
-| Fit Type        | Hole Diameter | Notes                                        |
-|-----------------|---------------|----------------------------------------------|
-| Friction fit    | 4.7 mm        | Pin will not rotate; mimics LEGO friction pin|
-| Standard fit    | 4.8 mm        | Nominal; may still have some friction when printed |
-| Free rotation   | 4.9–5.0 mm    | Pin rotates freely; mimics frictionless pin  |
-| Loose/clearance | 5.1 mm        | Loose movement, useful for alignment only    |
+Printed pin-hole fit is profile-driven, not a fixed manual diameter. `TechnicPinHole`
+bores `PIN_HOLE_DIAMETER + 2 × profile.<fit>.radial`, so the printed bore tracks the
+active `ToleranceProfile` and the chosen `fit` grade. On the shipped `fdm_standard`
+the default `fit="slip"` bores `4.8 + 2 × 0.05 ≈ 4.90 mm`. The fit-feel rows below are
+illustrative target diameters; reach them by calibrating `slip.radial` (per
+`docs/print-tolerances.md`), not by hardcoding a hole size.
 
-> **Tip:** For printed parts that receive real LEGO pins, use **4.9 mm** holes
-> for frictionless behaviour and **4.7 mm** for friction behaviour. Actual values
-> may need tuning ±0.1 mm depending on your printer and filament.
+| Fit feel        | Approx. hole Ø | How to reach it                                   |
+|-----------------|----------------|---------------------------------------------------|
+| Friction        | ~4.7 mm        | Negative `slip.radial` (pin will not rotate; mimics LEGO friction pin) |
+| Standard / slip | ~4.90 mm       | `fdm_standard` `fit="slip"` default                |
+| Free rotation   | ~4.9–5.0 mm    | Larger `slip.radial` (pin rotates freely; mimics frictionless pin) |
+| Loose/clearance | ~5.1 mm        | `fit="free"` or a larger radial (alignment only)   |
+
+> **Tip:** For printed parts that receive real LEGO pins, dial the fit with the
+> profile rather than swapping in a fixed diameter — calibrate `slip.radial` per
+> `docs/print-tolerances.md` §4. The shipped slip default (~4.90 mm bore) is a
+> sensible starting point; nudge `slip.radial` ±0.05 mm for your printer and filament.
 
 ---
 
@@ -231,12 +239,14 @@ Common bent beam angles are **90°** and **53.13°** (3–4–5 triangle geometr
 
 ## Common Tolerances for 3D Printed Parts
 
-| Fit Type        | Adjustment | Use Case                              |
-|-----------------|------------|---------------------------------------|
-| Sliding fit     | +0.2 mm    | Axles through holes, pins in holes    |
-| Press fit       | −0.1 mm    | Bushings, press-in inserts            |
-| Snug fit        | +0.1 mm    | Repeated-use connections              |
-| Clearance fit   | +0.4 mm    | Non-functional, loose movement        |
+The project does not use a single global "sliding/press/snug" adjustment number.
+Tolerances are carried by a per-machine/material `ToleranceProfile` — the
+`free` / `slip` / `press` fit grades, each split into `radial` / `axial` / `slot`
+allowances — that every model class reads via `get_profile()`. See
+[docs/print-tolerances.md](print-tolerances.md) for the authoritative model: what
+each grade means physically, what each allowance modifies geometrically, the
+shipped `fdm_standard` / `resin_precise` / `cnc` values, and the calibration
+workflow.
 
 ---
 
@@ -248,8 +258,11 @@ Common bent beam angles are **90°** and **53.13°** (3–4–5 triangle geometr
 - Beam ends are typically modelled as a semicircle of radius `beam_width / 2`
   (≈ 3.9 mm for thick liftarms) centred on the outermost hole — thick liftarms
   have a square cross-section, so half-thickness and half-width coincide.
-- When modelling friction pin holes, use **4.7 mm** diameter; for frictionless
-  use **4.9 mm**. Adjust by ±0.1 mm per printer calibration.
+- When modelling pin holes, use `TechnicPinHole` (which bores
+  `PIN_HOLE_DIAMETER + 2 × profile.<fit>.radial`) rather than a hardcoded diameter:
+  `fit="slip"` for a snug fit (~4.90 mm on `fdm_standard`), `fit="free"` for free
+  rotation. Tune the feel by calibrating `slip.radial` per `docs/print-tolerances.md`,
+  not by editing the nominal.
 - When exporting STEP files for Lego-compatible parts, **do not scale** — CadQuery
   works in mm natively.
 ---

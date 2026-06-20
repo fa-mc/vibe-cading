@@ -52,7 +52,7 @@ A cutter automatically includes:
 
 The `fit` parameter determines how tight the hole is:
 
-1.  **`fit="clearance"`**: A loose hole meant for the screw to pass straight through. The hole diameter is larger than the thread's major diameter (e.g., 4.2mm or 4.4mm for an M4).
+1.  **`fit="clearance"`**: A loose hole meant for the screw to pass straight through. The hole diameter is larger than the thread's major diameter (e.g., 4.3mm for an M4).
 2.  **`fit="tap"`**: A tighter hole meant for the threads to bite into the material. The hole diameter is equal to the root (minor) diameter of the thread (e.g., ~3.3mm for an M4).
 3.  **`fit="interference"`**: An interference fit (slightly under the major diameter) for press-in applications.
 
