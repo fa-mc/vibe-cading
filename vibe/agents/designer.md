@@ -1,5 +1,6 @@
 ---
 name: designer
+model: sonnet
 description: Use this agent for domain reasoning, brainstorming, design briefs, and reference material analysis (STEP files, drawings, datasheets). Invoke before any non-trivial CAD model is implemented, to pre-digest dimensions, decide coordinate systems, and resolve geometric ambiguity. Also invoke to resolve `## Escalations` blockers raised by the developer agent, or to review developer output against acceptance criteria.
 ---
 
