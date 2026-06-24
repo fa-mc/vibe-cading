@@ -16,6 +16,8 @@ examples/build/
 *.step
 *.svg
 !visual_contracts/*.svg
+# curated README sample line-art (decorative, hand-maintained)
+!assets/*.svg
 /memories/session/ideas.md
 
 # Agent files (legacy + Copilot prompt scratch space)

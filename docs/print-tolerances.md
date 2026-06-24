@@ -1,6 +1,6 @@
 # Print Tolerances Reference
 
-This document is the single reference for the project's print-tolerance taxonomy: the `FitGrade` × `{free, slip, press}` × `{radial, axial, slot}` matrix that every model class reads through [`get_profile()`](../vibe_cading/print_settings.py). It complements the [Print Tolerances & Calibration](../README.md#print-tolerances--calibration) section in the README — the README explains *what to do* (the calibration workflow), this doc explains *what each knob means and which models read it*.
+This document is the single reference for the project's print-tolerance taxonomy: the `FitGrade` × `{free, slip, press}` × `{radial, axial, slot}` matrix that every model class reads through [`get_profile()`](../vibe_cading/print_settings.py). It covers both *what each knob means* (and which models read it) and the *calibration workflow* (§4) for tuning each knob against a printed gauge.
 
 All allowances are in millimeters. All values are read live from [`vibe_cading/print_settings.py`](../vibe_cading/print_settings.py) and pinned in [`tests/test_tolerance_profile.py`](../tests/test_tolerance_profile.py) T9b.
 
@@ -151,7 +151,39 @@ The project ships defaults forgiving enough that most users never tune — only 
 | `press.radial`| Press fits are unforgiving: too loose and the nut spins, too tight and the print cracks.                    | `python3 vibe_cading/tools/calibrate.py press` |
 | `slip.radial` | Lego axle slip fit is the canonical "must feel right" interface — opt-in only.                              | `python3 vibe_cading/tools/calibrate.py slip`  |
 
-The helper prints the gauge, you measure the best-fitting variant, the tool back-solves the radial allowance via `radial = (D − N) / 2` against the live source-of-truth nominal, and atomically writes it to your `print_profiles_user.json` via per-knob field-level merge. See the README's [Print Tolerances & Calibration](../README.md#print-tolerances--calibration) section for the full workflow including non-interactive `--yes` flags.
+The helper prints the gauge, you measure the best-fitting variant, the tool back-solves the radial allowance via `radial = (D − N) / 2` against the live source-of-truth nominal, and atomically writes it to your `print_profiles_user.json` via per-knob field-level merge.
+
+#### New-contributor quick start
+
+After cloning:
+
+1. Copy `print_profiles.json.example` → `print_profiles_user.json` (the workspace initializer does this).
+2. Export a calibration gauge to STEP and print it on your machine — e.g. the Lego axle slip-fit gauge:
+   `python3 vibe_cading/tools/view.py vibe_cading.lego.axle_hole_gauge.AxleHoleGauge --export tmp/axle_gauge.step`
+   (preview first with `vibe_cading/tools/preview.py … --views iso_ne` to confirm it looks right).
+3. Run the matching calibration: `python3 vibe_cading/tools/calibrate.py slip` — it writes the measured `slip.radial` into your gitignored `print_profiles_user.json`.
+4. Set `PRINT_PROFILE=<your_profile>` in `.env` (defaults to `fdm_standard`).
+
+`slip.radial` is the one knob almost everyone re-tunes; `free` and `press` defaults work for most FDM printers out of the box.
+
+#### Default gauges and nominal sources
+
+Each calibratable knob has a default gauge and a live nominal it back-solves against:
+
+| Knob          | Gauge                                              | Nominal source                                          |
+|---------------|----------------------------------------------------|---------------------------------------------------------|
+| `free.radial` | `MThreeClearanceGauge` (M3 clearance hole)         | `METRIC_SIZES["M3"]["clearance"] = 3.2 mm`              |
+| `press.radial`| `MThreeNutPocketGauge` (M3 nut press-fit pocket)   | `MetricHexNut.DIMENSIONS["M3"]["width_flats"] = 5.5 mm` |
+| `slip.radial` | `AxleHoleGauge` (Lego axle slip fit — opt-in)      | `AXLE_HOLE_TIP_TO_TIP = 4.80 mm`                        |
+
+Print the gauge first with `python3 vibe_cading/tools/preview.py <module.path.GaugeClass> --views iso_ne`, then run the matching `calibrate.py <knob>`. One-shot non-interactive form:
+
+```bash
+python3 vibe_cading/tools/calibrate.py free --diameter 3.30 --yes \
+    --profile bambu_p1s__pla_overture
+```
+
+For the slip-fit calibration procedure (axle judging criteria), see [docs/lego-technic.md](lego-technic.md) → *Tuning Tolerances*.
 
 ### Default-floor-only knobs
 
