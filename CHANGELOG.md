@@ -15,6 +15,17 @@ section to the new version and date.
 
 ## [Unreleased]
 
+## [0.1.1] - 2026-06-24
+
+### Added
+- `LegoTechnicLLiftarm`: new 90°-bent Lego Technic studless liftarm (L-shaped / bent
+  beam) class (`vibe_cading.lego.technic_l_liftarm`), parametric in both arm lengths
+  (default 3×5), with chamfered pin holes on the 8 mm stud grid and rounded ends.
+- `PrintInPlaceHinge.screw_holes`: new countersunk M3 flat-head mount holes — 2 per
+  leaf (4 total) — controlled by `screw_holes: bool` (default `True`).
+
+## [0.1.0] - Initial
+
 ### Added
 - Initial public release of the `vibe-cading` CadQuery library: parametric
   mechanical models (screws, joints, bearings, axles, gears) and Lego-Technic /
