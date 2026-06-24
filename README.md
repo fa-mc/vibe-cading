@@ -23,25 +23,27 @@ And it's designed to be driven by humans *and* LLM agents.
 <table>
   <tr>
     <td align="center" width="50%">
-      <img src="assets/sample-gear.png" alt="Parametric spur gear" width="300"><br>
+      <a href="assets/sample-gear.stl" title="Click to rotate in 3D"><img src="assets/sample-gear.png" alt="Parametric spur gear" width="290"></a><br>
       <sub><b>SpurGear</b> · <code>module=1.5, teeth=18</code></sub>
     </td>
     <td align="center" width="50%">
-      <img src="assets/sample-beam.png" alt="Lego Technic beam" width="300"><br>
-      <sub><b>LegoTechnicBeam</b> · <code>length_in_studs=5</code></sub>
+      <a href="assets/sample-lliftarm.stl" title="Click to rotate in 3D"><img src="assets/sample-lliftarm.png" alt="Lego Technic L-liftarm (3×5)" width="200"></a><br>
+      <sub><b>LegoTechnicLLiftarm</b> · 3×5 Technic L-liftarm</sub>
     </td>
   </tr>
   <tr>
     <td align="center" width="50%">
-      <img src="assets/sample-servo.png" alt="SG90 servo to Lego Technic adapter" width="300"><br>
+      <a href="assets/sample-servo.stl" title="Click to rotate in 3D"><img src="assets/sample-servo.png" alt="SG90 servo to Lego Technic adapter" width="290"></a><br>
       <sub><b>ServoMountBase</b> · SG90 servo → Lego Technic adapter</sub>
     </td>
     <td align="center" width="50%">
-      <img src="assets/sample-hinge.png" alt="Print-in-place hinge, two interleaved leaves" width="200"><br>
-      <sub><b>PrintInPlaceHinge</b> · <code>.leaf_a</code> / <code>.leaf_b</code>, prints assembled</sub>
+      <a href="assets/sample-hinge.stl" title="Click to rotate in 3D"><img src="assets/sample-hinge.png" alt="Print-in-place hinge with countersunk M3 mount holes" width="250"></a><br>
+      <sub><b>PrintInPlaceHinge</b> · 2 countersunk M3 holes / leaf</sub>
     </td>
   </tr>
 </table>
+
+<p align="center"><sub>🔄 <b>Click any sample</b> to spin the real model in GitHub's interactive 3D viewer.</sub></p>
 
 Each part is a few lines of Python. The geometry is a function of the parameters,
 so a part is never a static shape — it's a generator:

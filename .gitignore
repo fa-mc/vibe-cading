@@ -16,6 +16,9 @@ examples/build/
 *.step
 *.svg
 !visual_contracts/*.svg
+# curated README gallery meshes — linked from the thumbnails so GitHub's native
+# 3D viewer can rotate them; tiny (<0.5 MB each), well under the 10 MB cap
+!assets/*.stl
 /memories/session/ideas.md
 
 # Agent files (legacy + Copilot prompt scratch space)
