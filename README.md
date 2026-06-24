@@ -33,8 +33,8 @@ And it's designed to be driven by humans *and* LLM agents.
   </tr>
   <tr>
     <td align="center" width="50%">
-      <a href="assets/sample-servo.stl" title="Click to rotate in 3D"><img src="assets/sample-servo.png" alt="SG90 servo to Lego Technic adapter" width="290"></a><br>
-      <sub><b>ServoMountBase</b> · SG90 servo → Lego Technic adapter</sub>
+      <a href="assets/sample-servo.stl" title="Click to rotate in 3D"><img src="assets/sample-servo.png" alt="SG90 servo mount: base plus dovetail clamp" width="240"></a><br>
+      <sub><b>ServoMountBase + ServoMountClamp</b> · SG90 → Lego, dovetail-clamped</sub>
     </td>
     <td align="center" width="50%">
       <a href="assets/sample-hinge.stl" title="Click to rotate in 3D"><img src="assets/sample-hinge.png" alt="Print-in-place hinge with countersunk M3 mount holes" width="250"></a><br>
