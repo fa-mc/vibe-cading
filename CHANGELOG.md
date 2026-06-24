@@ -19,10 +19,10 @@ section to the new version and date.
 
 ### Added
 - `LegoTechnicLLiftarm`: new 90°-bent Lego Technic studless liftarm (L-shaped / bent
-  beam) class (`vibe_cading.lego.technic_l_liftarm`), parametric in arm lengths,
-  with pin holes, chamfers, and optional hinge-hole pairs.
-- `PrintInPlaceHinge.screw_holes`: new optional countersunk M3 mount holes on the
-  hinge body, controlled by `screw_holes: bool` (default `False`).
+  beam) class (`vibe_cading.lego.technic_l_liftarm`), parametric in both arm lengths
+  (default 3×5), with chamfered pin holes on the 8 mm stud grid and rounded ends.
+- `PrintInPlaceHinge.screw_holes`: new countersunk M3 flat-head mount holes — 2 per
+  leaf (4 total) — controlled by `screw_holes: bool` (default `True`).
 
 ## [0.1.0] - Initial
 
