@@ -1,5 +1,6 @@
 ---
 name: developer
+model: sonnet
 description: Use this agent to implement an approved design brief in `.agents/plans/`. The developer designs the per-part code structure (classes, methods, build pipeline), writes CadQuery model code, runs validation tools (preview, section slicer, boolean diff, monotonicity check), and asserts topological correctness. Architecturally-significant or shared-contract structure is escalated to the TL. Invoke after the designer's brief is user-approved, or whenever validation/code-structure work needs to be performed against an existing brief.
 ---
 

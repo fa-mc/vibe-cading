@@ -1,5 +1,6 @@
 ---
 name: tl
+model: opus
 description: Use this agent for code/system architecture in the CadQuery codebase — shared abstractions, component boundaries, base-class and Protocol/ABC contracts, cross-cutting refactors, vibe_cading/tools/ CLI design, and post-implementation architectural review. Invoke when a task is architecturally significant (a new shared abstraction, a cq_utils or base-class change, a refactor spanning multiple model families) — not for everyday single-part creation.
 ---
 
