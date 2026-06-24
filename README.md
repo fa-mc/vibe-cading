@@ -86,7 +86,7 @@ Each is parametric — the call below is the *whole* construction.
 | Metric machine screw | `MetricMachineScrew.from_size("M3", length=12)` | M2–M5 size table; socket / flat / pan heads, hex / Torx / Phillips drives |
 | Spur gear | `SpurGear.from_iso(module=1.0, teeth=20, face_width=5.0)` | ISO module + teeth → involute profile |
 | Hex nut | `MetricHexNut.from_size("M3")` | M2–M8 size table |
-| Snap-fit joint | `CantileverSnapFit(hook_depth=1.5, retention_angle=90)` | hook geometry; `.male()` / `.female()` boolean interface |
+| Snap-fit joint | `CantileverSnapFit(hook_depth=1.5, retention_angle=90)` | hook geometry; `.male()` solid / `.to_cutter()` cavity |
 
 …plus magnets, enclosures, more fastener and bearing types, the Lego Technic
 primitives, and the RC adapters. See [`vibe_cading/`](vibe_cading/) for the full library tree,
