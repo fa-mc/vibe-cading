@@ -32,13 +32,13 @@ And it's designed to be driven by humans *and* LLM agents.
     </td>
   </tr>
   <tr>
-    <td align="center">
-      <img src="assets/sample-screw.svg" alt="M3 socket-cap machine screw" width="200"><br>
-      <sub><b>MetricMachineScrew</b> · <code>.from_size("M3", length=12)</code></sub>
+    <td align="center" width="50%">
+      <img src="assets/sample-servo.png" alt="SG90 servo to Lego Technic adapter" width="300"><br>
+      <sub><b>ServoMountBase</b> · SG90 servo → Lego Technic adapter</sub>
     </td>
-    <td align="center">
-      <img src="assets/sample-snapfit.svg" alt="Cantilever snap-fit hook" width="150"><br>
-      <sub><b>CantileverSnapFit</b> · <code>.male()</code></sub>
+    <td align="center" width="50%">
+      <img src="assets/sample-hinge.png" alt="Print-in-place hinge, two interleaved leaves" width="200"><br>
+      <sub><b>PrintInPlaceHinge</b> · <code>.leaf_a</code> / <code>.leaf_b</code>, prints assembled</sub>
     </td>
   </tr>
 </table>
@@ -108,6 +108,11 @@ This project runs in a **VS Code Dev Container** — no local Python or CadQuery
    ```bash
    python3 vibe_cading/tools/view.py vibe_cading.mechanical.gears.spur.SpurGear
    ```
+4. **Before your first print**, calibrate the slip fit for your printer + material:
+   print the axle gauge and run `python3 vibe_cading/tools/calibrate.py slip` — it
+   writes the measured `slip.radial` into your gitignored `print_profiles_user.json`
+   so Lego pins and axles fit. (Why it matters, plus the other knobs:
+   [docs/print-tolerances.md](docs/print-tolerances.md).)
 
 → Full dev environment, the local test/lint/build loop (`python build.py`), and
 adding your own parts: **[CONTRIBUTING.md](CONTRIBUTING.md)**.
