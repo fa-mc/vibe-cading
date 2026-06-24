@@ -19,14 +19,31 @@ from vibe_cading.print_settings import ToleranceProfile
 class PrintInPlaceHinge:
     """
     Parametric Print-in-Place Hinge.
-    
+
     The origin (0,0,0) is located precisely at the center of the hinge axis.
     The hinge is split along the X-axis:
       - Leaf A extends towards +X.
       - Leaf B extends towards -X.
-    
-    The hinge pivots on the Y-axis. The mating mechanism relies on 
+
+    The hinge pivots on the Y-axis. The mating mechanism relies on
     45-degree conical pins and sockets to allow FDM printing.
+
+    When ``screw_holes=True`` (default), 2 countersunk M3 flat-head screw
+    holes are cut into each leaf (4 total) using the ``MetricMachineScrew``
+    cutter, tolerance-profile-driven.  Set ``screw_holes=False`` to suppress
+    all holes (e.g. when embedding the hinge into an assembly that uses a
+    different fastening method).
+
+    Screw-hole positions are computed parametrically from ``leaf_length`` and
+    ``width`` so they remain valid across different hinge sizes:
+      - X: ``leaf_length * 0.65`` from the hinge axis (one column per leaf).
+      - Y: ``± width * 0.25`` (symmetric about Y=0).
+    For default 20 mm leaf and 30 mm width this gives X=13.0, Y=±7.5.
+
+    The countersink opens on the **plate top face** (Z = plate top, the face
+    facing the hinge knuckle side).  The screw is inserted from that side so
+    its head recesses flush with the plate and the shank exits the bottom face
+    to engage the mounting substrate.
     """
 
     def __init__(
@@ -40,12 +57,13 @@ class PrintInPlaceHinge:
         knuckle_diameter: float = 10.0,
         knuckle_count: int = 3,
         angle: float = 0.0,
+        screw_holes: bool = True,
         profile: ToleranceProfile = None
     ):
         if profile is None:
             from vibe_cading.print_settings import get_profile
             profile = get_profile("fdm_standard")
-            
+
         self.width = width
         self.leaf_a_length = leaf_a_length
         self.leaf_b_length = leaf_b_length
@@ -55,6 +73,8 @@ class PrintInPlaceHinge:
         self.knuckle_diameter = knuckle_diameter
         self.knuckle_count = max(2, knuckle_count)
         self.angle = angle
+        self.screw_holes = screw_holes
+        self._profile = profile
         self.clearance = profile.free.radial
         self.face_gap = profile.free.radial
         
@@ -84,6 +104,99 @@ class PrintInPlaceHinge:
         # Apply user rotation to Leaf B relative to Leaf A
         if self.angle != 0.0:
             self.leaf_b = self.leaf_b.rotate((0, 0, 0), (0, 1, 0), self.angle)
+
+    def _compute_screw_hole_centers(
+        self, leaf_length: float
+    ) -> list[tuple[float, float]]:
+        """Return 2 (X, Y) hole-center pairs for one leaf (leaf_a coords, +X).
+
+        Positions are computed parametrically so they scale with leaf geometry:
+          - X = leaf_length * 0.65  (single column, verified clear of knuckle zone)
+          - Y = ± width * 0.25     (symmetric about Y=0)
+
+        For the default 20 mm leaf and 30 mm width: X=13.0, Y=±7.5.
+
+        Margins are asserted at construction time:
+          - inner margin (hole edge to knuckle clearance zone) >= 0.5 mm
+          - outer margin (hole edge to leaf tip)               >= 0.5 mm
+          - Y-edge margin (hole edge to leaf side)             >= 0.5 mm
+
+        Raises ``ValueError`` if any margin is violated (e.g. very short or
+        narrow leaf combined with a large knuckle_diameter).
+        """
+        # Resolve the M3 flat-head cutter head radius (with profile tolerance).
+        # M3 flat_head_dia = 5.5 mm nominal (METRIC_SIZES["M3"]["flat_head_dia"]).
+        # CounterboreHole inflates the head by free.radial on each side, so:
+        #   head_r_with_tol = (5.5 + free.radial * 2) / 2
+        head_r = (5.5 + self._profile.free.radial * 2) / 2.0
+        # The knuckle clearance zone half-width on X (same formula as _build_leaf_a):
+        clearance_x_half = (self.knuckle_diameter + self.face_gap * 4) / 2.0
+
+        hole_x = leaf_length * 0.65
+        hole_y = self.width * 0.25
+
+        # Margin validation
+        inner_margin = hole_x - head_r - clearance_x_half
+        if inner_margin < 0.5:
+            raise ValueError(
+                f"Screw hole inner margin {inner_margin:.2f} mm < 0.5 mm "
+                f"(hole_x={hole_x:.2f}, head_r={head_r:.2f}, "
+                f"clearance_zone_half={clearance_x_half:.2f}).  "
+                f"Increase leaf_length or decrease knuckle_diameter."
+            )
+        outer_margin = leaf_length - hole_x - head_r
+        if outer_margin < 0.5:
+            raise ValueError(
+                f"Screw hole outer margin {outer_margin:.2f} mm < 0.5 mm "
+                f"(leaf_length={leaf_length:.2f}, hole_x={hole_x:.2f}, "
+                f"head_r={head_r:.2f}).  Increase leaf_length."
+            )
+        y_edge_margin = self.width / 2.0 - hole_y - head_r
+        if y_edge_margin < 0.5:
+            raise ValueError(
+                f"Screw hole Y-edge margin {y_edge_margin:.2f} mm < 0.5 mm "
+                f"(width={self.width:.2f}, hole_y={hole_y:.2f}, "
+                f"head_r={head_r:.2f}).  Increase width."
+            )
+
+        return [(hole_x, hole_y), (hole_x, -hole_y)]
+
+    def _apply_screw_holes(
+        self,
+        leaf: cq.Workplane,
+        centers: list[tuple[float, float]],
+    ) -> cq.Workplane:
+        """Cut countersunk M3 flat-head cutter holes into ``leaf`` at ``centers``.
+
+        The cutter origin is placed at the plate top face:
+          plate_top_z = thickness / 2 + (thickness - knuckle_diameter) / 2
+
+        For defaults (thickness=4, knuckle_diameter=10):
+          plate_top_z = 2 + (4-10)/2 = 2 - 3 = -1.0.
+        This is derived from instance attributes — never hardcoded.
+
+        ``centers`` contains (X, Y) pairs already in leaf coordinate space
+        (positive X for leaf_a, negative X for leaf_b).
+        """
+        from vibe_cading.mechanical.screws.metric import MetricMachineScrew
+        # Plate top face Z in hinge coordinate space.
+        # The box is centered on the XY plane so it spans ±thickness/2 in Z.
+        # It is then translated by (thickness - knuckle_diameter) / 2.
+        # Plate top face Z = +thickness/2 + translate_z
+        #                  = thickness/2 + (thickness - knuckle_diameter) / 2
+        # For defaults: 2 + (4-10)/2 = 2 + (-3) = -1.
+        plate_top_z = self.thickness / 2 + (self.thickness - self.knuckle_diameter) / 2
+        # Sanity: plate_top_z should be <= 0 for typical params (knuckle > thickness).
+        # The cutter opens upward from this face toward -Z (INTO the plate),
+        # which aligns with CounterboreHole convention (cutter projects -Z).
+        cutter = (
+            MetricMachineScrew
+            .from_size("M3", length=10.0, head_type="flat")
+            .to_cutter(profile=self._profile)
+        )
+        for (hx, hy) in centers:
+            leaf = leaf.cut(cutter.translate((hx, hy, plate_top_z)))
+        return leaf
 
     def _get_knuckle_ranges(self, target_parity: int):
         ranges = []
@@ -171,8 +284,18 @@ class PrintInPlaceHinge:
                 knuckles_solid = knuckles_solid.union(self._build_pin(y_gap, 1))
             elif right_idx % 2 == 0:
                 knuckles_solid = knuckles_solid.union(self._build_pin(y_gap, -1))
-                
-        return plate.union(knuckles_solid)
+
+        leaf = plate.union(knuckles_solid)
+
+        if self.screw_holes:
+            # Centers computed in leaf_a (+X) coordinate space.
+            centers = self._compute_screw_hole_centers(self.leaf_a_length)
+            leaf = self._apply_screw_holes(leaf, centers)
+            assert len(leaf.solids().vals()) == 1, (
+                "leaf_a screw holes produced floating fragments"
+            )
+
+        return leaf
 
     def _build_leaf_b(self) -> cq.Workplane:
         """Leaf B (-X). Knuckles with odd indices (1, 3, 5...)"""
@@ -212,8 +335,19 @@ class PrintInPlaceHinge:
                 knuckles_solid = knuckles_solid.cut(self._build_socket(y_gap, 1))
             elif right_idx % 2 == 0:
                 knuckles_solid = knuckles_solid.cut(self._build_socket(y_gap, -1))
-                
-        return plate.union(knuckles_solid)
+
+        leaf = plate.union(knuckles_solid)
+
+        if self.screw_holes:
+            # Centers for leaf_b: same Y offsets, but X is negated (−X direction).
+            centers_a = self._compute_screw_hole_centers(self.leaf_b_length)
+            centers = [(-hx, hy) for (hx, hy) in centers_a]
+            leaf = self._apply_screw_holes(leaf, centers)
+            assert len(leaf.solids().vals()) == 1, (
+                "leaf_b screw holes produced floating fragments"
+            )
+
+        return leaf
 
     @property
     def solid(self) -> cq.Workplane:

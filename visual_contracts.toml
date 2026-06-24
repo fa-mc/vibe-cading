@@ -119,3 +119,40 @@ model = "vibe_cading.mechanical.calibration.m3_nut_pocket_gauge.MThreeNutPocketG
 view  = "iso_ne"
 [contract.params]
 labels = false
+
+# ── LegoTechnicLLiftarm (arm_a_studs / arm_b_studs have defaults; 3×5 canonical) ─
+# Text-free → no labels knob needed.
+# Design brief: docs/design_plans/2026-06-24-lego-technic-l-liftarm_design.md
+# Human design gate approved 2026-06-24 (default 3×5, no build.toml registration).
+
+[[contract]]
+svg   = "visual_contracts/2026-06-24-lego-technic-l-liftarm_design_iso_ne.svg"
+model = "vibe_cading.lego.technic_l_liftarm.LegoTechnicLLiftarm"
+view  = "iso_ne"
+[contract.params]
+arm_a_studs = 3
+arm_b_studs = 5
+
+[[contract]]
+svg   = "visual_contracts/2026-06-24-lego-technic-l-liftarm_design_top.svg"
+model = "vibe_cading.lego.technic_l_liftarm.LegoTechnicLLiftarm"
+view  = "top"
+[contract.params]
+arm_a_studs = 3
+arm_b_studs = 5
+
+# ── PrintInPlaceHinge (with 2 countersunk M3 holes per leaf — 4 total) ──────────
+# Design brief: docs/design_plans/2026-06-24-hinge-screw-holes_design.md
+# Human design gate approved 2026-06-24 (2 holes/leaf, top face, screw_holes=True
+# default, no build.toml registration).
+# Text-free class → no labels knob needed; fully byte-reproducible.
+
+[[contract]]
+svg   = "visual_contracts/2026-06-24-hinge-screw-holes_design_iso_ne.svg"
+model = "vibe_cading.mechanical.hinge.PrintInPlaceHinge"
+view  = "iso_ne"
+
+[[contract]]
+svg   = "visual_contracts/2026-06-24-hinge-screw-holes_design_top.svg"
+model = "vibe_cading.mechanical.hinge.PrintInPlaceHinge"
+view  = "top"

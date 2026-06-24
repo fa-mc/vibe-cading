@@ -715,6 +715,62 @@
       "result_accessor": ".solid"
     },
     {
+      "module": "vibe_cading.lego.technic_l_liftarm",
+      "name": "LegoTechnicLLiftarm",
+      "fqn": "vibe_cading.lego.technic_l_liftarm.LegoTechnicLLiftarm",
+      "doc": "90\u00b0-bent Lego Technic studless liftarm (L-shaped / bent beam).\n\nBuilds two perpendicular arms sharing a corner hole, with pin holes on\nthe 8 mm stud grid along both arms, rounded ends, and standard 7.8\u00d77.8 mm\nbeam cross-section.\n\nOrigin convention\n-----------------\nBottom face at Z = 0 (FDM print-bed).\n\nArm-A runs along +X:\n    X \u2208 [0, arm_a_studs \u00d7 8]\n    Y \u2208 [\u2212STUD_PITCH/2 \u2212 BEAM_END_RADIUS, \u2212STUD_PITCH/2 + BEAM_END_RADIUS]\n    \u2248 Y \u2208 [\u22127.9, \u22120.1]\n\nArm-B runs along \u2212Y:\n    X \u2208 [STUD_PITCH/2 \u2212 BEAM_END_RADIUS, STUD_PITCH/2 + BEAM_END_RADIUS]\n    \u2248 X \u2208 [0.1, 7.9]\n    Y \u2208 [\u2212arm_b_studs \u00d7 8, 0]\n\nCorner hole centre at (STUD_PITCH/2, \u2212STUD_PITCH/2) = (4.0, \u22124.0, *).\nPin holes are parallel to Z (vertical when part is laid flat on a table).\n\nSubtle geometry note \u2014 0.1 mm offset between hole centres and end-cap centres\n(inherited from LegoTechnicBeam / constants.py NOTE block):\n    End-cap centres sit at one BEAM_END_RADIUS (3.9 mm) from each arm's\n    outer tangent face; outermost hole centres sit at STUD_PITCH/2 = 4.0 mm.\n    This 0.1 mm offset preserves n \u00d7 8 mm arm-length conformance.\n\nParameters\n----------\narm_a_studs:\n    Number of pin holes along Arm-A (running +X), including the corner\n    hole. Must be \u2265 1.\narm_b_studs:\n    Number of pin holes along Arm-B (running \u2212Y), including the corner\n    hole. Must be \u2265 1.\nfit:\n    Tolerance fit grade for pin holes: \"slip\" (default), \"free\", \"press\".\nprofile:\n    Manufacturing tolerance profile (ToleranceProfile instance, string\n    name, or None to use the process-global profile).",
+      "constructors": [
+        {
+          "kind": "init",
+          "name": "__init__",
+          "doc": null,
+          "params": [
+            {
+              "name": "arm_a_studs",
+              "type": "int",
+              "required": false,
+              "default": "3",
+              "units": null,
+              "allowed_values": null,
+              "value_doc": null
+            },
+            {
+              "name": "arm_b_studs",
+              "type": "int",
+              "required": false,
+              "default": "5",
+              "units": null,
+              "allowed_values": null,
+              "value_doc": null
+            },
+            {
+              "name": "fit",
+              "type": "str",
+              "required": false,
+              "default": "'slip'",
+              "units": null,
+              "allowed_values": [
+                "free",
+                "slip",
+                "press"
+              ],
+              "value_doc": null
+            },
+            {
+              "name": "profile",
+              "type": "'ToleranceProfile | str | None'",
+              "required": false,
+              "default": "None",
+              "units": null,
+              "allowed_values": null,
+              "value_doc": null
+            }
+          ]
+        }
+      ],
+      "result_accessor": ".solid"
+    },
+    {
       "module": "vibe_cading.lego_adapters.axle_to_pin_bore_adapter",
       "name": "AxleToPinBoreAdapter",
       "fqn": "vibe_cading.lego_adapters.axle_to_pin_bore_adapter.AxleToPinBoreAdapter",
@@ -2369,7 +2425,7 @@
       "module": "vibe_cading.mechanical.hinge",
       "name": "PrintInPlaceHinge",
       "fqn": "vibe_cading.mechanical.hinge.PrintInPlaceHinge",
-      "doc": "Parametric Print-in-Place Hinge.\n\nThe origin (0,0,0) is located precisely at the center of the hinge axis.\nThe hinge is split along the X-axis:\n  - Leaf A extends towards +X.\n  - Leaf B extends towards -X.\n\nThe hinge pivots on the Y-axis. The mating mechanism relies on \n45-degree conical pins and sockets to allow FDM printing.",
+      "doc": "Parametric Print-in-Place Hinge.\n\nThe origin (0,0,0) is located precisely at the center of the hinge axis.\nThe hinge is split along the X-axis:\n  - Leaf A extends towards +X.\n  - Leaf B extends towards -X.\n\nThe hinge pivots on the Y-axis. The mating mechanism relies on\n45-degree conical pins and sockets to allow FDM printing.\n\nWhen ``screw_holes=True`` (default), 2 countersunk M3 flat-head screw\nholes are cut into each leaf (4 total) using the ``MetricMachineScrew``\ncutter, tolerance-profile-driven.  Set ``screw_holes=False`` to suppress\nall holes (e.g. when embedding the hinge into an assembly that uses a\ndifferent fastening method).\n\nScrew-hole positions are computed parametrically from ``leaf_length`` and\n``width`` so they remain valid across different hinge sizes:\n  - X: ``leaf_length * 0.65`` from the hinge axis (one column per leaf).\n  - Y: ``\u00b1 width * 0.25`` (symmetric about Y=0).\nFor default 20 mm leaf and 30 mm width this gives X=13.0, Y=\u00b17.5.\n\nThe countersink opens on the **plate top face** (Z = plate top, the face\nfacing the hinge knuckle side).  The screw is inserted from that side so\nits head recesses flush with the plate and the shank exits the bottom face\nto engage the mounting substrate.",
       "constructors": [
         {
           "kind": "init",
@@ -2454,6 +2510,15 @@
               "required": false,
               "default": "0.0",
               "units": "deg",
+              "allowed_values": null,
+              "value_doc": null
+            },
+            {
+              "name": "screw_holes",
+              "type": "bool",
+              "required": false,
+              "default": "True",
+              "units": null,
               "allowed_values": null,
               "value_doc": null
             },
