@@ -30,47 +30,9 @@ from vibe_cading.lego.constants import (
     LEAD_IN,
     STUD_PITCH,
 )
+from vibe_cading.lego.cutters.hole_mouth_selector import _HoleMouthSelector
 from vibe_cading.lego.cutters.technic_pin_hole import TechnicPinHole
 from vibe_cading.print_settings import ToleranceProfile, get_profile
-
-
-class _HoleMouthSelector(cq.Selector):
-    """Pick counterbore-rim circle edges at hole entries on the top/bottom (Z) faces.
-
-    Identical predicate logic to LegoTechnicBeam._HoleMouthSelector — filters
-    edges to: (a) geomType() == 'CIRCLE', (b) radius ≈ counterbore radius
-    (TechnicPinHole.DEFAULT_CB_DIAMETER / 2 = 3.1 mm), and (c)
-    |Center().z - BEAM_THICKNESS/2| ≈ BEAM_THICKNESS/2 (i.e. on the top face
-    Z=BEAM_THICKNESS or bottom face Z=0, not interior counterbore floor).
-    """
-
-    def __init__(
-        self,
-        target_radius: float,
-        target_z_abs_from_mid: float,
-        tol: float = 0.05,
-    ) -> None:
-        self.target_radius = target_radius
-        self.target_z_abs_from_mid = target_z_abs_from_mid
-        self.tol = tol
-
-    def filter(self, edges):
-        kept = []
-        for e in edges:
-            try:
-                if e.geomType() != "CIRCLE":
-                    continue
-                if abs(e.radius() - self.target_radius) >= self.tol:
-                    continue
-                # Fold through the mid-plane Z=BEAM_THICKNESS/2 so top face
-                # (Z=BEAM_THICKNESS) and bottom face (Z=0) both pass the same
-                # |center.z - BEAM_THICKNESS/2| ≈ BEAM_THICKNESS/2 threshold.
-                if abs(abs(e.Center().z - BEAM_THICKNESS / 2) - self.target_z_abs_from_mid) >= self.tol:
-                    continue
-                kept.append(e)
-            except Exception:
-                continue
-        return kept
 
 
 class LegoTechnicLLiftarm:

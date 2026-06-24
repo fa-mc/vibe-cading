@@ -49,34 +49,28 @@ Add 2 countersunk M3 flat-head screw holes to each leaf (`leaf_a` and `leaf_b`) 
 
 **Two holes per leaf, symmetric about Y=0:**
 
-| Leaf | Hole | Center X (mm) | Center Y (mm) | Notes |
-|------|------|--------------|--------------|-------|
-| leaf_a | H_A1 | +10.0 | −7.5 | |
-| leaf_a | H_A2 | +10.0 | +7.5 | |
-| leaf_a | H_A3 | +16.0 | −7.5 | |
-| leaf_a | H_A4 | +16.0 | +7.5 | |
-| leaf_b | H_B1 | −10.0 | −7.5 | mirror of H_A1/H_A2 |
-| leaf_b | H_B2 | −10.0 | +7.5 | |
-| leaf_b | H_B3 | −16.0 | −7.5 | mirror of H_A3/H_A4 |
-| leaf_b | H_B4 | −16.0 | +7.5 | |
+| Leaf | Hole | Center X (mm) | Center Y (mm) | Formula |
+|------|------|--------------|--------------|---------|
+| leaf_a | H_A1 | +13.0 | −7.5 | `leaf_length × 0.65`, `−width × 0.25` |
+| leaf_a | H_A2 | +13.0 | +7.5 | `leaf_length × 0.65`, `+width × 0.25` |
+| leaf_b | H_B1 | −13.0 | −7.5 | mirror of H_A (negated X) |
+| leaf_b | H_B2 | −13.0 | +7.5 | mirror of H_A (negated X) |
 
 **Clearance margin analysis** (with M3 flat-head countersunk cutter, head outer radius 2.9 mm with `fdm_standard` tolerance):
 
 | Margin | Value | Minimum required |
 |--------|-------|-----------------|
-| Inner (hole edge to knuckle clearance zone, X=10) | 10.0 − 2.9 − 5.3 = **1.8 mm** | 0.5 mm |
-| Outer (hole edge to leaf tip, X=16) | 20.0 − 16.0 − 2.9 = **1.1 mm** | 0.5 mm |
+| Inner (hole edge to knuckle clearance zone, X=13) | 13.0 − 2.9 − 5.3 = **4.8 mm** | 0.5 mm |
+| Outer (hole edge to leaf tip, X=13) | 20.0 − 13.0 − 2.9 = **4.1 mm** | 0.5 mm |
 | Y-edge (hole edge to leaf edge) | 15.0 − 7.5 − 2.9 = **4.6 mm** | 1.0 mm |
 | Y-inner (hole edge to B-knuckle clearance zone, Y=7.5) | 7.5 − 2.9 − 5.25 ≈ **−0.65 mm** (see note) | — |
 
-> **Note on Y-inner margin:** The B-knuckle clearance box is only carved from the plate **near X=0** (X = −5.3 to +5.3). At X=10 and X=16, there is no B-knuckle carved zone — the plate is solid. The apparent negative margin above only applies at the hinge axis X=0 region, which the holes do not occupy. At X=10 and X=16, Y=±7.5 are in fully solid plate material. This was verified by direct bounding-box probe.
+> **Note on Y-inner margin:** The B-knuckle clearance box is only carved from the plate **near X=0** (X = −5.3 to +5.3). At X=13, there is no B-knuckle carved zone — the plate is solid. The apparent negative margin above only applies at the hinge axis X=0 region, which the holes do not occupy. At X=13, Y=±7.5 are in fully solid plate material. This was verified by direct bounding-box probe.
 
-All four hole centers have been confirmed by runtime probe to fall within the solid plate region of each leaf.
+All four hole centers (2 per leaf) have been confirmed by runtime probe to fall within the solid plate region of each leaf.
 
 **Mounting hole pitch (center-to-center):**
-- Between H_A1/H_A2 (or H_B1/H_B2): 15 mm along Y.
-- Between H_A1/H_A3 (or H_B1/H_B3): 6 mm along X.
-- Diagonal between H_A1 and H_A4: `sqrt(6² + 15²) ≈ 16.2 mm`.
+- Between H_A1/H_A2 (or H_B1/H_B2): 15 mm along Y (the only pitch — 1 column per leaf).
 
 ### Countersink cutter geometry (M3 flat-head, `fdm_standard`)
 
@@ -153,16 +147,15 @@ def __init__(
 
 **Hole-generation helper** (internal, not part of the public API): a private method `_apply_screw_holes(leaf: cq.Workplane, centers: list[tuple[float, float]]) -> cq.Workplane` applies the cutter for each (X, Y) center, placing the cutter origin at `(X, Y, PLATE_TOP_Z)` where `PLATE_TOP_Z = (self.thickness - self.knuckle_diameter) / 2 + self.thickness / 2`.
 
-**Generalization consideration:** The hole positions are derived from the leaf geometry: the inner hole at `leaf_length * 0.5` from the hinge axis, the outer at `leaf_length * 0.8`, and Y positions at `± width * 0.25`. For the default 20 mm leaf and 30 mm width this yields X=10, X=16, Y=±7.5 — which are the exact positions specified. The Developer should compute these parametrically so they remain valid when `leaf_a_length`, `leaf_b_length`, or `width` change. See the "Human decisions" section for sign-off on the parametric formula vs fixed positions.
+**Generalization consideration:** The hole position is derived from the leaf geometry — a single column at `leaf_length × 0.65` from the hinge axis, and Y positions at `±width × 0.25`. For the default 20 mm leaf and 30 mm width this yields X=13.0, Y=±7.5. The Developer computes these parametrically so they remain valid when `leaf_a_length`, `leaf_b_length`, or `width` change.
 
-**Parametric formula proposal:**
+**Parametric formula (shipped):**
 ```
-inner_x = max(clearance_zone_half + head_r + 1.0, leaf_length * 0.4)  # ≥1mm wall from zone
-outer_x = leaf_length - 3.0                                            # ≥3mm from tip (3 ≈ head_r+0.1)
-y_offset = width * 0.25                                                  # ±1/4 of width
+hole_x  = leaf_length * 0.65   # single column per leaf
+y_offset = width * 0.25         # ±1/4 of width
 ```
 
-For defaults: `inner_x = max(5.3+2.9+1.0, 8) = max(9.2, 8) = 9.2 → round to practical 10.0`, `outer_x = 20-3 = 17 → 16 chosen for more symmetry`. The exact formula vs. fixed-default choice is a human decision (see below).
+For defaults: `hole_x = 20 × 0.65 = 13.0 mm`, `y_offset = 30 × 0.25 = 7.5 mm`. This gives 2 holes per leaf — a ±Y pair at X=13.0.
 
 ### Visual contract
 
@@ -172,7 +165,7 @@ Both SVGs generated from a probe that builds the actual hinge with the countersu
 
 ![Design preview — top](../../visual_contracts/2026-06-24-hinge-screw-holes_design_top.svg)
 
-The top view shows the 4-hole per leaf pattern (8 holes total when `angle=0`). The iso_ne view confirms the countersink openings on the plate top faces.
+The top view shows the 2-hole per leaf pattern (4 holes total when `angle=0`). The iso_ne view confirms the countersink openings on the plate top faces.
 
 ### Alternatives rejected
 
@@ -225,24 +218,24 @@ for (hx, hy) in leaf_centers:
 
 | # | Test description | Expected assertion | File / location |
 |---|------------------|--------------------|-----------------|
-| T1 | `section_slicer.py` through X=10 along the Z-axis at Y=7.5 on leaf_a | Two Z-steps visible: cone recess (radius ~2.9 mm) and shaft (radius ~1.75 mm) below it | CLI: `python3 vibe_cading/tools/section_slicer.py ...` (see commands below) |
-| T2 | Single-solid topology assert, leaf_a with 4 holes | `len(leaf_a.solids().vals()) == 1` — no floating fragments | Inline assert in test script or `tmp/` probe |
-| T3 | Single-solid topology assert, leaf_b with 4 holes | `len(leaf_b.solids().vals()) == 1` | Same |
+| T1 | `section_slicer.py` through X=13 along the Z-axis at Y=7.5 on leaf_a | Two Z-steps visible: cone recess (radius ~2.9 mm) and shaft (radius ~1.75 mm) below it | CLI: `python3 vibe_cading/tools/section_slicer.py ...` (see commands below) |
+| T2 | Single-solid topology assert, leaf_a with 2 holes | `len(leaf_a.solids().vals()) == 1` — no floating fragments | Inline assert in test script or `tmp/` probe |
+| T3 | Single-solid topology assert, leaf_b with 2 holes | `len(leaf_b.solids().vals()) == 1` | Same |
 | T4 | Intersection volume between screw cutter and each leaf | Intersection vol ≈ 0 (OCCT epsilon ~1e-6 mm³) | Boolean `.intersect()` probe in `tmp/` |
 | T5 | `screw_holes=False` produces geometry identical to current hinge | Bounding box and volume unchanged | Comparison probe in `tmp/` |
-| T6 | `preview.py` iso_ne SVG shows 8 visible hole openings | Visual inspection against design SVG | `python3 vibe_cading/tools/preview.py vibe_cading.mechanical.hinge.PrintInPlaceHinge --views iso_ne top` |
-| T7 | `preview.py` top SVG shows 4-hole pattern per leaf (8 total) | 4+4 circular openings at expected positions | Same as T6 |
-| T8 | Hole positions: inner margin ≥ 0.5 mm from knuckle clearance zone | `inner_x - head_r_with_tol - clearance_zone_half >= 0.5` | Assert in `_compute_screw_hole_centers` |
-| T9 | Hole positions: outer margin ≥ 0.5 mm from leaf tip | `leaf_length - outer_x - head_r_with_tol >= 0.5` | Assert in `_compute_screw_hole_centers` |
+| T6 | `preview.py` iso_ne SVG shows 4 visible hole openings | Visual inspection against design SVG | `python3 vibe_cading/tools/preview.py vibe_cading.mechanical.hinge.PrintInPlaceHinge --views iso_ne top` |
+| T7 | `preview.py` top SVG shows 2-hole pattern per leaf (4 total) | 2+2 circular openings at expected positions | Same as T6 |
+| T8 | Hole position: margin ≥ 0.5 mm from knuckle clearance zone | `hole_x - head_r_with_tol - clearance_zone_half >= 0.5` | Assert in `_compute_screw_hole_centers` |
+| T9 | Hole position: outer margin ≥ 0.5 mm from leaf tip | `leaf_length - hole_x - head_r_with_tol >= 0.5` | Assert in `_compute_screw_hole_centers` |
 
 ### Concrete section_slicer validation commands
 
 ```bash
-# Slice leaf_a through X=10 plane (normal to X), exposing Y-Z cross section through hole
+# Slice leaf_a through X=13 plane (normal to X), exposing Y-Z cross section through hole
 python3 vibe_cading/tools/section_slicer.py \
     --model vibe_cading.mechanical.hinge.PrintInPlaceHinge \
     --attr leaf_a \
-    --axis X --at 10.0 --report
+    --axis X --at 13.0 --report
 
 # Slice leaf_a through Z=-1 (plate top) and Z=-2 (inside countersink) to see cone profile
 python3 vibe_cading/tools/section_slicer.py \
@@ -260,7 +253,7 @@ Expected countersink profile (Z slices through Y=7.5, X=10 hole):
 
 ## Success Criteria
 
-1. `PrintInPlaceHinge()` (default `screw_holes=True`) produces 4 countersunk M3 holes per leaf (8 total) at the specified positions, visible in iso_ne and top SVG previews.
+1. `PrintInPlaceHinge()` (default `screw_holes=True`) produces 2 countersunk M3 holes per leaf (4 total) at the specified positions, visible in iso_ne and top SVG previews.
 2. `PrintInPlaceHinge(screw_holes=False)` produces geometry byte-equivalent to the current (unmodified) hinge.
 3. `section_slicer.py` report through a hole axis confirms the two-step countersink profile: cone width ~5.8 mm at Z=−1 tapering to shaft width ~3.5 mm by Z≈−2.35.
 4. Both leaf solids pass `len(solids().vals()) == 1` — no floating fragments.
@@ -295,7 +288,7 @@ Expected countersink profile (Z slices through Y=7.5, X=10 hole):
 
 The following choices are proposed in this brief but require explicit human approval before implementation proceeds:
 
-1. **Hole positions: fixed (X=10, X=16, Y=±7.5) vs parametric (scaled to leaf length and width).** The brief proposes parametric as the principled choice; fixed values are simpler to read in the code. Parametric is recommended but both approaches are valid for the default geometry.
+1. **Hole positions: fixed (X=13, Y=±7.5) vs parametric (scaled to leaf length and width).** Resolved 2026-06-24: 2 holes per leaf at `leaf_length × 0.65 = 13.0`, `±width × 0.25 = ±7.5` — parametric single-column formula was chosen.
 
 2. **Default `screw_holes=True` vs `screw_holes=False`.** `True` is proposed (holes always on by default, as this is the primary use case). If `False` is preferred to not change existing printed outputs, the default can be reversed.
 
