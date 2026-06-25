@@ -63,7 +63,7 @@ cq.exporters.export(gear.solid, "gear.step")   # extension picks the format
 
 - **Parametric by construction.** Every part regenerates from typed constructor
   parameters; there are no frozen meshes. Standard families come from size tables —
-  `MetricMachineScrew.from_size("M3", length=12)`, `SpurGear.from_iso(module=1, teeth=20)` —
+  `MetricMachineScrew.from_size("M3", length=12)`, `SpurGear.from_iso(module=1, teeth=20, face_width=5.0)` —
   so one class yields a whole catalogue of real-world parts.
 - **Print-ready fits.** Real-world *nominal* geometry stays fixed; per-machine,
   per-material clearances live in a separate **tolerance profile** you calibrate once.
