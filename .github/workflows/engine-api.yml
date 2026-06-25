@@ -51,9 +51,17 @@ jobs:
   # matching bump to `pyproject.toml` `[project].version` in the SAME PR. The
   # "bump in the same PR" rule (docs/releasing.md, CONTRIBUTING.md §12) was
   # review-only and slipped past both author and reviewer twice; `engine_api.json`
-  # is the reliable machine observable — the `check` job above already forces it
-  # to be regenerated and committed on any new public class / param. This guard
-  # asserts only that *a* bump exists; the minor-vs-patch tier stays human-judged.
+  # is a reliable machine observable for it — the `check` job above forces it to be
+  # regenerated and committed whenever a public model class / constructor param /
+  # docstring under `vibe_cading/**` | `parts/**` changes.
+  #
+  # SCOPE: this guard covers only the engine_api-indexed slice of the public
+  # surface. Other surface changes (`lego/constants.py` names, `tools/*` CLI flags,
+  # `cq_utils` functions, the `ToleranceProfile` shape — see docs/releasing.md)
+  # don't touch `engine_api.json` and stay review-only; the gap is narrowed, not
+  # fully closed. The guard is one-directional — it never blocks a legitimately
+  # unbumped PR — and asserts only that *a* bump exists; the minor-vs-patch tier
+  # stays human-judged.
   version-bump-guard:
     # PR-only: a push to `main` is post-merge (the bump already landed or didn't),
     # and there is no base branch to diff against.
