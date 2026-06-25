@@ -162,7 +162,7 @@ real-liftarm counterbore tolerance range of **6.0–6.2 mm diameter** and
 **0.8–1.0 mm depth**. This document records the real-liftarm-faithful values
 (6.0 × 0.8 mm) as the reference. The project's code defaults in
 [`TechnicPinHole.standard()`](../vibe_cading/lego/cutters/technic_pin_hole.py)
-(see lines 22–24) use **6.2 × 1.0 mm**, the **loose / FDM-friendly edge**
+(see lines 25–26) use **6.2 × 1.0 mm**, the **loose / FDM-friendly edge**
 of the Cailliau range. The code defaults are intentional, not a doc/code
 drift: FDM-printed parts benefit from the looser counterbore so a real
 LEGO pin's collar seats reliably despite layer-line variation.
