@@ -46,3 +46,63 @@ jobs:
         run: python3 vibe_cading/tools/gen_engine_api.py --check
       - name: Validate engine_api.json against schema invariants
         run: python3 vibe_cading/tools/validate_engine_api.py
+
+  # When a PR changes the public-surface artifact `engine_api.json`, require a
+  # matching bump to `pyproject.toml` `[project].version` in the SAME PR. The
+  # "bump in the same PR" rule (docs/releasing.md, CONTRIBUTING.md §12) was
+  # review-only and slipped past both author and reviewer twice; `engine_api.json`
+  # is a reliable machine observable for it — the `check` job above forces it to be
+  # regenerated and committed whenever a public model class / constructor param /
+  # docstring under `vibe_cading/**` | `parts/**` changes.
+  #
+  # SCOPE: this guard covers only the engine_api-indexed slice of the public
+  # surface. Other surface changes (`lego/constants.py` names, `tools/*` CLI flags,
+  # `cq_utils` functions, the `ToleranceProfile` shape — see docs/releasing.md)
+  # don't touch `engine_api.json` and stay review-only; the gap is narrowed, not
+  # fully closed. The guard is one-directional — it never blocks a legitimately
+  # unbumped PR — and asserts only that *a* bump exists; the minor-vs-patch tier
+  # stays human-judged.
+  version-bump-guard:
+    # PR-only: a push to `main` is post-merge (the bump already landed or didn't),
+    # and there is no base branch to diff against.
+    if: github.event_name == 'pull_request'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          # Need full history so the PR's merge-base and head trees are both
+          # present for the diff + `git show <rev>:pyproject.toml` below.
+          fetch-depth: 0
+      - uses: actions/setup-python@v5
+        with:
+          # Pin 3.11 to guarantee `tomllib` (stdlib since 3.11) for the parse.
+          python-version: "3.11"
+      - name: Require a version bump when engine_api.json changes
+        env:
+          BASE_SHA: ${{ github.event.pull_request.base.sha }}
+          HEAD_SHA: ${{ github.event.pull_request.head.sha }}
+        run: |
+          set -euo pipefail
+          # Diff against the merge-base (three-dot semantics) so files that
+          # landed on `main` after this PR forked don't read as PR changes,
+          # and the baseline version is the one the PR actually forked from.
+          mb=$(git merge-base "$BASE_SHA" "$HEAD_SHA")
+          changed=$(git diff --name-only "$mb" "$HEAD_SHA")
+          if ! grep -qx 'vibe_cading/engine_api.json' <<<"$changed"; then
+            echo "engine_api.json unchanged in this PR — version-bump guard not applicable."
+            exit 0
+          fi
+          read_ver() {
+            # Parse [project].version from a revision's pyproject.toml. tomllib
+            # is correct where a `sed` line-match would false-hit other
+            # `version =` keys in nested tables.
+            git show "$1:pyproject.toml" \
+              | python3 -c "import sys,tomllib; print(tomllib.load(sys.stdin.buffer)['project']['version'])"
+          }
+          base_ver=$(read_ver "$mb")
+          head_ver=$(read_ver "$HEAD_SHA")
+          if [ "$base_ver" = "$head_ver" ]; then
+            echo "::error file=pyproject.toml::engine_api.json changed but [project].version is unchanged ($head_ver). A public-surface change must bump the version in the same PR — see docs/releasing.md / CONTRIBUTING.md §12." >&2
+            exit 1
+          fi
+          echo "engine_api.json changed and [project].version bumped: $base_ver -> $head_ver. OK."
