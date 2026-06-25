@@ -40,7 +40,7 @@ declared stable and the project is willing to honor full SemVer breakage rules.
 
 A change is **breaking** if it alters any of these in a non-backward-compatible way:
 
-- Public constructor signatures and `.solid` / `.male()` / `.female()` / `.to_cutter()`
+- Public constructor signatures and `.solid` / `.to_cutter()` / joint `.male()`
   contracts of exported model classes.
 - `vibe_cading/cq_utils.py` and base-class / `Protocol` contracts that external
   contributors implement.

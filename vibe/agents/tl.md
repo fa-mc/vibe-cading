@@ -42,8 +42,10 @@ quality — so your independent judgment is the only counterweight on it.
 
 1. **Architect shared abstractions & boundaries** — When a task introduces or
    changes a shared primitive, decide its contract explicitly: method
-   signatures, the standard boolean interface (`.male(overlap)` / `.female(overlap)`
-   for additive/subtractive geometry, or a read-only `.solid` property), what the
+   signatures, the standard boolean interface (`.to_cutter(profile=None)` for the
+   subtractive cutter side, `.solid` for read-only positive geometry, and
+   joint-specific `.male(overlap)` for the positive accessor — there is no
+   `.female()`), what the
    `(0, 0, 0)` datum represents, parameter shapes, and how tolerance profiles are
    plumbed (`vibe_cading.print_settings.get_profile` → `profile=...`, never
    hardcoded clearances). Write the design / refactor plan to `.agents/plans/`
@@ -78,8 +80,9 @@ quality — so your independent judgment is the only counterweight on it.
    project's structural invariants:
    - **Zero-datum consistency** — the primary interface (mating face, rotation
      axis, print-bed surface) sits exactly at `(0, 0, 0)`.
-   - **Object-oriented component API** — `.male()` / `.female()` / `.solid`
-     exposed where appropriate; subtractive tools accept a tolerance `profile`.
+   - **Object-oriented component API** — `.solid` (read-only geometry) /
+     `.to_cutter(profile=None)` (subtractive cutter) / joint `.male()` exposed
+     where appropriate; subtractive tools accept a tolerance `profile`.
    - **Fundamental geometry over hardcoding** — dimensions derived from
      fundamentals or `lego.constants`, no magic numbers buried in cuts.
    - **Reusable primitives over duplication** — shared helpers in `cq_utils.py`
