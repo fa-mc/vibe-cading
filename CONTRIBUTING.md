@@ -178,6 +178,8 @@ Full calibration workflow, fit-grade taxonomy, and field-level deep-merge semant
 
 That walks the trees with a pure-`ast` extractor (no CadQuery import) and rewrites the file in place. Commit the regenerated artifact alongside your model changes.
 
+**Internal helpers MUST be `_`-prefixed.** The extractor's discovery rule (`_is_discoverable` in [`vibe_cading/tools/engine_api/extractor.py`](vibe_cading/tools/engine_api/extractor.py)) publishes **every** non-underscore top-level class under `vibe_cading/**` and `parts/**` as public, SemVer-relevant surface — it keys on the module-level class *name* and does **not** consult `__all__`. So any internal helper, mixin, or private cutter you don't intend as public API must start with an underscore (e.g. `_HoleMouthSelector`); otherwise it leaks into `engine_api.json`, and a later rename or removal reads as a breaking public-surface change that forces a version bump. Contract types are auto-excluded regardless of name: `typing.Protocol` / `abc.ABC` bases, and any class that declares an `@abstractmethod`.
+
 **Bumping `schema_version`.** The extractor pins `SCHEMA_VERSION` in [`vibe_cading/tools/engine_api/extractor.py`](vibe_cading/tools/engine_api/extractor.py); the validator imports the same constant. Bump it whenever the schema shape changes:
 
 - **Major** (`1.0` → `2.0`) for breaking changes — renaming or removing a field, dropping a class, narrowing a `type` annotation, making an optional param required.
