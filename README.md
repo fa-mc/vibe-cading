@@ -65,6 +65,13 @@ cq.exporters.export(gear.solid, "gear.step")   # extension picks the format
   parameters; there are no frozen meshes. Standard families come from size tables —
   `MetricMachineScrew.from_size("M3", length=12)`, `SpurGear.from_iso(module=1, teeth=20, face_width=5.0)` —
   so one class yields a whole catalogue of real-world parts.
+- **Parametric both ways.** Forward is params → part. *Reverse* goes the other
+  direction: bring an existing **STEP** file, let the engine's analysis tools
+  measure it, and rebuild it — by hand or with an LLM agent — as editable parametric
+  code. `boolean_diff` then confirms the rebuild matches the original to within ~1%
+  by volume. That's how the **SG90 servo body** in the samples above was built:
+  measured from a reference STEP, rebuilt as a parametric class. Works best on
+  simple prismatic parts.
 - **Print-ready fits.** Real-world *nominal* geometry stays fixed; per-machine,
   per-material clearances live in a separate **tolerance profile** you calibrate once.
   The same model bores a tight hole on one printer and a loose one on another — the
