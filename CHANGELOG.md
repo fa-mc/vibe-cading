@@ -15,6 +15,19 @@ section to the new version and date.
 
 ## [Unreleased]
 
+## [0.1.2] - 2026-06-26
+
+_Documentation and release-tooling only — no library code change; upgrading from
+0.1.1 is optional._
+
+### Changed
+- README: added a PyPI install section (`pip install vibe_cading` /
+  `vibe_cading[mcp]`) and a headless-Linux `libgl1` / OpenGL caveat for
+  CadQuery's geometry kernel; standardized agent terminology to "AI agents".
+- Release pipeline: PyPI publish is now gated by a per-release required-reviewer
+  approval on the `pypi` GitHub Environment (replacing the `PYPI_PUBLISH` repo
+  variable).
+
 ## [0.1.1] - 2026-06-24
 
 ### Added
