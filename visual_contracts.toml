@@ -156,3 +156,32 @@ view  = "iso_ne"
 svg   = "visual_contracts/2026-06-24-hinge-screw-holes_design_top.svg"
 model = "vibe_cading.mechanical.hinge.PrintInPlaceHinge"
 view  = "top"
+
+# ── BevelGear (mate_teeth / face_width are REQUIRED args) ─────────────────────
+# Design brief: docs/design_plans/2026-06-26-bevel-gear_design.md
+# Human design gate approved 2026-06-26 (miter pair: m=2, z=20, mate=20, fw=6, bore=5).
+# BevelGear engraves no text labels → no labels knob needed; fully byte-reproducible.
+# NOTE: the demo()/mesh_with apex-rotation pose is explicitly OUT of this contract
+# (see §Scope of the byte-pinned contract in the design artifact — TL-C2).
+
+[[contract]]
+svg   = "visual_contracts/2026-06-26-bevel-gear_design_iso_ne.svg"
+model = "vibe_cading.mechanical.gears.bevel.BevelGear"
+view  = "iso_ne"
+[contract.params]
+module = 2.0
+teeth = 20
+mate_teeth = 20
+face_width = 6.0
+bore = 5.0
+
+[[contract]]
+svg   = "visual_contracts/2026-06-26-bevel-gear_design_front.svg"
+model = "vibe_cading.mechanical.gears.bevel.BevelGear"
+view  = "front"
+[contract.params]
+module = 2.0
+teeth = 20
+mate_teeth = 20
+face_width = 6.0
+bore = 5.0
