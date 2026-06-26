@@ -15,6 +15,21 @@ section to the new version and date.
 
 ## [Unreleased]
 
+## [0.1.4] - 2026-06-26
+
+### Added
+- `BevelGear`: new exported model class — a parametric straight-bevel involute
+  gear for intersecting-axis (e.g. 90°/miter) drives, completing the gear family
+  alongside `SpurGear` / `HelicalGear` / `RackGear`. Constructor
+  `BevelGear(module, teeth, mate_teeth, face_width, bore=None,
+  pressure_angle=20.0, shaft_angle=90.0, n_flank=32)`; the pitch-cone angle is
+  derived from `(teeth, mate_teeth, shaft_angle)`. Teeth are built via a Tredgold
+  scaled-section loft (heel + scaled-toe cross-section, common pitch apex); the
+  flat back/mounting face sits at `Z=0`. Reuses the shared `Gear` involute
+  primitives, `from_iso`, and composable `Bore` shapes. `mesh_with` is overridden
+  to pose an apex-coincident, shaft-angle-tilted mate (visual layout only; the
+  parallel-axis `Gear.center_distance_to` is not used).
+
 ## [0.1.3] - 2026-06-26
 
 ### Added

@@ -2103,6 +2103,90 @@
       "result_accessor": ".solid"
     },
     {
+      "module": "vibe_cading.mechanical.gears.bevel",
+      "name": "BevelGear",
+      "fqn": "vibe_cading.mechanical.gears.bevel.BevelGear",
+      "doc": "Parametric straight-bevel involute gear (Tredgold scaled-section loft).\n\nInherits from :class:`Gear` and reuses its shared involute 2D primitive\n(:meth:`Gear.gear_blank_with_teeth_2d`) and bore-cutter logic.  The only\nbevel-specific construction is the conical loft: a heel toothed section\nat ``Z = 0`` lofted to a uniformly-scaled toe section at ``Z = _axial_height``\nvia :meth:`cq.Solid.makeLoft(..., ruled=True)`.\n\n**Simplification disclosure (T1 / T2 / R4):**\nThe tooth profile is arrayed using the **real tooth count z**, not the\nTredgold virtual back-cone tooth count ``z_v = z / cos \u03b4``.  This is a\n*further simplification* beyond strict back-cone-developed Tredgold, where\nthe planar section would be generated for a virtual gear of z_v teeth.\nThe practical difference at FDM print tolerances is negligible; it is\nexplicitly called out here so contributors are not misled into thinking the\nimplementation is a full Tredgold back-cone derivation.\n\nParameters\n----------\nmodule : float\n    Gear module (pitch diameter \u00f7 teeth).  Standard values: 0.5, 0.8,\n    1.0, 1.25, 1.5, 2.0, 2.5, 3.0, 4.0, 5.0, 6.0, 8.0, 10.0 mm \u2014 see\n    ``ISO_STANDARD_MODULES`` and :meth:`Gear.from_iso` for the ISO check.\nteeth : int\n    Number of teeth on this gear.  The undercut floor (governed by\n    the real tooth count at the base-class level) is conservative-safe\n    for bevel gears: since ``z_v = teeth / cos \u03b4 \u2265 teeth`` always\n    (``cos \u03b4 \u2208 (0, 1)`` for ``0 < \u03b4 < 90\u00b0``), if the real count clears\n    the undercut floor the virtual count clears it by a wider margin.\n    The :attr:`virtual_teeth` attribute exposes ``z_v`` for reference.\nmate_teeth : int\n    Tooth count of the meshing partner.  Together with ``shaft_angle``,\n    this drives the pitch-cone angle ``\u03b4`` via the formula\n    ``\u03b4 = atan2(sin \u03a3, (mate_teeth/teeth) + cos \u03a3)``.\nface_width : float\n    Cone-distance span (slant measurement, mm) from heel to toe.\n    Must be strictly less than ``outer_cone_distance`` (hard constraint);\n    exceeding ``outer_cone_distance / 3`` triggers a ``UserWarning``\n    (convention, not enforced).\nbore : float | Bore | None\n    Central through-bore.  Pass a plain diameter ``float`` for a round\n    bore, or a composable :class:`Bore` instance.  ``None`` = solid hub.\npressure_angle : float\n    Half-angle between the tooth face and the pitch-circle tangent\n    (degrees).  Default 20\u00b0.\nshaft_angle : float\n    Angle \u03a3 (degrees) between the two shaft axes.  Default 90\u00b0 (the\n    dominant RC/Lego right-angle drive case).  Must satisfy\n    ``0 < \u03a3 < 180``; 0\u00b0 and 180\u00b0 give degenerate parallel/anti-parallel\n    cones.\nn_flank : int\n    Number of sample points on each involute flank.  Default 32.\n\nAttributes\n----------\npitch_angle : float\n    Pitch-cone half-angle \u03b4 in **radians**.\n    ``\u03b4 = atan2(sin \u03a3, (mate_teeth/teeth) + cos \u03a3)``\n    For a 90\u00b0 miter pair (z == mate_teeth) \u03b4 = \u03c0/4 (45\u00b0).\nouter_cone_distance : float\n    Outer (heel) slant height ``A_o = pitch_radius / sin \u03b4`` (mm).\npitch_apex_z : float\n    ``Z``-coordinate of the pitch apex on the gear axis\n    (``A_o \u00b7 cos \u03b4 = pitch_radius / tan \u03b4``).\n    Used by :meth:`mesh_with` to pose the coincident-apex bevel pair.\nvirtual_teeth : float\n    Tredgold virtual (back-cone developed) tooth count\n    ``z_v = teeth / cos \u03b4``.  Exposed for reference; the actual profile\n    is generated for the *real* tooth count (see simplification disclosure\n    above).\n\nNotes\n-----\n**Datum:** The flat heel/mounting face sits at ``Z = 0``.  The conical\nbody tapers into ``+Z`` toward the pitch apex.  The bore axis is ``+Z``.\n\n**Origin:** ``(0, 0, 0)`` is the centre of the heel face (the gear axis\nintersects the heel plane here).",
+      "constructors": [
+        {
+          "kind": "init",
+          "name": "__init__",
+          "doc": null,
+          "params": [
+            {
+              "name": "module",
+              "type": "float",
+              "required": true,
+              "units": null,
+              "allowed_values": null,
+              "value_doc": null
+            },
+            {
+              "name": "teeth",
+              "type": "int",
+              "required": true,
+              "units": null,
+              "allowed_values": null,
+              "value_doc": null
+            },
+            {
+              "name": "mate_teeth",
+              "type": "int",
+              "required": true,
+              "units": null,
+              "allowed_values": null,
+              "value_doc": null
+            },
+            {
+              "name": "face_width",
+              "type": "float",
+              "required": true,
+              "units": "mm",
+              "allowed_values": null,
+              "value_doc": null
+            },
+            {
+              "name": "bore",
+              "type": "float | Bore | None",
+              "required": false,
+              "default": "None",
+              "units": "mm",
+              "allowed_values": null,
+              "value_doc": null
+            },
+            {
+              "name": "pressure_angle",
+              "type": "float",
+              "required": false,
+              "default": "20.0",
+              "units": "deg",
+              "allowed_values": null,
+              "value_doc": null
+            },
+            {
+              "name": "shaft_angle",
+              "type": "float",
+              "required": false,
+              "default": "90.0",
+              "units": "deg",
+              "allowed_values": null,
+              "value_doc": null
+            },
+            {
+              "name": "n_flank",
+              "type": "int",
+              "required": false,
+              "default": "32",
+              "units": null,
+              "allowed_values": null,
+              "value_doc": null
+            }
+          ]
+        }
+      ],
+      "result_accessor": ".solid"
+    },
+    {
       "module": "vibe_cading.mechanical.gears.bore",
       "name": "DBore",
       "fqn": "vibe_cading.mechanical.gears.bore.DBore",

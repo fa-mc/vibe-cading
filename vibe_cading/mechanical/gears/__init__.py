@@ -20,6 +20,7 @@ gear hubs consume.
 """
 
 from .base import Gear, ISO_STANDARD_MODULES
+from .bevel import BevelGear
 from .bore import Bore, DBore, HexBore, KeyedBore, RoundBore
 from .helical import HelicalGear
 from .rack import RackGear
@@ -36,4 +37,5 @@ __all__ = [
     "SpurGear",
     "HelicalGear",
     "RackGear",
+    "BevelGear",
 ]
