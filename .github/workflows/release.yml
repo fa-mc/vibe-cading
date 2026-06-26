@@ -56,9 +56,9 @@ jobs:
 
       - name: Reserve-path version override (runner-only, never committed)
         # When dispatched with a reserve_version, rewrite the tracked
-        # version = "0.1.0" line to the placeholder on the runner only. This
-        # lets us publish a throwaway 0.0.1 to claim the PyPI name without
-        # permanently changing pyproject.toml's real 0.1.0.
+        # version line to the placeholder on the runner only. This lets us
+        # publish a throwaway (e.g. 0.0.1) to claim the PyPI name without
+        # permanently changing pyproject.toml's real tracked version.
         if: github.event_name == 'workflow_dispatch' && inputs.reserve_version != ''
         env:
           RESERVE_VERSION: ${{ inputs.reserve_version }}
