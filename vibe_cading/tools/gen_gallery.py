@@ -175,7 +175,7 @@ def _gallery_jobs() -> list:
     servo and hinge); ``stl_solid`` is the single (possibly compound) solid exported
     for the interactive viewer.
     """
-    from vibe_cading.mechanical.gears.spur import SpurGear
+    from vibe_cading.mechanical.gears.helical import HelicalGear
     from vibe_cading.lego.technic_l_liftarm import LegoTechnicLLiftarm
     from vibe_cading.lego_adapters.servos.sg90.servo_mount import (
         ServoMountAssembly,
@@ -184,7 +184,12 @@ def _gallery_jobs() -> list:
     )
     from vibe_cading.mechanical.hinge import PrintInPlaceHinge
 
-    gear = SpurGear(module=1.5, teeth=18, face_width=6.0)
+    # Herringbone (double-helical) gear — two opposite-hand helical halves
+    # meeting at the mid-plane chevron.
+    gear = HelicalGear(
+        module=1.0, teeth=30, face_width=12.0, helix_angle=30,
+        bore=6, double_helix=True,
+    )
     lift = LegoTechnicLLiftarm()  # default 3x5
     base = ServoMountBase()
     clamp = ServoMountClamp(outer_x=base.outer_size / 2, arm_inner_x=base.arm_inner_x)

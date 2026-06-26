@@ -2226,7 +2226,7 @@
       "module": "vibe_cading.mechanical.gears.helical",
       "name": "HelicalGear",
       "fqn": "vibe_cading.mechanical.gears.helical.HelicalGear",
-      "doc": "Parametric involute helical gear.\n\nParameters\n----------\nmodule : float\n    Normal module (mm). Standard values: 0.5, 1, 1.5, 2...\nteeth : int\n    Number of teeth.\nface_width : float\n    Axial thickness (mm).\nhelix_angle : float\n    Helix angle in degrees. Positive for right-hand, negative for left-hand.\nbore : float | Bore | None\n    Central through-bore (see :class:`SpurGear`).\npressure_angle : float\n    Normal pressure angle in degrees. Default 20\u00b0.\nn_flank : int\n    Number of points per flank.",
+      "doc": "Parametric involute helical gear.\n\nParameters\n----------\nmodule : float\n    Normal module (mm). Standard values: 0.5, 1, 1.5, 2...\nteeth : int\n    Number of teeth.\nface_width : float\n    Axial thickness (mm).\nhelix_angle : float\n    Helix angle in degrees. Positive for right-hand, negative for left-hand.\n    For ``double_helix=True`` the sign sets the hand of the *bottom* half;\n    the top half is always the mirror image.\nbore : float | Bore | None\n    Central through-bore (see :class:`SpurGear`).\npressure_angle : float\n    Normal pressure angle in degrees. Default 20\u00b0.\nn_flank : int\n    Number of points per flank.\ndouble_helix : bool\n    When ``True``, build a herringbone (double-helical) gear: two\n    opposite-hand halves of ``face_width / 2`` meeting at a chevron apex\n    on the mid-plane.  Default ``False`` (single helix).",
       "constructors": [
         {
           "kind": "init",
@@ -2288,6 +2288,15 @@
               "type": "int",
               "required": false,
               "default": "32",
+              "units": null,
+              "allowed_values": null,
+              "value_doc": null
+            },
+            {
+              "name": "double_helix",
+              "type": "bool",
+              "required": false,
+              "default": "False",
               "units": null,
               "allowed_values": null,
               "value_doc": null

@@ -23,8 +23,8 @@ And it's designed to be driven by humans *and* AI agents.
 <table>
   <tr>
     <td align="center" width="50%">
-      <a href="assets/sample-gear.stl" title="Click to rotate in 3D"><img src="assets/sample-gear.png" alt="Parametric spur gear" width="290"></a><br>
-      <sub><b>SpurGear</b> · <code>module=1.5, teeth=18</code></sub>
+      <a href="assets/sample-gear.stl" title="Click to rotate in 3D"><img src="assets/sample-gear.png" alt="Parametric double-helical (herringbone) gear" width="290"></a><br>
+      <sub><b>HelicalGear</b> · <code>double_helix=True, module=1.0, teeth=30</code></sub>
     </td>
     <td align="center" width="50%">
       <a href="assets/sample-lliftarm.stl" title="Click to rotate in 3D"><img src="assets/sample-lliftarm.png" alt="Lego Technic L-liftarm (3×5)" width="200"></a><br>
