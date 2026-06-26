@@ -39,6 +39,17 @@ def test_double_helix_bore_cuts_through():
                         bore=5, double_helix=True)
     assert len(bored.solid.solids().vals()) == 1
     assert bored.solid.val().Volume() < solid_hub.solid.val().Volume()
+    # Pin the *full-through* property — a half-depth bore would still pass the
+    # volume-decreased check above. A thin axial probe well inside the bore
+    # radius must not intersect the gear anywhere along the full face width.
+    import cadquery as cq
+    probe = (
+        cq.Workplane("XY")
+        .circle(1.0)                          # bore radius is 2.5; 1.0 is inside
+        .extrude(14.0)
+        .translate((0, 0, -1.0))              # span Z = -1 .. 13 (past both faces)
+    )
+    assert len(bored.solid.intersect(probe).solids().vals()) == 0
 
 
 def test_single_helix_unchanged_by_double_helix_default():

@@ -298,8 +298,17 @@ path.)
 
 ## Visual Contract
 
-This task changes **no single-gear visible geometry** (the `HelicalGear.solid`
-is byte-identical). It adds a *posing relationship*. Per the visual-contract
+> **Scope note (added post-review, F2):** the PR that ships this design
+> (#75) also bundles the earlier `HelicalGear.double_helix` herringbone flag
+> from the same session's gallery work. That flag **does** change single-gear
+> geometry. The statement below applies strictly to the *crossed-mesh* feature
+> this brief specifies; `double_helix` is out of this brief's original scope
+> (see CHANGELOG 0.1.3). No gear class is registered in `visual_contracts.toml`,
+> so neither feature trips the freshness gate.
+
+The **crossed-mesh** feature changes **no single-gear visible geometry** (the
+`HelicalGear.solid` is byte-identical for a posed pair). It adds a *posing
+relationship*. Per the visual-contract
 scope carve-outs (refactors / additive-only / no change to a single part's
 visual outcome), a registered `visual_contracts/` SVG is **not required**. The
 post-impl review (T9) should still eyeball an iso preview of a posed crossed
