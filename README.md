@@ -130,7 +130,7 @@ adding your own parts: **[CONTRIBUTING.md](CONTRIBUTING.md)**.
 
 ```bash
 pip install vibe_cading            # the library
-pip install "vibe_cading[mcp]"     # + the MCP server for LLM agents
+pip install "vibe_cading[mcp]"     # + the MCP server for AI agents
 ```
 
 On headless Linux (cloud servers, CI runners, slim Docker images), CadQuery's
