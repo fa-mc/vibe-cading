@@ -4,7 +4,8 @@
 > policy and release-cut workflow below are in force. Packaging shipped in **PR #30**
 > (commit `455ade0`): `pyproject.toml` tracked at `version = "0.1.0"` (hatchling +
 > `hatch_build.py`); `vibe_cading/__commit__.py` is build-generated (untracked).
-> PyPI publication remains **gated** — see Decision 1. Referenced from
+> PyPI publication is **gated behind a required-reviewer approval** on the `pypi`
+> environment — see Decision 1. Referenced from
 > [`CONTRIBUTING.md`](../CONTRIBUTING.md) §12 and [`vibe/INSTRUCTIONS.md`](../vibe/INSTRUCTIONS.md).
 
 vibe-cading is an AGPLv3, OSS-bound CadQuery library. Once it ships a `pip`-installable
@@ -96,14 +97,17 @@ user-facing, so a stale number ships for the whole release cycle otherwise.
    matches the tagged commit and `vibe_cading.__version__` matches the tag, then attaches
    the wheel + sdist to a GitHub Release.
 6. **PyPI upload** is a final workflow step using **trusted publishing** (OIDC — no stored
-   API token), **gated** behind the publication trigger (see Decision&nbsp;1). Until that
-   gate opens, the workflow stops at the GitHub-Release artifacts.
+   API token), **gated behind a required-reviewer approval** on the `pypi` environment
+   (see Decision&nbsp;1). The `publish-pypi` job enters a *waiting* state on every release;
+   until a maintainer approves that specific run in the Actions UI the workflow stops at
+   the GitHub-Release artifacts. Rejecting the approval ships nothing — no repo variable
+   to set or unset.
 
 ## Decision log
 
 | # | Decision | Resolution |
 |---|---|---|
-| 1 | PyPI publish trigger | **Confirmed 2026-06-15:** keep the demand gate for the supported public release; reserved the `vibe-cading` PyPI name via a placeholder `0.0.1` (a throwaway preserving `0.1.0` for the first real release), published 2026-06-15 and to be yanked. Name-squatting was the only *irreversible* risk; the reservation is a public AGPL publish, made as a maintainer action. |
+| 1 | PyPI publish gate | **Confirmed 2026-06-15; gate mechanism revised 2026-06-26.** The publish gate is a **required-reviewer approval on the `pypi` GitHub Environment** ([Settings → Environments → `pypi`](https://github.com/fa-mc/vibe-cading/settings/environments)): every release's `publish-pypi` job waits for a maintainer to approve that specific run in the Actions UI before the irreversible upload. Default-deny, captured **per-release** — no persistent `PYPI_PUBLISH` repo variable arming future tags (the original variable-gate was replaced because setting a variable is not a trigger and leaving it set silently auto-publishes every later tag). Name-squatting (the only *irreversible* name risk) was retired by reserving `vibe-cading` via a since-yanked `0.0.1` placeholder. **First real release `0.1.1` published to PyPI 2026-06-26** via this approval-gated path (`0.1.0` was an internal version waypoint, never released). |
 | 2 | Tag-on-`main` vs `release/*` branch | **Confirmed 2026-06-15:** tag `vX.Y.Z` directly on `main`; no `release/*` branches. |
 | 3 | Publish mechanism | **Confirmed: GitHub Actions release workflow** (`.github/workflows/release.yml`) using trusted publishing (OIDC) — no hand-managed PyPI token. |
 | 4 | `CHANGELOG.md` adoption | **Confirmed: start at the first post-#30 release**, no retroactive seeding. |
@@ -114,6 +118,6 @@ user-facing, so a stale number ships for the whole release cycle otherwise.
 Status of the follow-up actions that implement the confirmed policy:
 
 1. ✅ **Done — `.github/workflows/release.yml`** (PRs #35, #36): tag-triggered `pyproject-build` + version/SHA assertions + GitHub Release upload, with a trusted-publishing PyPI step gated behind Decision 1. *(#36 fixed a build-invocation bug: the repo's local `build.py` shadowed the PyPA `build` module under `python -m build`; the step now uses `pyproject-build` with `PYTHONPATH` cleared.)*
-2. ✅ **Done — `vibe-cading` PyPI name reserved** (2026-06-15): published `0.0.1` via the workflow's reserve path (a throwaway, *not* `0.1.0`, so `0.1.0` stays free for the first real release), to be yanked. The trusted-publisher config (environment `pypi`) is confirmed working end-to-end.
+2. ✅ **Done — `vibe-cading` PyPI name reserved** (2026-06-15): published `0.0.1` via the workflow's reserve path (a throwaway, *not* `0.1.0`, so `0.1.0` stays free for the first real release), since yanked. The trusted-publisher config (environment `pypi`) is confirmed working end-to-end — and that environment now carries the required-reviewer approval gate (Decision 1).
 3. ✅ **Done — `CHANGELOG.md` started**: created with the Keep a Changelog preamble and an `## [Unreleased]` section carrying the initial-public-release `Added` entries (no retroactive per-PR seeding, per Decision 4). Cutting the first release renames `Unreleased` → `[0.1.0]` + date.
 4. ✅ **Done — `__commit__` provenance fixed via env stamp.** *Root cause was twofold:* (a) the default `pyproject-build` builds the wheel from the unpacked **sdist** in an isolated dir with no `.git`, so `hatch_build.py`'s `git rev-parse HEAD` fell back to `unknown`; (b) the doc's originally-suggested `pyproject-build --wheel` (build in-tree) does **not** work either — `vibe_cading/__commit__.py` is **git-ignored**, so hatchling's in-tree git file-selection **omits it from the wheel entirely**. *Fix:* `hatch_build.py` now falls back to a host-neutral `VIBE_BUILD_SHA` env var when git is unavailable, and `release.yml`'s build step sets `VIBE_BUILD_SHA: ${{ github.sha }}`. The wheel-from-sdist path then stamps the tagged SHA and the step-5 assertion passes. Verified end-to-end locally (build → install → `import vibe_cading; __commit__ == sha`). Still recommended: a throwaway dry-run tag to confirm in CI before the first real release.
