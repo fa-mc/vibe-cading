@@ -15,6 +15,23 @@ section to the new version and date.
 
 ## [Unreleased]
 
+## [0.1.3] - 2026-06-26
+
+### Added
+- `HelicalGear.double_helix`: new optional `bool` parameter (default `False`).
+  When `True`, builds a herringbone (double-helical) gear — two opposite-hand
+  helical halves of `face_width / 2` meeting at a mid-plane chevron, cancelling
+  the axial thrust a single helix produces.
+- `HelicalGear.crossed_mesh_with()` / `HelicalGear.crossed_center_distance_to()`:
+  pose a pair of single-helical gears on crossed (skew) shafts — crossed-helical
+  ("screw") gears — with the shaft angle auto-derived from the two helix angles
+  or overridden via `shaft_angle`. Posing only; the base `Gear.mesh_with` /
+  `center_distance_to` (parallel-axis) are unchanged.
+
+### Changed
+- README sample gallery now features a double-helical `HelicalGear` in place of
+  the spur gear.
+
 ## [0.1.2] - 2026-06-26
 
 _Documentation and release-tooling only — no library code change; upgrading from
