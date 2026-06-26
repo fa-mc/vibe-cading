@@ -84,6 +84,12 @@ too; enforce them on the other roles when they slip.
    be using — this is a shared worktree) are **surfaced to the human, never
    auto-deleted**: deleting a concurrent session's scratch is destructive. Report
    the own-scratch deletions as done and the foreign scratch as a surfaced list.
+   Additionally, **flag aged cross-session accumulation rather than purging it**:
+   run `find tmp -type f -mtime +30` during the sweep and, if the count is
+   non-trivial, report it (count + rough total size, e.g. via `du -sh tmp`) so
+   the human can run a proper bulk purge — never auto-purge files past the
+   ~30-day threshold yourself, since they may include another session's kept
+   artifacts.
 
 ## Routing (from Admin)
 
