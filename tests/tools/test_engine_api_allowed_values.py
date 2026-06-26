@@ -166,6 +166,7 @@ _GROUP_E: dict[tuple[str, str, str], list[str]] = {
     ("TechnicPinHole", "__init__", "fit"): ["free", "slip", "press"],
     ("TechnicAxleHole", "__init__", "fit"): ["free", "slip", "press"],
     ("LegoTechnicLLiftarm", "__init__", "fit"): ["free", "slip", "press"],
+    ("PerpendicularHolesLiftarm", "__init__", "fit"): ["free", "slip", "press"],
 }
 
 _ALL_EMITTED = {**_GROUP_A, **_GROUP_B, **_GROUP_C, **_GROUP_D, **_GROUP_E}
@@ -491,7 +492,7 @@ def test_artifact_matches_source_literal(site, artifact):
 def test_emitted_site_count(artifact):
     """The artifact emits exactly the Coverage-list emitted-site set.
 
-    35 emitted sites = Coverage Groups A(14)+B(7)+C(9)+D(2)+E(3); the
+    36 emitted sites = Coverage Groups A(14)+B(7)+C(9)+D(2)+E(4); the
     keyword-only TechnicPinHole.standard.fit is NOT emitted.
     """
     emitted = {
@@ -503,7 +504,7 @@ def test_emitted_site_count(artifact):
         f"missing: {set(_ALL_EMITTED) - emitted}; "
         f"extra: {emitted - set(_ALL_EMITTED)}"
     )
-    assert len(emitted) == 35
+    assert len(emitted) == 36
 
 
 def test_standard_fit_kwonly_not_emitted(artifact):

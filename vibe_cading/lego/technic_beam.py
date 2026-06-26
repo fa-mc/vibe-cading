@@ -27,6 +27,43 @@ from vibe_cading.lego.cutters.hole_mouth_selector import _HoleMouthSelector
 from vibe_cading.lego.cutters.technic_pin_hole import TechnicPinHole
 
 
+def stadium_beam_body(length_mm: float) -> cq.Workplane:
+    """Build and return the extruded stadium-shaped beam body.
+
+    The body is the 2D sketch (rect + two hemicircular end-caps) extruded
+    along +Z by ``BEAM_THICKNESS``.  No holes, no chamfers — pure positive
+    geometry, shared by :class:`LegoTechnicBeam` and
+    :class:`~vibe_cading.lego.technic_beam_perp.PerpendicularHolesLiftarm`.
+
+    Bounding box: ``X ∈ [0, length_mm] × Y ∈ [-BEAM_WIDTH/2, +BEAM_WIDTH/2]
+    × Z ∈ [0, BEAM_THICKNESS]``.
+
+    Parameters
+    ----------
+    length_mm:
+        Total beam length in millimetres (must satisfy ``length_mm >= 2 *
+        BEAM_END_RADIUS``; this is guaranteed by any ``num_holes >= 1``
+        caller since ``STUD_PITCH > 2 * BEAM_END_RADIUS``).
+    """
+    rect_centre_x = length_mm / 2
+    rect_width_x = length_mm - 2 * BEAM_END_RADIUS
+    end_x_left = BEAM_END_RADIUS
+    end_x_right = length_mm - BEAM_END_RADIUS
+
+    sketch = (
+        cq.Workplane("XY")
+        .sketch()
+        .push([(rect_centre_x, 0.0)])
+        .rect(rect_width_x, BEAM_WIDTH)
+        .reset()
+        .push([(end_x_left, 0.0), (end_x_right, 0.0)])
+        .circle(BEAM_END_RADIUS)
+        .clean()
+        .finalize()
+    )
+    return sketch.extrude(BEAM_THICKNESS)
+
+
 class LegoTechnicBeam:
     """First-party Lego Technic studless lift-arm (thick) beam primitive.
 
@@ -75,28 +112,12 @@ class LegoTechnicBeam:
         """Build the beam: 2D-sketch stadium body → through-cutter pass → lead-in chamfer."""
         length_mm = self.length_mm
 
-        # ── Step 1: 2D sketch — rect + two end-circles → single extrude ───────
-        # Rect spans X ∈ [BEAM_END_RADIUS, length_mm - BEAM_END_RADIUS] (so the
-        # end-circle outermost tangents land exactly at X = 0 and X = length_mm).
-        # End-circles centred at (BEAM_END_RADIUS, 0) and (length_mm - BEAM_END_RADIUS, 0).
-        # Single extrude along +Z by BEAM_THICKNESS guarantees a single solid (FR16).
-        rect_centre_x = length_mm / 2
-        rect_width_x = length_mm - 2 * BEAM_END_RADIUS
-        end_x_left = BEAM_END_RADIUS
-        end_x_right = length_mm - BEAM_END_RADIUS
-
-        sketch = (
-            cq.Workplane("XY")
-            .sketch()
-            .push([(rect_centre_x, 0.0)])
-            .rect(rect_width_x, BEAM_WIDTH)
-            .reset()
-            .push([(end_x_left, 0.0), (end_x_right, 0.0)])
-            .circle(BEAM_END_RADIUS)
-            .clean()
-            .finalize()
-        )
-        body = sketch.extrude(BEAM_THICKNESS)
+        # ── Step 1: stadium body via shared helper ───────────────────────────
+        # The helper extracts the 2D-sketch + extrude so both LegoTechnicBeam
+        # and PerpendicularHolesLiftarm share the same body recipe without
+        # duplicating code.  Behavior is byte-identical to the inlined version;
+        # all visual contracts and tests remain valid (pure internal refactor).
+        body = stadium_beam_body(length_mm)
 
         # ── Step 2 + 3: through-cutter pass ─────────────────────────────────
         # Single cutter instance: depth = BEAM_WIDTH + 2 × _ENTRY_OVERCUT so the

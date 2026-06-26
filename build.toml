@@ -126,6 +126,12 @@ output = "lego/technic_beam_5stud.step"
 [build.params]
 length_in_studs = 5
 
+[[build]]
+model  = "vibe_cading.lego.technic_beam_perp.PerpendicularHolesLiftarm"
+output = "lego/perpendicular_holes_liftarm_5hole.step"
+[build.params]
+num_holes = 5
+
 # ── Mechanical Utilities ──────────────────────────────────────────────────────
 [[build]]
 model  = "vibe_cading.mechanical.hinge.PrintInPlaceHinge"

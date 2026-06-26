@@ -715,6 +715,61 @@
       "result_accessor": ".solid"
     },
     {
+      "module": "vibe_cading.lego.technic_beam_perp",
+      "name": "PerpendicularHolesLiftarm",
+      "fqn": "vibe_cading.lego.technic_beam_perp.PerpendicularHolesLiftarm",
+      "doc": "Parametric studless liftarm with per-position main (Z) or perpendicular (Y) holes.\n\nEach hole position along the beam length can be independently assigned to bore\neither through the **flat top/bottom faces** (``\"main\"`` \u2014 identical to\n:class:`~vibe_cading.lego.technic_beam.LegoTechnicBeam`) or through the\n**narrow side faces** (``\"perp\"`` \u2014 rotated 90\u00b0 about X, bored along \u00b1Y).\n\nOrigin convention\n-----------------\nMatches :class:`~vibe_cading.lego.technic_beam.LegoTechnicBeam` exactly:\n\n* ``Z = 0`` \u2014 bottom flat face (FDM print-bed datum).\n* ``X = 0`` \u2014 outermost tangent of the first end-cap (NOT the first hole centre).\n* ``Y = 0`` \u2014 beam centreline; width spans ``[-BEAM_WIDTH/2, +BEAM_WIDTH/2]``.\n* Bounding box: ``X \u2208 [0, num_holes * STUD_PITCH] \u00d7 Y \u2208 [-3.9, +3.9]\n  \u00d7 Z \u2208 [0, 7.8]``.\n\nHole axis convention\n--------------------\n* ``\"main\"`` \u2014 bore axis is +Z; cutter is the standard\n  :class:`~vibe_cading.lego.cutters.technic_pin_hole.TechnicPinHole` translated\n  to ``Z = -_ENTRY_OVERCUT`` so it pierces both flat faces with strictly positive\n  overcut.  Chamfer on the counterbore rims at ``Z = 0`` and ``Z = BEAM_THICKNESS``.\n* ``\"perp\"`` \u2014 bore axis is \u00b1Y; the same cutter is rotated ``-90\u00b0`` about the\n  X-axis (so the native +Z bore maps to +Y), then translated to pierce both\n  narrow side faces from ``Y = -BEAM_WIDTH/2 - _ENTRY_OVERCUT`` to\n  ``Y = +BEAM_WIDTH/2 + _ENTRY_OVERCUT``, centred at mid-height\n  ``Z = BEAM_THICKNESS/2``.  Chamfer on the counterbore rims at\n  ``Y = -BEAM_WIDTH/2`` and ``Y = +BEAM_WIDTH/2``.\n\nAlternating default\n-------------------\nWhen ``hole_axes`` is ``None``, the class applies the **alternating pattern**\n``[\"perp\", \"main\", \"perp\", \"main\", \u2026]`` \u2014 position 0 is perpendicular, position 1\nis main, and so on.  For the canonical 5-hole example this produces 3 perp (at\npositions 0, 2, 4) and 2 main (at positions 1, 3) holes.\n\nNon-intersection guarantee\n--------------------------\nEach position carries exactly one bore axis (FR 5 \u2014 no cross-drilling).  For the\nalternating default pattern, adjacent main and perp counterbores (\u00d8 6.2 mm) are\nseparated by the 8 mm stud pitch, giving 1.8 mm clearance; their bore cylinders\ndo not intersect.\n\nParameters\n----------\nnum_holes:\n    Number of hole positions along the beam.  Must be \u2265 1.\nhole_axes:\n    Per-position bore-axis selector.  Each element must be ``\"main\"`` or\n    ``\"perp\"``.  Length must equal ``num_holes`` when provided.  When ``None``\n    (the default), the alternating pattern ``[\"perp\", \"main\", \u2026]`` is used.\nfit:\n    Tolerance fit grade forwarded to\n    :meth:`~vibe_cading.lego.cutters.technic_pin_hole.TechnicPinHole.standard`.\n    Default ``\"slip\"`` (pin-in-socket semantics).\nprofile:\n    Manufacturing tolerance profile forwarded to\n    :meth:`~vibe_cading.lego.cutters.technic_pin_hole.TechnicPinHole.standard`.\n    Default ``None`` (process-global profile).",
+      "constructors": [
+        {
+          "kind": "init",
+          "name": "__init__",
+          "doc": null,
+          "params": [
+            {
+              "name": "num_holes",
+              "type": "int",
+              "required": true,
+              "units": null,
+              "allowed_values": null,
+              "value_doc": null
+            },
+            {
+              "name": "hole_axes",
+              "type": "list[Literal['main', 'perp']] | None",
+              "required": false,
+              "default": "None",
+              "units": null,
+              "allowed_values": null,
+              "value_doc": null
+            },
+            {
+              "name": "fit",
+              "type": "str",
+              "required": false,
+              "default": "'slip'",
+              "units": null,
+              "allowed_values": [
+                "free",
+                "slip",
+                "press"
+              ],
+              "value_doc": null
+            },
+            {
+              "name": "profile",
+              "type": "ToleranceProfile | str | None",
+              "required": false,
+              "default": "None",
+              "units": null,
+              "allowed_values": null,
+              "value_doc": null
+            }
+          ]
+        }
+      ],
+      "result_accessor": ".solid"
+    },
+    {
       "module": "vibe_cading.lego.technic_l_liftarm",
       "name": "LegoTechnicLLiftarm",
       "fqn": "vibe_cading.lego.technic_l_liftarm.LegoTechnicLLiftarm",
