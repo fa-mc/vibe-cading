@@ -5,11 +5,12 @@
 # Two entry points:
 #   1. push a tag matching v*  -> real release: build, assert tag == version &&
 #      built __commit__ == tagged SHA, attach artifacts to a GitHub Release, and
-#      (only if vars.PYPI_PUBLISH == 'true') publish to PyPI.
+#      publish to PyPI once a maintainer approves the `pypi` environment's
+#      required-reviewer gate (the Actions "review deployments" prompt).
 #   2. workflow_dispatch with reserve_version set  -> reserve-only name claim:
-#      build a throwaway placeholder version and publish it to PyPI. The version
-#      override happens on the runner only; pyproject.toml's tracked 0.1.0 is
-#      never committed.
+#      build a throwaway placeholder version and publish it to PyPI (also behind
+#      the `pypi` environment approval). The version override happens on the
+#      runner only; pyproject.toml's tracked version is never committed.
 #
 # The workflow filename (release.yml) and the publish job's environment (pypi)
 # MUST match the PyPI Trusted Publisher (pending publisher) config exactly, or
@@ -55,9 +56,9 @@ jobs:
 
       - name: Reserve-path version override (runner-only, never committed)
         # When dispatched with a reserve_version, rewrite the tracked
-        # version = "0.1.0" line to the placeholder on the runner only. This
-        # lets us publish a throwaway 0.0.1 to claim the PyPI name without
-        # permanently changing pyproject.toml's real 0.1.0.
+        # version line to the placeholder on the runner only. This lets us
+        # publish a throwaway (e.g. 0.0.1) to claim the PyPI name without
+        # permanently changing pyproject.toml's real tracked version.
         if: github.event_name == 'workflow_dispatch' && inputs.reserve_version != ''
         env:
           RESERVE_VERSION: ${{ inputs.reserve_version }}
@@ -141,18 +142,23 @@ jobs:
   publish-pypi:
     needs: build
     runs-on: ubuntu-latest
-    # Environment name MUST be "pypi" to match the PyPI Trusted Publisher config.
+    # The `pypi` environment carries a REQUIRED-REVIEWER protection rule (repo
+    # Settings -> Environments -> pypi). That approval IS the publish gate: on
+    # every release this job enters a "waiting" state and proceeds only when a
+    # maintainer approves the specific run in the Actions UI. No persistent repo
+    # variable arms future tags — the publish decision is captured per-release,
+    # on the run, before the irreversible PyPI upload (docs/releasing.md
+    # Decision 1). The environment name MUST stay "pypi" to match the PyPI
+    # Trusted Publisher (OIDC) config.
     environment: pypi
     permissions:
       id-token: write  # OIDC token for trusted publishing — no stored PyPI secret.
-    # Gate: publish ONLY when either
-    #   (a) a workflow_dispatch supplied a non-empty reserve_version (name-claim), or
-    #   (b) a tag push AND the maintainer has opened the gate (vars.PYPI_PUBLISH == 'true').
-    # Normal tag releases stay gated-off by default until vars.PYPI_PUBLISH is set,
-    # matching docs/releasing.md Decision 1 (demand gate for the public release).
+    # Attempt to publish on a real tag release or the reserve-name dispatch; the
+    # `pypi` environment's required-reviewer approval (above) decides whether it
+    # actually proceeds. There is intentionally no gating repo variable.
     if: >
-      (github.event_name == 'workflow_dispatch' && inputs.reserve_version != '') ||
-      (startsWith(github.ref, 'refs/tags/v') && vars.PYPI_PUBLISH == 'true')
+      startsWith(github.ref, 'refs/tags/v') ||
+      (github.event_name == 'workflow_dispatch' && inputs.reserve_version != '')
     steps:
       - name: Download dist artifact
         uses: actions/download-artifact@v4

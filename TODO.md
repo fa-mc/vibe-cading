@@ -153,7 +153,7 @@ Added 2026-05-14 per user direction. These are gates on the v1 OSS publication �
 
 ### Deferred features (gated on real demand)
 
-- **Pip-installable distribution + PyPI publication.** ✅ **Shipped 2026-06** (no longer deferred): packaged as a `hatchling` wheel (`pyproject.toml`, #30); gated release workflow with PyPI **trusted publishing** added ([.github/workflows/release.yml](.github/workflows/release.yml), #35/#36); the `vibe-cading` PyPI name **reserved** via a yanked `0.0.1` placeholder (`0.1.0` preserved for the first real release; the release gate stays closed until repo variable `PYPI_PUBLISH` is set). Versioning policy + release-cut process: [docs/releasing.md](docs/releasing.md). **Before the first real `v0.1.0` tag** (tracked in docs/releasing.md *Outstanding setup*): fix `__commit__` provenance (wheel-from-sdist loses `.git`), start `CHANGELOG.md`, and apply the one-line step-5 doc-mechanism correction.
+- **Pip-installable distribution + PyPI publication.** ✅ **Shipped** (no longer deferred): packaged as a `hatchling` wheel (`pyproject.toml`, #30); tag-driven release workflow with PyPI **trusted publishing** ([.github/workflows/release.yml](.github/workflows/release.yml), #35/#36), **gated behind a required-reviewer approval on the `pypi` environment** (no persistent `PYPI_PUBLISH` variable). The `vibe-cading` PyPI name was reserved via a since-yanked `0.0.1` placeholder, and **the first real release `0.1.1` published to PyPI 2026-06-26** via the approval-gated path. Versioning policy + release-cut process: [docs/releasing.md](docs/releasing.md).
 
 ### Parked refactors — from 2026-05-09 TL deep-modules review (resolved 2026-05-15)
 

@@ -14,7 +14,7 @@
 Built on [CadQuery](https://cadquery.readthedocs.io/), **every part is a Python class
 whose geometry regenerates from typed parameters** — change a number, get a new part.
 Standard families (screws, gears, nuts) build straight from real-world size tables.
-And it's designed to be driven by humans *and* LLM agents.
+And it's designed to be driven by humans *and* AI agents.
 
 ---
 
@@ -67,7 +67,7 @@ cq.exporters.export(gear.solid, "gear.step")   # extension picks the format
   so one class yields a whole catalogue of real-world parts.
 - **Parametric both ways.** Forward is params → part. *Reverse* goes the other
   direction: bring an existing **STEP** file, let the engine's analysis tools
-  measure it, and rebuild it — by hand or with an LLM agent — as editable parametric
+  measure it, and rebuild it — by hand or with an AI agent — as editable parametric
   code. `boolean_diff` then confirms the rebuild matches the original to within ~1%
   by volume. That's how the **SG90 servo body** in the samples above was built:
   measured from a reference STEP, rebuilt as a parametric class. Works best on
@@ -78,7 +78,7 @@ cq.exporters.export(gear.solid, "gear.step")   # extension picks the format
   profile absorbs that, not your code.
 - **Built for humans *and* AI agents.** Drive it from Python, from the live OCP CAD
   viewer, or from any [MCP](docs/mcp.md) client. A multi-role agent workflow ships
-  in-repo so models can be generated, validated, and reviewed by LLM agents.
+  in-repo so models can be generated, validated, and reviewed by AI agents.
 - **RC ↔ Lego Technic.** A library of reusable mechanical components (screws, gears,
   joints, bearings, heat-set inserts, hinges, standoffs) plus adapters that mate RC
   hardware to the 8&nbsp;mm Lego Technic stud grid (motor mounts, ESC holders, axle adapters).
