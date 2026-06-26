@@ -3,7 +3,7 @@
 > **Canonical release process** — maintainer-confirmed 2026-06-15; the versioning
 > policy and release-cut workflow below are in force. Packaging shipped in **PR #30**
 > (commit `455ade0`): `pyproject.toml` on hatchling + `hatch_build.py` (#30 set
-> `version = "0.1.0"`; **now tracked at `0.1.1`**); `vibe_cading/__commit__.py` is
+> `version = "0.1.0"`; **now tracked at `0.1.2`**); `vibe_cading/__commit__.py` is
 > build-generated (untracked).
 > PyPI publication is **gated behind a required-reviewer approval** on the `pypi`
 > environment — see Decision 1. Referenced from
