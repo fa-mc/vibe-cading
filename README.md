@@ -126,6 +126,18 @@ This project runs in a **VS Code Dev Container** — no local Python or CadQuery
 → Full dev environment, the local test/lint/build loop (`python build.py`), and
 adding your own parts: **[CONTRIBUTING.md](CONTRIBUTING.md)**.
 
+**Just want the library in your own project?** It's on PyPI:
+
+```bash
+pip install vibe_cading            # the library
+pip install "vibe_cading[mcp]"     # + the MCP server for LLM agents
+```
+
+On headless Linux (cloud servers, CI runners, slim Docker images), CadQuery's
+geometry kernel also needs the system OpenGL library — install it once with
+`apt install libgl1` (or your distro's equivalent). Desktop Linux, macOS, and
+Windows already have it.
+
 ---
 
 ## Tolerances & fit
