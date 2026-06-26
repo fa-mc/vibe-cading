@@ -15,6 +15,26 @@ section to the new version and date.
 
 ## [Unreleased]
 
+## [0.1.5] - 2026-06-26
+
+### Added
+- `PerpendicularHolesLiftarm`: new exported model class — a parametric thick
+  studless Lego-Technic liftarm where each hole position bores along either the
+  flat-face axis (+Z, `"main"`) or the narrow side-face axis (±Y, `"perp"`),
+  generalizing the LEGO 6435016 / design-2391 "Liftarm Thick with Perpendicular
+  Holes" family. Constructor `PerpendicularHolesLiftarm(num_holes, hole_axes=None,
+  fit="slip", profile=None)`; `hole_axes=None` defaults to the alternating
+  `[perp, main, …]` pattern. Reuses `TechnicPinHole` (rotated 90° for the perp
+  bores) and the shared `LegoTechnicBeam` stadium body; counterbored pin holes +
+  lead-in chamfers on both axes. Registered in `build.toml`
+  (`lego/perpendicular_holes_liftarm_5hole.step`).
+
+### Changed
+- `LegoTechnicBeam`: stadium-body construction extracted to a shared module-level
+  `stadium_beam_body()` helper (internal refactor, no behavior change).
+- `_HoleMouthSelector`: gained an additive `axis="z"|"y"` discriminator; existing
+  `LegoTechnicBeam` / `LegoTechnicLLiftarm` call sites are unchanged.
+
 ## [0.1.4] - 2026-06-26
 
 ### Added
