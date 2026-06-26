@@ -389,9 +389,16 @@ class BevelGear(Gear):
         # axis from +Z to the angle Σ in the XZ plane.
         # For Σ=90°: rotate 90° → mate axis points in +X (canonical right-angle drive).
         # For Σ=45°: rotate 135° → mate axis points at 45° from +Z.
+        # ``cq.Workplane.rotate(axisStart, axisEnd, angle)`` defines the
+        # rotation axis as the LINE THROUGH TWO POINTS — not a point + a
+        # direction vector.  The tilt axis is the +X-direction line *through
+        # the apex*, so the end point must share the apex's Z; passing a bare
+        # ``(1, 0, 0)`` would define a skew diagonal from the apex down to
+        # Z=0 and leave the mate almost coincident with ``self`` (collision).
         apex = (0, 0, self.pitch_apex_z)
+        apex_plus_x = (1, 0, self.pitch_apex_z)
         tilt_angle = 180.0 - self.shaft_angle
-        other_solid = other_solid.rotate(apex, (1, 0, 0), tilt_angle)
+        other_solid = other_solid.rotate(apex, apex_plus_x, tilt_angle)
 
         return self_solid, other_solid
 

@@ -198,6 +198,45 @@ def test_mesh_with_docstring_has_disclaimer():
     assert "simulation" in doc.lower()
 
 
+def _intersection_volume(s1: cq.Workplane, s2: cq.Workplane) -> float:
+    """Overlap volume between two posed solids (mm^3); 0.0 == no collision."""
+    inter = s1.val().intersect(s2.val())
+    return inter.Volume() if inter is not None else 0.0
+
+
+# A posed bevel pair has its pitch cones *tangent*, so the only legitimate
+# overlap is sub-mm^3 tooth-tip meshing contact.  The apex-tilt axis bug left
+# the mate almost coincident with self (~3000 mm^3 overlap); a 50 mm^3 ceiling
+# cleanly separates "meshing" (~1) from "colliding" (~3000) without flaking on
+# tessellation variance.
+_MESH_COLLISION_CEILING_MM3 = 50.0
+
+
+def test_mesh_with_pair_does_not_collide_miter():
+    """T_MESH (collision guard): a posed miter pair must not interpenetrate.
+
+    Regression guard for the apex-tilt axis bug — ``mesh_with`` passed a bare
+    ``(1, 0, 0)`` as the ``rotate()`` axis *end point* (cq reads it as a second
+    axis point, not a direction vector), defining a skew axis that left the
+    mate ~coincident with self (~3000 mm^3 overlap) instead of tilted Σ away.
+    """
+    g1, g2 = _miter(), _miter()
+    s1, s2 = g1.mesh_with(g2)
+    assert _intersection_volume(s1, s2) < _MESH_COLLISION_CEILING_MM3
+
+
+def test_mesh_with_pair_does_not_collide_asymmetric():
+    """T_MESH (collision guard): asymmetric 12/24 pair, both directions."""
+    g_small = BevelGear(module=2, teeth=12, mate_teeth=24, face_width=4.0, bore=5.0,
+                        pressure_angle=25.0)
+    g_large = BevelGear(module=2, teeth=24, mate_teeth=12, face_width=4.0, bore=5.0,
+                        pressure_angle=25.0)
+    s1, s2 = g_small.mesh_with(g_large)
+    assert _intersection_volume(s1, s2) < _MESH_COLLISION_CEILING_MM3
+    s3, s4 = g_large.mesh_with(g_small)
+    assert _intersection_volume(s3, s4) < _MESH_COLLISION_CEILING_MM3
+
+
 # ── T_FROM_ISO ───────────────────────────────────────────────────────────────
 
 def test_from_iso_builds_for_standard_module():
