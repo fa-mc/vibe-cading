@@ -15,6 +15,33 @@ section to the new version and date.
 
 ## [Unreleased]
 
+## [0.1.6] - 2026-08-10
+
+### Added
+- `TechnicPinHoleBushing`: new exported model class — a plain round tube
+  bushing that friction-fits a real Lego Technic pin hole (Ø4.8 mm nominal)
+  on its outer diameter and carries an M3-clearance through-bore, bridging
+  a Lego beam pin hole to an M3 machine screw. Constructor
+  `TechnicPinHoleBushing(length=BEAM_THICKNESS, fit="press",
+  bore_fit="slip", flange=True, flange_od=5.5, flange_thickness=0.8,
+  bore_nominal_diameter=None, profile=None)`.
+  `length` is the TOTAL axial span of the whole part (barrel plus the
+  nested flange, when enabled) — a caller sets it to the target insertion
+  depth (e.g. one beam thickness) and gets exactly that depth back
+  regardless of the `flange` flag. OD is computed as
+  `PIN_HOLE_DIAMETER - 2 * getattr(profile, fit).radial` — the sign is
+  negated relative to every other `fit` consumer in the codebase because
+  this is the first *male* (printed-peg-into-real-hole) fit site rather
+  than a printed-void site. The bore is independently graded via
+  `bore_fit` (ordinary, non-inverted female/void semantics), cut with a
+  hand-rolled through-hole cutter (not `ClearanceHole`, which hardcodes
+  `free.radial` with no override, and not `MetricMachineScrew.to_cutter()`,
+  which would destroy the flange with an oversized counterbore). The
+  optional single retaining flange sits strictly below `Z=0`, default
+  enabled, sized (Ø5.5 mm default) to nest inside the standard Technic
+  pin-hole counterbore recess rather than sit on the beam's flat outer
+  face. Not registered in `build.toml` (human-gated).
+
 ## [0.1.5] - 2026-06-26
 
 ### Added

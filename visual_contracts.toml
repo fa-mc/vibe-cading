@@ -204,3 +204,20 @@ model = "vibe_cading.lego.technic_beam_perp.PerpendicularHolesLiftarm"
 view  = "front"
 [contract.params]
 num_holes = 5
+
+# ── TechnicPinHoleBushing (all defaults: length=BEAM_THICKNESS, fit="press",
+#    flange=True, flange_od=7.0, flange_thickness=0.8) ─────────────────────
+# Design brief: docs/design_plans/2026-08-10-technic-pin-hole-bushing_design.md
+# Text-free → no labels knob needed; fully byte-reproducible.
+
+[[contract]]
+svg   = "visual_contracts/2026-08-10-technic-pin-hole-bushing_design_iso_ne.svg"
+model = "vibe_cading.lego_adapters.technic_pin_hole_bushing.TechnicPinHoleBushing"
+view  = "iso_ne"
+[contract.params]
+
+[[contract]]
+svg   = "visual_contracts/2026-08-10-technic-pin-hole-bushing_design_front.svg"
+model = "vibe_cading.lego_adapters.technic_pin_hole_bushing.TechnicPinHoleBushing"
+view  = "front"
+[contract.params]

@@ -1608,6 +1608,110 @@
       "result_accessor": ".solid"
     },
     {
+      "module": "vibe_cading.lego_adapters.technic_pin_hole_bushing",
+      "name": "TechnicPinHoleBushing",
+      "fqn": "vibe_cading.lego_adapters.technic_pin_hole_bushing.TechnicPinHoleBushing",
+      "doc": "Plain round bushing that friction-fits a real Lego Technic pin hole.\n\nA two-cylinder union (barrel + optional retaining flange) with a single\nM3-clearance through-bore, bridging a real Lego Technic pin hole\n(``PIN_HOLE_DIAMETER`` = 4.8 mm) to an M3 machine screw. Every diameter\nis derived from ``PIN_HOLE_DIAMETER`` / the M3 clearance catalog entry\nand the active :class:`~vibe_cading.print_settings.ToleranceProfile` \u2014\nnothing here is a hardcoded magic number.\n\nOrigin / datum\n---------------\n``(0, 0, 0)`` is the boundary between the barrel and the optional\nflange, with the bore axis on ``+Z``. ``length`` is the TOTAL axial\nspan of the whole part \u2014 barrel plus flange combined, when the flange\nis enabled \u2014 chosen so that a caller sets ``length`` to the target\ninsertion depth (e.g. one beam thickness) and gets exactly that depth\nback, regardless of the ``flange`` flag. Concretely: the optional\nflange occupies ``Z in [-flange_thickness, 0]`` (nested inside the\nreal beam's own counterbore recess, see *Flange* below \u2014 it is NOT\nextra length beyond the beam), and the barrel occupies\n``Z in [0, length - flange_thickness]`` when ``flange=True`` or\n``Z in [0, length]`` when ``flange=False``. Either way the total\nZ-span (``bbox.zmax - bbox.zmin``) equals ``length``.\n\n**This means the barrel's own Z-extent is NOT invariant under the**\n**``flange`` flag** \u2014 toggling ``flange`` off at a fixed ``length``\nmakes the barrel ``flange_thickness`` mm longer, because that length\nis no longer reserved for the nested flange. This is deliberate: a\ncaller reasons about ``length`` as \"how deep a hole this bushing\nfills,\" and that quantity \u2014 not the barrel-only length \u2014 is what must\nstay invariant against the beam it is sized for.\n\nOuter-diameter formula (male fit \u2014 sign is NEGATED vs. female holes)\n----------------------------------------------------------------------\n``OD = PIN_HOLE_DIAMETER - 2 * getattr(profile, fit).radial``, default\n``fit=\"press\"``. This is the opposite sign to every existing ``fit``\nconsumer in this codebase (e.g. ``TechnicPinHole``'s\n``PIN_HOLE_DIAMETER + 2 * grade.radial``), and that is correct: every\nexisting consumer sizes a printed VOID against a rigid real part, so\n\"widen the hole\" is \"add material removal\". This class sizes a printed\nPEG against a rigid real hole, so \"add material removal\" instead\n*shrinks* the peg \u2014 hence the ``-`` sign. Subtraction is also the only\nsign that preserves grade monotonicity (shipped ``fdm_standard``:\n``press.radial=0.04 < slip.radial=0.05 < free.radial=0.15``, so\nsubtraction gives ``press`` OD (4.72) > ``slip`` OD (4.70) > ``free``\nOD (4.50) \u2014 \"press\" is the largest / tightest peg, matching\n``docs/print-tolerances.md``. Addition would invert this ordering and\nmake \"press\" the loosest grade.\n\n**Absolute-fit caveat \u2014 not just the sign.** At the shipped\n``fdm_standard`` profile, the default OD is 4.72 mm, which is\n**0.08 mm UNDER** the 4.8 mm nominal pin hole. The *modelled* part is\ntherefore a slight clearance fit, not a modelled interference fit \u2014\nretention depends entirely on FDM/TPU over-extrusion closing that gap\nin plastic. If a printed bushing comes out loose, set a **negative**\n``press.radial`` override in ``print_profiles_user.json`` to obtain a\nmodelled OD greater than 4.8 mm (true interference).\n\nBore\n----\nThe bore is an M3 clearance hole sized as\n``bore_nominal_diameter + 2 * getattr(profile, bore_fit).radial``\n(ordinary female/void sign convention \u2014 unlike ``fit`` above, this is\nNOT inverted). It is cut with a hand-rolled through-hole cutter\n(same ``_THROUGH_OVERCUT`` convention as\n:class:`~vibe_cading.mechanical.holes.ClearanceHole`, but with a\ncaller-selectable grade \u2014 ``ClearanceHole`` itself hardcodes\n``free.radial`` with no override), never\n``MetricMachineScrew.to_cutter()``, which delegates to a counterbore\ncutter that would blow a \u00d85.5 mm x 3.0 mm-deep crater through this\npart's thin flange and barrel.\n\n``fit`` and ``bore_fit`` are INDEPENDENT \u2014 ``fit`` governs the OD only,\n``bore_fit`` governs the bore only. Default ``bore_fit=\"slip\"``: a\nscrew must still pass through *freely* (this is a clearance hole, not\na thread), but \"slip\" removes the rattle \"free\" leaves at the default\nM3 nominal. At defaults (OD 4.72, bore ``3.2 + 2*0.05`` = 3.30 on\n``fdm_standard``) this leaves a 0.71 mm wall \u2014 a user needing a\nthicker wall still calibrates the profile or ``bore_nominal_diameter``\ndownward, exactly as before, just against ``bore_fit``'s grade instead\nof an unconditional ``free``.\n\n``bore_nominal_diameter``, when given, replaces only the *nominal*\ncatalog diameter (e.g. M3's 3.2 -> M4's 4.3); profile widening via\n``bore_fit``'s grade always applies on top \u2014 unlike ``TechnicPinHole``'s\n``diameter=`` override, which wins as-is with no profile widening (that\ncarve-out exists solely for ``ToleranceGauge``, which has no analogue\nhere).\n\nFlange\n------\nA single optional retaining flange (default enabled, \u00d85.5 x 0.8 mm)\nsits strictly at ``Z <= 0``, nested inside the real beam's own\ncounterbore recess \u2014 its thickness is carved out of ``length``, not\nadded on top of it (see *Origin / datum* above). The default OD is\nthe midpoint between\n``PIN_HOLE_DIAMETER`` (4.8 mm) and the standard Technic pin-hole\ncounterbore diameter (``TECHNIC_PIN_CB_DIAMETER`` = 6.2 mm, from\n:mod:`vibe_cading.lego.cutters.technic_pin_hole`): wide enough that it\ncannot pass through the pin hole itself (it catches on the step\nbetween the through-hole and the counterbore), but narrow enough that\nit sinks *below* the beam's flat outer face into that counterbore\nrecess rather than standing proud on top of it. The default\n``flange_thickness`` (0.8 mm) is likewise kept under\n``TECHNIC_PIN_CB_DEPTH`` (1.0 mm) so the flange face never protrudes\npast the beam's outer face. It is deliberately NOT profile-widened \u2014\nit is a free-standing face touching nothing dimensionally critical, and\nthe fit against the counterbore step is not itself a friction fit.\n\nParameters\n----------\nlength:\n    TOTAL axial length of the whole part (mm) \u2014 barrel plus flange\n    combined when ``flange=True`` (the flange is nested within this\n    span, not additional to it; see *Origin / datum* above). Must be\n    strictly greater than ``flange_thickness`` when ``flange=True``.\n    Default ``BEAM_THICKNESS`` (7.8 mm) \u2014 one beam's worth of\n    insertion depth.\nfit:\n    Tolerance fit grade selector for the barrel OUTER diameter only \u2014\n    ``\"free\"`` / ``\"slip\"`` / ``\"press\"``. Default ``\"press\"`` (the\n    tightest peg). Independent of ``bore_fit`` (see *Bore* above).\nbore_fit:\n    Tolerance fit grade selector for the BORE only \u2014 ``\"free\"`` /\n    ``\"slip\"`` / ``\"press\"``. Default ``\"slip\"`` (snug clearance\n    around the M3 screw shaft, no rattle). Ordinary female/void sign\n    convention (NOT inverted like ``fit``). Independent of ``fit``.\nflange:\n    Whether to add the retaining flange below ``Z=0``. Default\n    ``True``.\nflange_od:\n    Flange outer diameter (mm). Must be strictly greater than the\n    barrel OD or it cannot act as an axial stop. Default is the\n    midpoint between ``PIN_HOLE_DIAMETER`` and\n    ``TECHNIC_PIN_CB_DIAMETER`` (5.5 mm) \u2014 see *Flange* above.\nflange_thickness:\n    Flange axial thickness (mm). Must be strictly positive when\n    ``flange=True``. Default 0.8 mm, kept under\n    ``TECHNIC_PIN_CB_DEPTH`` (1.0 mm) \u2014 see *Flange* above.\nbore_nominal_diameter:\n    Explicit override for the bore's *nominal* (pre-profile) diameter\n    (mm). When ``None`` (the default), the nominal is\n    ``MetricMachineScrew.from_size(\"M3\").clearance_diameter`` (3.2 mm).\n    Profile widening via ``free.radial`` always applies on top of\n    whichever nominal is in effect.\nprofile:\n    Manufacturing tolerance profile. Accepts a\n    :class:`~vibe_cading.print_settings.ToleranceProfile` instance, a\n    string profile name (resolved via\n    :func:`~vibe_cading.print_settings.get_profile`), or ``None`` to\n    resolve the process-global default profile (honouring the\n    ``PRINT_PROFILE`` env override).",
+      "constructors": [
+        {
+          "kind": "init",
+          "name": "__init__",
+          "doc": null,
+          "params": [
+            {
+              "name": "length",
+              "type": "float",
+              "required": false,
+              "default": "BEAM_THICKNESS",
+              "units": "mm",
+              "allowed_values": null,
+              "value_doc": null
+            },
+            {
+              "name": "fit",
+              "type": "str",
+              "required": false,
+              "default": "'press'",
+              "units": null,
+              "allowed_values": [
+                "free",
+                "slip",
+                "press"
+              ],
+              "value_doc": {
+                "free": "loosest peg \u2014 smallest OD, generous clearance in the real pin hole",
+                "slip": "middle grade \u2014 snug peg, slides into the pin hole with light resistance",
+                "press": "tightest peg \u2014 largest OD, friction-retained in the real pin hole (scopes the OUTER diameter only; see bore_fit for the bore)"
+              }
+            },
+            {
+              "name": "bore_fit",
+              "type": "str",
+              "required": false,
+              "default": "'slip'",
+              "units": null,
+              "allowed_values": [
+                "free",
+                "slip",
+                "press"
+              ],
+              "value_doc": {
+                "free": "loosest bore \u2014 most clearance around the M3 screw shaft",
+                "slip": "middle grade \u2014 snug clearance around the M3 screw shaft (default: still a free pass-through, just less rattle than 'free')",
+                "press": "tightest bore \u2014 least clearance around the M3 screw shaft; a fit this tight risks binding on the screw, not just removing rattle"
+              }
+            },
+            {
+              "name": "flange",
+              "type": "bool",
+              "required": false,
+              "default": "True",
+              "units": null,
+              "allowed_values": null,
+              "value_doc": null
+            },
+            {
+              "name": "flange_od",
+              "type": "float",
+              "required": false,
+              "default": "_FLANGE_OD_DEFAULT",
+              "units": null,
+              "allowed_values": null,
+              "value_doc": null
+            },
+            {
+              "name": "flange_thickness",
+              "type": "float",
+              "required": false,
+              "default": "0.8",
+              "units": "mm",
+              "allowed_values": null,
+              "value_doc": null
+            },
+            {
+              "name": "bore_nominal_diameter",
+              "type": "float | None",
+              "required": false,
+              "default": "None",
+              "units": "mm",
+              "allowed_values": null,
+              "value_doc": null
+            },
+            {
+              "name": "profile",
+              "type": "ToleranceProfile | str | None",
+              "required": false,
+              "default": "None",
+              "units": null,
+              "allowed_values": null,
+              "value_doc": null
+            }
+          ]
+        }
+      ],
+      "result_accessor": ".solid"
+    },
+    {
       "module": "vibe_cading.mechanical.bearings",
       "name": "Bearing",
       "fqn": "vibe_cading.mechanical.bearings.Bearing",
