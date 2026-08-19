@@ -19,10 +19,11 @@ section to the new version and date.
 
 ### Added
 - `TechnicPinHoleBushing`: new exported model class — a plain round tube
-  bushing that friction-fits a real Lego Technic pin hole (Ø4.8 mm nominal)
-  on its outer diameter and carries an M3-clearance through-bore, bridging
-  a Lego beam pin hole to an M3 machine screw. Constructor
-  `TechnicPinHoleBushing(length=BEAM_THICKNESS, fit="press",
+  bushing that fits into a real Lego Technic pin hole (Ø4.8 mm nominal) on
+  its outer diameter and carries an independently-graded clearance
+  through-bore, bridging a Lego beam pin hole to a machine screw (M3 by
+  default; M2/M2.5/M4 via `bore_nominal_diameter`). Constructor
+  `TechnicPinHoleBushing(length=BEAM_THICKNESS, fit="slip",
   bore_fit="slip", flange=True, flange_od=5.5, flange_thickness=0.8,
   bore_nominal_diameter=None, profile=None)`.
   `length` is the TOTAL axial span of the whole part (barrel plus the
@@ -32,7 +33,11 @@ section to the new version and date.
   `PIN_HOLE_DIAMETER - 2 * getattr(profile, fit).radial` — the sign is
   negated relative to every other `fit` consumer in the codebase because
   this is the first *male* (printed-peg-into-real-hole) fit site rather
-  than a printed-void site. The bore is independently graded via
+  than a printed-void site; `fit` defaults to `"slip"` rather than
+  `"press"` because a printed-and-measured unit showed shipped `press`
+  radial values don't model genuine interference on a real printer — the
+  OD lands at the modelled (under-nominal) target and spins freely, i.e.
+  it measures as `slip`, not `press`. The bore is independently graded via
   `bore_fit` (ordinary, non-inverted female/void semantics), cut with a
   hand-rolled through-hole cutter (not `ClearanceHole`, which hardcodes
   `free.radial` with no override, and not `MetricMachineScrew.to_cutter()`,
@@ -40,7 +45,12 @@ section to the new version and date.
   optional single retaining flange sits strictly below `Z=0`, default
   enabled, sized (Ø5.5 mm default) to nest inside the standard Technic
   pin-hole counterbore recess rather than sit on the beam's flat outer
-  face. Not registered in `build.toml` (human-gated).
+  face. Registered in `build.toml` — M2 / M2.5 / M3 variants under
+  `xlego/bushings/`, each at `length=3.6`. An M4 variant was test-printed
+  and found unprintable (wall too thin — M4's clearance bore is
+  intrinsically close to the whole barrel OD, fixed by the Lego pin hole)
+  and is not registered; the class still constructs one programmatically
+  via `bore_nominal_diameter=4.3`.
 
 ## [0.1.5] - 2026-06-26
 

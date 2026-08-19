@@ -61,9 +61,11 @@ from vibe_cading.print_settings import ToleranceProfile, get_profile
 _VALUE_DOC = {
     "TechnicPinHoleBushing.fit": {
         "free":  "loosest peg — smallest OD, generous clearance in the real pin hole",
-        "slip":  "middle grade — snug peg, slides into the pin hole with light resistance",
-        "press": "tightest peg — largest OD, friction-retained in the real pin hole "
-                 "(scopes the OUTER diameter only; see bore_fit for the bore)",
+        "slip":  "middle grade — snug peg, slides into the pin hole with light resistance "
+                 "(default; measured to match this fit's real-world behavior — see class docstring)",
+        "press": "tightest peg — largest OD; at shipped radial values this still measures as "
+                 "a snug fit, not genuine interference — calibrate a negative press.radial for "
+                 "true interference (scopes the OUTER diameter only; see bore_fit for the bore)",
     },
     "TechnicPinHoleBushing.bore_fit": {
         "free":  "loosest bore — most clearance around the M3 screw shaft",
@@ -76,14 +78,17 @@ _VALUE_DOC = {
 
 
 class TechnicPinHoleBushing:
-    """Plain round bushing that friction-fits a real Lego Technic pin hole.
+    """Plain round bushing that fits into a real Lego Technic pin hole.
 
     A two-cylinder union (barrel + optional retaining flange) with a single
-    M3-clearance through-bore, bridging a real Lego Technic pin hole
-    (``PIN_HOLE_DIAMETER`` = 4.8 mm) to an M3 machine screw. Every diameter
-    is derived from ``PIN_HOLE_DIAMETER`` / the M3 clearance catalog entry
-    and the active :class:`~vibe_cading.print_settings.ToleranceProfile` —
-    nothing here is a hardcoded magic number.
+    clearance through-bore, bridging a real Lego Technic pin hole
+    (``PIN_HOLE_DIAMETER`` = 4.8 mm) to a machine screw — M3 by default, or
+    any size via ``bore_nominal_diameter`` (e.g.
+    ``MetricMachineScrew.from_size("M2", length=1.0).clearance_diameter``
+    for an M2 variant). Every diameter is derived from ``PIN_HOLE_DIAMETER``
+    / the screw's clearance catalog entry and the active
+    :class:`~vibe_cading.print_settings.ToleranceProfile` — nothing here is
+    a hardcoded magic number.
 
     Origin / datum
     ---------------
@@ -111,28 +116,37 @@ class TechnicPinHoleBushing:
     Outer-diameter formula (male fit — sign is NEGATED vs. female holes)
     ----------------------------------------------------------------------
     ``OD = PIN_HOLE_DIAMETER - 2 * getattr(profile, fit).radial``, default
-    ``fit="press"``. This is the opposite sign to every existing ``fit``
-    consumer in this codebase (e.g. ``TechnicPinHole``'s
-    ``PIN_HOLE_DIAMETER + 2 * grade.radial``), and that is correct: every
-    existing consumer sizes a printed VOID against a rigid real part, so
-    "widen the hole" is "add material removal". This class sizes a printed
-    PEG against a rigid real hole, so "add material removal" instead
-    *shrinks* the peg — hence the ``-`` sign. Subtraction is also the only
-    sign that preserves grade monotonicity (shipped ``fdm_standard``:
-    ``press.radial=0.04 < slip.radial=0.05 < free.radial=0.15``, so
-    subtraction gives ``press`` OD (4.72) > ``slip`` OD (4.70) > ``free``
-    OD (4.50) — "press" is the largest / tightest peg, matching
-    ``docs/print-tolerances.md``. Addition would invert this ordering and
-    make "press" the loosest grade.
+    ``fit="slip"`` (see *Why the default is `slip`, not `press`* below).
+    The sign is the opposite of every existing ``fit`` consumer in this
+    codebase (e.g. ``TechnicPinHole``'s ``PIN_HOLE_DIAMETER + 2 *
+    grade.radial``), and that is correct: every existing consumer sizes a
+    printed VOID against a rigid real part, so "widen the hole" is "add
+    material removal". This class sizes a printed PEG against a rigid
+    real hole, so "add material removal" instead *shrinks* the peg —
+    hence the ``-`` sign. Subtraction is also the only sign that preserves
+    grade monotonicity (shipped ``fdm_standard``: ``press.radial=0.04 <
+    slip.radial=0.05 < free.radial=0.15``, so subtraction gives ``press``
+    OD (4.72) > ``slip`` OD (4.70) > ``free`` OD (4.50) — "press" is
+    always the largest / tightest peg, matching
+    ``docs/print-tolerances.md``, regardless of which grade the *default*
+    happens to be. Addition would invert this ordering.
 
-    **Absolute-fit caveat — not just the sign.** At the shipped
-    ``fdm_standard`` profile, the default OD is 4.72 mm, which is
-    **0.08 mm UNDER** the 4.8 mm nominal pin hole. The *modelled* part is
-    therefore a slight clearance fit, not a modelled interference fit —
-    retention depends entirely on FDM/TPU over-extrusion closing that gap
-    in plastic. If a printed bushing comes out loose, set a **negative**
-    ``press.radial`` override in ``print_profiles_user.json`` to obtain a
-    modelled OD greater than 4.8 mm (true interference).
+    **Why the default is `slip`, not `press` — measured, not assumed.**
+    An earlier revision defaulted to ``fit="press"``, reasoning that a
+    friction-fit bushing *should* want the tightest grade. A printed and
+    measured M3 unit (PETG, `fdm_standard`-equivalent calibration)
+    contradicted that: the OD landed within measurement error of the
+    *modelled* 4.72 mm target — 0.08 mm **under** the 4.8 mm nominal pin
+    hole — and it spun freely, exactly what "under nominal" predicts.
+    ``press`` at the shipped radial values does not model genuine
+    interference on this printer; it models a fit that behaves like
+    ``slip``. Rather than ship a `press` label a calibrated user will
+    reliably find loose, the default is `slip` — the grade whose *name*
+    matches the measured behavior. A user who wants to chase true
+    interference can still pass ``fit="press"`` explicitly and calibrate
+    a **negative** ``press.radial`` (see
+    :func:`~vibe_cading.print_settings.get_profile`) — but that is now an
+    opt-in, not the default promise.
 
     Bore
     ----
@@ -196,8 +210,11 @@ class TechnicPinHoleBushing:
         insertion depth.
     fit:
         Tolerance fit grade selector for the barrel OUTER diameter only —
-        ``"free"`` / ``"slip"`` / ``"press"``. Default ``"press"`` (the
-        tightest peg). Independent of ``bore_fit`` (see *Bore* above).
+        ``"free"`` / ``"slip"`` / ``"press"``. Default ``"slip"`` — see
+        *Why the default is `slip`, not `press`* above; pass
+        ``fit="press"`` (with a calibrated negative ``press.radial``) if
+        you want to chase genuine interference instead. Independent of
+        ``bore_fit`` (see *Bore* above).
     bore_fit:
         Tolerance fit grade selector for the BORE only — ``"free"`` /
         ``"slip"`` / ``"press"``. Default ``"slip"`` (snug clearance
@@ -233,7 +250,7 @@ class TechnicPinHoleBushing:
     def __init__(
         self,
         length: float = BEAM_THICKNESS,
-        fit: Literal["free", "slip", "press"] = "press",
+        fit: Literal["free", "slip", "press"] = "slip",
         bore_fit: Literal["free", "slip", "press"] = "slip",
         flange: bool = True,
         flange_od: float = _FLANGE_OD_DEFAULT,

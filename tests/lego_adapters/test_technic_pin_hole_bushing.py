@@ -39,8 +39,10 @@ from vibe_cading.print_settings import FitGrade, ToleranceProfile, get_profile
 
 @pytest.mark.parametrize("flange", [True, False])
 def test_barrel_od_and_xy_centring(flange):
+    # Explicit fit="press" here — this test verifies the OD FORMULA and
+    # centring generically, independent of whichever grade is the default.
     prof = get_profile("fdm_standard")
-    b = TechnicPinHoleBushing(flange=flange, profile=prof)
+    b = TechnicPinHoleBushing(flange=flange, fit="press", profile=prof)
 
     expected_od = PIN_HOLE_DIAMETER - 2 * prof.press.radial
     assert abs(b.od - expected_od) < 1e-9
@@ -60,6 +62,19 @@ def test_barrel_od_and_xy_centring(flange):
     # X/Y-centring (R8) — the bore axis sits on (0, 0) regardless of flange.
     assert abs(bbox.xmin + bbox.xmax) < 1e-6
     assert abs(bbox.ymin + bbox.ymax) < 1e-6
+
+
+def test_default_fit_is_slip_not_press():
+    # Pinned deliberately: an earlier revision defaulted to "press", but a
+    # printed-and-measured M3 unit showed shipped press.radial values don't
+    # model genuine interference on a real printer — the OD landed at the
+    # modelled (under-nominal) target and spun freely. "slip" is the grade
+    # whose name matches the measured behavior; see the class docstring's
+    # "Why the default is `slip`, not `press`" section. A silent revert of
+    # this default would ship a mislabeled fit again.
+    b = TechnicPinHoleBushing()
+    assert b.fit == "slip"
+    assert b.bore_fit == "slip"
 
 
 # ── Row 2: sign guard — grade monotonicity ───────────────────────────────────

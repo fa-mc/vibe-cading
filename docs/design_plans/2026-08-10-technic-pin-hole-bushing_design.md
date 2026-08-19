@@ -1179,6 +1179,97 @@ invariant (same pattern as the R10-supersedes-R1 and length-semantics addenda ab
   refreshed the 2 bushing rows (bore is marginally smaller); full repo suite
   re-run — final tally in *Implementation Status*.
 
+### Post-Phase-B addendum (2026-08-10) — measured evidence flips the OD default `press` → `slip`; registered M2/M2.5/M3/M4 in `build.toml`
+
+Human printed and measured an M3 unit (PETG): OD landed within measurement error of
+the modelled 4.72 mm target (0.08 mm under the 4.8 mm nominal hole) and spun freely.
+This falsifies the earlier design's working assumption that `fit="press"` at shipped
+radial values models genuine interference — it measurably doesn't, on this printer.
+Rather than ship a `press` label a calibrated user will reliably find loose:
+
+- **`fit` default changed `"press"` → `"slip"`** — the grade whose *name* now matches
+  the measured behavior. `bore_fit` stays `"slip"` (unchanged). The OD sign-inversion
+  formula and grade monotonicity (`press` > `slip` > `free` OD, always) are unaffected —
+  only which grade is the *default* changed. A user chasing genuine interference can
+  still pass `fit="press"` explicitly with a calibrated negative `press.radial`.
+- **Bore also reported too loose ("feels like free spin").** Rather than change
+  `bore_fit`'s default (which would risk over-tightening toward binding, the opposite
+  failure mode, with no printed-and-measured bore data to bound it), the fix piggybacks
+  on the same profile-scoping mechanism adopted for the OD (below): `bore_fit` stays
+  `"slip"`, but the new scoped profile key's `slip.radial=0.04` (vs. the shared
+  `bambu_p1s` key's `0.11`) tightens the bore automatically, from 3.42 mm → 3.28 mm at
+  M3 — no separate `bore_fit` change needed.
+- **New scoped profile key `bambu_p1s__petg`** in `print_profiles_user.json` (gitignored,
+  maintainer-local) — a full copy of `bambu_p1s` (not a partial leaf override — the
+  deep-merge "surface not seed" contract in `docs/print-tolerances.md` §5 means a
+  partial dict on a *fresh* top-level key would silently zero the unlisted `free`/`press`
+  fields) with `slip.radial` changed `0.11` → `0.04`. This reproduces the measured
+  4.72 mm OD exactly, and tightens the bore, **without touching the shared
+  `bambu_p1s.slip.radial=0.11`** that unrelated consumers (Lego axle-hole fits, bearing
+  shaft cutouts) read via the global `PRINT_PROFILE` env default — confirmed by explicit
+  human decision after a coupling-risk callout (3-option `AskUserQuestion`: scoped key /
+  accept-as-is / retune-shared-value; human chose the scoped key).
+- **Registered in `build.toml`**: 4 new `[[build]]` entries under a new
+  "TechnicPinHoleBushing" block (M2 `bore_nominal_diameter=2.2`, M2.5 `=2.7`, M3
+  default/no override, M4 `=4.3`), all with `profile = "bambu_p1s__petg"`, output under
+  `xlego/bushings/`. M4's wall (~0.17 mm radial) is flagged inline in `build.toml` as
+  thin and close to this geometry's physical limit (M4's clearance bore is intrinsically
+  close to the whole barrel OD, which is fixed by the Lego pin hole) — registered per
+  explicit human direction ("add one for m4 if possible") with the caveat documented at
+  the registration site, not silently omitted.
+- **New pinning test** `test_default_fit_is_slip_not_press` — asserts both defaults
+  explicitly so a future accidental revert to `fit="press"` fails loudly instead of
+  silently re-shipping a fit a calibrated user will find loose.
+- Docstring rewritten: "Absolute-fit caveat" section replaced with "Why the default is
+  `slip`, not `press` — measured, not assumed," citing the printed/measured data point
+  directly rather than a hypothetical. Class summary generalized away from "M3-clearance"
+  hardcoded language (multiple screw sizes are now a first-class, if unregistered-as-a-
+  parameter, use case via `bore_nominal_diameter`).
+- Tests: `test_barrel_od_and_xy_centring` now passes `fit="press"` explicitly (it tests
+  the OD *formula*, independent of whichever grade is the default).
+  `tests/lego_adapters/test_technic_pin_hole_bushing.py`: 26/26 passed. `flake8` clean.
+- `engine_api.json` regenerated (docstring/default changed; no registry/allowed-values
+  change — same three-grade `Literal` set, only the default value moved);
+  `tests/tools/test_engine_api_allowed_values.py`: 102/102 passed.
+  `check_visual_contract_freshness.py --update` refreshed the 2 bushing rows (OD shifts
+  4.72→4.70 mm under the *forced* `fdm_standard` profile used for contract rendering,
+  since default `fit` now reads `slip.radial=0.05` there instead of `press.radial=0.04`
+  — the scoped `bambu_p1s__petg` profile only affects the maintainer's local
+  `print_profiles_user.json`-driven builds/prints, never the CI-forced contract render).
+  Full repo suite re-run: 623 passed, 0 failed. **Real pre-merge `python build.py`
+  run** (not a temp-register-then-revert probe this time, since the entries are now
+  permanently registered): all 4 new bushing STEP outputs built `ok`, full 20-output
+  tree unaffected. No version bump (per explicit human instruction — this PR is not
+  cutting a release; the version-bump-guard is satisfied at the PR level by the
+  0.1.5→0.1.6 bump already committed earlier in this branch).
+
+### Post-Phase-B addendum (2026-08-10) — further tightening; 3.6 mm build length; M4 dropped
+
+Human test-fit feedback on the M2.5 unit: still loose in both ID and OD. No class code
+change was needed — this is a pure calibration/`build.toml` iteration:
+
+- **`bambu_p1s__petg.slip.radial` retightened `0.04` → `0.02`** in
+  `print_profiles_user.json` (gitignored, maintainer-local). Since this class's OD uses
+  the inverted male-fit sign and the bore uses the ordinary female-fit sign, *decreasing*
+  the shared `slip.radial` value tightens BOTH simultaneously: OD `4.72 → 4.76` mm,
+  bore (M3) `3.28 → 3.24` mm. Still scoped to the `bambu_p1s__petg` key only — the
+  shared `bambu_p1s.slip.radial=0.11` used by axle-hole/bearing consumers is untouched,
+  same coupling-avoidance rationale as the prior addendum.
+- **`length=3.6` added to all three `build.toml` entries** (`[build.params]`), overriding
+  the class's own `BEAM_THICKNESS` (7.8 mm) default per-build only — the class default is
+  unchanged, this affects only these three registered outputs. Barrel-only extent becomes
+  `3.6 - 0.8 = 2.8` mm (flanged default), per the length-is-total-span semantics from the
+  earlier addendum.
+- **M4 variant removed from `build.toml`** — human test-printed it and confirmed it is
+  not printable (thin-wall risk flagged at registration time was realized). The class
+  itself is unchanged — an M4 bushing remains constructible programmatically via
+  `bore_nominal_diameter=4.3`, it is simply no longer a registered build target.
+- No test changes (pure `build.toml` + gitignored-profile edit, zero class-code diff);
+  `tests/lego_adapters/test_technic_pin_hole_bushing.py`: 26/26 passed (unchanged,
+  re-run for confidence, not because anything could have broken).
+- Real `python build.py` re-run: 19 outputs (was 20; M4 dropped), all 3 remaining
+  bushing variants built `ok` at the new 3.6 mm length and tightened profile.
+
 ---
 
 ## TL Review (Phase B, 2026-08-10)
