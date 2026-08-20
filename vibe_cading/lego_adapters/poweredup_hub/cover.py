@@ -94,7 +94,18 @@ class PoweredUpHubCover:
           constants below for the Developer-derived dimensions (the real
           part's own leg cross-section is not directly measurable from
           LDraw -- see that method's own docstring for the numbers this
-          implementation chose and why).
+          implementation chose and why). **Cross-section corrected round
+          20 (findings C1/C2/C3)**: the round-18 version was a straight,
+          constant-thickness (0.500 mm) wall flush with Housing's own
+          outer wall (Y = -35.600 mm) -- a Developer guess made without
+          reference data for this feature. The whole-part comparison found
+          the real leg is a slanted, variable-thickness blade
+          (0.7-1.05 mm) whose outer face never reaches past Y = -34.063 mm;
+          the corrected profile (:attr:`_LEG_OUTER_Y` / :attr:`_LEG_THICKNESS`)
+          reproduces the reference's own exact ray-crossing coordinates. See
+          those constants' own note for the one place (near the crown,
+          Z > 11.0 mm) this implementation deliberately does NOT follow the
+          reference's own trend, to avoid a new hook-leg collision.
         - The barb's true R1.000 mm cylindrical bead (157.5 deg arc) is
           approximated as a faceted (straight-edged) crest at the same
           position and protrusion, not a true arc -- a cosmetic rounding
@@ -106,17 +117,29 @@ class PoweredUpHubCover:
           corrected catch (B1) does engage it, the facet-vs-arc difference
           is a genuine (if small) shape simplification at the mating
           surface, still judged non-blocking (max radial error < 0.03 mm).
-        - The tongue/ledge is modelled as one uniform 0.926 mm-thick blade
-          spanning the full measured tongue-to-ledge Y range, rather than
-          reproducing the separate "Tongue A" / "Tongue B" footprints, the
-          6 locating teeth, or the ledge notches between them -- all
-          confirmed non-load-bearing for either mating interface in the
-          design brief (dropped from the Housing side outright; the Tray
-          side only needs the groove, not the teeth). **Tongue B
-          specifically (the outer pair, |X| 17.2..26.0 mm) is OMITTED
-          outright, not merely simplified** (round 18, finding S6) --
-          retention (the 0.926 mm tip) is fully preserved; only fit/
-          location fidelity at that footprint is lost.
+        - The tongue's distal *tip* (the actual 0.926 mm-thick, |X| <=
+          TONGUE_X_HALF = 15.600 mm retention blade) is modelled as one
+          uniform-thickness blade spanning the full measured
+          tongue-to-ledge Y range, rather than reproducing the 6 locating
+          teeth or the ledge notches between them -- confirmed
+          non-load-bearing for either mating interface in the design brief
+          (dropped from the Housing side outright; the Tray side only
+          needs the groove, not the teeth).
+        - **Tongue B's own plan-outline footprint restored (round 20,
+          finding C4, supersedes round 18's "just document it" triage).**
+          Round 18 (finding S6) omitted Tongue B (the outer pair,
+          |X| 17.2..26.0 mm) outright, reasoning retention was preserved
+          via Tongue A alone -- correct for retention, but the omission
+          left a 1.378 mm gap in the plate's own plan outline over 17.6 mm
+          of width, large enough that the whole-part comparison's own
+          end-to-end verdict singled it out. The **riser** (full-thickness,
+          fused to the plate) now extends to :attr:`RISER_X_HALF`
+          (26.000 mm) over its own Y span (:attr:`PLATE_Y_HI` to
+          :attr:`TONGUE_STEP_Y`), matching Tongue A's already-correct edge
+          -- this is purely a plan-outline restoration; the thin distal
+          *tip* stays at the narrower :attr:`TONGUE_X_HALF` (15.600 mm),
+          since Tongue B's own retention-critical tip footprint was never
+          the gap (only its riser-level plan outline was).
         - **Locating land, corrected sign (round 18, S1).** The real
           feature is a raised registration land (the plate is locally
           1.600 mm thick over Y in [30.0, 31.2] -- exactly the
@@ -166,7 +189,8 @@ class PoweredUpHubCover:
     # touching edge. The thin distal tip then continues from TONGUE_STEP_Y
     # to TONGUE_Y_HI at the recessed TIP_Z_LO..RISER_Z_HI band only -- this
     # is the 0.926 mm-thick blade the design's Housing rebate must receive.
-    TONGUE_X_HALF = 15.600
+    TONGUE_X_HALF = 15.600   # tip half-width (Tongue A only, retention-critical, unchanged)
+    RISER_X_HALF = 26.000    # riser half-width (round 20, C4 -- restores Tongue B's plan outline)
     TONGUE_STEP_Y = 33.378
     TONGUE_Y_HI = 34.400
     RISER_Z_HI = 2.800
@@ -183,15 +207,42 @@ class PoweredUpHubCover:
     LAND_Y_HI = 31.200
     LAND_HEIGHT = 0.400
 
-    # --- Release leg / U-spring (SS1.4, round 18 B2) -- the second,
-    # thumb-pad-bearing leg of the cantilever U, joined to the hook leg
-    # ONLY at the crown (the hook's own tip, Z = hook_depth). See
-    # :meth:`_build_release_leg` for the full derivation of these
-    # Developer-chosen dimensions (the real part's leg cross-section is not
-    # directly measurable from LDraw).
-    RELEASE_SLOT_MARGIN = 0.100   # min. clearance beyond the hook's own deepest reach (HOOK_FACE_Y1)
-    LEG_B_THICKNESS = 0.500       # release leg / spine wall thickness
-    PAD_OUTER_Y = -35.600         # matches PoweredUpHubHousing.LATCH_Y (the single wall's own outer face)
+    # --- Release leg / U-spring (SS1.4, round 18 B2, corrected round 20
+    # C1/C2/C3) -- the second, thumb-pad-bearing leg of the cantilever U,
+    # joined to the hook leg ONLY at the crown (the hook's own tip,
+    # Z = hook_depth). See :meth:`_build_release_leg` for the full
+    # derivation.
+    #
+    # Round 20 (findings C1/C2/C3) replaces the earlier flat-walled,
+    # constant-thickness pad/spine (a straight LEG_B_THICKNESS = 0.500 mm
+    # wall at a constant PAD_OUTER_Y = -35.600 mm, flush with Housing's own
+    # outer wall) with the reference's own slanted, variable-thickness
+    # blade, read directly off `tmp/reference-comparison.md`'s exact
+    # ray-crossing coordinates: outer face piecewise-linear through
+    # (z=0..3.6, y=-34.063) [the thumb pad], (z=5, y=-34.220),
+    # (z=8, y=-33.733), (z=11, y=-33.367); thickness (inner-face offset
+    # from that outer profile, NOT monotonic) 0.698 mm over the pad band,
+    # then 1.028 / 0.715 / 1.047 mm at z=5/8/11. **Functional note, not
+    # silently absorbed**: the corrected pad no longer reaches Housing's
+    # own outer wall (Y = -35.600) -- its outer face stops 1.537 mm short,
+    # at Y = -34.063 -- so it is no longer flush with the finger-window
+    # opening the way the pre-round-20 version was by construction. This
+    # is what the reference's own geometry shows; flagged here for review
+    # rather than silently deviating from the corrected spec.
+    _LEG_OUTER_Y = ((0.0, -34.063), (3.6, -34.063), (5.0, -34.220), (8.0, -33.733), (11.0, -33.367))
+    _LEG_THICKNESS = ((0.0, 0.698), (3.6, 0.698), (5.0, 1.028), (8.0, 0.715), (11.0, 1.047))
+    # Beyond Z = 11.0 (the last reference-verified sample) the profile is
+    # held FLAT, not extrapolated toward the z=12.5 point the reference
+    # also reports (y=-33.046) -- extrapolating that point's own trend
+    # would push the leg's inner face past HOOK_FACE_Y1 (a real collision
+    # with the hook leg's own material, verified by hand: inner_y would
+    # reach ~-31.999 mm at z=12.5, well inside the hook's [-32.24, -30.8]
+    # occupied band). This is a genuine, undecided edge case near the
+    # crown junction the design brief does not resolve (round 18 already
+    # flagged "re-derive t/L... not hand-derived blind" for this whole
+    # feature) -- held flat here as the conservative, collision-free
+    # choice, declared rather than silently guessed. Re-verify via
+    # section_slicer.py before treating the crown transition as final.
     PAD_Z_HI = 3.600              # matches PoweredUpHubHousing.LATCH_WINDOW_Z_HI
     CROWN_THICKNESS = 1.200       # Z-band bridging the hook leg's tip to the release leg -- the ONLY join
 
@@ -270,97 +321,117 @@ class PoweredUpHubCover:
             sketch = sketch.lineTo(*p)
         return sketch.close().extrude(lg.hook_width)
 
-    def _build_release_leg(self, side: int) -> cq.Workplane:
-        """Second leg of the cantilever U (SS1.4, round 18 B2) -- a thin
-        ``spine`` running alongside the hook leg's own outer (drafted)
-        face, a ``crown`` bridge that joins the two legs ONLY at the
-        hook's own tip (``Z = hook_depth``, never at the root -- this is
-        what makes the pad a genuine second spring leg rather than a rigid
-        extension of the hook), and a ``pad`` at the free end that reaches
-        :attr:`PAD_OUTER_Y` within the low-``Z`` band the housing's own
-        finger window opens onto.
+    @staticmethod
+    def _interp(profile: tuple[tuple[float, float], ...], z: float) -> float:
+        """Piecewise-linear interpolation of a ``(z, value)`` profile,
+        clamped flat beyond either end -- shared by the release leg's
+        outer-face and thickness profiles (see :attr:`_LEG_OUTER_Y` /
+        :attr:`_LEG_THICKNESS`).
+        """
+        if z <= profile[0][0]:
+            return profile[0][1]
+        if z >= profile[-1][0]:
+            return profile[-1][1]
+        for (z0, v0), (z1, v1) in zip(profile, profile[1:]):
+            if z0 <= z <= z1:
+                t = (z - z0) / (z1 - z0)
+                return v0 + t * (v1 - v0)
+        return profile[-1][1]  # pragma: no cover -- unreachable, profile covers [0, last]
 
-        **Why these numbers, not the real part's 1.640 mm slot / 2.791 mm
-        pad-height figures directly** (flagged per the design brief's own
-        "Developer to derive and verify" instruction for this feature):
-        the hook leg's drafted face is a Z-varying polyline (SS1.4), not a
-        flat plane, so a second leg offset by a literal constant Y from the
-        *plate edge* would either collide with the hook leg's own deepest
-        reach or leave the gap needlessly wide elsewhere depending on Z.
-        Instead, :attr:`RELEASE_SLOT_MARGIN` is measured from
-        ``HOOK_FACE_Y1`` -- the hook leg's own maximum reach across its
-        *entire* height (occurring at ``Z = HOOK_FACE_Z1`` and
-        ``Z = hook_depth``) -- guaranteeing, by construction, zero
-        collision with the hook leg at every ``Z``, and (since
+    def _build_release_leg(self, side: int) -> cq.Workplane:
+        """Second leg of the cantilever U (SS1.4, round 18 B2; profile
+        corrected round 20, findings C1/C2/C3) -- a single swept ``spine``
+        (the round-18 "pad" and "spine" pieces are now one continuous
+        profile, since the reference shows no discontinuity between them)
+        running alongside the hook leg's own outer (drafted) face, plus a
+        ``crown`` bridge that joins the two legs ONLY at the hook's own tip
+        (``Z = hook_depth``, never at the root -- this is what makes the
+        leg a genuine second spring leg rather than a rigid extension of
+        the hook).
+
+        The spine's cross-section is a closed polyline built the same way
+        :meth:`_build_latch_finger` builds the hook's own swept profile:
+        an outer-face polyline (:attr:`_LEG_OUTER_Y`, bottom to top) and an
+        inner-face polyline (outer value + :attr:`_LEG_THICKNESS` at the
+        same ``z``, top to bottom), extruded along X. See the class-level
+        constants' own docstring for why the profile is held flat above
+        ``Z = 11.0`` rather than extrapolated to the reference's own
+        ``z = 12.5`` sample (a real hook-leg collision at that point).
+
+        **Kept from round 18 B2, unchanged**: :attr:`PAD_Z_HI` still
+        matches
         :class:`~vibe_cading.lego_adapters.poweredup_hub.housing.PoweredUpHubHousing`'s
-        corrected catch slot always extends further past ``HOOK_FACE_Y1``
-        than this leg does, for every supported tolerance profile -- see
-        that class's own ``_build_latch_catch``) zero collision with the
-        housing's catch, independent of which profile renders it. Verified
-        by the mandatory kinematic-sweep tests, not asserted blind.
-        :attr:`PAD_Z_HI` matches
-        :class:`~vibe_cading.lego_adapters.poweredup_hub.housing.PoweredUpHubHousing`'s
-        own ``LATCH_WINDOW_Z_HI`` exactly, so the pad fills the actual
-        window opening it must show through, rather than an independently
-        sourced literal that leaves part of the window empty.
+        own ``LATCH_WINDOW_Z_HI`` exactly (the profile's own flat pad band
+        spans ``[0, PAD_Z_HI]``), and the crown still bridges to the hook
+        leg's own material at its tip, verified interference-free with the
+        hook leg by construction at every sampled ``z`` (the profile's own
+        inner face never crosses ``HOOK_FACE_Y1`` up to ``z = 11.0``; see
+        the class-level *held flat* note for the crown-transition caveat).
+        Verified by the mandatory kinematic-sweep tests, not asserted
+        blind.
         """
         lg: LatchGeometry = self._latch
         half_w = lg.hook_width / 2.0
         x_center = side * (lg.hook_pitch / 2.0 + half_w)
 
-        y_leg_inner = self.HOOK_FACE_Y1 - self.RELEASE_SLOT_MARGIN
-        y_leg_outer = y_leg_inner - self.LEG_B_THICKNESS
-
-        # Coincident-faces guard (this project's own pitfall) -- each pair
-        # of adjacent pieces below is grown by `seam_overlap` into its
-        # neighbour's territory so OCCT's fuse sees genuine 3D volume
-        # overlap, not a touching face.
+        crown_z_lo = lg.hook_depth - self.CROWN_THICKNESS
         seam_overlap = 0.05
-        spine = rounded_box(
-            width=lg.hook_width,
-            depth=y_leg_inner - y_leg_outer,
-            height=(lg.hook_depth - self.PAD_Z_HI) + seam_overlap,
-            corner_r=0.0,
-            center=(x_center, (y_leg_inner + y_leg_outer) / 2.0, self.PAD_Z_HI - seam_overlap),
+
+        # Breakpoints: both ends plus every profile sample strictly inside
+        # [0, crown_z_lo], so the swept polygon reproduces every given
+        # reference point exactly (not just its endpoints).
+        zs = sorted({0.0, crown_z_lo} | {z for z, _ in self._LEG_OUTER_Y if 0.0 < z < crown_z_lo})
+
+        outer_pts = [(self._interp(self._LEG_OUTER_Y, z), z) for z in zs]
+        inner_pts = [
+            (self._interp(self._LEG_OUTER_Y, z) + self._interp(self._LEG_THICKNESS, z), z)
+            for z in zs
+        ]
+        pts = outer_pts + list(reversed(inner_pts))
+
+        sketch = (
+            cq.Workplane("YZ")
+            .transformed(offset=cq.Vector(0.0, 0.0, x_center - half_w))
+            .moveTo(*pts[0])
         )
-        # NOTE: the pad's own height is deliberately NOT grown past
-        # PAD_Z_HI (unlike the Y-overlap below) -- PAD_Z_HI is the exact
-        # PoweredUpHubHousing.LATCH_WINDOW_Z_HI boundary; beyond it,
-        # Housing's wall is solid (not cut away by the finger window), so
-        # growing the pad's own Z range there would pierce Housing's wall
-        # at the pad's own outboard reach (an earlier version did exactly
-        # this and produced a real, if tiny, seated-state interference).
-        # The Z-direction fuse with `spine` is already guaranteed by
-        # `spine`'s own -seam_overlap Z start above; only the Y-overlap is
-        # needed here.
-        pad_y_inner = y_leg_inner + seam_overlap
-        pad = rounded_box(
-            width=lg.hook_width,
-            depth=pad_y_inner - self.PAD_OUTER_Y,
-            height=self.PAD_Z_HI,
-            corner_r=0.0,
-            center=(x_center, (pad_y_inner + self.PAD_OUTER_Y) / 2.0, 0.0),
-        )
+        for p in pts[1:]:
+            sketch = sketch.lineTo(*p)
+        spine = sketch.close().extrude(lg.hook_width)
+
+        # Crown: bridges the spine's own top (at crown_z_lo) to the hook
+        # leg's material (which fills continuously back to PLATE_Y_LO at
+        # every Z -- see the kinematic test module's own docstring).
+        # Coincident-faces guard (this project's own pitfall): grown by
+        # seam_overlap in both Y and Z so the fuse sees genuine 3D volume
+        # overlap with the spine, not a touching face.
+        y_leg_outer_at_crown = self._interp(self._LEG_OUTER_Y, crown_z_lo)
         crown = rounded_box(
             width=lg.hook_width,
-            depth=self.PLATE_Y_LO - y_leg_outer,
-            height=self.CROWN_THICKNESS,
+            depth=self.PLATE_Y_LO - y_leg_outer_at_crown,
+            height=self.CROWN_THICKNESS + seam_overlap,
             corner_r=0.0,
             center=(
                 x_center,
-                (self.PLATE_Y_LO + y_leg_outer) / 2.0,
-                lg.hook_depth - self.CROWN_THICKNESS,
+                (self.PLATE_Y_LO + y_leg_outer_at_crown) / 2.0,
+                crown_z_lo - seam_overlap,
             ),
         )
-        return spine.union(pad).union(crown)
+        return spine.union(crown)
 
     def _build_tongue(self) -> cq.Workplane:
         """Slide-in tongue + ledge -- a riser (fused to the plate, full
         thickness) plus a thin distal tip (the actual 0.926 mm rebate
         blade), per the class docstring's *Known simplifications*.
+
+        The riser uses :attr:`RISER_X_HALF` (26.000 mm), wider than the
+        tip's own :attr:`TONGUE_X_HALF` (15.600 mm) -- round 20, finding
+        C4: this restores Tongue B's own plan-outline footprint
+        (|X| 17.2..26.0 mm) at the riser level, matching Tongue A's
+        already-correct edge, while the tip stays at the narrower,
+        retention-critical width (see class docstring).
         """
         riser = rounded_box(
-            width=2 * self.TONGUE_X_HALF,
+            width=2 * self.RISER_X_HALF,
             depth=self.TONGUE_STEP_Y - self.PLATE_Y_HI,
             height=self.RISER_Z_HI,
             corner_r=0.0,

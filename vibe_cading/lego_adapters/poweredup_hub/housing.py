@@ -24,14 +24,24 @@ Full design rationale:
 ``docs/design_plans/2026-08-19-poweredup-hub-battery-box_design.md``,
 *Multi-part structure -> Housing*.
 
-Per that design, this is an exact copy of the real ``25560`` shell
-(``72.0 x 71.2 x 33.8 mm``) with a scoped, deliberate departure at the two
-lid-retention regions only: the latch end (``-Y``) and the tongue end
-(``+Y``) each carry a single wall instead of LEGO's real two-skin
-sandwich construction, per the design's *Single wall at BOTH ends*
-section.  Everything else -- overall envelope, the four liftarm arms, the
-twelve pin holes, the wall step at height 22.0 mm, the side windows, the
-port ribs -- is an exact copy.
+Per that design, this is an exact copy of the real ``25560`` shell's own
+**shell envelope** -- ``72.0 x 71.2 x 29.6 mm`` -- with a scoped,
+deliberate departure at the two lid-retention regions only: the latch end
+(``-Y``) and the tongue end (``+Y``) each carry a single wall instead of
+LEGO's real two-skin sandwich construction, per the design's *Single wall
+at BOTH ends* section.  Everything else -- overall envelope, the four
+liftarm arms, the twelve pin holes, the wall step at height 22.0 mm, the
+side windows, the port ribs -- is an exact copy.
+
+**Round 20 correction (finding H1, blocking)**: earlier rounds quoted
+``25560``'s LDraw **bounding box** (``72.0 x 71.2 x 33.8 mm``) as "the
+envelope" without separately noting that the real *shell* tops out
+``4.2 mm`` short of that box -- only two narrow connector-port tubes
+(``26.9 mm^2`` of face, now ruled out of scope -- see *Known
+simplifications*) reach ``Z = 33.8``.  The shell's own top face --
+``3,469.6 mm^2`` of up-facing area -- is at ``Z = 29.6``.  The class's
+overall height is therefore ``DECK_Z`` (``29.6 mm``), not the retired
+``TOP_Z`` (``33.8 mm``) figure quoted by rounds 1-19.
 """
 
 from __future__ import annotations
@@ -65,13 +75,16 @@ class PoweredUpHubHousing:
     the lid-to-housing LDraw transform is a pure translation with no
     rotation and no sign flip, and that translation is already baked into
     each class's own ``Z = 0`` datum). Every feature extrudes ``+Z`` from
-    there, up to :attr:`TOP_Z` (33.800 mm). X is centred on the housing's
-    mid-width (hole plane at ``X = +-32.000``); Y follows the same frame as
-    the Cover (latch end at ``-Y``, tongue end at ``+Y``).
+    there, up to :attr:`DECK_Z` (29.600 mm -- the shell's own top face, not
+    the LDraw part's bounding box; see *Round 20 correction* above). X is
+    centred on the housing's mid-width (hole plane at ``X = +-32.000``);
+    Y follows the same frame as the Cover (latch end at ``-Y``, tongue end
+    at ``+Y``).
 
     Kept, as an exact copy (design brief *Housing*):
-        - Overall envelope 72.0 x 71.2 x 33.8 mm (with the arm bosses
-          included in the 72.0 mm X figure).
+        - Overall envelope 72.0 x 71.2 x 29.6 mm (with the arm bosses
+          included in the 72.0 mm X figure) -- the shell's own envelope,
+          not the LDraw part's bounding box (round 20, H1).
         - Stepped side walls (0.8 mm, outward step at height 22.0 mm).
         - Four arms -- literally LDraw 3-hole liftarms, reusing
           :class:`~vibe_cading.lego.technic_beam_perp.PerpendicularHolesLiftarm`
@@ -103,30 +116,43 @@ class PoweredUpHubHousing:
     Known simplifications (documented deviations, all cosmetic /
     non-load-bearing unless noted, per this project's Experimental
     Integrity convention):
-        - **Top deck** modelled as a solid slab (:attr:`DECK_Z` to
-          :attr:`TOP_Z`) rather than a hollow shell -- the real deck's
-          thickness is genuinely unreadable from LDraw (no underside face
-          modelled anywhere in the part chain), so a solid cap is the
-          conservative choice, not a guess at an unknown wall thickness.
-          The corrugated AA-cell cradle ceiling, the four connector-port
-          keying ribs, and the one asymmetric screw boss on the deck are
-          all omitted -- purely cosmetic/non-interface features, per the
-          design brief's own "Explicitly NOT decided by this TL round"
-          note leaving the middle-hole neck relief as a Designer/Developer
-          fidelity call (also omitted here for the same reason).
+        - **Top deck** modelled as a solid slab, ``DECK_THICKNESS``
+          (2.082 mm) thick, spanning ``Z`` in
+          ``[DECK_Z - DECK_THICKNESS, DECK_Z]`` (``[27.518, 29.600]``)
+          rather than a hollow shell -- the real deck's own *internal*
+          structure (corrugated AA-cell cradle ceiling, four connector-port
+          keying ribs, one asymmetric screw boss) is genuinely unreadable
+          from LDraw as a hollow-shell wall thickness, so a solid slab at
+          the shell's own measured top-face position is the conservative
+          choice (round 20, H1 -- corrected from an earlier version that
+          built this slab entirely *above* ``DECK_Z``, 4.2 mm outside the
+          real shell's own envelope). The corrugated cradle ceiling, the
+          keying ribs, and the screw boss remain omitted -- purely
+          cosmetic/non-interface features, per the design brief's own
+          "Explicitly NOT decided by this TL round" note leaving the
+          middle-hole neck relief as a Designer/Developer fidelity call
+          (also omitted here for the same reason). **Connector-port tubes
+          explicitly out of scope** (round 20, H1): the reference's two
+          narrow tubes reaching ``Z = 33.8`` (``26.9 mm^2`` of face) are
+          hub-electronics connector conduits with no function in a battery
+          box -- omitted, not silently dropped.
         - **Side windows** simplified from LDraw's ramped-end trapezoid
-          profile to a single flat-topped rectangular cutout, using the
-          more generous of the two profile's heights (16.0 mm, the ramped
-          ends' peak) -- this only ever removes *more* material than the
-          real part, never less, so it cannot introduce an unintended
-          interference. **Re-verified round 18 (finding C4)**: this
-          simplification was previously *masking*
+          profile to a piecewise-linear taper (round 20, H3 -- corrected
+          from an earlier flat-topped ``24.8 x 16.0 mm`` rectangle whose
+          own code comment claimed 16.0 mm was "the ramped ends' peak";
+          that claim was factually wrong -- the real ramped shoulders peak
+          at 8.4 mm, not 16.0 mm): flat at half-width :attr:`WINDOW_Y_HALF`
+          (12.000 mm) for ``Z <= WINDOW_SHOULDER_Z`` (4.8 mm), then
+          tapering through the reference's own measured shoulder points
+          (see :attr:`WINDOW_TAPER_PROFILE`) to full closure at
+          :attr:`WINDOW_APEX_Z` (8.5 mm). **Re-verified round 18 (finding
+          C4)**: this simplification was previously *masking*
           :class:`~vibe_cading.lego_adapters.poweredup_hub.battery_tray.PoweredUpHubBatteryTray`'s
           S2 Z-datum error (the tab ledge would not have passed the real,
           ramped window profile) -- now that S2 is corrected, the tab
-          ledge's real Z-band clears this flat 16.0 mm window with margin
-          to spare (re-confirmed by the cross-part tests below), so the
-          masking relationship is now moot rather than live.
+          ledge's real Z-band clears this corrected, shorter window with
+          margin to spare (re-confirmed by the cross-part tests below), so
+          the masking relationship is now moot rather than live.
         - **End-wall X extent** (latch and tongue walls) simplified to a
           constant :attr:`WALL_X_OUTER_LOWER` (28.0 mm) across their full
           height, rather than stepping to match the side walls' own
@@ -149,22 +175,37 @@ class PoweredUpHubHousing:
           interference risk -- declared here per this project's
           Experimental Integrity convention rather than left silent.
         - **Arm cross-section** stays at the class's own
-          Cailliau-calibrated ``BEAM_WIDTH`` (7.8 mm, vs. LDraw's
-          idealised 7.2 mm) -- the design brief's explicit "not changed,
-          deliberately" ruling (real moulded liftarms measure 7.4-7.8 mm;
-          LDraw's 7.2 mm is a grid-snapped idealisation) still governs the
-          shared :class:`PerpendicularHolesLiftarm` class itself, and the
-          arm's *root* region (root-bridge/wall-overlap logic, hidden
-          internal structure) still reads the class's own untrimmed
-          ``BEAM_WIDTH / 2`` edge. **The outboard edge is a documented
-          exception** (design brief round 16, Escalation 7): because
-          Success Criterion #1 already pins the housing's overall X
-          envelope to exactly ``72.0 mm``, a housing-local, one-sided
+          Cailliau-calibrated ``BEAM_WIDTH`` (7.8 mm *nominal*, vs.
+          LDraw's idealised 7.2 mm) -- the design brief's explicit "not
+          changed, deliberately" ruling (real moulded liftarms measure
+          7.4-7.8 mm; LDraw's 7.2 mm is a grid-snapped idealisation) still
+          governs the shared :class:`PerpendicularHolesLiftarm` class
+          itself, and the arm's *root* region (root-bridge/wall-overlap
+          logic, hidden internal structure) still reads the class's own
+          untrimmed ``BEAM_WIDTH / 2`` edge. **The outboard edge is a
+          documented exception** (design brief round 16, Escalation 7):
+          because Success Criterion #1 already pins the housing's overall
+          X envelope to exactly ``72.0 mm``, a housing-local, one-sided
           ``.cut()`` trims the arm's outboard face to LDraw's literal
           ``3.600 mm`` half-width before the boss/middle-bore code reads
           it -- so the boss and middle bore land at the real
           ``35.6/36.0 mm`` figures, not the class's own ``3.9 mm``
-          Cailliau half-width, on this one (outboard) edge only.
+          Cailliau half-width, on this one (outboard) edge only. **As-built
+          width is therefore 7.500 mm, not 7.8 mm** (round 20 correction --
+          the design record's earlier "7.8 mm as built" language was
+          wrong; the geometry itself is unchanged and correct: inboard
+          edge untouched at the nominal ``X = 28.100``, outboard edge
+          trimmed to the real ``X = 35.600``, giving ``35.600 - 28.100 =
+          7.500 mm`` as the deliberate, direct consequence of round 16's
+          asymmetric outboard-only trim).
+        - **Arm faces dished** (round 20, H2): the reference cuts a
+          shallow relief pocket into both faces of each arm, between the
+          pin-hole positions, blended into each hole/boss by an
+          R3.600 mm cylindrical relief -- see :meth:`_dish_arm_faces` for
+          the Developer-derived construction and its own docstring for the
+          exact-fit reasoning (the pocket half-width and the relief radius
+          are not independent numbers -- they are self-consistent, per
+          that method's docstring).
 
     Latch catch derivation
     -----------------------
@@ -207,8 +248,13 @@ class PoweredUpHubHousing:
 
     # --- Envelope (SS0, SS1) ---
     HALF_Y = 35.600
-    TOP_Z = 33.800
+    # DECK_Z is the housing's own overall height -- the real shell's top
+    # face (round 20, H1). TOP_Z (33.800 mm) is RETIRED: it was the LDraw
+    # part's bounding box, reached only by two 26.9 mm^2 connector-port
+    # tubes now ruled out of scope, not by the shell itself -- nothing
+    # should build above DECK_Z any more.
     DECK_Z = 29.600
+    DECK_THICKNESS = 2.082   # the real shell's own measured deck thickness
 
     # --- Side walls (X-direction, stepped -- SS4) ---
     WALL_THICKNESS = 0.800
@@ -216,9 +262,16 @@ class PoweredUpHubHousing:
     WALL_X_OUTER_LOWER = 28.000   # |X| outer face, Z < WALL_STEP_Z
     WALL_X_OUTER_UPPER = 27.200   # |X| outer face, Z >= WALL_STEP_Z
 
-    # --- Side windows, simplified (SS7.2) ---
-    WINDOW_Y_HALF = 12.400
-    WINDOW_Z_HI = 16.000  # simplified to the ramped ends' peak, see docstring
+    # --- Side windows, tapered (SS7.2, round 20 H3) ---
+    WINDOW_Y_HALF = 12.000        # flat half-width, Z <= WINDOW_SHOULDER_Z
+    WINDOW_SHOULDER_Z = 4.800     # where the ramped taper begins
+    # Piecewise-linear taper, (z, half_width) pairs read directly off the
+    # reference between WINDOW_SHOULDER_Z and WINDOW_APEX_Z -- the real
+    # part's ramped-end trapezoid profile, corrected from the earlier flat
+    # 16.0 mm rectangle (whose own comment wrongly claimed 16.0 mm was
+    # "the ramped ends' peak" -- the real peak/closure is at 8.5 mm).
+    WINDOW_TAPER_PROFILE = ((6.000, 11.761), (8.300, 8.903))
+    WINDOW_APEX_Z = 8.500          # full closure
 
     # --- Pin-hole / arm map (SS1, SS2) ---
     HOLE_X = 32.000
@@ -236,15 +289,17 @@ class PoweredUpHubHousing:
     ARM_WIDTH_TRIM_Y = 3.600
 
     # Root-bridge Band A (round 17, Escalation 8) -- the arm-local Z
-    # window (thickness axis, pre-_place_arm) where the root bridge still
-    # reaches the wall. Local Z in [ROOT_BAND_A_Z_LO, ARM_THICKNESS] maps
-    # to global Z in [WALL_STEP_Z, TOP_Z] (both ends via the +ARM_Z_LO
-    # offset _place_arm applies), i.e. exactly the wall's upper band.
-    # Below ROOT_BAND_A_Z_LO (Band B, global Z in [ARM_Z_LO, WALL_STEP_Z],
-    # the wall's lower band -- where the tray's own wall sits) no bridge
-    # material is added at all; see _build_arm_and_bore_local's own
-    # comment for the full derivation and the ~85.8 mm^3 margin proving
-    # Band A alone still fuses the arm to the wall.
+    # window (thickness axis, pre-_place_arm) where the root bridge
+    # reaches deepest into the wall. Local Z in [ROOT_BAND_A_Z_LO,
+    # ARM_THICKNESS] maps to global Z in [WALL_STEP_Z, ARM_Z_LO +
+    # ARM_THICKNESS] = [22.0, 24.0] (both ends via the +ARM_Z_LO offset
+    # _place_arm applies), i.e. exactly the wall's upper band. Below
+    # ROOT_BAND_A_Z_LO (Band B, global Z in [ARM_Z_LO, WALL_STEP_Z] =
+    # [16.0, 22.0], the wall's lower band -- where the tray's own wall
+    # sits), a SHALLOWER reach applies (round 20, H4 -- see
+    # _build_arm_and_bore_local's own comment) rather than none at all;
+    # see that method's comment for the full derivation and the ~85.8 mm^3
+    # margin proving Band A alone still fuses the arm to the wall.
     ROOT_BAND_A_Z_HI = ARM_THICKNESS
     ROOT_BAND_A_Z_LO = ARM_THICKNESS - 2.000
 
@@ -353,8 +408,14 @@ class PoweredUpHubHousing:
         # tiny construction-only overlap (widen the upper band's outer
         # face and drop its Z start slightly) is added here to guarantee
         # a genuine overlapping union -- the resulting 0.05 mm ledge
-        # rounding is buried at the step corner, well under FDM
-        # tolerance, and does not change any externally-visible dimension.
+        # rounding is buried at the step corner, well under FDM tolerance.
+        # **Correction (round 20, H5)**: an earlier version of this comment
+        # claimed this "does not change any externally-visible dimension" --
+        # it does: the upper band's outer face becomes 27.250 mm instead of
+        # the nominal 27.200 mm, and that face IS the part's exterior
+        # (435.7 mm^2 of externally-visible area). Accepted as sub-print-
+        # resolution (0.050 mm), not a defect -- but the comment must not
+        # claim it is invisible.
         overlap = 0.05
         upper = self._x_slab(
             x_sign,
@@ -384,21 +445,43 @@ class PoweredUpHubHousing:
         )
 
     def _build_side_window(self, x_sign: int) -> cq.Workplane:
-        """Tab-access cutout through one side wall (SS7.2, simplified --
-        see class docstring).
+        """Tab-access cutout through one side wall (SS7.2), a piecewise-
+        linear taper matching the reference's ramped-end trapezoid profile
+        (round 20, finding H3 -- corrected from an earlier flat-topped
+        rectangle whose own comment mis-stated the peak height; see class
+        docstring's *Known simplifications*).
+
+        Built the same way :meth:`_build_latch_finger` builds its own
+        swept cross-section: a closed polyline in the YZ plane (this
+        window's Y/Z profile), extruded along X through the wall's full
+        thickness (with a generous overcut so the cut breaks cleanly
+        through both wall faces).
         """
         overcut = 1.0  # break cleanly through the wall's X extent
         x_outer = self.WALL_X_OUTER_LOWER + overcut
         x_inner = self.WALL_X_OUTER_LOWER - self.WALL_THICKNESS - overcut
         x_lo = x_sign * min(x_outer, x_inner)
         x_hi = x_sign * max(x_outer, x_inner)
-        return rounded_box(
-            width=abs(x_hi - x_lo),
-            depth=2 * self.WINDOW_Y_HALF,
-            height=self.WINDOW_Z_HI,
-            corner_r=0.0,
-            center=((x_lo + x_hi) / 2.0, 0.0, 0.0),
+        width = abs(x_hi - x_lo)
+
+        half = self.WINDOW_Y_HALF
+        pts = [(-half, 0.0), (-half, self.WINDOW_SHOULDER_Z)]
+        for z, hw in self.WINDOW_TAPER_PROFILE:
+            pts.append((-hw, z))
+        pts.append((0.0, self.WINDOW_APEX_Z))
+        for z, hw in reversed(self.WINDOW_TAPER_PROFILE):
+            pts.append((hw, z))
+        pts.append((half, self.WINDOW_SHOULDER_Z))
+        pts.append((half, 0.0))
+
+        sketch = (
+            cq.Workplane("YZ")
+            .transformed(offset=cq.Vector(0.0, 0.0, min(x_lo, x_hi)))
+            .moveTo(*pts[0])
         )
+        for p in pts[1:]:
+            sketch = sketch.lineTo(*p)
+        return sketch.close().extrude(width)
 
     # ------------------------------------------------------------------
     # Top deck
@@ -407,18 +490,89 @@ class PoweredUpHubHousing:
     def _build_top_deck(self) -> cq.Workplane:
         """Solid cap closing the top -- see class docstring's *Known
         simplifications* for why this is solid rather than a hollow shell.
+
+        **Round 20 correction (finding H1, blocking)**: this slab now spans
+        ``Z`` in ``[DECK_Z - DECK_THICKNESS, DECK_Z]`` (``[27.518, 29.600]``)
+        -- the real shell's own measured deck, sitting at and below its top
+        face. The pre-round-20 version built this slab *above* ``DECK_Z``
+        (the retired ``TOP_Z = 33.800``), which put ~16,270 mm^3 (61% of
+        the model's own volume) entirely outside the reference envelope --
+        see the class docstring's *Round 20 correction* note.
         """
         return rounded_box(
             width=2 * self.WALL_X_OUTER_UPPER,
             depth=2 * self.HALF_Y,
-            height=self.TOP_Z - self.DECK_Z,
+            height=self.DECK_THICKNESS,
             corner_r=0.0,
-            center=(0.0, 0.0, self.DECK_Z),
+            center=(0.0, 0.0, self.DECK_Z - self.DECK_THICKNESS),
         )
 
     # ------------------------------------------------------------------
     # Arms (composed from PerpendicularHolesLiftarm, per the TL round)
     # ------------------------------------------------------------------
+
+    def _dish_arm_faces(self, arm: cq.Workplane) -> cq.Workplane:
+        """Shallow relief pocket on both faces (top and bottom) of the arm,
+        between the pin-hole positions -- round 20, finding H2.
+
+        Reference-derived numbers (``tmp/reference-comparison.md`` H2, read
+        off LDraw's ``rect3.dat`` / ``1-4cyli.dat``): pocket floors at
+        global ``Z = 21.378`` (top) / ``18.622`` (bottom) -- local
+        ``Z = 5.378`` / ``2.622`` here, since ``global Z = local Z +
+        ARM_Z_LO`` -- leaving a ``2.756 mm`` web at the pocket floor
+        (``21.378 - 18.622``), footprint local ``Y`` in
+        ``[-2.546, 2.546]`` (global ``X`` in ``[29.454, 34.546]``, centred
+        on the hole axis ``X = 32``), blended into each hole/boss position
+        by an ``R3.600 mm`` cylindrical relief centred on the hole axis.
+
+        **Why a full-radius relief circle subtracted from the pocket
+        cutter reproduces the reference's own numbers exactly, not just
+        approximately** (the self-consistency check that grounds this
+        construction, since the design brief explicitly delegates the
+        exact cutter construction to the Developer): the relief radius
+        (``R = BOSS_DIAMETER / 2 = 3.600 mm``) and the pocket half-width
+        (``2.546 mm``) satisfy ``2.546 = 3.600 * cos(45 deg)`` -- i.e. the
+        pocket rectangle's own Y-bound is exactly where a ``R3.6`` circle
+        centred on the hole axis crosses at 45 degrees. Subtracting the
+        union of three such circles (one per hole position, local
+        ``X = 4/12/20``) from the rectangular pocket cutter therefore
+        produces, at each end of the arm, a **full-thickness rail of
+        exactly ``1.054 mm``** between the trim boundary (local
+        ``X = 0.400`` / ``23.600``) and the nearest relief circle's own
+        45-degree crossing (local ``X = 1.454`` / ``22.546``) -- matching
+        the reference's own quoted "1.054 mm full-thickness edge rail at
+        the arm's own perimeter" to the micron. This is strong evidence
+        the construction below is not merely plausible but the actual
+        geometric relationship LDraw's own polygon encodes.
+
+        Developer-derived construction (not a literal re-derivation of
+        LDraw's exact ``rect3.dat`` polygon) -- **verified via
+        ``section_slicer.py --axis Y`` through one arm** before treating
+        this as final, per the design brief's own instruction for
+        genuinely new 3D relief features.
+        """
+        pocket_half_y = 2.546          # local Y -> global X in [29.454, 34.546]
+        relief_radius = self.BOSS_DIAMETER / 2.0  # 3.600 mm, see docstring
+        hole_x_locals = (4.0, 12.0, 20.0)  # the arm's own 3 hole/boss positions
+        overcut = 0.05
+
+        top_floor_local_z = 21.378 - self.ARM_Z_LO      # 5.378
+        bottom_floor_local_z = 18.622 - self.ARM_Z_LO   # 2.622
+
+        def _pocket(z_lo: float, z_hi: float) -> cq.Workplane:
+            band = rounded_box(
+                width=23.2, depth=2 * pocket_half_y, height=z_hi - z_lo,
+                corner_r=0.0, center=(12.0, 0.0, z_lo),
+            )
+            relief = None
+            for hx in hole_x_locals:
+                cyl = cylinder(relief_radius, z_hi - z_lo, center=(hx, 0.0, z_lo))
+                relief = cyl if relief is None else relief.union(cyl)
+            return band.cut(relief)
+
+        top_pocket = _pocket(top_floor_local_z, self.ARM_THICKNESS + overcut)
+        bottom_pocket = _pocket(-overcut, bottom_floor_local_z)
+        return arm.cut(top_pocket).cut(bottom_pocket)
 
     def _build_arm_and_bore_local(self) -> tuple[cq.Workplane, cq.Workplane]:
         """Build the (+X, +Y)-quadrant arm and its middle-hole bore cutter,
@@ -452,6 +606,13 @@ class PoweredUpHubHousing:
                                center=(33.6, 0.0, -16.0))
         arm = arm.cut(trim_lo).cut(trim_hi)
 
+        # Face dishing (round 20, H2) -- applied before the root bridge/
+        # width trim/boss below, since none of those touch this pocket's
+        # own local-Y band ([-2.546, 2.546], well clear of both the root
+        # bridge's negative-Y reach and the boss/mid-bore's positive-Y
+        # edge).
+        arm = self._dish_arm_faces(arm)
+
         # Root bridge: the class's own BEAM_WIDTH/2 edge (local Y = -3.9,
         # -> global X = 28.1) sits just *outside* the side wall's own
         # outer face (X = 28.0) -- a 0.1 mm gap, since the arm's
@@ -481,15 +642,27 @@ class PoweredUpHubHousing:
         # reach. This is the band that actually fuses the arm to the
         # wall -- see the numeric margin below.
         # Band B -- local Z in [0.0, 6.0] (-> global Z in [16.0, 22.0],
-        # the lower wall band, where the tray's wall sits): NO bridge box
-        # at all. The arm's own trimmed edge is left as-is; nothing here
-        # reaches toward the wall, so this band cannot collide with the
-        # tray (interference goes to exactly 0.0 mm^3, not a reduced
-        # figure). This does not disconnect the arm: Band A and Band B
-        # (where present) share one continuous solid via ordinary Z-
+        # the lower wall band, where the tray's wall sits): round 17
+        # (Escalation 8) dropped this band's reach to nothing, which
+        # eliminated the tray collision but also left an open 0.100 mm
+        # slit between the arm and the wall here (round 20, finding H4 --
+        # a hole in a printed part, not merely a fidelity issue). **Fixed
+        # by reusing the shared SEAM_MARGIN convention round 19 introduced
+        # in PoweredUpHubBatteryTray** (same class of problem: two
+        # independently-authored classes' own small boolean-safety
+        # overcuts needing a shared budget at their common seam) rather
+        # than inventing a new constant: Band B now reaches to
+        # X = WALL_X_OUTER_LOWER - WALL_THICKNESS + SEAM_MARGIN (27.300 mm,
+        # i.e. 0.100 mm INTO the wall's own lower-band material
+        # [27.2, 28.0]) -- a genuine fuse-overlap margin, not the
+        # pre-round-17 full reach (which caused the original 259.014 mm^3
+        # tray collision, Escalation 8) and not round-17's zero reach
+        # (which caused this slit). This does not disconnect the arm:
+        # Band A and Band B share one continuous solid via ordinary Z-
         # continuity of the arm body itself, not via bridge material
         # duplicated at every Z -- the original single-band bridge never
         # required that either.
+        SEAM_MARGIN = 0.100
         beam_half_width_pre = arm.val().BoundingBox().ymax  # BEAM_WIDTH / 2
         # Local X span matches the trim bounds exactly (0.400..23.600) so
         # the bridge cannot reintroduce the material the envelope trim
@@ -516,10 +689,11 @@ class PoweredUpHubHousing:
         # x 1.85 mm (reach depth, root_outer_local_y - root_inner_local_y)
         # x 23.2 mm (arm length) ~= 85.8 mm^3, see the design brief's own
         # margin derivation. If ROOT_BAND_A_Z_LO is ever raised (shrinking
-        # Band A) without re-deriving that margin, or Band B regrows a
-        # wall-reaching extension without re-deriving the tray-clearance
-        # argument, the guard below fails loudly instead of silently
-        # reopening either defect.
+        # Band A) without re-deriving that margin, the guard below fails
+        # loudly instead of silently reopening the floating-arm defect.
+        # Band B (below) deliberately DOES now reach the wall again (round
+        # 20, H4) -- but only by SEAM_MARGIN, not Band A's full depth; the
+        # assert after Band B's own construction guards that relationship.
         root = rounded_box(
             width=23.2,
             depth=root_outer_local_y - root_inner_local_y,
@@ -544,6 +718,29 @@ class PoweredUpHubHousing:
             "wall occupies (design brief Escalation 8)."
         )
         arm = arm.union(root)
+
+        # Band B bridge (round 20, H4) -- see the comment above the SEAM_MARGIN
+        # assignment for the derivation. Reach is intentionally SHALLOWER
+        # than Band A's (into the wall's own material by SEAM_MARGIN only,
+        # not past its inner face) -- this band exists solely to close the
+        # slit, not to duplicate Band A's structural-fuse role.
+        root_b_inner_local_y = (
+            self.WALL_X_OUTER_LOWER - self.WALL_THICKNESS + SEAM_MARGIN - self.HOLE_X
+        )
+        root_b = rounded_box(
+            width=23.2,
+            depth=root_outer_local_y - root_b_inner_local_y,
+            height=self.ROOT_BAND_A_Z_LO,  # local Z [0, ROOT_BAND_A_Z_LO], i.e. Band B
+            corner_r=0.0,
+            center=(12.0, (root_b_inner_local_y + root_outer_local_y) / 2.0, 0.0),
+        )
+        assert root_b_inner_local_y > root_inner_local_y, (
+            "Band B's reach must stay shallower than Band A's own deeper "
+            "reach (root_inner_local_y) -- growing Band B past that point "
+            "re-approaches the pre-round-17 full-reach tray collision "
+            "(Escalation 8) this two-band split exists to avoid."
+        )
+        arm = arm.union(root_b)
 
         # Width envelope trim (round 16, Escalation 7): the class's own
         # Cailliau-calibrated BEAM_WIDTH (7.8 mm, half-width 3.9 mm) puts

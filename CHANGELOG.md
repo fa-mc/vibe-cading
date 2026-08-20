@@ -54,8 +54,10 @@ section to the new version and date.
 - `PoweredUpHubHousing`: new exported model class, task 3 of the Powered Up
   hub battery-box implementation sequence (see
   `docs/design_plans/2026-08-19-poweredup-hub-battery-box_design.md`). An
-  exact copy of the real hub's bottom shell (LDraw `25560`, 72.0 × 71.2 ×
-  33.8 mm) with a scoped departure at the two lid-retention regions only
+  exact copy of the real hub's bottom shell's own envelope (LDraw `25560`,
+  72.0 × 71.2 × 29.6 mm — see the *Fixed* entry below for the round-20
+  correction from the LDraw part's bounding box, 33.8 mm) with a scoped
+  departure at the two lid-retention regions only
   (a single wall instead of LEGO's real two-skin sandwich, per the design's
   *Single wall at BOTH ends* section). Composes
   `PerpendicularHolesLiftarm(3, ["main", "none", "main"], thickness=8.0)`
@@ -213,6 +215,60 @@ section to the new version and date.
     gap is a deliberate, reviewed decision instead of an unregistered one;
     teaching the checker a real assembly-module row type (the principled
     fix) is tracked as a follow-up.
+- **`PoweredUpHubHousing`/`PoweredUpHubCover`: whole-part reference-fidelity
+  repair** (design round 20 — a dense surface-to-surface comparison against
+  the LDraw reference found 1 blocking + 7 significant defects that two
+  prior feature-checklist reviews both missed; see the design brief's
+  *Round 20* and `tmp/reference-comparison.md`):
+  - `PoweredUpHubHousing`: fixed a **`4.2 mm` overall-height overshoot**
+    (`72.0 × 71.2 × 33.8 mm` → the corrected `72.0 × 71.2 × 29.6 mm`) —
+    the earlier `TOP_Z = 33.8 mm` was the LDraw part's *bounding box*,
+    reached only by two now-out-of-scope `26.9 mm²` connector-port tubes;
+    the real shell's own top face is `29.6 mm`. `_build_top_deck` now
+    builds the deck as a `2.082 mm` slab ending at that face
+    (`z ∈ [27.518, 29.6]`) instead of a phantom slab sitting entirely
+    above it (`~16,270 mm³`, `61%` of the model's own volume, outside the
+    reference envelope).
+  - `PoweredUpHubHousing`: dished both faces of all four arms
+    (`_dish_arm_faces`, new) — a `2.756 mm`-web relief pocket between the
+    pin-hole positions, blended into each hole/boss by an `R3.600 mm`
+    cylindrical relief.
+  - `PoweredUpHubHousing`: corrected the side windows from a flat
+    `24.8 × 16.0 mm` rectangle (whose own comment wrongly claimed
+    `16.0 mm` was "the ramped ends' peak" — the reference's real peak is
+    `8.4 mm`) to a piecewise-linear taper matching the reference's own
+    measured shoulder profile, `24.0 mm` wide.
+  - `PoweredUpHubHousing`: closed a `0.100 mm` open slit between each arm
+    and the side wall (`Z ∈ [16.0, 22.0]`) — round 17's own fix had
+    over-corrected by dropping the root bridge's Band B reach to nothing;
+    restored with the shared `SEAM_MARGIN` overlap convention instead.
+  - `PoweredUpHubCover`: rebuilt the latch release leg (`_build_release_leg`)
+    from a straight, constant-`0.5 mm` wall flush with Housing's own outer
+    wall to the reference's own slanted, variable-thickness
+    (`0.7`–`1.05 mm`) blade, read directly off exact ray-crossing
+    coordinates.
+  - `PoweredUpHubCover`: restored "Tongue B"'s plan-outline footprint
+    (`|X| 17.2..26.0 mm`, a `1.378 mm` gap) at the riser level, matching
+    Tongue A's already-correct edge — supersedes round 18's "document the
+    omission" triage now that the gap's magnitude was quantified.
+  - Corrected two comments that were factually wrong about their own
+    geometry: the housing's `0.05 mm` step-seam overlap claimed to "not
+    change any externally-visible dimension" (it does — that face is the
+    part's exterior); the arm's as-built width was recorded as `7.8 mm`
+    (the nominal, untrimmed `PerpendicularHolesLiftarm` figure) when the
+    real as-built figure, after round 16's outboard-only trim, is
+    `7.5 mm`. Neither correction changes geometry, only documentation.
+  - **Three new cross-part findings surfaced by these fixes are escalated
+    to the Designer, not silently patched** (design brief Escalation 11):
+    the corrected deck now overlaps `PoweredUpHubBatteryTray`'s own
+    topmost extent by `~0.08 mm` across most of its footprint; the
+    corrected (smaller) side window no longer clears a tray tab the old,
+    oversized window used to clear by construction; and the corrected
+    release-leg spine now collides with Housing's own latch-catch boss
+    (derived, round 18, against the old leg shape). All three are outside
+    this round's own file scope and are recorded as documented, bounded
+    regression-guard residuals pending Designer resolution — see the
+    design brief for full detail and magnitudes.
 
 ## [0.1.6] - 2026-08-10
 
