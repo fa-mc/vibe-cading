@@ -107,6 +107,29 @@ section to the new version and date.
   read self-corrects. Verified via section slice: arm flat face at
   `X = ±35.600 mm`, boss tip at `X = ±36.000 mm`, overall envelope exactly
   `72.000 mm`.
+- `PoweredUpHubHousing`: fixed the `259.014 mm³` lower-band interference
+  between the arm root-bridge gusset and `PoweredUpHubBatteryTray`'s own
+  (unaffected) wall that Escalation 5's fix had unmasked (design round 17,
+  Escalation 8). The root bridge's single, uniform wall-reach — sized for
+  the wall's narrower *upper* band (`Z ≥ 22.0 mm`) — was applied across the
+  arm's *entire* thickness, so it also crossed through the wall's wider
+  *lower* band (`Z < 22.0 mm`, where the tray's wall sits) and overshot
+  into the tray's own territory there. Fixed with a Z-dependent two-band
+  bridge in `_build_arm_and_bore_local`: the upper band (`Z ∈ [22.0, 24.0]`,
+  the band that actually fuses the arm to the wall) is unchanged; the lower
+  band (`Z ∈ [16.0, 22.0]`) drops the wall-reaching extension entirely,
+  backed by a quantified `≈85.8 mm³` fused-overlap margin (the upper band
+  alone) proving the floating-arm defect cannot return, plus two runtime
+  assertions guarding both the fused-overlap height and the lower-band
+  boundary against silent regression. Root-bridge-band interference against
+  the tray is now `0.0 mm³` (down from `259.014 mm³`); envelope, cover
+  interference (`0.000000 mm³`), and the single-solid guard are unchanged.
+  Verifying this fix surfaced a separate, much smaller (`≈4.05 mm³`)
+  residual at the `Z = 22.0` wall-step seam itself — Housing's and the
+  tray's own independent `0.05 mm` coincident-faces overlap constructions
+  each reach slightly past the step into the other part's still-present
+  wall material there — confirmed unrelated to the root bridge and left
+  open as a new escalation (see the design brief's Escalations).
 
 ## [0.1.6] - 2026-08-10
 

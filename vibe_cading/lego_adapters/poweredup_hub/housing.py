@@ -214,6 +214,19 @@ class PoweredUpHubHousing:
     # _build_arm_and_bore_local's width-trim comment.
     ARM_WIDTH_TRIM_Y = 3.600
 
+    # Root-bridge Band A (round 17, Escalation 8) -- the arm-local Z
+    # window (thickness axis, pre-_place_arm) where the root bridge still
+    # reaches the wall. Local Z in [ROOT_BAND_A_Z_LO, ARM_THICKNESS] maps
+    # to global Z in [WALL_STEP_Z, TOP_Z] (both ends via the +ARM_Z_LO
+    # offset _place_arm applies), i.e. exactly the wall's upper band.
+    # Below ROOT_BAND_A_Z_LO (Band B, global Z in [ARM_Z_LO, WALL_STEP_Z],
+    # the wall's lower band -- where the tray's own wall sits) no bridge
+    # material is added at all; see _build_arm_and_bore_local's own
+    # comment for the full derivation and the ~85.8 mm^3 margin proving
+    # Band A alone still fuses the arm to the wall.
+    ROOT_BAND_A_Z_HI = ARM_THICKNESS
+    ROOT_BAND_A_Z_LO = ARM_THICKNESS - 2.000
+
     # Local-frame -> global-Y translation offset for the arm/bore remap
     # (see _place_arm): local hole-line X positions (4/12/20, the class's
     # STUD_PITCH*i + STUD_PITCH/2 formula) must land on global Y = 16/24/32,
@@ -407,23 +420,49 @@ class PoweredUpHubHousing:
         # Cailliau-calibrated cross-section is deliberately not trimmed
         # to LDraw's literal 35.6/36.0 mm figures (see class docstring).
         # Without a bridge the arm floats detached from the wall after
-        # the housing-frame remap. Extend the root deep past the wall's
-        # own inner face (well past -6 mm local Y, i.e. global X <= 26 mm,
-        # inboard of even the stepped wall's narrowest inner face) so the
-        # union is a genuine volume overlap regardless of which wall band
-        # (lower/upper) a given Z falls in.
+        # the housing-frame remap.
+        #
+        # Z-dependent two-band bridge (design brief round 17, Escalation
+        # 8): the housing's side wall itself is stepped in Z (WALL_STEP_Z
+        # = 22.0, global) -- a single reach sized for the *narrower* upper
+        # band would also apply at the lower band's Z range, where it
+        # over-reaches *past* the lower band's own (deeper) inner face and
+        # into what is, below the step, PoweredUpHubBatteryTray's
+        # unaffected wall territory rather than housing wall material at
+        # all (259.014 mm^3 cross-part interference, independently
+        # re-derived and confirmed in the design brief). Reshaping this
+        # bridge is Housing's call, not the tray's: the bridge has no
+        # LDraw counterpart -- it is this project's own composition
+        # geometry, added solely to fuse PerpendicularHolesLiftarm's
+        # diagonally-remapped output to the wall, so it is ours to shape
+        # (contrast the tray's own wall step, which mirrors Housing's
+        # real, load-bearing 25560 geometry and is not touched here).
+        #
+        # Band A -- local Z in [6.0, 8.0] (-> global Z in [22.0, 24.0],
+        # the upper wall band): UNCHANGED from the original single-band
+        # reach. This is the band that actually fuses the arm to the
+        # wall -- see the numeric margin below.
+        # Band B -- local Z in [0.0, 6.0] (-> global Z in [16.0, 22.0],
+        # the lower wall band, where the tray's wall sits): NO bridge box
+        # at all. The arm's own trimmed edge is left as-is; nothing here
+        # reaches toward the wall, so this band cannot collide with the
+        # tray (interference goes to exactly 0.0 mm^3, not a reduced
+        # figure). This does not disconnect the arm: Band A and Band B
+        # (where present) share one continuous solid via ordinary Z-
+        # continuity of the arm body itself, not via bridge material
+        # duplicated at every Z -- the original single-band bridge never
+        # required that either.
         beam_half_width_pre = arm.val().BoundingBox().ymax  # BEAM_WIDTH / 2
         # Local X span matches the trim bounds exactly (0.400..23.600) so
         # the bridge cannot reintroduce the material the envelope trim
         # just removed at either end.  Depth reaches only 0.05 mm past the
         # upper-band wall's own inner face (WALL_X_OUTER_UPPER -
         # WALL_THICKNESS = 26.400 mm, -> local Y = -5.650) -- the minimum
-        # needed to genuinely overlap *both* wall bands (lower solid
-        # region [27.2, 28.0], upper solid region [26.4, 27.2]) for a
-        # reliable union, without intruding further into the cavity than
-        # necessary.  An earlier version reached to local Y = -6.0 (global
-        # X = 26.0), which collided with PoweredUpHubBatteryTray's own
-        # side wall -- caught by the cross-part verification probe.
+        # needed to genuinely overlap the upper wall band ([26.4, 27.2])
+        # for a reliable union, without intruding further into the cavity
+        # than necessary.  An earlier version reached to local Y = -6.0
+        # (global X = 26.0), which collided with PoweredUpHubBatteryTray's
+        # own side wall -- caught by the cross-part verification probe.
         # The bridge lives on the NEGATIVE-Y side only (Y < -beam_half_width_pre,
         # i.e. beyond the arm's own -Y edge, toward the wall) -- NOT
         # symmetric with the +Y side, which must stay untouched (that is
@@ -434,12 +473,37 @@ class PoweredUpHubHousing:
         # caught by the cross-part / hole-presence test suite.
         root_inner_local_y = -5.650
         root_outer_local_y = -beam_half_width_pre
+        # Post-fix hardening (round 17): this Z window is the entirety of
+        # the structural fuse -- 2.0 mm (ROOT_BAND_A_Z_HI - ROOT_BAND_A_Z_LO)
+        # x 1.85 mm (reach depth, root_outer_local_y - root_inner_local_y)
+        # x 23.2 mm (arm length) ~= 85.8 mm^3, see the design brief's own
+        # margin derivation. If ROOT_BAND_A_Z_LO is ever raised (shrinking
+        # Band A) without re-deriving that margin, or Band B regrows a
+        # wall-reaching extension without re-deriving the tray-clearance
+        # argument, the guard below fails loudly instead of silently
+        # reopening either defect.
         root = rounded_box(
             width=23.2,
             depth=root_outer_local_y - root_inner_local_y,
-            height=self.ARM_THICKNESS,
+            height=self.ROOT_BAND_A_Z_HI - self.ROOT_BAND_A_Z_LO,
             corner_r=0.0,
-            center=(12.0, (root_inner_local_y + root_outer_local_y) / 2.0, 0.0),
+            center=(
+                12.0,
+                (root_inner_local_y + root_outer_local_y) / 2.0,
+                self.ROOT_BAND_A_Z_LO,
+            ),
+        )
+        assert self.ROOT_BAND_A_Z_LO == self.ARM_THICKNESS - 2.0, (
+            "Root bridge Band A must retain its full 2.0 mm Z-height (the "
+            "~85.8 mm^3 structural-fuse margin derived in the design "
+            "brief's Escalation 8) -- shrinking it reopens the floating-"
+            "arm defect the bridge exists to prevent."
+        )
+        assert self.ROOT_BAND_A_Z_LO >= self.WALL_STEP_Z - self.ARM_Z_LO, (
+            "Root bridge Band A must not extend below the wall step "
+            "(global Z = WALL_STEP_Z) -- doing so regrows a wall-reaching "
+            "extension into Band B's Z-range, which the tray's lower-band "
+            "wall occupies (design brief Escalation 8)."
         )
         arm = arm.union(root)
 

@@ -204,10 +204,7 @@ def test_housing_tray_upper_band_interference_is_zero():
     Z = tray-local Z + PLATE_THICKNESS -- see design brief round 16), must
     not intersect Housing's own *upper* wall band (world Z >= WALL_STEP_Z)
     at all -- this is the interference the wall-step fix specifically
-    targets and fully eliminates. (A separate, pre-existing lower-band
-    conflict between Housing's arm root-bridge and the tray's own
-    unaffected lower-band wall is out of this fix's scope -- see the design
-    brief's Escalation 8; it is NOT asserted zero here.)
+    targets and fully eliminates.
     """
     import cadquery as cq
 
@@ -227,6 +224,79 @@ def test_housing_tray_upper_band_interference_is_zero():
     assert vol < 1e-6, (
         f"Housing/Tray upper-band interference {vol:.4f} mm^3 -- expected 0 "
         "(round 16, Escalation 5)"
+    )
+
+
+def test_housing_tray_root_bridge_band_interference_is_zero():
+    """Round 17, Escalation 8's own acceptance check: the root-bridge's own
+    Band B Z-range (world Z in [ARM_Z_LO, WALL_STEP_Z] = [16.0, 22.0],
+    where the tray's lower-band wall sits) must be interference-free.
+    Before the Z-dependent two-band root bridge, the bridge's uniform
+    reach crossed through this exact region -- 259.014 mm^3, independently
+    re-derived in the design brief. The fix drops the bridge's
+    wall-reaching extension entirely there, so this must now be exactly
+    zero, not merely reduced.
+
+    Probed at Z in [16.0, 21.9] rather than the full [16.0, 22.0] --
+    the top 0.1 mm is deliberately excluded to isolate this check from a
+    separate, smaller (~4.05 mm^3) residual discovered *while verifying
+    this fix*, at the Z = 22.0 wall-step seam itself: Housing's and the
+    Tray's own independent 0.05 mm coincident-faces overlap tricks (each
+    part's own `_build_side_wall` / `_build_shell`, both citing the same
+    "coincident faces" pitfall) each extend their own upper wall band
+    0.05 mm *below* the nominal Z = 22.0 step -- and each part's downward
+    extension turns out to reach into the *other* part's still-present
+    lower-band wall material in that sliver, producing a tiny genuine
+    interference neither part's own single-part construction comment
+    anticipated. This is unrelated to the root bridge (confirmed by
+    computing it with `_build_side_wall()` alone, no arms) and out of
+    this fix's scope -- see the design brief's Escalations for the
+    follow-up entry. NOT asserted zero here.
+    """
+    import cadquery as cq
+
+    from vibe_cading.lego_adapters.poweredup_hub.battery_tray import PoweredUpHubBatteryTray
+
+    h = PoweredUpHubHousing()
+    t = PoweredUpHubBatteryTray()
+    tray_world = t.solid.translate((0, 0, PoweredUpHubCover.PLATE_THICKNESS))
+
+    band_z_hi = PoweredUpHubHousing.WALL_STEP_Z - 0.1  # clear of the seam sliver, see docstring
+    band = cq.Workplane("XY").box(
+        200, 200, band_z_hi - PoweredUpHubHousing.ARM_Z_LO, centered=(True, True, False)
+    ).translate((-100, -100, PoweredUpHubHousing.ARM_Z_LO))
+    h_band = h.solid.intersect(band)
+    t_band = tray_world.intersect(band)
+    inter = h_band.intersect(t_band)
+    vol = sum(s.Volume() for s in inter.solids().vals()) if inter.solids().vals() else 0.0
+    assert vol < 1e-6, (
+        f"Housing/Tray root-bridge-band interference {vol:.4f} mm^3 -- expected 0 "
+        "(round 17, Escalation 8)"
+    )
+
+
+def test_root_bridge_band_a_retains_structural_fuse_margin():
+    """Post-fix hardening for round 17, Escalation 8: Band A (the arm
+    root-bridge's upper Z-slice, global Z in [WALL_STEP_Z, TOP_Z]) is the
+    *entirety* of the arm-to-wall structural fuse now that Band B carries
+    no wall-reaching material. Independently probe a small material box
+    straddling the bridge's own reach depth at a representative Band-A Z
+    (WALL_STEP_Z + 1.0, mid-band) on one arm's root -- if this ever comes
+    back empty, the two-band split has silently eaten the fuse the
+    original root-bridge fix existed to guarantee (design brief's
+    ~85.8 mm^3 margin), which is exactly the floating-arm defect this
+    project's own regression suite must never let back in silently.
+    """
+    h = PoweredUpHubHousing().solid
+
+    # One arm's root-bridge region: near global X = 27.0 (inside the
+    # bridge's [26.35, 28.1]-ish reach), Y around one hole line (32.0),
+    # Z at WALL_STEP_Z + 1.0 -- squarely inside Band A.
+    probe_z = PoweredUpHubHousing.WALL_STEP_Z + 1.0
+    assert _probe_material(h, 27.0, 32.0, probe_z, size=0.6) > 0.9 * 0.6**3, (
+        "Root bridge Band A no longer fills its own structural-fuse region "
+        "-- the arm may be floating detached from the wall again "
+        "(round 17, Escalation 8's post-fix hardening guard)."
     )
 
 
