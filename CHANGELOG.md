@@ -269,6 +269,79 @@ section to the new version and date.
     this round's own file scope and are recorded as documented, bounded
     regression-guard residuals pending Designer resolution — see the
     design brief for full detail and magnitudes.
+- **`PoweredUpHubHousing`/`PoweredUpHubCover`/`PoweredUpHubBatteryTray`:
+  round-21 whole-part re-verification repair** (design round 21 —
+  re-running round 20's whole-part comparison against the round-20 repair
+  found H1/H4 genuinely fixed but 8 further significant residuals and 2
+  previously-undeclared deviations; see the design brief's *Round 21* and
+  `tmp/reference-comparison.md`'s `§R0–R10`):
+  - `PoweredUpHubCover`: the round-20 Tongue-B plan-outline restoration
+    over-corrected its own Z-extent — the outer band (`|X|` between
+    `TONGUE_X_HALF` and `RISER_X_HALF`) was built as a full-height
+    `2.800 mm` riser instead of plain `1.200 mm` plate, on the tongue's
+    own mating face (finding RC4). `_build_tongue` now splits the riser
+    into an inner (Tongue-A-width, full-height) and outer
+    (plate-thickness-only) band.
+  - `PoweredUpHubCover`: prepended the release leg's own reference-derived
+    flared-foot profile below `Z = 2.0` (finding RC1) — a real,
+    source-readable feature (`s\24853s01.dat`) that had never been
+    declared as a deviation at all, larger than the crown's own declared
+    hold above `Z = 11.0`, and at the leg's structurally more important
+    root. The crown hold's own stated justification ("avoids a hook-leg
+    collision") is corrected in the docstring (finding RC3): it does not
+    survive (the rebuilt leg collides with the housing instead, see
+    Escalation 11c below) but is kept on re-derived grounds (bounded,
+    stiffening-direction, no interference of its own once the housing
+    catch is fixed) — no geometry change.
+  - `PoweredUpHubHousing`: capped the latch-end and tongue-end walls at
+    `END_WALL_Z_HI` (`24.000 mm`, was `29.600 mm`) and narrowed the deck's
+    own plan footprint to `x ±27.200 × y [-32.000, 33.200]` (was the full
+    `±28.000 / ±35.600` housing footprint) — the largest remaining visual
+    difference after round 20's H1 fix (finding RH1).
+  - `PoweredUpHubHousing`: widened the arm-dish's plan footprint from
+    `0.84 mm` to `4.000 mm` on each side of the pocket (finding H2/RH2),
+    via an independent gap-opening relief circle centred at each
+    inter-hole midpoint rather than shrinking either hole's own `R3.600`
+    relief (which either reopens the exact `1.054 mm` end rail or, at the
+    middle hole, disconnects the arm once the co-located middle bore is
+    cut through it — caught by the single-solid assert during development).
+    The dish's cross-section (floors, rails, pocket walls) is unchanged.
+  - `PoweredUpHubHousing`: corrected the side window's peak from
+    `8.500 mm` back to `8.400 mm` and widened the taper at `Z = 8.0` by
+    `0.690 mm` (finding H3/RH3) — `24851.dat` carries a genuine planar
+    face at `Z = 8.400` (not a point apex); the window's own taper
+    profile now ends in a flat top segment instead of converging to a
+    point.
+  - `PoweredUpHubHousing`: routed the top deck's own thickness through
+    `profile.free.radial` instead of a flat `2.082 mm` literal (finding
+    E11-a) — the literal was round 20's own prior extraction, explicitly
+    flagged there as the *centre value of a corrugated ceiling* with the
+    off-centre thickness undetermined; applying it as a global plane
+    collided with `PoweredUpHubBatteryTray`'s own top face
+    (`21.094 mm³`). Fixed: `Tray/Housing` seated interference `0.0 mm³`
+    (was `~21 mm³`).
+  - `PoweredUpHubBatteryTray`: reduced the extraction tab's own Y-reach
+    (`TAB_PAD_Y_HALF_NOMINAL`, now running-clearance-corrected) to clear
+    Housing's own corrected window taper at the pad's actual seated Z
+    (finding E11-b, `2.344 mm³`) — the tray's own fault, not the
+    window's; re-widening the window would reopen H3/RH3.
+  - `PoweredUpHubHousing`: retreated the latch catch boss's own Y-reach
+    to `_LATCH_CATCH_RETREAT_Y` (`-34.400 mm`, the real part's own
+    inner-skin depth) outside a Z-window bracketing the barb axis
+    (finding E11-c ⑴) — the release leg, correctly positioned by round
+    20's C1-C3 fix, fouls the boss's own locally-thickened material over
+    the Y-band the real part's two-skin construction leaves clear for it
+    (root cause: this class's own round-14 single-wall departure).
+    Reduces the new collision from `21.324 mm³` to a `~2.6 mm³` residual
+    at the barb window's own boundary (the structural floor for the
+    undercut's backing material requires some full-reach window there);
+    the pre-existing, separately-accepted `18.088 mm³` barb-in-catch
+    seated residual (Escalation 10) is unchanged.
+  - **Two declaration-process findings, not geometry fixes**: RC1 (the
+    release leg's flared foot) had never been recorded as a deviation at
+    all until this round; RC3 (the crown hold)'s stated justification was
+    corrected rather than the geometry re-derived. See the design brief's
+    *Round 21* for the full framing.
 
 ## [0.1.6] - 2026-08-10
 

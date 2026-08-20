@@ -212,7 +212,21 @@ class PoweredUpHubBatteryTray:
     # translate (Cover.PLATE_THICKNESS) is unrelated and untouched -- the
     # error was entirely in these constants, not the seating transform.
     TAB_PAD_X = 28.000
-    TAB_PAD_Y_HALF = 12.000
+    # Round 21 (finding E11-b): Housing's own corrected (narrower) side
+    # window (round 20 H3, round 21 H3/RH3) no longer clears the pad's
+    # full 12.000 mm reach -- the pad's own TOP face sits at world
+    # Z = TAB_PAD_Z_HI + PoweredUpHubCover.PLATE_THICKNESS (the seated
+    # assembly's own +1.2 mm translate, see assembly.py), i.e. world
+    # Z = 6.800 mm, where the window's own taper
+    # (PoweredUpHubHousing.WINDOW_TAPER_PROFILE) has narrowed to a
+    # half-width of 11.043 mm -- less than the old 12.000 mm reach. This
+    # is genuinely the tab's own fault, not the window's -- re-widening
+    # the window would reopen H3/RH3. TAB_PAD_Y_HALF_NOMINAL is that
+    # window-clearing figure (zero-clearance touch); __init__ applies the
+    # project's own running-clearance convention on top of it (see
+    # self._tab_pad_y_half below), like every other cross-part clearance
+    # in this brief, rather than a bare literal.
+    TAB_PAD_Y_HALF_NOMINAL = 11.043
     TAB_PAD_Z_HI = 5.600
     TAB_LEDGE_X = 28.400
     TAB_LEDGE_Y_HALF = 8.400
@@ -276,6 +290,10 @@ class PoweredUpHubBatteryTray:
         # 1.5 mm down there anyway: FLOOR_STANDOFF (2.500 mm local) already
         # keeps the pack's own resting surface well above RELIEF_Z_LO.
         self.RELIEF_Z_LO = 1.700  # local Z, clears the tongue riser with margin
+
+        # Round 21 (finding E11-b): running-clearance-corrected extraction
+        # tab Y-reach -- see TAB_PAD_Y_HALF_NOMINAL's own comment above.
+        self._tab_pad_y_half = self.TAB_PAD_Y_HALF_NOMINAL - prof.free.radial
         self._end_wall_pos_y_lo = self.END_WALL_POS_Y_LO_NOMINAL + self.RELIEF
         self._end_wall_pos_y_hi = self.END_WALL_POS_Y_HI_NOMINAL + self.RELIEF
 
@@ -499,7 +517,7 @@ class PoweredUpHubBatteryTray:
         x_hi = max(x_wall, side * self.TAB_PAD_X)
         pad = rounded_box(
             width=x_hi - x_lo,
-            depth=2 * self.TAB_PAD_Y_HALF,
+            depth=2 * self._tab_pad_y_half,
             height=self.TAB_PAD_Z_HI,
             corner_r=0.0,
             center=((x_lo + x_hi) / 2.0, 0.0, 0.0),

@@ -102,10 +102,28 @@ class PoweredUpHubCover:
           the real leg is a slanted, variable-thickness blade
           (0.7-1.05 mm) whose outer face never reaches past Y = -34.063 mm;
           the corrected profile (:attr:`_LEG_OUTER_Y` / :attr:`_LEG_THICKNESS`)
-          reproduces the reference's own exact ray-crossing coordinates. See
-          those constants' own note for the one place (near the crown,
-          Z > 11.0 mm) this implementation deliberately does NOT follow the
-          reference's own trend, to avoid a new hook-leg collision.
+          reproduces the reference's own exact ray-crossing coordinates.
+          **Round 21 (finding RC1)** prepends the reference's own
+          flared-foot points below Z = 2.0 (see :attr:`_LEG_OUTER_Y`'s own
+          note) -- this departure had never been declared at all until
+          this round; it is larger than the crown's own declared
+          deviation and sits at the leg's structurally more important
+          root, not its tip. See those constants' own note for the one
+          place (near the crown, Z > 11.0 mm) this implementation
+          deliberately does NOT follow the reference's own trend.
+          **Round 21 (finding RC3) re-justifies that crown hold**: the
+          originally-stated reason ("avoids a hook-leg collision") does
+          not survive -- the rebuilt leg collides with the *housing*
+          instead (Escalation 11c ⑴), not the hook leg the original
+          justification named. The flat hold is kept anyway, on
+          corrected grounds: it is a bounded shape simplification
+          (max 0.982 mm deviation, concentrated at the very tip), it
+          moves the leg's compliance in the *stiffening* direction (safe
+          for retention, unquantified for insertion force), and -- once
+          Escalation 11c ⑴ is fixed at its own root cause (the catch's
+          Y-reach, in :class:`~vibe_cading.lego_adapters.poweredup_hub.housing.PoweredUpHubHousing`) --
+          introduces no interference of its own. No geometry change here;
+          this is a correction to the *stated reason*, not the shape.
         - The barb's true R1.000 mm cylindrical bead (157.5 deg arc) is
           approximated as a faceted (straight-edged) crest at the same
           position and protrusion, not a true arc -- a cosmetic rounding
@@ -139,7 +157,16 @@ class PoweredUpHubCover:
           -- this is purely a plan-outline restoration; the thin distal
           *tip* stays at the narrower :attr:`TONGUE_X_HALF` (15.600 mm),
           since Tongue B's own retention-critical tip footprint was never
-          the gap (only its riser-level plan outline was).
+          the gap (only its riser-level plan outline was). **Round 21
+          (finding RC4) corrects the Z-extent of that restoration**: round
+          20 built the whole restored width at the full riser height
+          (2.800 mm), over-correcting Tongue B's own outer band (|X| in
+          [:attr:`TONGUE_X_HALF`, :attr:`RISER_X_HALF`]) -- the reference
+          has plain :attr:`PLATE_THICKNESS` (1.200 mm) plate there, not a
+          riser; only Tongue A's own |X| <= :attr:`TONGUE_X_HALF` band is
+          a genuine full-height riser. :meth:`_build_tongue` now builds
+          the outer band at plate thickness only, on the tongue's own
+          mating face.
         - **Locating land, corrected sign (round 18, S1).** The real
           feature is a raised registration land (the plate is locally
           1.600 mm thick over Y in [30.0, 31.2] -- exactly the
@@ -229,7 +256,24 @@ class PoweredUpHubCover:
     # opening the way the pre-round-20 version was by construction. This
     # is what the reference's own geometry shows; flagged here for review
     # rather than silently deviating from the corrected spec.
-    _LEG_OUTER_Y = ((0.0, -34.063), (3.6, -34.063), (5.0, -34.220), (8.0, -33.733), (11.0, -33.367))
+    # Round 21 (finding RC1) prepends the reference's own flared-foot points
+    # below z = 2.0 -- a real, source-readable feature (`s\24853s01.dat`)
+    # that round 18/20 never carried forward, and which was never declared
+    # as a deviation at all (a first-class process finding, not folded into
+    # the geometry fix silently -- see the class docstring's *Known
+    # simplifications* note on the release leg). The foot ramps outward to
+    # y = -35.600 at z = 0, pulling back through -35.184 / -35.152 / -35.120
+    # at z = 0.2 / 0.6 / 1.0, reaching the already-correct -34.063 point at
+    # z = 2.0 (unchanged from round 20). Thickness at these new points is
+    # NOT separately re-measured -- the reference gives outer-face points
+    # only -- so the existing flat 0.698 mm value (already spanning
+    # [0.0, 3.6] in _LEG_THICKNESS below) is left to cover them too, per
+    # this project's Experimental Integrity convention (declared, not
+    # silently assumed).
+    _LEG_OUTER_Y = (
+        (0.0, -35.600), (0.2, -35.184), (0.6, -35.152), (1.0, -35.120), (2.0, -34.063),
+        (3.6, -34.063), (5.0, -34.220), (8.0, -33.733), (11.0, -33.367),
+    )
     _LEG_THICKNESS = ((0.0, 0.698), (3.6, 0.698), (5.0, 1.028), (8.0, 0.715), (11.0, 1.047))
     # Beyond Z = 11.0 (the last reference-verified sample) the profile is
     # held FLAT, not extrapolated toward the z=12.5 point the reference
@@ -240,9 +284,18 @@ class PoweredUpHubCover:
     # occupied band). This is a genuine, undecided edge case near the
     # crown junction the design brief does not resolve (round 18 already
     # flagged "re-derive t/L... not hand-derived blind" for this whole
-    # feature) -- held flat here as the conservative, collision-free
-    # choice, declared rather than silently guessed. Re-verify via
-    # section_slicer.py before treating the crown transition as final.
+    # feature) -- held flat here, declared rather than silently guessed.
+    # **Round 21 (finding RC3) -- re-justified, not re-derived.** The
+    # original "avoids a hook-leg collision" justification does not
+    # survive: the rebuilt leg collides with the *housing* instead
+    # (Escalation 11c (1)), not the hook leg this comment used to name.
+    # Kept anyway on corrected grounds -- bounded (max 0.982 mm deviation,
+    # concentrated at the tip), moves compliance in the stiffening
+    # (safe-for-retention) direction, and introduces no interference of
+    # its own once Escalation 11c (1) is fixed at its own root cause (the
+    # housing catch's Y-reach) -- see the class docstring's own note.
+    # Re-verify via section_slicer.py before treating the crown transition
+    # as final.
     PAD_Z_HI = 3.600              # matches PoweredUpHubHousing.LATCH_WINDOW_Z_HI
     CROWN_THICKNESS = 1.200       # Z-band bridging the hook leg's tip to the release leg -- the ONLY join
 
@@ -423,19 +476,38 @@ class PoweredUpHubCover:
         thickness) plus a thin distal tip (the actual 0.926 mm rebate
         blade), per the class docstring's *Known simplifications*.
 
-        The riser uses :attr:`RISER_X_HALF` (26.000 mm), wider than the
-        tip's own :attr:`TONGUE_X_HALF` (15.600 mm) -- round 20, finding
-        C4: this restores Tongue B's own plan-outline footprint
-        (|X| 17.2..26.0 mm) at the riser level, matching Tongue A's
-        already-correct edge, while the tip stays at the narrower,
-        retention-critical width (see class docstring).
+        The riser's own plan outline uses :attr:`RISER_X_HALF`
+        (26.000 mm), wider than the tip's own :attr:`TONGUE_X_HALF`
+        (15.600 mm) -- round 20, finding C4: this restores Tongue B's own
+        plan-outline footprint (|X| 17.2..26.0 mm) at the riser level,
+        matching Tongue A's already-correct edge. **Round 21 (finding
+        RC4) corrects the riser's own Z-extent over that outer (Tongue B,
+        |X| in [TONGUE_X_HALF, RISER_X_HALF]) band** -- round 20 restored
+        the *plan outline* correctly but built the whole width at the
+        full :attr:`RISER_Z_HI` (2.800 mm) riser height, when only Tongue
+        A's own |X| <= TONGUE_X_HALF band is actually a full-height riser
+        there; the outer Tongue-B band is plain :attr:`PLATE_THICKNESS`
+        (1.200 mm) plate, matching the rest of the plate and Tongue A's
+        own tip. This is a thickness-only correction on an
+        already-correctly-positioned outline (C4's own restoration is not
+        in question) -- it lands on the tongue's *mating* face, so it is
+        functional, not cosmetic.
         """
-        riser = rounded_box(
-            width=2 * self.RISER_X_HALF,
-            depth=self.TONGUE_STEP_Y - self.PLATE_Y_HI,
+        riser_depth = self.TONGUE_STEP_Y - self.PLATE_Y_HI
+        riser_y_center = (self.PLATE_Y_HI + self.TONGUE_STEP_Y) / 2.0
+        riser_inner = rounded_box(
+            width=2 * self.TONGUE_X_HALF,
+            depth=riser_depth,
             height=self.RISER_Z_HI,
             corner_r=0.0,
-            center=(0.0, (self.PLATE_Y_HI + self.TONGUE_STEP_Y) / 2.0, 0.0),
+            center=(0.0, riser_y_center, 0.0),
+        )
+        riser_outer = rounded_box(
+            width=2 * self.RISER_X_HALF,
+            depth=riser_depth,
+            height=self.PLATE_THICKNESS,
+            corner_r=0.0,
+            center=(0.0, riser_y_center, 0.0),
         )
         tip = rounded_box(
             width=2 * self.TONGUE_X_HALF,
@@ -448,7 +520,7 @@ class PoweredUpHubCover:
                 self.TIP_Z_LO,
             ),
         )
-        return riser.union(tip)
+        return riser_inner.union(riser_outer).union(tip)
 
     def _build_locating_land(self) -> cq.Workplane:
         """Raised registration land for the BatteryTray's bottom rim

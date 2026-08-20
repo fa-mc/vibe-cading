@@ -137,16 +137,16 @@ class PoweredUpHubHousing:
           hub-electronics connector conduits with no function in a battery
           box -- omitted, not silently dropped.
         - **Side windows** simplified from LDraw's ramped-end trapezoid
-          profile to a piecewise-linear taper (round 20, H3 -- corrected
-          from an earlier flat-topped ``24.8 x 16.0 mm`` rectangle whose
-          own code comment claimed 16.0 mm was "the ramped ends' peak";
-          that claim was factually wrong -- the real ramped shoulders peak
-          at 8.4 mm, not 16.0 mm): flat at half-width :attr:`WINDOW_Y_HALF`
-          (12.000 mm) for ``Z <= WINDOW_SHOULDER_Z`` (4.8 mm), then
-          tapering through the reference's own measured shoulder points
-          (see :attr:`WINDOW_TAPER_PROFILE`) to full closure at
-          :attr:`WINDOW_APEX_Z` (8.5 mm). **Re-verified round 18 (finding
-          C4)**: this simplification was previously *masking*
+          profile to a piecewise-linear taper (round 20, H3; re-corrected
+          round 21, H3/RH3 -- see :attr:`WINDOW_TAPER_PROFILE`'s own note):
+          flat at half-width :attr:`WINDOW_Y_HALF` (12.000 mm) for
+          ``Z <= WINDOW_SHOULDER_Z`` (4.8 mm), then tapering through the
+          reference's own measured shoulder points to a genuine FLAT top
+          face (half-width 8.400 mm at ``Z = 8.400``, matching a real
+          planar face in the LDraw source) rather than a point apex --
+          round 20's 8.500 mm figure replaced that flat top with a point,
+          corrected here. **Re-verified round 18 (finding C4)**: this
+          simplification was previously *masking*
           :class:`~vibe_cading.lego_adapters.poweredup_hub.battery_tray.PoweredUpHubBatteryTray`'s
           S2 Z-datum error (the tab ledge would not have passed the real,
           ramped window profile) -- now that S2 is corrected, the tab
@@ -164,16 +164,18 @@ class PoweredUpHubHousing:
           own end-wall extent exactly -- the earlier ``|x| <= 32.0 mm``
           reference-doc figure was itself a transcription error in
           ``tmp/ldraw-housing-geometry.md``, not a modelling gap here.
-        - **End-wall Z extent** (latch and tongue walls) built full-height,
-          ``Z`` in ``[0, DECK_Z]`` (``0..29.6 mm``), rather than the real
-          part's own, shorter two-skin sandwich extent (``3.6..22.0 mm``
-          per ``tmp/ldraw-housing-geometry.md``) -- round 18, finding C3.
-          Additive-only (never removes material the real part has), and
-          this class's own single-wall departure already scopes the
-          latch/tongue ends away from an exact copy (see *Single wall at
-          BOTH ends* above), so the extra height is harmless, not a new
-          interference risk -- declared here per this project's
-          Experimental Integrity convention rather than left silent.
+        - **End-wall Z extent** (latch and tongue walls), ``Z`` in
+          ``[0, END_WALL_Z_HI]`` (``0..24.0 mm``) -- round 18 (finding C3)
+          originally built these full-height to ``DECK_Z`` (``29.6 mm``,
+          a documented additive-only simplification); round 21 (finding
+          RH1) corrects this to the real end wall's own measured height
+          (``24.0 mm``, matching the reference exactly) -- this was the
+          single largest remaining visual difference after round 20's H1
+          fix. This class's own single-wall departure still scopes the
+          latch/tongue ends away from an exact copy of LEGO's two-skin
+          sandwich (``3.6..22.0 mm`` per ``tmp/ldraw-housing-geometry.md``)
+          -- see *Single wall at BOTH ends* above -- but the Z extent
+          itself is no longer over-height.
         - **Arm cross-section** stays at the class's own
           Cailliau-calibrated ``BEAM_WIDTH`` (7.8 mm *nominal*, vs.
           LDraw's idealised 7.2 mm) -- the design brief's explicit "not
@@ -254,7 +256,33 @@ class PoweredUpHubHousing:
     # tubes now ruled out of scope, not by the shell itself -- nothing
     # should build above DECK_Z any more.
     DECK_Z = 29.600
-    DECK_THICKNESS = 2.082   # the real shell's own measured deck thickness
+    # Round 21 (finding E11-a): DECK_THICKNESS is no longer a bare literal.
+    # Round 20's H1 fix used 27.518 mm as the deck's underside -- but that
+    # figure was round 20's OWN prior extraction explicitly flagged as the
+    # *centre value of a corrugated ceiling* whose off-centre thickness was
+    # NOT determined; applying it as a global flat plane collides with the
+    # Tray's own top face (26.400 + PoweredUpHubCover.PLATE_THICKNESS =
+    # 27.600 mm). DECK_THICKNESS_NOMINAL (2.000 mm) is the zero-clearance
+    # figure (DECK_Z - 2.000 = 27.600, flush with the tray's top); the
+    # instance's own running clearance (see __init__) is subtracted from it
+    # so the deck's underside clears the tray by the project's own
+    # profile.free.radial convention, like every other cross-part
+    # clearance in this brief, rather than a bare literal touch. This
+    # remains a conservative, honest simplification -- a flat plane where
+    # the real part corrugates -- not an attempt to fabricate the
+    # undetermined off-centre profile (see *Known simplifications* below).
+    DECK_THICKNESS_NOMINAL = 2.000
+
+    # Round 21 (finding RH1) -- the deck's own plan footprint is narrower
+    # than the full housing envelope: the real shell narrows to the
+    # inner-skin line above the end walls' own height (see END_WALL_Z_HI
+    # below), so the deck top face spans only this asymmetric Y range (the
+    # X half-width is unchanged -- it already matches WALL_X_OUTER_UPPER
+    # exactly). Asymmetric because the housing's own Y frame is (latch end
+    # at -Y, tongue end at +Y), matching the Cover's frame, not a
+    # symmetric envelope.
+    DECK_Y_LO = -32.000
+    DECK_Y_HI = 33.200
 
     # --- Side walls (X-direction, stepped -- SS4) ---
     WALL_THICKNESS = 0.800
@@ -262,16 +290,32 @@ class PoweredUpHubHousing:
     WALL_X_OUTER_LOWER = 28.000   # |X| outer face, Z < WALL_STEP_Z
     WALL_X_OUTER_UPPER = 27.200   # |X| outer face, Z >= WALL_STEP_Z
 
-    # --- Side windows, tapered (SS7.2, round 20 H3) ---
+    # Round 21 (finding RH1) -- the latch-end and tongue-end walls (built by
+    # _build_latch_wall / _build_tongue_wall) stop here, not at DECK_Z: the
+    # real end walls span Z 0..24.000 mm; above that the shell narrows to
+    # the deck's own (narrower) footprint (see DECK_Y_LO/DECK_Y_HI above).
+    # The X-direction side walls (_build_side_wall) are unaffected -- they
+    # already reach DECK_Z, and their own upper band already narrows in X
+    # (WALL_X_OUTER_UPPER) at WALL_STEP_Z, matching the reference's own
+    # narrowing there; only the two END walls were over-height.
+    END_WALL_Z_HI = 24.000
+
+    # --- Side windows, tapered (SS7.2, round 20 H3, round 21 RH3) ---
     WINDOW_Y_HALF = 12.000        # flat half-width, Z <= WINDOW_SHOULDER_Z
     WINDOW_SHOULDER_Z = 4.800     # where the ramped taper begins
     # Piecewise-linear taper, (z, half_width) pairs read directly off the
-    # reference between WINDOW_SHOULDER_Z and WINDOW_APEX_Z -- the real
-    # part's ramped-end trapezoid profile, corrected from the earlier flat
-    # 16.0 mm rectangle (whose own comment wrongly claimed 16.0 mm was
-    # "the ramped ends' peak" -- the real peak/closure is at 8.5 mm).
-    WINDOW_TAPER_PROFILE = ((6.000, 11.761), (8.300, 8.903))
-    WINDOW_APEX_Z = 8.500          # full closure
+    # reference between WINDOW_SHOULDER_Z and the flat top (the last
+    # entry). The real part's ramped-end trapezoid profile, corrected from
+    # an earlier flat 16.0 mm rectangle (round 20), then re-corrected
+    # round 21 (finding H3/RH3): `24851.dat` carries a genuine PLANAR face
+    # at Z = 8.400 (26.9 mm^2, y +-8.400) -- not a point apex (round 20's
+    # 8.500 mm figure replaced the reference's own flat top with one) --
+    # and the taper at Z = 8.0 is 0.690 mm wider than round 20 built
+    # (9.966 mm half-width, not 9.276). The last profile entry IS the flat
+    # top's own edge (half-width 8.400 at Z = 8.400): the sweep below
+    # connects it straight across to its own mirror instead of converging
+    # to a point, reproducing the reference's flat 16.8 mm-wide top face.
+    WINDOW_TAPER_PROFILE = ((6.000, 11.761), (8.000, 9.966), (8.400, 8.400))
 
     # --- Pin-hole / arm map (SS1, SS2) ---
     HOLE_X = 32.000
@@ -314,6 +358,13 @@ class PoweredUpHubHousing:
 
     BOSS_DIAMETER = 7.200
     BOSS_PROUD = 0.400          # beyond the arm's own BEAM_WIDTH/2 edge, see docstring
+
+    # Round 21 (finding H2/RH2) -- the arm-dish gap-opening circle radius,
+    # centred at each inter-hole midpoint (not at any hole position) to
+    # widen the dish's own plan footprint without disturbing the exact
+    # R3.6 hole reliefs. See _dish_arm_faces's own docstring for the full
+    # derivation and topology-safety note.
+    _DISH_GAP_OPEN_RADIUS = 2.000
     MID_BORE_CB_DIAMETER = 6.400
     MID_BORE_CB_DEPTH = 0.800
     MID_BORE_DIAMETER = 4.800
@@ -328,6 +379,10 @@ class PoweredUpHubHousing:
     LATCH_WINDOW_X_HI = 19.200
     LATCH_WINDOW_Z_HI = 3.600
     _LATCH_CATCH_Z_MARGIN = 3.0   # boss Z-band margin around the engagement band
+    # Round 21 (finding E11-c (1)) -- the real part's own inner-skin depth
+    # at the latch end; the catch boss retreats to this Y outside the barb
+    # window (see _build_latch_catch), leaving y in [-34.4, leg] clear.
+    _LATCH_CATCH_RETREAT_Y = -34.400
 
     # --- Tongue end (+Y), SS12 ---
     TONGUE_Y = HALF_Y
@@ -362,6 +417,12 @@ class PoweredUpHubHousing:
         # inner face TOWARD the tip and thickened the wall -- the opposite
         # of clearance -- and measurably collided with Cover's tongue tip.)
         self._tongue_inner_y_upper = self.TONGUE_INNER_Y_UPPER + prof.free.radial
+
+        # Round 21, finding E11-a: the deck's underside clears the tray's
+        # own top face (26.400 + Cover.PLATE_THICKNESS = 27.600 mm) by the
+        # project's own running-clearance convention, not a bare literal
+        # touch -- see DECK_THICKNESS_NOMINAL's own comment above.
+        self._deck_thickness = self.DECK_THICKNESS_NOMINAL - prof.free.radial
 
         self._solid = self._build()
 
@@ -464,11 +525,15 @@ class PoweredUpHubHousing:
         x_hi = x_sign * max(x_outer, x_inner)
         width = abs(x_hi - x_lo)
 
+        # The last WINDOW_TAPER_PROFILE entry is the flat top's own edge
+        # (round 21, RH3) -- connecting the forward taper's last point
+        # straight across to the reversed taper's first point (the SAME
+        # entry, mirrored) draws a flat top segment instead of converging
+        # to a point apex, reproducing the reference's genuine planar face.
         half = self.WINDOW_Y_HALF
         pts = [(-half, 0.0), (-half, self.WINDOW_SHOULDER_Z)]
         for z, hw in self.WINDOW_TAPER_PROFILE:
             pts.append((-hw, z))
-        pts.append((0.0, self.WINDOW_APEX_Z))
         for z, hw in reversed(self.WINDOW_TAPER_PROFILE):
             pts.append((hw, z))
         pts.append((half, self.WINDOW_SHOULDER_Z))
@@ -491,20 +556,34 @@ class PoweredUpHubHousing:
         """Solid cap closing the top -- see class docstring's *Known
         simplifications* for why this is solid rather than a hollow shell.
 
-        **Round 20 correction (finding H1, blocking)**: this slab now spans
-        ``Z`` in ``[DECK_Z - DECK_THICKNESS, DECK_Z]`` (``[27.518, 29.600]``)
-        -- the real shell's own measured deck, sitting at and below its top
-        face. The pre-round-20 version built this slab *above* ``DECK_Z``
-        (the retired ``TOP_Z = 33.800``), which put ~16,270 mm^3 (61% of
-        the model's own volume) entirely outside the reference envelope --
-        see the class docstring's *Round 20 correction* note.
+        **Round 20 correction (finding H1, blocking)**: this slab spans
+        ``Z`` in ``[DECK_Z - self._deck_thickness, DECK_Z]`` -- the real
+        shell's own measured deck, sitting at and below its top face. The
+        pre-round-20 version built this slab *above* ``DECK_Z`` (the
+        retired ``TOP_Z = 33.800``), which put ~16,270 mm^3 (61% of the
+        model's own volume) entirely outside the reference envelope -- see
+        the class docstring's *Round 20 correction* note.
+
+        **Round 21 correction (finding RH1)**: the deck's own plan
+        footprint is narrower than the full housing envelope --
+        ``x`` in ``[-WALL_X_OUTER_UPPER, WALL_X_OUTER_UPPER]`` (unchanged)
+        but ``y`` in ``[DECK_Y_LO, DECK_Y_HI]`` (asymmetric, narrower than
+        ``+-HALF_Y``), matching the real shell's own narrowing above the
+        end walls' height (see :attr:`END_WALL_Z_HI`). The deck no longer
+        spans over the arm band's own Y-reach at all past
+        ``y = +-DECK_Y_HI/DECK_Y_LO`` -- confirmed matching the reference,
+        whose own deck footprint already excludes the arm region on the
+        same figures. Still unions cleanly onto the X-direction side walls
+        (:meth:`_build_side_wall`), which are unaffected by this change and
+        already span the full ``+-HALF_Y`` depth at this Z range.
         """
+        y_span = self.DECK_Y_HI - self.DECK_Y_LO
         return rounded_box(
             width=2 * self.WALL_X_OUTER_UPPER,
-            depth=2 * self.HALF_Y,
-            height=self.DECK_THICKNESS,
+            depth=y_span,
+            height=self._deck_thickness,
             corner_r=0.0,
-            center=(0.0, 0.0, self.DECK_Z - self.DECK_THICKNESS),
+            center=(0.0, (self.DECK_Y_LO + self.DECK_Y_HI) / 2.0, self.DECK_Z - self._deck_thickness),
         )
 
     # ------------------------------------------------------------------
@@ -550,10 +629,52 @@ class PoweredUpHubHousing:
         ``section_slicer.py --axis Y`` through one arm** before treating
         this as final, per the design brief's own instruction for
         genuinely new 3D relief features.
+
+        **Round 21 correction (finding H2/RH2)**: the cross-section above
+        (floors, rails, pocket walls) is confirmed exact and untouched.
+        The *plan* footprint was wrong: with all three hole positions
+        using the same ``R3.600`` relief circle, the two inter-hole gaps
+        (8.0 mm hole pitch minus two ``R3.6`` reaches) were only
+        ``8.0 - 2*3.6 = 0.8 mm`` wide -- reproducing the reference's own
+        ``0.84 mm``-measured footprint almost exactly, but the reference's
+        real gaps are ``~4.0 mm`` each. **Shrinking either hole's own
+        R3.6 relief circle was tried and rejected**: at the two OUTER
+        holes it would reopen the exact ``1.054 mm`` end rail derived
+        above; at the MIDDLE hole (local ``X = 12``, the ``"none"``
+        position) it disconnects the arm into multiple solids -- despite
+        that position carrying no *vertical* pin bore, it is where the
+        *horizontal* middle bore is later cut through (see
+        :meth:`_build_arm_and_bore_local`), and that bore's own relief
+        section is close enough in size to the R3.6 dish relief that
+        shrinking the latter leaves an isolated post the bore then severs
+        into two disconnected end-caps (caught by this class's own
+        single-solid assert, not silently missed).
+
+        **The construction that works**: leave all three ``R3.600``
+        relief circles untouched, and additionally subtract two small,
+        independent "gap-opening" circles of radius
+        :attr:`_DISH_GAP_OPEN_RADIUS` (2.000 mm), centred at each
+        inter-hole *midpoint* (local ``X = 8`` / ``16``, not at any hole
+        centre) from the relief union before it protects the band -- i.e.
+        the relief protects everything within R3.6 of a hole EXCEPT where
+        a gap-opening circle also reaches. Centring the gap-opening
+        circles away from the hole positions (rather than shrinking the
+        hole-centred circles themselves) keeps full-radius material
+        directly around every hole -- including the middle hole's own
+        bore -- so this stays topologically safe (verified empirically:
+        single-solid holds up to a gap-opening radius well past the value
+        used here). The gap-opening circle's own diameter sets the open
+        width directly (``2 * 2.000 = 4.000 mm``), independent of the
+        flanking holes' own relief reach. Both reliefs stay plain circles
+        (curved in plan -- the "curved blend, not vertical wall" spec for
+        the pocket's own outer rim), so the boundary between recessed and
+        full-thickness material is a circular arc everywhere, never a
+        straight cut.
         """
         pocket_half_y = 2.546          # local Y -> global X in [29.454, 34.546]
         relief_radius = self.BOSS_DIAMETER / 2.0  # 3.600 mm, see docstring
         hole_x_locals = (4.0, 12.0, 20.0)  # the arm's own 3 hole/boss positions
+        gap_x_locals = (8.0, 16.0)         # inter-hole midpoints, see docstring
         overcut = 0.05
 
         top_floor_local_z = 21.378 - self.ARM_Z_LO      # 5.378
@@ -568,7 +689,11 @@ class PoweredUpHubHousing:
             for hx in hole_x_locals:
                 cyl = cylinder(relief_radius, z_hi - z_lo, center=(hx, 0.0, z_lo))
                 relief = cyl if relief is None else relief.union(cyl)
-            return band.cut(relief)
+            gap_open = None
+            for gx in gap_x_locals:
+                cyl = cylinder(self._DISH_GAP_OPEN_RADIUS, z_hi - z_lo, center=(gx, 0.0, z_lo))
+                gap_open = cyl if gap_open is None else gap_open.union(cyl)
+            return band.cut(relief.cut(gap_open))
 
         top_pocket = _pocket(top_floor_local_z, self.ARM_THICKNESS + overcut)
         bottom_pocket = _pocket(-overcut, bottom_floor_local_z)
@@ -845,8 +970,13 @@ class PoweredUpHubHousing:
     # ------------------------------------------------------------------
 
     def _build_latch_wall(self) -> cq.Workplane:
+        # Round 21 (finding RH1): capped at END_WALL_Z_HI (24.000 mm), not
+        # DECK_Z (29.600 mm) -- the real end wall stops there; above it the
+        # shell narrows to the (unaffected) X-direction side walls' own
+        # upper band and the deck's own narrower footprint (see class
+        # docstring's *Known simplifications* -> *End-wall Z extent*).
         base = self._y_slab(
-            self.LATCH_Y, self.LATCH_WALL_THICKNESS, 0.0, self.DECK_Z, inward=True
+            self.LATCH_Y, self.LATCH_WALL_THICKNESS, 0.0, self.END_WALL_Z_HI, inward=True
         )
         base = base.cut(self._build_finger_windows())
 
@@ -933,13 +1063,46 @@ class PoweredUpHubHousing:
         # margin for the finger's drafted face above/below it.
         z_lo = lg.engagement_band_lo - self._LATCH_CATCH_Z_MARGIN
         z_hi = lg.engagement_band_hi + self._LATCH_CATCH_Z_MARGIN
-        boss = rounded_box(
+
+        # Round 21 (finding E11-c (1)): the boss used to reach y_slot_inner
+        # across the WHOLE [z_lo, z_hi] band. The round-20 release-leg
+        # correction (C1-C3) now places the leg's own material exactly in
+        # the Y-band this boss's outer portion (behind the undercut, i.e.
+        # material the slot cut below does NOT remove) occupies below the
+        # barb -- 21.324 mm^3 of new interference, root-caused to this
+        # class's own round-14 single-wall departure (the real part's inner
+        # skin leaves y [-34.4, -32.0] clear for exactly this leg).
+        # Z-banded retreat, matching round 18's original "Z-localised
+        # keeper nub" recommendation: OUTSIDE a tight window bracketing
+        # the barb (engagement_band_lo..hi -- the barb's own physical
+        # extent, not an arbitrary margin), cap the reach at
+        # _LATCH_CATCH_RETREAT_Y (-34.400 mm, the reference's own
+        # inner-skin depth, not an arbitrary retreat) instead of
+        # y_slot_inner -- leaving y in [-34.4, leg's own position] clear.
+        # INSIDE the window, retain the full y_slot_inner reach (the slot
+        # cut below still removes finger clearance regardless; keeping the
+        # boss at full depth there is what feeds the undercut-depth-sets-
+        # a-floor assert its required backing). Above engagement_band_hi
+        # (the retention-ledge band, z_hi's own upper portion) also keeps
+        # full reach, unaffected -- that band never appeared in the
+        # measured collision.
+        seam = 0.05  # coincident-faces guard between adjacent Z bands
+        retreat_y = self._LATCH_CATCH_RETREAT_Y
+        boss_below_window = rounded_box(
+            width=lg.hook_width,
+            depth=retreat_y - self.LATCH_Y,
+            height=(lg.engagement_band_lo + seam) - z_lo,
+            corner_r=0.0,
+            center=(x_center, (self.LATCH_Y + retreat_y) / 2.0, z_lo),
+        )
+        boss_window_and_ledge = rounded_box(
             width=lg.hook_width,
             depth=y_slot_inner - self.LATCH_Y,
-            height=z_hi - z_lo,
+            height=z_hi - (lg.engagement_band_lo - seam),
             corner_r=0.0,
-            center=(x_center, (self.LATCH_Y + y_slot_inner) / 2.0, z_lo),
+            center=(x_center, (self.LATCH_Y + y_slot_inner) / 2.0, lg.engagement_band_lo - seam),
         )
+        boss = boss_below_window.union(boss_window_and_ledge)
 
         # Slot: clears the finger's full swept cross-section across the
         # engagement band and provides the undercut depth behind its
@@ -1030,11 +1193,13 @@ class PoweredUpHubHousing:
             self.TONGUE_STEP_Z,
             inward=False,
         )
+        # Round 21 (finding RH1): capped at END_WALL_Z_HI, not DECK_Z --
+        # see _build_latch_wall's own comment for the shared rationale.
         upper = self._y_slab(
             self.TONGUE_Y,
             self.TONGUE_Y - self._tongue_inner_y_upper,
             self.TONGUE_STEP_Z,
-            self.DECK_Z,
+            self.END_WALL_Z_HI,
             inward=False,
         )
         return lower.union(upper)

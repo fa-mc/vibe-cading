@@ -109,18 +109,29 @@ def test_latch_catch_seated_engagement_is_the_proven_minimum():
     flat 0.5 mm wall did, which now genuinely collides with Housing's own
     latch-catch boss (`_build_latch_catch`) -- a Housing-side feature
     derived (round 18, B1) against the OLD leg shape and not re-verified
-    against the corrected one. This is a real, new interference (not just
-    an unavoidable barb/finger engagement), escalated to the Designer
-    (design brief Escalation 11c) since resolving it means re-deriving
-    Housing's own catch geometry, out of round 20's own file scope. The
-    widened bound records the measured value as a documented residual
-    pending that resolution, per this project's own established pattern.
+    against the corrected one.
+
+    **Round 21, Escalation 11c (1) fixed** (measured ~20.7 mm^3, down from
+    ~39.4): the catch boss's own Z-banded retreat (`_build_latch_catch`)
+    narrows the new 21.324 mm^3 collision down to a small residual
+    (~2.6 mm^3) at the barb window's own Z boundary (z ~ 11), where the
+    release leg's spine (correctly positioned, round 20 C1-C3) grazes the
+    boss's own full-reach region by a fraction of a millimetre -- the
+    structural floor for the undercut backing (`_MIN_MATERIAL_BEHIND_UNDERCUT`)
+    requires SOME full-reach window bracketing the barb, and the leg's own
+    z=11 sample sits right at that window's edge. This residual is smaller
+    than, and a different mechanism from, the already-accepted barb-in-catch
+    seated residual (Escalation 10, ~18.1 mm^3, unchanged -- see
+    `test_seated_cross_part_interference_zero_for_tray_pairs`'s sibling note
+    below and the design brief's own Escalation 11c). The bound tightens to
+    25.0 mm^3 (comfortably covering ~20.7 mm^3 measured -- the accepted
+    barb residual plus this small new-mechanism sliver), down from 45.0.
     """
     housing = PoweredUpHubHousing()
     cover = PoweredUpHubCover()
     vol = _latch_only_volume(cover.solid, housing.solid)
     assert vol > 0.0, "expected a nonzero seated engagement at the catch (proof it exists at all)"
-    assert vol < 45.0, f"catch's seated engagement grew unexpectedly large: {vol:.3f} mm^3"
+    assert vol < 25.0, f"catch's seated engagement grew unexpectedly large: {vol:.3f} mm^3"
 
 
 def test_latch_catch_rotation_release_shows_growing_interference():
@@ -202,18 +213,24 @@ def test_seated_cross_part_interference_zero_for_tray_pairs():
     neither of these interfaces has an intentional snap/retention feature,
     so there is no analogous "necessary minimum" to carve out.
 
-    **Round 20, Escalation 11a/11b**: Tray<->Housing is NO LONGER exactly
+    **Round 20, Escalation 11a/11b**: Tray<->Housing was NO LONGER exactly
     zero. Two genuine new findings, both escalated to the Designer (design
-    brief Escalation 11), not fixed here (both require touching
-    battery_tray.py, out of this round's file scope): (a) H1's deck-height
-    correction now genuinely overlaps the tray's own topmost extent by
-    ~0.08 mm across nearly the whole footprint (~21 mm^3); (b) H3's
-    corrected (smaller) side window no longer clears a tray tab the old,
-    oversized window used to clear by construction (~2.3 mm^3, 4 slivers).
-    The bound below records the measured total as a documented residual,
-    per this project's own established pattern for round 17/18's similar
-    small cross-part slivers (Escalation 9). Tray<->Cover is UNCHANGED
-    (still exactly zero -- neither escalation touches the Cover interface).
+    brief Escalation 11): (a) H1's deck-height correction genuinely
+    overlapped the tray's own topmost extent by ~0.08 mm across nearly the
+    whole footprint (~21 mm^3); (b) H3's corrected (smaller) side window no
+    longer cleared a tray tab the old, oversized window used to clear by
+    construction (~2.3 mm^3, 4 slivers).
+
+    **Round 21 fixes both, back to exactly zero**: (a) E11-a routes the
+    deck's own thickness through `profile.free.radial` (real running
+    clearance against the tray's top face, not a flat literal derived from
+    an explicitly-undetermined corrugated-ceiling centre value -- see
+    `PoweredUpHubHousing.__init__`'s own `self._deck_thickness`); (b) E11-b
+    reduces the tray's own extraction-tab Y-reach
+    (`PoweredUpHubBatteryTray.TAB_PAD_Y_HALF_NOMINAL`, also
+    running-clearance-corrected) to clear Housing's own corrected window
+    taper at the pad's actual seated Z. Tray<->Cover is UNCHANGED (still
+    exactly zero -- neither escalation ever touched the Cover interface).
     """
     from vibe_cading.lego_adapters.poweredup_hub.battery_tray import PoweredUpHubBatteryTray
 
@@ -223,10 +240,9 @@ def test_seated_cross_part_interference_zero_for_tray_pairs():
     tray_seated = tray.solid.translate((0, 0, PoweredUpHubCover.PLATE_THICKNESS))
 
     v_th = _intersect_volume(tray_seated, housing.solid)
-    assert v_th < 30.0, (
-        f"Tray/Housing interference volume {v_th:.4f} mm^3 -- grew past the "
-        "round-20 Escalation 11a/11b documented residual (~23.4 mm^3); this is "
-        "a NEW finding, not the already-escalated deck/window clearance conflicts"
+    assert v_th < 1e-6, (
+        f"Tray/Housing interference volume {v_th:.4f} mm^3 -- expected 0 "
+        "(round 21 fixed Escalation 11a/11b, see docstring)"
     )
 
     v_tc = _intersect_volume(tray_seated, cover.solid)

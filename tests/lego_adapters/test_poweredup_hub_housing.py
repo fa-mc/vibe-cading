@@ -232,19 +232,20 @@ def test_housing_tray_upper_band_interference_is_zero():
     at all -- this is the interference the wall-step fix specifically
     targets and fully eliminates.
 
-    **Round 20, Escalation 11a**: this is NO LONGER exactly zero. H1's
-    deck-height correction (round 20) positions the deck at its real,
-    lower height (z in [27.518, 29.600]) for the first time -- before H1,
-    the deck sat entirely above z=29.6, leaving the whole [22, 29.6] band
-    clear regardless of the tray's own height, which structurally hid this
-    collision. The tray's own topmost extent now falls ~0.08 mm inside the
-    corrected deck's own underside across nearly its whole footprint. This
-    is a genuine new cross-part finding escalated to the Designer (design
-    brief Escalation 11a), not a Housing-only defect -- NOT silently
-    widened here; the measured residual is recorded as a documented,
-    bounded regression guard, matching this project's own established
-    pattern for round 17/18's similar small cross-part slivers (see
-    Escalation 9).
+    **Round 20, Escalation 11a**: this was NO LONGER exactly zero. H1's
+    deck-height correction (round 20) positioned the deck at its real,
+    lower height for the first time -- before H1, the deck sat entirely
+    above z=29.6, leaving the whole [22, 29.6] band clear regardless of
+    the tray's own height, which structurally hid this collision. The
+    tray's own topmost extent fell ~0.08 mm inside the corrected deck's
+    own underside across nearly its whole footprint.
+
+    **Round 21 fixes this, back to exactly zero (Escalation 11a)**: the
+    deck's own thickness now routes through `profile.free.radial` (a real
+    running clearance against the tray's top face) instead of a flat
+    literal derived from a corrugated ceiling's explicitly-undetermined
+    centre value -- see `PoweredUpHubHousing.__init__`'s own
+    `self._deck_thickness`.
     """
     import cadquery as cq
 
@@ -261,10 +262,9 @@ def test_housing_tray_upper_band_interference_is_zero():
     t_upper = tray_world.intersect(upper_band)
     inter = h_upper.intersect(t_upper)
     vol = sum(s.Volume() for s in inter.solids().vals()) if inter.solids().vals() else 0.0
-    assert vol < 30.0, (
-        f"Housing/Tray upper-band interference {vol:.4f} mm^3 -- grew past the "
-        "round-20 Escalation 11a documented residual (~21 mm^3); this is a NEW "
-        "finding, not the already-escalated deck/tray clearance conflict"
+    assert vol < 1e-6, (
+        f"Housing/Tray upper-band interference {vol:.4f} mm^3 -- expected 0 "
+        "(round 21 fixed Escalation 11a, see docstring)"
     )
 
 
