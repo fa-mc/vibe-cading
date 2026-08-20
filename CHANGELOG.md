@@ -51,6 +51,25 @@ section to the new version and date.
   numbers) is the single source of truth the future `HousingBox` catch
   (a separate PR) will import alongside the Cover, so the male and female
   latch halves cannot drift apart.
+- `PoweredUpHubHousing`: new exported model class, task 3 of the Powered Up
+  hub battery-box implementation sequence (see
+  `docs/design_plans/2026-08-19-poweredup-hub-battery-box_design.md`). An
+  exact copy of the real hub's bottom shell (LDraw `25560`, 72.0 × 71.2 ×
+  33.8 mm) with a scoped departure at the two lid-retention regions only
+  (a single wall instead of LEGO's real two-skin sandwich, per the design's
+  *Single wall at BOTH ends* section). Composes
+  `PerpendicularHolesLiftarm(3, ["main", "none", "main"], thickness=8.0)`
+  for the four arms (per the TL round's decision), finished locally with an
+  envelope trim to the real 23.2 mm arm length, an additive Ø7.2 × 0.4 mm
+  boss around each middle hole, and a housing-local three-step middle bore
+  (Ø6.4 × 0.8 outer counterbore → Ø4.8 × 6.4 guided → Ø7.2 × 1.6 relief
+  opening into the battery cavity). The latch-end catch (derived from
+  `PoweredUpHubCover`'s own barb geometry via the shared `LatchGeometry`
+  parameter object, absent from LDraw) and the tongue-end rebate (a lap,
+  not a snap, fully specified from LDraw) together implement the design's
+  complete retention scheme — verified by a zero-volume boolean
+  intersection against the built `PoweredUpHubCover` in its seated
+  position.
 
 ### Fixed
 - `PerpendicularHolesLiftarm`: fixed a latent crossed-constant bug in the
