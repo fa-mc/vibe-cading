@@ -130,6 +130,70 @@ section to the new version and date.
   each reach slightly past the step into the other part's still-present
   wall material there — confirmed unrelated to the root bridge and left
   open as a new escalation (see the design brief's Escalations).
+- **Powered Up hub battery box — retention mechanism repair (design round
+  18, following an independent audit that found the shipped latch had zero
+  retention despite passing every static interference check)**. Root
+  cause: the latch was specified and verified as a static two-body
+  interference problem, not a kinematic one — see the design brief's
+  *Round 18* for the full root-cause statement.
+  - `PoweredUpHubHousing`: the latch catch's boss and its finger-clearance
+    slot shared one bound (`y_slot_inner`), leaving no retention lip
+    anywhere — the slot fully swallowed the finger's swept envelope with
+    zero deflection required to enter or leave. Fixed with a
+    Z-localised "keeper nub" unioned back into the slot's own footprint
+    after the cut, sized from a corrected `LatchGeometry.barb_protrusion`
+    (`1.040 mm`, re-derived from the barb's own axis rather than an
+    eyeballed `0.83 mm` estimate). Also fixed a zero-clearance
+    literal-to-literal butt at the tongue-end insertion stop (now routed
+    through `profile.free.radial`, matching every other Cover/Housing
+    interface) and a `0.05 mm` seam artefact reaching into
+    `PoweredUpHubBatteryTray`'s wall.
+  - `PoweredUpHubCover`: built the missing second leg of the latch
+    finger's cantilever U (the thumb-pad/release-slot half — the U *is*
+    the compliant member, not an ergonomics trim) and corrected the
+    locating groove's inverted sign (a `0.4 mm` raised registration land,
+    not a recess).
+  - `PoweredUpHubBatteryTray`: corrected a `1.6 mm` Z-datum transcription
+    error across every LDraw-derived Z constant. The design brief's own
+    round-18 ruling on the `1.5 mm` seat relief (move it from `+Y` to
+    `-Y`) turned out to be wrong once actually built: `PoweredUpHubCover`'s
+    new U-spring release leg (B2, above) occupies `-Y` space the ruling's
+    own reasoning never anticipated, and a `-Y` relief collides with it far
+    worse (`373+ mm³`) than the original `+Y` collision it was meant to
+    avoid — a second, escalation-worthy finding. Resolved by keeping the
+    relief on `+Y` but Z-restricting it: below `RELIEF_Z_LO` the wall stays
+    at its nominal position (clearing Cover's tongue riser), at/above it
+    the relieved position governs — the pack's own floor (raised on
+    standoffs, next) never needs the extra clearance below that height
+    anyway. Also raised the floor on standoffs to give a strap actual
+    routing clearance beneath it, and added two small relief pockets
+    clearing Cover's own raised low-Z features (the latch thickening band
+    and the corrected locating land) that the flat-bottomed end walls
+    would otherwise collide with once seated.
+  - New mandatory kinematic-sweep tests
+    (`tests/lego_adapters/test_poweredup_hub_kinematic.py`) replace the
+    single static seated-state check that let the original defect ship
+    undetected — parametrised `-Z` pull-out and latch-end rotation sweeps
+    now assert genuine, direction-dependent interference.
+  - `LatchGeometry.hook_pitch`'s docstring corrected
+    (documents the field as the gap between hooks, not their
+    centre-to-centre spacing — both existing consumers already used it
+    correctly; no behaviour change).
+  - `assembly.py`'s `assemble()` now includes `PoweredUpHubHousing`
+    alongside `PoweredUpHubCover` and `PoweredUpHubBatteryTray` — the
+    view most likely to expose a seating fault had been omitted since
+    before `PoweredUpHubHousing` existed.
+  - **Known limitation, not fully resolved**: the corrected latch catch's
+    seated-state `Cover ∩ Housing` intersection is not exactly `0.0 mm³`
+    (measures `~18 mm³`, unchanged by further nub-shape tuning) — proven
+    geometrically unavoidable given `PoweredUpHubCover`'s latch finger is
+    a solid wedge at every `Z` from `0` to `hook_depth`, so any nub that
+    reaches behind the barb crest necessarily also overlaps the finger's
+    permanent "back fill" material at the seated transform. See
+    `tests/lego_adapters/test_poweredup_hub_kinematic.py`'s own module
+    docstring for the full proof, and the design brief's *Implementation
+    Status* for the escalation this raises against the acceptance
+    criterion as originally worded.
 
 ## [0.1.6] - 2026-08-10
 

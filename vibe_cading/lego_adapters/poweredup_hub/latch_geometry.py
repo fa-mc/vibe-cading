@@ -56,12 +56,21 @@ class LatchGeometry:
         full circle).
     barb_protrusion:
         How far the barb bead stands proud of the hook arm's own drafted
-        face (mm), measured inboard (+Y).
+        face (mm), measured inboard (+Y). **Corrected round 18 (audit
+        finding S4, folded into B1)**: derived from the barb's own axis
+        (``Y = -32.200``, radius ``1.000`` -> crest ``Y = -31.200``,
+        self-consistent with :class:`~vibe_cading.lego_adapters.poweredup_hub.cover.PoweredUpHubCover`'s
+        own flat-faceted drafted face at ``HOOK_FACE_Y1 = -32.240``), not
+        the earlier ``0.83`` eyeballed estimate -- see the design brief's
+        *Round 18 -> B1* for the full derivation.
     hook_width:
         Width of each latch finger across X (mm).
     hook_pitch:
-        Centre-to-centre X spacing between the two mirrored hooks (mm) —
-        equivalently, the two hooks sit at ``X = +-hook_pitch/2``.
+        The clear gap (mm) between the two mirrored hooks' facing edges —
+        **not** their centre-to-centre spacing (round-18 audit finding S3;
+        both consumers already compute the hooks' true centres correctly as
+        ``X = +-(hook_pitch/2 + hook_width/2)``, i.e. +-12.400 mm, not the
+        +-hook_pitch/2 = +-5.600 mm this docstring previously implied).
     engagement_band_lo, engagement_band_hi:
         Z span (mm, measured from the plate's outer/mating face) that the
         barb's crest-to-root height covers. A catch must span at least this
@@ -115,7 +124,7 @@ def get_latch_geometry(profile: ToleranceProfile | str | None = None) -> LatchGe
     - ``undercut_depth = barb_protrusion - profile.slip.radial`` — a
       captured, repeatedly-engaged retention feature is closest to
       ``slip`` semantics (not ``free``, which would remove too much of an
-      already-small 0.83 mm feature; not ``press``, a one-time
+      already-small ~1.0 mm feature; not ``press``, a one-time
       non-releasing fit).
     - ``catch_width = hook_width - 2 * profile.free.radial`` — a lateral
       running clearance during insertion/release, not a retention surface,
@@ -123,7 +132,13 @@ def get_latch_geometry(profile: ToleranceProfile | str | None = None) -> LatchGe
     """
     prof = get_profile(profile) if isinstance(profile, str) or profile is None else profile
 
-    barb_protrusion = 0.83
+    # Corrected round 18 (audit finding S4, folded into B1): derived from
+    # the barb's own axis (Y = -32.200, radius 1.000 -> crest Y = -31.200)
+    # against PoweredUpHubCover.HOOK_FACE_Y1 = -32.240 (the model's own flat
+    # drafted face at the barb's Z = 12.000, not an extrapolation of the
+    # real part's continued taper -- see the design brief's Round 18 -> B1).
+    # barb_protrusion = crest_Y - HOOK_FACE_Y1 = -31.200 - (-32.240) = 1.040.
+    barb_protrusion = 1.040
     hook_width = 13.600
 
     return LatchGeometry(

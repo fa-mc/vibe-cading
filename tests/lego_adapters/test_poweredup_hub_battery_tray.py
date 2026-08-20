@@ -92,7 +92,11 @@ def test_extraction_tabs_present_and_mirrored():
     """Both side extraction tabs (K5) present, mirrored about X = 0, proud
     of the outer wall face."""
     t = PoweredUpHubBatteryTray()
-    section = t.solid.section(height=1.0)  # through the pad's Z range
+    # Round 18 (S2) re-based the grip ribs' own Z bands (-1.600 mm); rib 1
+    # now occupies Z in [0.320, 1.280], so a Z = 1.0 slice would pick up
+    # its own proud X reach (GRIP_RIB_X) instead of the pad's. Z = 1.5 sits
+    # between rib 1's end (1.280) and rib 2's start (2.320) -- pad-only.
+    section = t.solid.section(height=1.5)
     wires = section.wires().vals()
     x_maxes = sorted(w.BoundingBox().xmax for w in wires)
     assert abs(x_maxes[-1] - PoweredUpHubBatteryTray.TAB_PAD_X) < 1e-6
@@ -120,7 +124,11 @@ def test_strap_holder_slots_sized_to_confirmed_opening():
     against the solid (a boolean-volume check, robust against wire-bbox
     ambiguity between a hole's inner loop and its outer boundary)."""
     t = PoweredUpHubBatteryTray()
-    mid_floor_z = PoweredUpHubBatteryTray.FLOOR_THICKNESS / 2.0
+    # Round 18 (S5) raised the floor on FLOOR_STANDOFF to open a strap
+    # routing crawl-space beneath it -- the floor's own material now sits
+    # at Z in [FLOOR_STANDOFF, FLOOR_STANDOFF + FLOOR_THICKNESS], not
+    # [0, FLOOR_THICKNESS].
+    mid_floor_z = PoweredUpHubBatteryTray.FLOOR_STANDOFF + PoweredUpHubBatteryTray.FLOOR_THICKNESS / 2.0
 
     def has_material_at(x: float, y: float) -> bool:
         probe = (

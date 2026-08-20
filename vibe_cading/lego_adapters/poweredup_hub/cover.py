@@ -81,37 +81,51 @@ class PoweredUpHubCover:
           flat plate apart from the latch/tongue features.
 
     Known simplifications (documented deviations from the LDraw source,
-    all cosmetic / non-load-bearing -- flagged per this project's
-    Experimental Integrity convention rather than silently applied):
-        - The latch fingers are modelled as a single continuous cantilever
-          hook (root -> drafted face -> barb -> tip -> back to root). The
-          real part's separate pressable "thumb pad" (the outer skin
-          continuing past a 1.64 mm release slot to Y = -35.6 mm) is not
-          reproduced -- it is a release-ergonomics feature, not part of the
-          barb/hook retention geometry the future ``HousingBox`` catch must
-          mate with (which is fully preserved: hook width/pitch, barb
-          diameter/position/protrusion, engagement band, draft).
+    all cosmetic / non-load-bearing unless noted -- flagged per this
+    project's Experimental Integrity convention rather than silently
+    applied):
+        - **Latch finger -- the full cantilever U is now built (round 18,
+          B2)**, correcting an earlier version that modelled only the hook
+          leg. The real part's second leg (the pressable "thumb pad" outer
+          skin, joined to the hook leg only at the crown -- its own tip --
+          never at the root) is the compliant member's *other half*, not a
+          cosmetic ergonomics detail: see :meth:`_build_release_leg` for
+          the geometry and the class-level *Release leg / U-spring*
+          constants below for the Developer-derived dimensions (the real
+          part's own leg cross-section is not directly measurable from
+          LDraw -- see that method's own docstring for the numbers this
+          implementation chose and why).
         - The barb's true R1.000 mm cylindrical bead (157.5 deg arc) is
           approximated as a faceted (straight-edged) crest at the same
           position and protrusion, not a true arc -- a cosmetic rounding
           simplification, consistent with this project's chamfer/fillet
           simplification convention (see CLAUDE.md, *Reverse-engineering
-          from STEP files*).
+          from STEP files*). **Re-opened per round 18's own note (finding
+          C1)**: cosmetic only as long as nothing touches the barb crest;
+          now that :class:`~vibe_cading.lego_adapters.poweredup_hub.housing.PoweredUpHubHousing`'s
+          corrected catch (B1) does engage it, the facet-vs-arc difference
+          is a genuine (if small) shape simplification at the mating
+          surface, still judged non-blocking (max radial error < 0.03 mm).
         - The tongue/ledge is modelled as one uniform 0.926 mm-thick blade
           spanning the full measured tongue-to-ledge Y range, rather than
           reproducing the separate "Tongue A" / "Tongue B" footprints, the
           6 locating teeth, or the ledge notches between them -- all
           confirmed non-load-bearing for either mating interface in the
           design brief (dropped from the Housing side outright; the Tray
-          side only needs the groove, not the teeth).
-        - The locating groove's exact cross-section is this Developer's own
-          interpretation of an ambiguous LDraw table entry (the source
-          table states a Y-band and a nominal "1.6 mm" depth figure without
-          fully disambiguating which face the material is removed from);
-          implemented here as a shallow rectangular recess in the inner
-          face, sized against the Tray's own bottom-rim thickness via
-          :func:`~vibe_cading.print_settings.get_profile`. Flagged in the
-          design brief's Implementation Status for Designer confirmation.
+          side only needs the groove, not the teeth). **Tongue B
+          specifically (the outer pair, |X| 17.2..26.0 mm) is OMITTED
+          outright, not merely simplified** (round 18, finding S6) --
+          retention (the 0.926 mm tip) is fully preserved; only fit/
+          location fidelity at that footprint is lost.
+        - **Locating land, corrected sign (round 18, S1).** The real
+          feature is a raised registration land (the plate is locally
+          1.600 mm thick over Y in [30.0, 31.2] -- exactly the
+          :class:`~vibe_cading.lego_adapters.poweredup_hub.battery_tray.PoweredUpHubBatteryTray`'s
+          own bottom-rim thickness), not a recess -- an earlier version cut
+          a 0.4 mm notch here instead, the inverse of the real part
+          (:meth:`_build_locating_land` builds the corrected, unioned
+          land). Re-verified at source (LDraw ``region_dump.py``) rather
+          than re-interpreted; see the design brief's *Round 18 -> S1*.
 
     Parameters
     ----------
@@ -158,10 +172,28 @@ class PoweredUpHubCover:
     RISER_Z_HI = 2.800
     TIP_Z_LO = 1.874
 
-    # --- Locating groove (Tray-mating interface -- see class docstring) ---
-    GROOVE_Y_LO = 30.000
-    GROOVE_Y_HI = 31.200
-    GROOVE_DEPTH = 0.400  # removed from the inner face, see docstring
+    # --- Locating land (Tray-mating interface, round 18 S1 -- see class
+    # docstring). A RAISED land, not a recess: LAND_HEIGHT added onto the
+    # inner face over [LAND_Y_LO, LAND_Y_HI], bringing the plate locally to
+    # PLATE_THICKNESS + LAND_HEIGHT = 1.600 mm -- exactly the Tray's own
+    # bottom-rim thickness (BatteryTray.END_WALL_NEG_Y_HI - END_WALL_NEG_Y_LO
+    # region's own wall, 1.6 mm), confirming this is the tray's registration
+    # seat, not a channel (design brief Round 18 -> S1).
+    LAND_Y_LO = 30.000
+    LAND_Y_HI = 31.200
+    LAND_HEIGHT = 0.400
+
+    # --- Release leg / U-spring (SS1.4, round 18 B2) -- the second,
+    # thumb-pad-bearing leg of the cantilever U, joined to the hook leg
+    # ONLY at the crown (the hook's own tip, Z = hook_depth). See
+    # :meth:`_build_release_leg` for the full derivation of these
+    # Developer-chosen dimensions (the real part's leg cross-section is not
+    # directly measurable from LDraw).
+    RELEASE_SLOT_MARGIN = 0.100   # min. clearance beyond the hook's own deepest reach (HOOK_FACE_Y1)
+    LEG_B_THICKNESS = 0.500       # release leg / spine wall thickness
+    PAD_OUTER_Y = -35.600         # matches PoweredUpHubHousing.LATCH_Y (the single wall's own outer face)
+    PAD_Z_HI = 3.600              # matches PoweredUpHubHousing.LATCH_WINDOW_Z_HI
+    CROWN_THICKNESS = 1.200       # Z-band bridging the hook leg's tip to the release leg -- the ONLY join
 
     def __init__(self, profile: ToleranceProfile | str | None = None) -> None:
         if profile is None or isinstance(profile, str):
@@ -177,8 +209,10 @@ class PoweredUpHubCover:
         part = self._build_plate()
         part = part.union(self._build_latch_finger(+1))
         part = part.union(self._build_latch_finger(-1))
+        part = part.union(self._build_release_leg(+1))
+        part = part.union(self._build_release_leg(-1))
         part = part.union(self._build_tongue())
-        part = part.cut(self._build_locating_groove())
+        part = part.union(self._build_locating_land())
 
         assert len(part.solids().vals()) == 1, "Expected single solid, got multiple pieces"
         return part
@@ -211,7 +245,8 @@ class PoweredUpHubCover:
 
         Cross-section swept along X (constant across the finger's own
         ``hook_width``) -- see class docstring, *Known simplifications*, for
-        the faceted-crest / no-thumb-pad simplifications.
+        the faceted-crest simplification. The second (release) leg is built
+        separately by :meth:`_build_release_leg`.
         """
         lg: LatchGeometry = self._latch
         half_w = lg.hook_width / 2.0
@@ -234,6 +269,90 @@ class PoweredUpHubCover:
         for p in pts[1:]:
             sketch = sketch.lineTo(*p)
         return sketch.close().extrude(lg.hook_width)
+
+    def _build_release_leg(self, side: int) -> cq.Workplane:
+        """Second leg of the cantilever U (SS1.4, round 18 B2) -- a thin
+        ``spine`` running alongside the hook leg's own outer (drafted)
+        face, a ``crown`` bridge that joins the two legs ONLY at the
+        hook's own tip (``Z = hook_depth``, never at the root -- this is
+        what makes the pad a genuine second spring leg rather than a rigid
+        extension of the hook), and a ``pad`` at the free end that reaches
+        :attr:`PAD_OUTER_Y` within the low-``Z`` band the housing's own
+        finger window opens onto.
+
+        **Why these numbers, not the real part's 1.640 mm slot / 2.791 mm
+        pad-height figures directly** (flagged per the design brief's own
+        "Developer to derive and verify" instruction for this feature):
+        the hook leg's drafted face is a Z-varying polyline (SS1.4), not a
+        flat plane, so a second leg offset by a literal constant Y from the
+        *plate edge* would either collide with the hook leg's own deepest
+        reach or leave the gap needlessly wide elsewhere depending on Z.
+        Instead, :attr:`RELEASE_SLOT_MARGIN` is measured from
+        ``HOOK_FACE_Y1`` -- the hook leg's own maximum reach across its
+        *entire* height (occurring at ``Z = HOOK_FACE_Z1`` and
+        ``Z = hook_depth``) -- guaranteeing, by construction, zero
+        collision with the hook leg at every ``Z``, and (since
+        :class:`~vibe_cading.lego_adapters.poweredup_hub.housing.PoweredUpHubHousing`'s
+        corrected catch slot always extends further past ``HOOK_FACE_Y1``
+        than this leg does, for every supported tolerance profile -- see
+        that class's own ``_build_latch_catch``) zero collision with the
+        housing's catch, independent of which profile renders it. Verified
+        by the mandatory kinematic-sweep tests, not asserted blind.
+        :attr:`PAD_Z_HI` matches
+        :class:`~vibe_cading.lego_adapters.poweredup_hub.housing.PoweredUpHubHousing`'s
+        own ``LATCH_WINDOW_Z_HI`` exactly, so the pad fills the actual
+        window opening it must show through, rather than an independently
+        sourced literal that leaves part of the window empty.
+        """
+        lg: LatchGeometry = self._latch
+        half_w = lg.hook_width / 2.0
+        x_center = side * (lg.hook_pitch / 2.0 + half_w)
+
+        y_leg_inner = self.HOOK_FACE_Y1 - self.RELEASE_SLOT_MARGIN
+        y_leg_outer = y_leg_inner - self.LEG_B_THICKNESS
+
+        # Coincident-faces guard (this project's own pitfall) -- each pair
+        # of adjacent pieces below is grown by `seam_overlap` into its
+        # neighbour's territory so OCCT's fuse sees genuine 3D volume
+        # overlap, not a touching face.
+        seam_overlap = 0.05
+        spine = rounded_box(
+            width=lg.hook_width,
+            depth=y_leg_inner - y_leg_outer,
+            height=(lg.hook_depth - self.PAD_Z_HI) + seam_overlap,
+            corner_r=0.0,
+            center=(x_center, (y_leg_inner + y_leg_outer) / 2.0, self.PAD_Z_HI - seam_overlap),
+        )
+        # NOTE: the pad's own height is deliberately NOT grown past
+        # PAD_Z_HI (unlike the Y-overlap below) -- PAD_Z_HI is the exact
+        # PoweredUpHubHousing.LATCH_WINDOW_Z_HI boundary; beyond it,
+        # Housing's wall is solid (not cut away by the finger window), so
+        # growing the pad's own Z range there would pierce Housing's wall
+        # at the pad's own outboard reach (an earlier version did exactly
+        # this and produced a real, if tiny, seated-state interference).
+        # The Z-direction fuse with `spine` is already guaranteed by
+        # `spine`'s own -seam_overlap Z start above; only the Y-overlap is
+        # needed here.
+        pad_y_inner = y_leg_inner + seam_overlap
+        pad = rounded_box(
+            width=lg.hook_width,
+            depth=pad_y_inner - self.PAD_OUTER_Y,
+            height=self.PAD_Z_HI,
+            corner_r=0.0,
+            center=(x_center, (pad_y_inner + self.PAD_OUTER_Y) / 2.0, 0.0),
+        )
+        crown = rounded_box(
+            width=lg.hook_width,
+            depth=self.PLATE_Y_LO - y_leg_outer,
+            height=self.CROWN_THICKNESS,
+            corner_r=0.0,
+            center=(
+                x_center,
+                (self.PLATE_Y_LO + y_leg_outer) / 2.0,
+                lg.hook_depth - self.CROWN_THICKNESS,
+            ),
+        )
+        return spine.union(pad).union(crown)
 
     def _build_tongue(self) -> cq.Workplane:
         """Slide-in tongue + ledge -- a riser (fused to the plate, full
@@ -260,26 +379,26 @@ class PoweredUpHubCover:
         )
         return riser.union(tip)
 
-    def _build_locating_groove(self) -> cq.Workplane:
-        """Shallow registration recess for the BatteryTray's bottom rim.
+    def _build_locating_land(self) -> cq.Workplane:
+        """Raised registration land for the BatteryTray's bottom rim
+        (round 18, S1 -- corrected from an earlier, sign-inverted recess).
 
-        See class docstring's *Known simplifications* for the interpretation
-        this implements. Widened by ``profile.free.radial`` (a registration
-        slide fit, not a retention surface) so the tray's rim seats without
-        binding.
+        A ``LAND_HEIGHT`` (0.400 mm) union onto the inner face over
+        ``[LAND_Y_LO, LAND_Y_HI]``, bringing the plate locally to
+        1.600 mm -- exactly the Tray's own bottom-rim thickness, per the
+        class docstring's *Known simplifications*. No running-clearance
+        widening is applied here (unlike the earlier recess): a raised
+        land the tray's rim registers *against* must not grow wider than
+        its own footprint, or it would encroach on the tray's rim seat
+        rather than merely define it.
         """
-        y_span = self.GROOVE_Y_HI - self.GROOVE_Y_LO
-        clearance = self._profile.free.radial
+        y_span = self.LAND_Y_HI - self.LAND_Y_LO
         return rounded_box(
-            width=self.PLATE_WIDTH + 2 * clearance,
+            width=self.PLATE_WIDTH,
             depth=y_span,
-            height=self.GROOVE_DEPTH + clearance,
+            height=self.LAND_HEIGHT,
             corner_r=0.0,
-            center=(
-                0.0,
-                (self.GROOVE_Y_LO + self.GROOVE_Y_HI) / 2.0,
-                self.PLATE_THICKNESS - self.GROOVE_DEPTH,
-            ),
+            center=(0.0, (self.LAND_Y_LO + self.LAND_Y_HI) / 2.0, self.PLATE_THICKNESS),
         )
 
     @property

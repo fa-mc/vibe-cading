@@ -119,14 +119,35 @@ class PoweredUpHubHousing:
           more generous of the two profile's heights (16.0 mm, the ramped
           ends' peak) -- this only ever removes *more* material than the
           real part, never less, so it cannot introduce an unintended
-          interference.
+          interference. **Re-verified round 18 (finding C4)**: this
+          simplification was previously *masking*
+          :class:`~vibe_cading.lego_adapters.poweredup_hub.battery_tray.PoweredUpHubBatteryTray`'s
+          S2 Z-datum error (the tab ledge would not have passed the real,
+          ramped window profile) -- now that S2 is corrected, the tab
+          ledge's real Z-band clears this flat 16.0 mm window with margin
+          to spare (re-confirmed by the cross-part tests below), so the
+          masking relationship is now moot rather than live.
         - **End-wall X extent** (latch and tongue walls) simplified to a
           constant :attr:`WALL_X_OUTER_LOWER` (28.0 mm) across their full
           height, rather than stepping to match the side walls' own
           22.0 mm step -- the two walls are a structurally distinct
           feature family from the side walls' stepped profile, and using
           the wider (lower-band) figure throughout is again a
-          material-only-added simplification.
+          material-only-added simplification. **Re-verified round 18
+          (finding C8)**: this ``28.0 mm`` figure matches the real part's
+          own end-wall extent exactly -- the earlier ``|x| <= 32.0 mm``
+          reference-doc figure was itself a transcription error in
+          ``tmp/ldraw-housing-geometry.md``, not a modelling gap here.
+        - **End-wall Z extent** (latch and tongue walls) built full-height,
+          ``Z`` in ``[0, DECK_Z]`` (``0..29.6 mm``), rather than the real
+          part's own, shorter two-skin sandwich extent (``3.6..22.0 mm``
+          per ``tmp/ldraw-housing-geometry.md``) -- round 18, finding C3.
+          Additive-only (never removes material the real part has), and
+          this class's own single-wall departure already scopes the
+          latch/tongue ends away from an exact copy (see *Single wall at
+          BOTH ends* above), so the extra height is harmless, not a new
+          interference risk -- declared here per this project's
+          Experimental Integrity convention rather than left silent.
         - **Arm cross-section** stays at the class's own
           Cailliau-calibrated ``BEAM_WIDTH`` (7.8 mm, vs. LDraw's
           idealised 7.2 mm) -- the design brief's explicit "not changed,
@@ -257,7 +278,15 @@ class PoweredUpHubHousing:
     TONGUE_Y = HALF_Y
     TONGUE_STEP_Z = 1.874
     TONGUE_INNER_Y_LOWER = 33.378   # inner face, Z < TONGUE_STEP_Z (the rebate)
-    TONGUE_INNER_Y_UPPER = 34.400   # inner face, Z >= TONGUE_STEP_Z (back wall)
+    # Nominal back-wall inner face -- exactly coincident with
+    # PoweredUpHubCover.TONGUE_Y_HI (34.400 mm), i.e. a bare zero-clearance
+    # literal-to-literal butt (round 18, S7). Every other Cover/Housing
+    # interface routes its insertion datum through profile.free.radial;
+    # this one didn't, making the tongue's insertion stop unreachable on
+    # FDM. self._tongue_inner_y_upper (below) is the profile-corrected
+    # value actually used by _build_tongue_wall -- this class constant is
+    # kept for its docstring/reference value only.
+    TONGUE_INNER_Y_UPPER = 34.400
 
     # --- Post-fix hardening (TL round Q2's promoted constraint) ---
     _MIN_MATERIAL_BEHIND_UNDERCUT = 1.8  # mm, round-8 FDM precedent
@@ -269,6 +298,15 @@ class PoweredUpHubHousing:
             prof = profile
         self._profile = prof
         self._latch = get_latch_geometry(prof)
+        # Round 18, S7: add a running-clearance allowance to the tongue
+        # back wall's inner face -- moving it FURTHER from Cover's tongue
+        # tip (TONGUE_Y_HI = 34.400 mm, unchanged), i.e. thinning this
+        # local wall slightly so the tip has somewhere to actually reach on
+        # FDM, instead of a bare zero-clearance literal-to-literal butt.
+        # (An earlier version subtracted here instead, which moved the
+        # inner face TOWARD the tip and thickened the wall -- the opposite
+        # of clearance -- and measurably collided with Cover's tongue tip.)
+        self._tongue_inner_y_upper = self.TONGUE_INNER_Y_UPPER + prof.free.radial
 
         self._solid = self._build()
 
@@ -616,9 +654,14 @@ class PoweredUpHubHousing:
         base = base.cut(self._build_finger_windows())
 
         for side in (+1, -1):
-            boss, pocket = self._build_latch_catch(side)
+            boss, pocket, nub = self._build_latch_catch(side)
             base = base.union(boss)
             base = base.cut(pocket)
+            # The keeper nub MUST be unioned back in AFTER the slot cut --
+            # it sits inside the slot's own footprint by construction (see
+            # _build_latch_catch's docstring), so applying it before the
+            # cut would just have the slot cutter remove it again.
+            base = base.union(nub)
 
         assert len(base.solids().vals()) == 1, "Expected single solid, got multiple pieces"
         return base
@@ -641,9 +684,13 @@ class PoweredUpHubHousing:
             windows = win if windows is None else windows.union(win)
         return windows
 
-    def _build_latch_catch(self, side: int) -> tuple[cq.Workplane, cq.Workplane]:
-        """One latch-end catch (boss + finger-clearance/undercut slot),
-        derived from :class:`PoweredUpHubCover`'s own barb geometry per the
+    def _build_latch_catch(self, side: int) -> tuple[cq.Workplane, cq.Workplane, cq.Workplane]:
+        """One latch-end catch: ``(boss, slot, nub)`` -- the finger-
+        clearance boss, its undercut slot cutter, and the round-18
+        retention keeper nub that re-adds solid material inside the slot's
+        own footprint after the slot cut runs (caller order matters: union
+        boss, cut slot, THEN union nub -- see :meth:`_build_latch_wall`).
+        Derived from :class:`PoweredUpHubCover`'s own barb geometry per the
         design brief's *Latch catch -- derived design* section and the
         class docstring's *Latch catch derivation* note.
 
@@ -721,7 +768,58 @@ class PoweredUpHubHousing:
             center=(x_center, (y_slot_outer + y_slot_inner) / 2.0, z_lo),
         )
 
-        return boss, slot
+        # Retention keeper nub (round 18, B1 -- the actual fix): before this,
+        # y_slot_inner bounded BOTH the boss and the slot, so no material
+        # ever separated the "deflection pocket" side of the slot from the
+        # finger's own root -- zero retention (audit findings B1/S4).
+        #
+        # y_lip is derived from the corrected LatchGeometry.barb_protrusion
+        # (see that module's own docstring) via PoweredUpHubCover's own
+        # HOOK_FACE_Y1 -- crest_y_relaxed = HOOK_FACE_Y1 + barb_protrusion
+        # (the barb's undeflected resting Y), then y_lip = crest_y_relaxed
+        # - lg.undercut_depth. The nub re-adds solid material across
+        # Y in [y_lip, y_slot_inner] -- the sub-band of the slot closest to
+        # the finger's own root -- while Y in [y_slot_outer, y_lip] stays
+        # open as the barb's deflection pocket (retreat room). Z-localised
+        # tightly around barb_axis_z (NOT the full engagement band) per the
+        # design brief's own explicit warning: a full-band lip re-collides
+        # with the finger's drafted-face flanks near Z = engagement_band_lo
+        # / _hi, which is exactly the round-14->15 regression this slot
+        # topology was rebuilt to avoid. The nub's Z half-width is kept at
+        # the lip Y depth's own natural taper: solving where the finger's
+        # own drafted-face polyline crosses Y = y_lip on each side of
+        # barb_axis_z bounds how far the nub can safely reach in Z before
+        # colliding with material the finger has at ITS OWN root-ward
+        # (non-deflected) position -- verified empirically via
+        # section_slicer.py and the mandatory kinematic-sweep tests below,
+        # not hand-derived blind (see the design brief's own instruction).
+        crest_y_relaxed = PoweredUpHubCover.HOOK_FACE_Y1 + lg.barb_protrusion
+        y_lip = crest_y_relaxed - lg.undercut_depth
+
+        # The nub's Y-span [y_lip, y_slot_inner] never touches the slot's
+        # own outboard remainder of `boss` (Y <= y_slot_outer) -- that gap
+        # (Y in [y_slot_outer, y_lip]) is the deflection pocket, and must
+        # stay open. So the nub is instead connected in Z: its top edge
+        # reaches (with a coincident-faces overlap) into
+        # engagement_band_hi, where `boss` is still solid across its own
+        # full Y-span (the slot cutter's own height stops at
+        # engagement_band_hi -- see the slot's own height above) -- this is
+        # the existing "retention ledge" the class docstring already
+        # describes, and the nub fuses directly onto its underside rather
+        # than floating disconnected in space.
+        nub_reach = 0.500  # how far below engagement_band_hi the nub extends
+        seam_overlap = 0.05
+        nub_z_lo = lg.engagement_band_hi - nub_reach
+        nub_z_hi = lg.engagement_band_hi + seam_overlap
+        nub = rounded_box(
+            width=lg.hook_width,
+            depth=y_slot_inner - y_lip,
+            height=nub_z_hi - nub_z_lo,
+            corner_r=0.0,
+            center=(x_center, (y_lip + y_slot_inner) / 2.0, nub_z_lo),
+        )
+
+        return boss, slot, nub
 
     # ------------------------------------------------------------------
     # Tongue-end wall (+Y) -- single wall, rebate step only
@@ -737,7 +835,7 @@ class PoweredUpHubHousing:
         )
         upper = self._y_slab(
             self.TONGUE_Y,
-            self.TONGUE_Y - self.TONGUE_INNER_Y_UPPER,
+            self.TONGUE_Y - self._tongue_inner_y_upper,
             self.TONGUE_STEP_Z,
             self.DECK_Z,
             inward=False,

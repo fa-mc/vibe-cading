@@ -13,7 +13,8 @@
 # You should have received a copy of the GNU Affero General Public License
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
-"""Combined Cover + BatteryTray seated view -- a cross-class composition.
+"""Combined Housing + Cover + BatteryTray seated view -- a cross-class
+composition.
 
 Per this project's *Assembly modules* convention (see the root
 ``CLAUDE.md``), a demonstration spanning more than one class belongs in a
@@ -32,10 +33,18 @@ that reuses this module's own placement, then committed as an
 it replaces was. Flagged in the design brief's Implementation Status as a
 pre-existing tooling gap, not a regression introduced here.
 
-Placement: the tray's floor rests directly on the cover's inner face
-(``PoweredUpHubCover.PLATE_THICKNESS`` above the cover's own Z = 0 datum) --
-the real hub's housing (task 3, not built here) will slot both parts inside
-its own cavity, but this two-part seating is well-defined without it.
+**All three parts now shown (round 18)** -- an earlier version omitted
+:class:`~vibe_cading.lego_adapters.poweredup_hub.housing.PoweredUpHubHousing`
+because it did not exist yet when this module was first written; leaving it
+out afterward hid exactly the seating faults (B1/B2/B3) the round-18 audit
+found, since this is the view most likely to expose them.
+
+Placement: :class:`~vibe_cading.lego_adapters.poweredup_hub.housing.PoweredUpHubHousing`
+and :class:`PoweredUpHubCover` share one ``Z = 0`` datum (the lid *is* the
+housing's floor -- see ``PoweredUpHubHousing``'s own docstring), so Housing
+needs no transform either. The tray's floor rests directly on the cover's
+inner face (``PoweredUpHubCover.PLATE_THICKNESS`` above the cover's own
+``Z = 0`` datum).
 """
 
 from __future__ import annotations
@@ -44,16 +53,19 @@ import cadquery as cq
 
 from vibe_cading.lego_adapters.poweredup_hub.battery_tray import PoweredUpHubBatteryTray
 from vibe_cading.lego_adapters.poweredup_hub.cover import PoweredUpHubCover
+from vibe_cading.lego_adapters.poweredup_hub.housing import PoweredUpHubHousing
 
 
 def assemble(**kwargs) -> list[tuple[cq.Workplane, str, str]]:
-    """Cover + BatteryTray, seated as they seat when the lid is closed."""
+    """Housing + Cover + BatteryTray, seated as they seat when the lid is closed."""
+    housing = PoweredUpHubHousing(**kwargs.get("housing_kwargs", {}))
     cover = PoweredUpHubCover(**kwargs.get("cover_kwargs", {}))
     tray = PoweredUpHubBatteryTray(**kwargs.get("tray_kwargs", {}))
 
     tray_solid = tray.solid.translate((0, 0, PoweredUpHubCover.PLATE_THICKNESS))
 
     return [
+        (housing.solid, "Housing", "lightgray"),
         (cover.solid, "Cover", "gold"),
         (tray_solid, "BatteryTray", "royalblue"),
     ]
