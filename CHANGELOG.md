@@ -194,6 +194,25 @@ section to the new version and date.
     docstring for the full proof, and the design brief's *Implementation
     Status* for the escalation this raises against the acceptance
     criterion as originally worded.
+- **Build-integrity fixes found by fresh-context phase-4 review** (both TL
+  and Designer independently confirmed; see the design brief's
+  *Post-Implementation Sign-Off* section):
+  - `vibe_cading/engine_api.json` was stale against `housing.py`'s own
+    docstring — an escaped `` \|x\| `` baked into the committed JSON from an
+    earlier revision, vs. the current source's `` |x| ``. A docstring edit
+    landed after the last `gen_engine_api.py` run and was never followed by
+    a re-generation. Regenerated; the resulting diff is exactly that one
+    docstring line (no signature change).
+  - `check_visual_contract_freshness.py`'s coverage gate went red: this
+    stack's `2026-08-19-poweredup-hub-battery-box_design_assembly_iso_ne.svg`
+    (a cross-class `assembly.py` composition the checker has no concept of
+    rendering) is a tracked design SVG with no `[[contract]]` row, and the
+    coverage gate treats any such file as an unregistered-manifest problem.
+    Rather than silently rename or untrack the file, the checker now carries
+    an explicit, commented `COVERAGE_EXEMPT_UNREGISTERED` allowlist so the
+    gap is a deliberate, reviewed decision instead of an unregistered one;
+    teaching the checker a real assembly-module row type (the principled
+    fix) is tracked as a follow-up.
 
 ## [0.1.6] - 2026-08-10
 

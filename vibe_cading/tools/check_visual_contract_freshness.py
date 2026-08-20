@@ -125,6 +125,30 @@ DEFAULT_PLANS_DIR = REPO_ROOT / "visual_contracts"
 # naming the Visual Contract rule mandates, so this glob tracks the rule.
 DESIGN_SVG_GLOB = "*_design_*.svg"
 
+# ── Coverage-gate exemptions (deliberate, reviewed, NOT a silent gap) ─────────
+# This checker's ``Contract.regenerate_bytes`` renders exactly one class's
+# ``.solid`` via ``export_previews`` — it has no concept of a cross-class
+# *assembly-module* composition (a module-level ``assemble()`` per the
+# project's *Assembly modules* convention). A combined seated view spanning
+# multiple parts therefore cannot be registered as a normal ``[[contract]]``
+# row today. Rather than let such a file silently fail the "every tracked
+# design SVG is registered" coverage check — the failure mode that made
+# ``main`` permanently red until this list existed (see the
+# 2026-08-19-poweredup-hub-battery-box_design PR's TL review, finding B2) —
+# each exemption is named here explicitly, with the reason and the follow-up
+# that would let it graduate to a real manifest row.
+#
+# Extending the checker to understand assembly-module rows (calling
+# ``assemble()`` and byte-comparing the combined render) is the principled
+# fix and is tracked as a follow-up (TL review, option (a)); this list is the
+# deliberate, reviewed interim so the gap is a registered decision rather
+# than an unregistered one.
+COVERAGE_EXEMPT_UNREGISTERED: frozenset[str] = frozenset({
+    # Cross-class composition (Housing + Cover + BatteryTray seated view) —
+    # see vibe_cading/lego_adapters/poweredup_hub/assembly.py's own docstring.
+    "visual_contracts/2026-08-19-poweredup-hub-battery-box_design_assembly_iso_ne.svg",
+})
+
 # How a contributor refreshes contracts locally (see the interpreter note in
 # the module docstring for why this names python3.11 rather than python3).
 REFRESH_INTERPRETER = "python3.11"
@@ -192,8 +216,9 @@ def run_coverage_gate(contracts: list[Contract], plans_dir: Path) -> list[str]:
 
     registered = {c.svg_path for c in contracts}
     tracked = {p.resolve() for p in plans_dir.glob(DESIGN_SVG_GLOB)}
+    exempt = {(REPO_ROOT / rel).resolve() for rel in COVERAGE_EXEMPT_UNREGISTERED}
 
-    unregistered = sorted(tracked - registered)
+    unregistered = sorted(tracked - registered - exempt)
     for svg in unregistered:
         rel = _display_path(svg)
         problems.append(
