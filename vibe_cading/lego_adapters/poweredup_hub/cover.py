@@ -17,9 +17,11 @@
 
 Dimensions are read from the LDraw parts library (CC BY 4.0, author
 Philippe Hurbain) part ``24853`` ("Electric Technic Battery Holder Cover"),
-as extracted in ``tmp/ldraw-parts-geometry.md`` SS1 (git-ignored; no LDraw
-``.dat`` file, converted geometry, or render is committed to this repo --
-only independently-written measurements and from-scratch CadQuery code).
+as extracted in
+``docs/design_plans/2026-08-19-poweredup-hub-battery-box_ldraw-parts-geometry.md``
+SS1 (no LDraw ``.dat`` file, converted geometry, or render is committed to
+this repo -- only independently-written measurements and from-scratch
+CadQuery code).
 Full design rationale:
 ``docs/design_plans/2026-08-19-poweredup-hub-battery-box_design.md``,
 *Multi-part structure -> Cover*.
@@ -55,7 +57,7 @@ class PoweredUpHubCover:
     frame: the **latch end** (cantilever hooks) sits at the plate's negative-Y
     edge and the hooks extend further into ``-Y``; the **tongue / insertion
     end** sits at the plate's positive-Y edge and the tongue extends further
-    into ``+Y``. This matches ``tmp/ldraw-parts-geometry.md``'s own
+    into ``+Y``. This matches ``docs/design_plans/2026-08-19-poweredup-hub-battery-box_ldraw-parts-geometry.md``'s own
     recommended CadQuery mapping (SS0), which this class's constants are
     read directly from.
 
@@ -244,7 +246,7 @@ class PoweredUpHubCover:
     # constant-thickness pad/spine (a straight LEG_B_THICKNESS = 0.500 mm
     # wall at a constant PAD_OUTER_Y = -35.600 mm, flush with Housing's own
     # outer wall) with the reference's own slanted, variable-thickness
-    # blade, read directly off `tmp/reference-comparison.md`'s exact
+    # blade, read directly off `docs/design_plans/2026-08-19-poweredup-hub-battery-box_reference-comparison.md`'s exact
     # ray-crossing coordinates: outer face piecewise-linear through
     # (z=0..3.6, y=-34.063) [the thumb pad], (z=5, y=-34.220),
     # (z=8, y=-33.733), (z=11, y=-33.367); thickness (inner-face offset

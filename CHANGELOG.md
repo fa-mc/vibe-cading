@@ -342,6 +342,35 @@ section to the new version and date.
     all until this round; RC3 (the crown hold)'s stated justification was
     corrected rather than the geometry re-derived. See the design brief's
     *Round 21* for the full framing.
+- **Deliverable provenance** (phase-4 TL review BLOCK, see the design brief's
+  `TL Review — CURRENT`): the design brief and its lineage sibling
+  (`docs/design_plans/2026-08-19-poweredup-hub-battery-box_{design,lineage}.md`)
+  were committed for the first time — 16 tracked files already cited them
+  by path and would have carried dangling citations on merge (finding B1).
+  The three LDraw extraction/comparison analysis documents that are the
+  sole stated derivation for most Cover/Tray/Housing/LatchGeometry
+  dimensional literals moved from git-ignored `tmp/` to tracked
+  `docs/design_plans/2026-08-19-poweredup-hub-battery-box_{ldraw-parts-geometry,ldraw-housing-geometry,reference-comparison}.md`,
+  each carrying the LDraw CC BY 4.0 / Philippe Hurbain attribution
+  prominently — own measurements and prose, no `.dat` file or converted
+  geometry committed (finding B2). All 15 `tmp/`-pointing citations across
+  `cover.py`, `battery_tray.py`, `housing.py`, `latch_geometry.py`, and
+  `test_poweredup_hub_cover.py` repointed at the new tracked paths;
+  `engine_api.json` regenerated to pick up the docstring moves.
+- `PoweredUpHubHousing`/`PoweredUpHubCover`: added
+  `test_barb_crest_matches_ldraw_reference`, pinning
+  `PoweredUpHubCover.HOOK_FACE_Y1 + LatchGeometry.barb_protrusion` to the
+  LDraw-measured barb crest (`-31.200 mm`) — the exact invariant
+  `LatchGeometry` exists to protect, previously unguarded by any test
+  (TL phase-4 review, finding M2).
+- `assembly.py`'s `assemble()` (the repo's only assembly-module function,
+  and therefore the convention future assembly modules copy): replaced the
+  unreachable `**kwargs` / nested `*_kwargs` dict surface — `view.py`'s
+  `--assembly` path always calls it bare — with a real
+  `profile: ToleranceProfile | str | None = None` parameter, forwarded to
+  all three parts (TL phase-4 review, finding M3). Also corrected an
+  unlabeled citation of the Claude-specific `CLAUDE.md` to the
+  provider-neutral `vibe/INSTRUCTIONS.md`.
 
 ## [0.1.6] - 2026-08-10
 

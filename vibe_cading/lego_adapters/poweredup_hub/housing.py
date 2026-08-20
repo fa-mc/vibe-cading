@@ -17,9 +17,11 @@
 
 Dimensions are read from the LDraw parts library (CC BY 4.0, author
 Philippe Hurbain) part ``25560`` ("Electric Control+ Hub Bottom"), as
-extracted in ``tmp/ldraw-housing-geometry.md`` (git-ignored; no LDraw
-``.dat`` file, converted geometry, or render is committed to this repo --
-only independently-written measurements and from-scratch CadQuery code).
+extracted in
+``docs/design_plans/2026-08-19-poweredup-hub-battery-box_ldraw-housing-geometry.md``
+(no LDraw ``.dat`` file, converted geometry, or render is committed to this
+repo -- only independently-written measurements and from-scratch CadQuery
+code).
 Full design rationale:
 ``docs/design_plans/2026-08-19-poweredup-hub-battery-box_design.md``,
 *Multi-part structure -> Housing*.
@@ -71,7 +73,7 @@ class PoweredUpHubHousing:
     section: "the bottom is otherwise wide open"), so a
     :class:`PoweredUpHubCover` instance built with no transform at all is
     already in its seated position relative to this class -- both parts
-    share one LDraw parent frame (``tmp/ldraw-housing-geometry.md`` SS11.1:
+    share one LDraw parent frame (``docs/design_plans/2026-08-19-poweredup-hub-battery-box_ldraw-housing-geometry.md`` SS11.1:
     the lid-to-housing LDraw transform is a pure translation with no
     rotation and no sign flip, and that translation is already baked into
     each class's own ``Z = 0`` datum). Every feature extrudes ``+Z`` from
@@ -163,7 +165,7 @@ class PoweredUpHubHousing:
           (finding C8)**: this ``28.0 mm`` figure matches the real part's
           own end-wall extent exactly -- the earlier ``|x| <= 32.0 mm``
           reference-doc figure was itself a transcription error in
-          ``tmp/ldraw-housing-geometry.md``, not a modelling gap here.
+          ``docs/design_plans/2026-08-19-poweredup-hub-battery-box_ldraw-housing-geometry.md``, not a modelling gap here.
         - **End-wall Z extent** (latch and tongue walls), ``Z`` in
           ``[0, END_WALL_Z_HI]`` (``0..24.0 mm``) -- round 18 (finding C3)
           originally built these full-height to ``DECK_Z`` (``29.6 mm``,
@@ -173,7 +175,7 @@ class PoweredUpHubHousing:
           single largest remaining visual difference after round 20's H1
           fix. This class's own single-wall departure still scopes the
           latch/tongue ends away from an exact copy of LEGO's two-skin
-          sandwich (``3.6..22.0 mm`` per ``tmp/ldraw-housing-geometry.md``)
+          sandwich (``3.6..22.0 mm`` per ``docs/design_plans/2026-08-19-poweredup-hub-battery-box_ldraw-housing-geometry.md``)
           -- see *Single wall at BOTH ends* above -- but the Z extent
           itself is no longer over-height.
         - **Arm cross-section** stays at the class's own
@@ -594,7 +596,7 @@ class PoweredUpHubHousing:
         """Shallow relief pocket on both faces (top and bottom) of the arm,
         between the pin-hole positions -- round 20, finding H2.
 
-        Reference-derived numbers (``tmp/reference-comparison.md`` H2, read
+        Reference-derived numbers (``docs/design_plans/2026-08-19-poweredup-hub-battery-box_reference-comparison.md`` H2, read
         off LDraw's ``rect3.dat`` / ``1-4cyli.dat``): pocket floors at
         global ``Z = 21.378`` (top) / ``18.622`` (bottom) -- local
         ``Z = 5.378`` / ``2.622`` here, since ``global Z = local Z +
@@ -942,7 +944,7 @@ class PoweredUpHubHousing:
 
         The local -> global remap swaps X and Y (length <-> width, since
         the arm's *length* runs along housing Y while its *width* runs
-        along housing X, per ``tmp/ldraw-housing-geometry.md`` SS3.0) --
+        along housing X, per ``docs/design_plans/2026-08-19-poweredup-hub-battery-box_ldraw-housing-geometry.md`` SS3.0) --
         an axis swap is a reflection (determinant -1), not achievable by
         any pure rotation, so it is done via ``mirror(mirrorPlane=(1,-1,0))``
         (reflection through the Y = X plane, confirmed empirically to map
@@ -951,7 +953,7 @@ class PoweredUpHubHousing:
         ``["main", "none", "main"]`` local hole line (X = 4/12/20) on
         ``Y = 16/24/32``.  The other three quadrants are then reached by
         ordinary axis mirrors (no further swap needed, since the arm
-        geometry has no handedness -- ``tmp/ldraw-housing-geometry.md``
+        geometry has no handedness -- ``docs/design_plans/2026-08-19-poweredup-hub-battery-box_ldraw-housing-geometry.md``
         SS2.2: "there is no handedness anywhere in the arms").
         """
         def _transform(wp: cq.Workplane) -> cq.Workplane:

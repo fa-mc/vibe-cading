@@ -28,7 +28,7 @@ half is fixed, foreign geometry. What both halves *do* need is to never
 drift apart on the numbers that couple them — hence this frozen parameter
 object, imported by both.
 
-All dimensions below are read from ``tmp/ldraw-parts-geometry.md`` SS1.4
+All dimensions below are read from ``docs/design_plans/2026-08-19-poweredup-hub-battery-box_ldraw-parts-geometry.md`` SS1.4
 (LDraw library, CC BY 4.0, author Philippe Hurbain) unless flagged as
 *derived*. The derived undercut depth / catch width / ramp angle are the
 Housing side's future numbers, computed here (not re-derived per call site)

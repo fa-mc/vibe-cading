@@ -18,10 +18,10 @@
 Dimensions are read from the LDraw parts library (CC BY 4.0, author
 Philippe Hurbain) part ``24849`` / ``24849c01`` ("Electric Technic Battery
 Holder Cover" / its contact-bearing variant), as extracted in
-``tmp/ldraw-parts-geometry.md`` SS2 (git-ignored; no LDraw ``.dat`` file,
-converted geometry, or render is committed to this repo -- only
-independently-written measurements and from-scratch CadQuery code). Full
-design rationale:
+``docs/design_plans/2026-08-19-poweredup-hub-battery-box_ldraw-parts-geometry.md``
+SS2 (no LDraw ``.dat`` file, converted geometry, or render is committed to
+this repo -- only independently-written measurements and from-scratch
+CadQuery code). Full design rationale:
 ``docs/design_plans/2026-08-19-poweredup-hub-battery-box_design.md``,
 *Multi-part structure -> Battery tray*.
 
@@ -57,7 +57,7 @@ class PoweredUpHubBatteryTray:
     interior floor -- not built here). Every feature extrudes ``+Z``. X is
     centred on the tray's mid-width; Y follows the real tray's own frame
     (matching the Cover's Y convention, since both share one LDraw parent
-    frame per ``tmp/ldraw-parts-geometry.md`` SS0): the ``-Y`` end wall sits
+    frame per ``docs/design_plans/2026-08-19-poweredup-hub-battery-box_ldraw-parts-geometry.md`` SS0): the ``-Y`` end wall sits
     near the Cover's latch end, the ``+Y`` end wall near the Cover's tongue
     end.
 
@@ -100,7 +100,7 @@ class PoweredUpHubBatteryTray:
           corrected from an earlier flush-to-the-rim floor that left zero
           routing clearance beneath it), spanning the tray's full interior
           cavity -- the real part has none (only a ~10 % peripheral rim,
-          per ``tmp/ldraw-parts-geometry.md`` SS2.6). The standoff opens a
+          per ``docs/design_plans/2026-08-19-poweredup-hub-battery-box_ldraw-parts-geometry.md`` SS2.6). The standoff opens a
           crawl-space between the floor's underside and the tray's own
           bottom rim (which, once seated in ``assemble()``, is the Cover's
           own inner face) big enough for a strap to route through.
@@ -203,7 +203,7 @@ class PoweredUpHubBatteryTray:
 
     # --- Side extraction tabs, KEPT exactly per envelope (SS2.3) ---
     # Z bands corrected round 18 (S2, -1.600 mm from every 24849-derived Z
-    # constant): tmp/ldraw-parts-geometry.md SS0 states 24849's own Z = 0 is
+    # constant): docs/design_plans/2026-08-19-poweredup-hub-battery-box_ldraw-parts-geometry.md SS0 states 24849's own Z = 0 is
     # the LID's outer face, with the tray's own physical structure (bottom
     # rim) starting 1.600 mm above that -- but this class's Z = 0 is its OWN
     # bottom rim (see class docstring's *Origin / datum*), so every Z value

@@ -31,7 +31,7 @@ def test_single_solid():
 
 def test_plate_envelope():
     """Overall X/Z envelope matches the measured lid, per SS1.1/SS1.4 of
-    tmp/ldraw-parts-geometry.md: 54.4 mm wide, 13.0 mm deep (hook tip)."""
+    docs/design_plans/2026-08-19-poweredup-hub-battery-box_ldraw-parts-geometry.md: 54.4 mm wide, 13.0 mm deep (hook tip)."""
     c = PoweredUpHubCover()
     bbox = c.solid.val().BoundingBox()
     assert abs(bbox.xlen - PoweredUpHubCover.PLATE_WIDTH) < 1e-6

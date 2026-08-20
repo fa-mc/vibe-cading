@@ -16,8 +16,8 @@
 """Combined Housing + Cover + BatteryTray seated view -- a cross-class
 composition.
 
-Per this project's *Assembly modules* convention (see the root
-``CLAUDE.md``), a demonstration spanning more than one class belongs in a
+Per this project's *Assembly modules* convention (see
+``vibe/INSTRUCTIONS.md``), a demonstration spanning more than one class belongs in a
 module-level ``assemble()`` function, viewable via::
 
     python3 vibe_cading/tools/view.py --assembly \\
@@ -54,13 +54,29 @@ import cadquery as cq
 from vibe_cading.lego_adapters.poweredup_hub.battery_tray import PoweredUpHubBatteryTray
 from vibe_cading.lego_adapters.poweredup_hub.cover import PoweredUpHubCover
 from vibe_cading.lego_adapters.poweredup_hub.housing import PoweredUpHubHousing
+from vibe_cading.print_settings import ToleranceProfile
 
 
-def assemble(**kwargs) -> list[tuple[cq.Workplane, str, str]]:
-    """Housing + Cover + BatteryTray, seated as they seat when the lid is closed."""
-    housing = PoweredUpHubHousing(**kwargs.get("housing_kwargs", {}))
-    cover = PoweredUpHubCover(**kwargs.get("cover_kwargs", {}))
-    tray = PoweredUpHubBatteryTray(**kwargs.get("tray_kwargs", {}))
+def assemble(
+    profile: ToleranceProfile | str | None = None,
+) -> list[tuple[cq.Workplane, str, str]]:
+    """Housing + Cover + BatteryTray, seated as they seat when the lid is closed.
+
+    ``profile`` forwards to all three parts' own ``profile`` constructor
+    argument (each resolves ``None`` to the process-global default via
+    :func:`vibe_cading.print_settings.get_profile`), so a caller can render
+    the seated assembly under a non-default tolerance profile. This is the
+    repo's first ``assemble()`` -- per *Assembly modules* in
+    ``vibe/INSTRUCTIONS.md``, its signature is the convention future
+    cross-class assembly modules copy, so it carries only parameters every
+    consumer can actually supply (TL phase-4 review, finding M3 -- the
+    prior ``**kwargs`` / ``*_kwargs`` shape was unreachable dead surface:
+    ``vibe_cading/tools/view.py``'s ``--assembly`` path calls ``assemble()``
+    with no arguments).
+    """
+    housing = PoweredUpHubHousing(profile=profile)
+    cover = PoweredUpHubCover(profile=profile)
+    tray = PoweredUpHubBatteryTray(profile=profile)
 
     tray_solid = tray.solid.translate((0, 0, PoweredUpHubCover.PLATE_THICKNESS))
 

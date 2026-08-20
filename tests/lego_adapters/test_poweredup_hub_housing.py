@@ -192,6 +192,24 @@ def test_undercut_wall_thickness_floor_holds():
     assert local_wall >= PoweredUpHubHousing._MIN_MATERIAL_BEHIND_UNDERCUT
 
 
+def test_barb_crest_matches_ldraw_reference():
+    """Post-fix hardening (TL phase-4 review, finding M2): LatchGeometry
+    exists precisely to prevent PoweredUpHubCover.HOOK_FACE_Y1 and
+    LatchGeometry.barb_protrusion silently drifting apart. Neither number
+    alone is checked anywhere else -- this pins their sum to the LDraw-
+    measured barb crest (Y = -31.200, see
+    docs/design_plans/2026-08-19-poweredup-hub-battery-box_ldraw-parts-geometry.md
+    SS1.4 and latch_geometry.py's own derivation comment). A regression
+    here means someone edited one of HOOK_FACE_Y1 / barb_protrusion
+    without re-deriving the other, and the crest has moved off the real
+    part without any other gate in this repo catching it."""
+    from vibe_cading.lego_adapters.poweredup_hub.latch_geometry import get_latch_geometry
+
+    lg = get_latch_geometry()
+    crest_y = PoweredUpHubCover.HOOK_FACE_Y1 + lg.barb_protrusion
+    assert abs(crest_y - (-31.200)) < 1e-9
+
+
 def test_envelope_is_exactly_72mm_in_x():
     """Post-fix hardening (round 16, Escalation 7): the arm's outboard face
     used to overshoot the exact-copy target by 0.3 mm (72.6 mm measured);
