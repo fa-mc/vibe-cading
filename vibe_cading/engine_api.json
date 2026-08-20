@@ -860,6 +860,176 @@
       "result_accessor": ".solid"
     },
     {
+      "module": "vibe_cading.lego_adapters.poweredup_hub.battery_tray",
+      "name": "PoweredUpHubBatteryTray",
+      "fqn": "vibe_cading.lego_adapters.poweredup_hub.battery_tray.PoweredUpHubBatteryTray",
+      "doc": "Battery cradle repurposed from LEGO tray ``24849`` for a 2S LiPo pack.\n\nOrigin / datum\n---------------\n``(0, 0, 0)`` is the tray's **bottom face** -- the physical mating datum\nwhere it seats against the\n:class:`~vibe_cading.lego_adapters.poweredup_hub.cover.PoweredUpHubCover`'s\ninner face (or, in the future ``HousingBox`` assembly, the housing's\ninterior floor -- not built here). Every feature extrudes ``+Z``. X is\ncentred on the tray's mid-width; Y follows the real tray's own frame\n(matching the Cover's Y convention, since both share one LDraw parent\nframe per ``tmp/ldraw-parts-geometry.md`` SS0): the ``-Y`` end wall sits\nnear the Cover's latch end, the ``+Y`` end wall near the Cover's tongue\nend.\n\nWall enumeration and the removal decision (design brief, round 13\nresolution -- the inverse of the literal \"front and end\" reading):\n    - Both **outer end walls are KEPT** (``-Y``: kept exactly at\n      ``-30.400..-28.800`` mm, 1.600 mm thick; ``+Y``: kept at\n      ``29.200..30.800`` mm nominal thickness, simplified to a uniform\n      1.600 mm rather than the real part's 29.200/29.600 mm stepped\n      inner face -- see *Known simplifications*).\n    - Both **internal transverse partitions are REMOVED** (they, not\n      the end walls, bound the 51.2 mm cell bay -- removing only them\n      gives the exact 58.000 mm clear length the 58 mm pack needs).\n    - Both **longitudinal side walls are KEPT**, 0.800 mm thick, with\n      their extraction tabs intact (K5).\n    - The **corrugated shelf**, the **4 longitudinal cell dividers**,\n      the **2 electrical contacts**, and the **side stiffener plates**\n      (which intrude into the pack's own volume) are all REMOVED.\n\nBecause 58.000 mm of clear length against a 58 mm pack is zero-slack,\n:attr:`RELIEF` (1.5 mm, within the design's stated 1-2 mm range) is\nadded to the ``+Y`` end wall -- both its inner AND outer face shift\n``+Y`` together, so the wall keeps its full 1.6 mm thickness (a\nstructurally sound extension of the tray's own footprint) rather than\nlocally thinning the wall to a fraction of a millimetre (which a\nsame-thickness inner-face-only pocket would do, and which this\nDeveloper judged unprintable -- see *Known simplifications*).\n\nNew features (design brief, not LEGO-derived):\n    - **Floor** at ``Z in [0, FLOOR_THICKNESS]``, spanning the tray's\n      full interior cavity -- the real part has none (only a ~10 %\n      peripheral rim, per ``tmp/ldraw-parts-geometry.md`` SS2.6).\n    - **Strap holders**: two full-through slots in the floor, each\n      ``STRAP_WIDTH`` (20.5 mm, the round-8-confirmed opening for a\n      20 mm strap) wide, positioned symmetrically about the tray's own\n      Y-centre.\n\nKnown simplifications (documented deviations, all cosmetic /\nnon-load-bearing unless noted):\n    - The ``+Y`` end wall's real stepped inner face (29.200 mm for the\n      lower compartment, 29.600 mm for the upper) is simplified to a\n      single uniform inner face at 29.200 mm (before relief) -- the\n      more generous of the two, so this only ever *adds* clear volume,\n      never removes it.\n    - The tray's real vertical wall/top-frame transition (plain wall to\n      22.400 mm, a separate top-frame feature at 27.600/28.000 mm) is\n      simplified to one uniform-height wall extruded straight to\n      :attr:`WALL_Z_HI` (28.000 mm) -- structurally equivalent, and the\n      real transition is a cosmetic frame detail, not a mating surface.\n    - The ``+Z`` guide rails (K6) and the top-outer-corner rounds\n      (R1.600) are not modelled -- both are secondary LEGO-to-LEGO\n      engagement/cosmetic features with no role in the LiPo-pack /\n      strap retention this repurposed tray now serves.\n    - The extraction tabs' R3.600 mm corner rounds and the recessed\n      quarter-round detail in the finger ledge are not modelled -- the\n      tabs' functional envelope (pad/ledge proud-ness, grip ribs) is\n      fully preserved; only the corner cosmetics are simplified.\n    - **Relief placement is this Developer's choice, not the design's**\n      -- the design brief explicitly leaves \"not yet which one\" open.\n      Applied to the ``+Y`` (tongue-end-side) wall only.\n    - **Strap thickness is an explicit open assumption**\n      (:attr:`STRAP_THICKNESS_ASSUMED` = 1.8 mm, the midpoint of the\n      design's stated 1.5-2 mm range) -- flagged per the task brief,\n      not a measured or user-confirmed value like :attr:`STRAP_WIDTH`.\n\nParameters\n----------\nprofile:\n    Manufacturing tolerance profile, applied to the strap-holder slots'\n    running clearance (``profile.free.radial``). Accepts a\n    :class:`~vibe_cading.print_settings.ToleranceProfile` instance, a\n    profile name string, or ``None`` for the process-global default.",
+      "constructors": [
+        {
+          "kind": "init",
+          "name": "__init__",
+          "doc": null,
+          "params": [
+            {
+              "name": "profile",
+              "type": "ToleranceProfile | str | None",
+              "required": false,
+              "default": "None",
+              "units": null,
+              "allowed_values": null,
+              "value_doc": null
+            }
+          ]
+        }
+      ],
+      "result_accessor": ".solid"
+    },
+    {
+      "module": "vibe_cading.lego_adapters.poweredup_hub.cover",
+      "name": "PoweredUpHubCover",
+      "fqn": "vibe_cading.lego_adapters.poweredup_hub.cover.PoweredUpHubCover",
+      "doc": "Exact copy of LEGO lid ``24853``, minus the three AA-cell divider ribs.\n\nOrigin / datum\n---------------\n``(0, 0, 0)`` is the plate's **outer (bottom) face** -- simultaneously\nthe LEGO-mating reference, the print-bed face, and the assembly datum\n(design brief, *Cover -- The Z = 0 datum, resolved*). Every feature\nextrudes ``+Z`` from there. X is centred on the plate's mid-width\n(symmetric, ``+-PLATE_WIDTH/2``). Y follows the real lid's own asymmetric\nframe: the **latch end** (cantilever hooks) sits at the plate's negative-Y\nedge and the hooks extend further into ``-Y``; the **tongue / insertion\nend** sits at the plate's positive-Y edge and the tongue extends further\ninto ``+Y``. This matches ``tmp/ldraw-parts-geometry.md``'s own\nrecommended CadQuery mapping (SS0), which this class's constants are\nread directly from.\n\nKept, as measured (design brief K1-K4, minus the ribs):\n    - The flat 1.2 mm plate and its sharp-cornered rectangular outline,\n      with the local 1.2->2.0 mm thickening band at the latch end.\n    - Both cantilever latch fingers with their \u00d82.000 mm barbs (K1).\n    - The slide-in tongue / ledge at the insertion end (K2), simplified\n      to a single uniform-thickness blade -- see *Known simplifications*\n      below.\n    - A locating groove near the tongue end, sized to register the\n      :class:`~vibe_cading.lego_adapters.poweredup_hub.battery_tray.PoweredUpHubBatteryTray`'s\n      1.600 mm bottom rim (this is a tray-to-lid interface, not a\n      lid-to-housing one -- see the design brief's *Housing ->\n      Tongue-end rebate* section, which explicitly confirms the groove\n      is dropped from the Housing side but survives here).\n\nDeleted (the one named deviation, design brief O1/O2):\n    - The three inner-face AA-cell divider ribs and their flank gussets.\n\nClosed (round 13 user decision, design brief K4):\n    - The 15 outer through-slots -- simply never cut, leaving a plain\n      flat plate apart from the latch/tongue features.\n\nKnown simplifications (documented deviations from the LDraw source,\nall cosmetic / non-load-bearing -- flagged per this project's\nExperimental Integrity convention rather than silently applied):\n    - The latch fingers are modelled as a single continuous cantilever\n      hook (root -> drafted face -> barb -> tip -> back to root). The\n      real part's separate pressable \"thumb pad\" (the outer skin\n      continuing past a 1.64 mm release slot to Y = -35.6 mm) is not\n      reproduced -- it is a release-ergonomics feature, not part of the\n      barb/hook retention geometry the future ``HousingBox`` catch must\n      mate with (which is fully preserved: hook width/pitch, barb\n      diameter/position/protrusion, engagement band, draft).\n    - The barb's true R1.000 mm cylindrical bead (157.5 deg arc) is\n      approximated as a faceted (straight-edged) crest at the same\n      position and protrusion, not a true arc -- a cosmetic rounding\n      simplification, consistent with this project's chamfer/fillet\n      simplification convention (see CLAUDE.md, *Reverse-engineering\n      from STEP files*).\n    - The tongue/ledge is modelled as one uniform 0.926 mm-thick blade\n      spanning the full measured tongue-to-ledge Y range, rather than\n      reproducing the separate \"Tongue A\" / \"Tongue B\" footprints, the\n      6 locating teeth, or the ledge notches between them -- all\n      confirmed non-load-bearing for either mating interface in the\n      design brief (dropped from the Housing side outright; the Tray\n      side only needs the groove, not the teeth).\n    - The locating groove's exact cross-section is this Developer's own\n      interpretation of an ambiguous LDraw table entry (the source\n      table states a Y-band and a nominal \"1.6 mm\" depth figure without\n      fully disambiguating which face the material is removed from);\n      implemented here as a shallow rectangular recess in the inner\n      face, sized against the Tray's own bottom-rim thickness via\n      :func:`~vibe_cading.print_settings.get_profile`. Flagged in the\n      design brief's Implementation Status for Designer confirmation.\n\nParameters\n----------\nprofile:\n    Manufacturing tolerance profile, used only by the locating groove's\n    registration clearance and the shared\n    :class:`~vibe_cading.lego_adapters.poweredup_hub.latch_geometry.LatchGeometry`\n    (whose *male*-side numbers this class consumes as fixed constants --\n    only the shared parameter object's *derived* female-side numbers are\n    profile-dependent, and this class does not build those). Accepts a\n    :class:`~vibe_cading.print_settings.ToleranceProfile` instance, a\n    profile name string, or ``None`` for the process-global default.",
+      "constructors": [
+        {
+          "kind": "init",
+          "name": "__init__",
+          "doc": null,
+          "params": [
+            {
+              "name": "profile",
+              "type": "ToleranceProfile | str | None",
+              "required": false,
+              "default": "None",
+              "units": null,
+              "allowed_values": null,
+              "value_doc": null
+            }
+          ]
+        }
+      ],
+      "result_accessor": ".solid"
+    },
+    {
+      "module": "vibe_cading.lego_adapters.poweredup_hub.latch_geometry",
+      "name": "LatchGeometry",
+      "fqn": "vibe_cading.lego_adapters.poweredup_hub.latch_geometry.LatchGeometry",
+      "doc": "One frozen bundle of latch dimensions, shared by Cover and HousingBox.\n\nAttributes\n----------\nbarb_diameter:\n    Cylindrical bead diameter (mm) at the tip of each cantilever hook.\nbarb_arc_deg:\n    Barb sweep angle (degrees) \u2014 LDraw measures 157.5 degrees (7/16 of a\n    full circle).\nbarb_protrusion:\n    How far the barb bead stands proud of the hook arm's own drafted\n    face (mm), measured inboard (+Y).\nhook_width:\n    Width of each latch finger across X (mm).\nhook_pitch:\n    Centre-to-centre X spacing between the two mirrored hooks (mm) \u2014\n    equivalently, the two hooks sit at ``X = +-hook_pitch/2``.\nengagement_band_lo, engagement_band_hi:\n    Z span (mm, measured from the plate's outer/mating face) that the\n    barb's crest-to-root height covers. A catch must span at least this\n    band to make full contact with the bead.\nhook_depth:\n    Overall Z depth (mm) of each hook, measured from the outer face \u2014\n    how far down the finger extends.\nbarb_axis_z:\n    Z height (mm) of the barb's cylindrical axis.\narm_draft_deg:\n    Draft angle (degrees) of the hook arm's inboard face.\nundercut_depth:\n    Derived \u2014 how deep the female catch's undercut pocket must cut\n    behind the housing wall's nominal inner face to receive the barb\n    with a repeatable, non-press-tight running clearance.\ncatch_width:\n    Derived \u2014 width (mm) of the female catch pocket, sized to clear\n    each hook's own side walls during insertion/release without\n    rubbing them.\nramp_angle_deg:\n    Derived \u2014 lead-in ramp angle (degrees) for the female catch,\n    Designer-recommended (not print-test-confirmed) shallow angle for\n    an uncertain-deflection compliant beam. See the design brief's\n    *Latch catch -- derived design* section for the full reasoning.",
+      "constructors": [
+        {
+          "kind": "init",
+          "name": "__init__",
+          "doc": null,
+          "params": [
+            {
+              "name": "barb_diameter",
+              "type": "float",
+              "required": true,
+              "units": "mm",
+              "allowed_values": null,
+              "value_doc": null
+            },
+            {
+              "name": "barb_arc_deg",
+              "type": "float",
+              "required": true,
+              "units": null,
+              "allowed_values": null,
+              "value_doc": null
+            },
+            {
+              "name": "barb_protrusion",
+              "type": "float",
+              "required": true,
+              "units": null,
+              "allowed_values": null,
+              "value_doc": null
+            },
+            {
+              "name": "hook_width",
+              "type": "float",
+              "required": true,
+              "units": "mm",
+              "allowed_values": null,
+              "value_doc": null
+            },
+            {
+              "name": "hook_pitch",
+              "type": "float",
+              "required": true,
+              "units": "mm",
+              "allowed_values": null,
+              "value_doc": null
+            },
+            {
+              "name": "engagement_band_lo",
+              "type": "float",
+              "required": true,
+              "units": null,
+              "allowed_values": null,
+              "value_doc": null
+            },
+            {
+              "name": "engagement_band_hi",
+              "type": "float",
+              "required": true,
+              "units": null,
+              "allowed_values": null,
+              "value_doc": null
+            },
+            {
+              "name": "hook_depth",
+              "type": "float",
+              "required": true,
+              "units": "mm",
+              "allowed_values": null,
+              "value_doc": null
+            },
+            {
+              "name": "barb_axis_z",
+              "type": "float",
+              "required": true,
+              "units": null,
+              "allowed_values": null,
+              "value_doc": null
+            },
+            {
+              "name": "arm_draft_deg",
+              "type": "float",
+              "required": true,
+              "units": null,
+              "allowed_values": null,
+              "value_doc": null
+            },
+            {
+              "name": "undercut_depth",
+              "type": "float",
+              "required": true,
+              "units": "mm",
+              "allowed_values": null,
+              "value_doc": null
+            },
+            {
+              "name": "catch_width",
+              "type": "float",
+              "required": true,
+              "units": "mm",
+              "allowed_values": null,
+              "value_doc": null
+            },
+            {
+              "name": "ramp_angle_deg",
+              "type": "float",
+              "required": true,
+              "units": null,
+              "allowed_values": null,
+              "value_doc": null
+            }
+          ]
+        }
+      ],
+      "result_accessor": ".solid"
+    },
+    {
       "module": "vibe_cading.lego_adapters.servos.sg90.servo_mount",
       "name": "ServoMountAssembly",
       "fqn": "vibe_cading.lego_adapters.servos.sg90.servo_mount.ServoMountAssembly",

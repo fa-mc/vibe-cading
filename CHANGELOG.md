@@ -28,6 +28,29 @@ section to the new version and date.
   instead of un-cutting this class's own bore. Both additions preserve every
   existing caller's geometry byte-for-byte (verified: the two registered
   `visual_contracts.toml` rows regenerate with zero byte movement).
+- `PoweredUpHubCover` and `PoweredUpHubBatteryTray`: two new exported model
+  classes, task 2 of the Powered Up hub battery-box implementation sequence
+  (see
+  `docs/design_plans/2026-08-19-poweredup-hub-battery-box_design.md`). Both
+  are read from the LDraw parts library (CC BY 4.0, author Philippe
+  Hurbain) as measured facts — no LDraw file or converted geometry is
+  committed, only from-scratch CadQuery code.
+  `PoweredUpHubCover` is an exact copy of LEGO lid `24853` minus its three
+  inner AA-cell divider ribs, with the 15 outer through-slots closed
+  (round-13 user decision): the flat 1.2 mm plate, both cantilever latch
+  fingers (Ø2.000 mm barb, 13.6 mm wide, 11.2 mm apart), the slide-in
+  tongue/ledge at the insertion end, and a locating groove sized to the
+  tray's own bottom rim. `PoweredUpHubBatteryTray` repurposes LEGO tray
+  `24849` for a Spektrum SPMX812SH2 LiPo pack: both internal transverse
+  partitions removed (giving the pack's required 58.000 mm clear length,
+  plus a 1.5 mm relief since that figure is otherwise zero-slack), both
+  outer end walls and both side walls (with their extraction tabs) kept, a
+  new floor, and two new strap-holder slots sized to the confirmed 20.5 mm
+  opening. A shared `latch_geometry.LatchGeometry` frozen parameter object
+  (barb/hook dimensions plus the derived undercut/catch-width/ramp-angle
+  numbers) is the single source of truth the future `HousingBox` catch
+  (a separate PR) will import alongside the Cover, so the male and female
+  latch halves cannot drift apart.
 
 ### Fixed
 - `PerpendicularHolesLiftarm`: fixed a latent crossed-constant bug in the
