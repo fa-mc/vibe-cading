@@ -27,16 +27,16 @@ from vibe_cading.lego.cutters.hole_mouth_selector import _HoleMouthSelector
 from vibe_cading.lego.cutters.technic_pin_hole import TechnicPinHole
 
 
-def stadium_beam_body(length_mm: float) -> cq.Workplane:
+def stadium_beam_body(length_mm: float, thickness: float = BEAM_THICKNESS) -> cq.Workplane:
     """Build and return the extruded stadium-shaped beam body.
 
     The body is the 2D sketch (rect + two hemicircular end-caps) extruded
-    along +Z by ``BEAM_THICKNESS``.  No holes, no chamfers — pure positive
+    along +Z by ``thickness``.  No holes, no chamfers — pure positive
     geometry, shared by :class:`LegoTechnicBeam` and
     :class:`~vibe_cading.lego.technic_beam_perp.PerpendicularHolesLiftarm`.
 
     Bounding box: ``X ∈ [0, length_mm] × Y ∈ [-BEAM_WIDTH/2, +BEAM_WIDTH/2]
-    × Z ∈ [0, BEAM_THICKNESS]``.
+    × Z ∈ [0, thickness]``.
 
     Parameters
     ----------
@@ -44,6 +44,13 @@ def stadium_beam_body(length_mm: float) -> cq.Workplane:
         Total beam length in millimetres (must satisfy ``length_mm >= 2 *
         BEAM_END_RADIUS``; this is guaranteed by any ``num_holes >= 1``
         caller since ``STUD_PITCH > 2 * BEAM_END_RADIUS``).
+    thickness:
+        Beam height along Z, in millimetres.  Defaults to ``BEAM_THICKNESS``
+        (the project's standard liftarm thickness), matching every existing
+        caller byte-for-byte.  ``PerpendicularHolesLiftarm`` overrides this
+        per-instance (TL round, 2026-08-19) for callers that need to match a
+        real part's thicker cross-section, without moving the shared
+        constant or affecting other callers.
     """
     rect_centre_x = length_mm / 2
     rect_width_x = length_mm - 2 * BEAM_END_RADIUS
@@ -61,7 +68,7 @@ def stadium_beam_body(length_mm: float) -> cq.Workplane:
         .clean()
         .finalize()
     )
-    return sketch.extrude(BEAM_THICKNESS)
+    return sketch.extrude(thickness)
 
 
 class LegoTechnicBeam:

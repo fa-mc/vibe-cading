@@ -15,6 +15,32 @@ section to the new version and date.
 
 ## [Unreleased]
 
+### Added
+- `PerpendicularHolesLiftarm`: two default-preserving constructor additions
+  (TL round, 2026-08-19 — see
+  `docs/design_plans/2026-08-19-poweredup-hub-battery-box_design.md` →
+  *Reusable classes → TL round — decisions → Q1*). `thickness: float =
+  BEAM_THICKNESS` (keyword-only) lets a caller override the beam's Z-extent
+  per-instance — e.g. to match a real part's thicker cross-section — without
+  moving the shared `BEAM_THICKNESS` constant every other caller relies on.
+  `hole_axes` gains a third member, `"none"`, leaving a position unbored so a
+  caller can compose its own call-site-local hole geometry at that position
+  instead of un-cutting this class's own bore. Both additions preserve every
+  existing caller's geometry byte-for-byte (verified: the two registered
+  `visual_contracts.toml` rows regenerate with zero byte movement).
+
+### Fixed
+- `PerpendicularHolesLiftarm`: fixed a latent crossed-constant bug in the
+  cutter depths — the main bore (which runs along Z, through `thickness`) was
+  sized from `BEAM_WIDTH`, and the perp bore (which runs along Y, through
+  `BEAM_WIDTH`) was sized from `BEAM_THICKNESS`. This was harmless only
+  because `BEAM_WIDTH == BEAM_THICKNESS == 7.8` by coincidence; it would have
+  produced blind (non-through) main holes the moment `thickness` diverged
+  from `BEAM_WIDTH` (e.g. the new `thickness=8.0` override above). Fixed as a
+  precondition of adding the `thickness` kwarg, with a durable regression
+  test (`test_thickness_override_main_holes_break_through`) asserting both Z
+  faces show through-holes at a diverging thickness.
+
 ## [0.1.6] - 2026-08-10
 
 ### Added

@@ -133,8 +133,111 @@ def test_hole_axes_wrong_length_raises() -> None:
 
 def test_hole_axes_bad_token_raises() -> None:
     """Tests row 2 — invalid axis token → ValueError."""
-    with pytest.raises(ValueError, match="must be 'main' or 'perp'"):
+    with pytest.raises(ValueError, match="must be 'main', 'perp', or 'none'"):
         PerpendicularHolesLiftarm(num_holes=2, hole_axes=["main", "diagonal"])
+
+
+# ── TL round (2026-08-19): thickness kwarg + "none" hole_axes member ───────────
+#
+# Design brief: docs/design_plans/2026-08-19-poweredup-hub-battery-box_design.md
+# → "Reusable classes → TL round — decisions → Q1".
+
+def test_thickness_default_preserving() -> None:
+    """thickness omitted ⇒ self.thickness == BEAM_THICKNESS, geometry unchanged."""
+    p = PerpendicularHolesLiftarm(num_holes=5)
+    assert p.thickness == BEAM_THICKNESS
+    bb = p.solid.val().BoundingBox()
+    assert bb.zlen == pytest.approx(BEAM_THICKNESS, abs=0.01)
+
+
+def test_thickness_override_main_holes_break_through() -> None:
+    """Tests row (a)5 — the durable regression guard for the crossed cutter-depth bug.
+
+    At thickness=8.0 (!= BEAM_WIDTH), a version of ``_build`` that still reads
+    ``cutter_depth_main`` from ``BEAM_WIDTH`` instead of ``thickness`` leaves the
+    main holes BLIND (a ~0.19 mm uncut wafer at the top face).  This test builds
+    an all-main, thickness=8.0 part and asserts BOTH the top (+Z) and bottom
+    (-Z) faces show through-holes (2 inner wires each, one per main hole) —
+    which is only true if the cutter actually pierces the +Z face.
+    """
+    n = 3
+    p = PerpendicularHolesLiftarm(num_holes=n, hole_axes=["main"] * n, thickness=8.0)
+    top_faces = p.solid.faces(">Z").vals()
+    bot_faces = p.solid.faces("<Z").vals()
+    assert len(top_faces) == 1 and len(bot_faces) == 1
+    assert len(top_faces[0].innerWires()) == n, (
+        f"Top face expected {n} inner wires (one per main hole) — got "
+        f"{len(top_faces[0].innerWires())}.  A blind main hole at thickness=8.0 "
+        f"would leave the top face with fewer (or zero) inner wires — the "
+        f"regression this test guards against."
+    )
+    assert len(bot_faces[0].innerWires()) == n
+    bb = p.solid.val().BoundingBox()
+    assert bb.zlen == pytest.approx(8.0, abs=0.01)
+    assert len(p.solid.solids().vals()) == 1
+
+
+def test_thickness_too_thin_for_perp_raises() -> None:
+    """A thin thickness cannot host a 'perp' bore — rejected at construction."""
+    with pytest.raises(ValueError, match="too thin to host a 'perp' bore"):
+        PerpendicularHolesLiftarm(num_holes=1, hole_axes=["perp"], thickness=5.0)
+
+
+def test_thickness_thin_but_no_perp_is_fine() -> None:
+    """The too-thin-for-perp check only fires when 'perp' is actually requested."""
+    p = PerpendicularHolesLiftarm(num_holes=2, hole_axes=["main", "none"], thickness=5.0)
+    assert p.thickness == 5.0
+    assert len(p.solid.solids().vals()) == 1
+
+
+def test_hole_axes_none_position_unbored() -> None:
+    """Tests row (b) — a 'none' position is left solid; single-solid topology holds."""
+    p = PerpendicularHolesLiftarm(num_holes=3, hole_axes=["main", "none", "main"])
+    assert p.hole_axes == ["main", "none", "main"]
+    assert len(p.solid.solids().vals()) == 1
+
+    # The middle position should carry no bore: compare against a reference
+    # body (stadium + only the two main-hole cutters, with the same lead-in
+    # chamfer applied) built the same way — if "none" left a hidden bore, or
+    # a chamfer/cut mismatch, the two solids would differ by more than the
+    # boolean-residual tolerance below.
+    from vibe_cading.lego.constants import LEAD_IN
+    from vibe_cading.lego.technic_beam import stadium_beam_body
+    from vibe_cading.lego.technic_beam_perp import _MainAxisChamferSelector
+
+    length_mm = 3 * STUD_PITCH
+    ref = stadium_beam_body(length_mm)
+    cutter_depth_main = BEAM_THICKNESS + 2 * TechnicPinHole._ENTRY_OVERCUT
+    main_cutter = TechnicPinHole.standard(depth=cutter_depth_main).to_cutter()
+    for i in (0, 2):
+        x_i = STUD_PITCH * i + STUD_PITCH / 2
+        ref = ref.cut(main_cutter.translate((x_i, 0.0, -TechnicPinHole._ENTRY_OVERCUT)))
+    ref_sel = _MainAxisChamferSelector(
+        target_radius=TechnicPinHole.DEFAULT_CB_DIAMETER / 2, thickness=BEAM_THICKNESS
+    )
+    ref = ref.edges(ref_sel).chamfer(LEAD_IN)
+
+    try:
+        p_cut_ref = p.solid.cut(ref).val().Volume()
+    except Exception:
+        p_cut_ref = 0.0
+    try:
+        ref_cut_p = ref.cut(p.solid).val().Volume()
+    except Exception:
+        ref_cut_p = 0.0
+    assert p_cut_ref == pytest.approx(0.0, abs=1.0)
+    assert ref_cut_p == pytest.approx(0.0, abs=1.0)
+
+
+def test_all_none_is_plain_stadium_body() -> None:
+    """All-'none' hole_axes produces the unmodified stadium body (no cuts, no chamfers)."""
+    from vibe_cading.lego.technic_beam import stadium_beam_body
+
+    n = 3
+    p = PerpendicularHolesLiftarm(num_holes=n, hole_axes=["none"] * n)
+    ref = stadium_beam_body(n * STUD_PITCH)
+    assert p.solid.val().Volume() == pytest.approx(ref.val().Volume(), rel=1e-6)
+    assert len(p.solid.solids().vals()) == 1
 
 
 # ── Test 3: Default alternating pattern (FR 4) ─────────────────────────────────
