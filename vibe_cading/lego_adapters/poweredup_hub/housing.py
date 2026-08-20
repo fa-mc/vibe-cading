@@ -131,12 +131,19 @@ class PoweredUpHubHousing:
           Cailliau-calibrated ``BEAM_WIDTH`` (7.8 mm, vs. LDraw's
           idealised 7.2 mm) -- the design brief's explicit "not changed,
           deliberately" ruling (real moulded liftarms measure 7.4-7.8 mm;
-          LDraw's 7.2 mm is a grid-snapped idealisation). The boss and
-          middle-bore positions below are therefore anchored to the arm's
-          *own* edge (``BEAM_WIDTH / 2``), not to LDraw's literal
-          35.6/36.0 mm figures -- a small, consistent, already-accepted
-          deviation in the same family as the cross-section difference
-          itself.
+          LDraw's 7.2 mm is a grid-snapped idealisation) still governs the
+          shared :class:`PerpendicularHolesLiftarm` class itself, and the
+          arm's *root* region (root-bridge/wall-overlap logic, hidden
+          internal structure) still reads the class's own untrimmed
+          ``BEAM_WIDTH / 2`` edge. **The outboard edge is a documented
+          exception** (design brief round 16, Escalation 7): because
+          Success Criterion #1 already pins the housing's overall X
+          envelope to exactly ``72.0 mm``, a housing-local, one-sided
+          ``.cut()`` trims the arm's outboard face to LDraw's literal
+          ``3.600 mm`` half-width before the boss/middle-bore code reads
+          it -- so the boss and middle bore land at the real
+          ``35.6/36.0 mm`` figures, not the class's own ``3.9 mm``
+          Cailliau half-width, on this one (outboard) edge only.
 
     Latch catch derivation
     -----------------------
@@ -200,6 +207,12 @@ class PoweredUpHubHousing:
     ARM_Z_LO = HOLE_AXIS_Z - ARM_THICKNESS / 2   # 16.000
     ARM_Y_LO = 12.400                    # inboard flat face (envelope trim)
     ARM_Y_HI = HALF_Y                    # 35.600, outboard face
+
+    # Real LDraw arm half-width (round 16, Escalation 7) -- the local-frame
+    # Y bound the outboard width trim cuts above. Distinct from the class's
+    # own Cailliau-calibrated BEAM_WIDTH/2 (3.9 mm); see
+    # _build_arm_and_bore_local's width-trim comment.
+    ARM_WIDTH_TRIM_Y = 3.600
 
     # Local-frame -> global-Y translation offset for the arm/bore remap
     # (see _place_arm): local hole-line X positions (4/12/20, the class's
@@ -430,8 +443,35 @@ class PoweredUpHubHousing:
         )
         arm = arm.union(root)
 
-        # Boss + middle bore, both anchored to the arm's own BEAM_WIDTH/2
-        # edge (not LDraw's literal 35.6/36.0 mm -- see class docstring).
+        # Width envelope trim (round 16, Escalation 7): the class's own
+        # Cailliau-calibrated BEAM_WIDTH (7.8 mm, half-width 3.9 mm) puts
+        # the arm's outboard face 0.3 mm past the real LDraw half-width
+        # (3.6 mm), which this brief's Success Criterion #1 already pins
+        # the housing's overall X envelope against exactly (72.0 mm) -- a
+        # harder datum than the "not changed, deliberately" ruling that
+        # keeps the class's own cross-section shape (see class docstring's
+        # *Known simplifications*). One-sided cut on the outboard
+        # (positive-local-y) side only, at local y > ARM_WIDTH_TRIM_Y.
+        # Deliberately applied AFTER the root bridge above (which reads
+        # BoundingBox().ymax as a proxy for the *inboard* edge's
+        # magnitude, still the untrimmed 3.9 mm -- correct, since the
+        # inboard/root-bridge side is untouched by this fix) and BEFORE
+        # the boss/mid-bore code below (which reads beam_half_width off
+        # this now-trimmed body, so it self-corrects to the real 3.6 mm
+        # edge with no further changes -- design brief round 16, Conflict
+        # 2 resolution). Trimming before the root-bridge read would
+        # corrupt beam_half_width_pre's inboard magnitude to the wrong
+        # (outboard-trimmed) value.
+        trim_width_hi = rounded_box(
+            width=40.0, depth=40.0, height=40.0, corner_r=0.0,
+            center=(12.0, self.ARM_WIDTH_TRIM_Y + 20.0, -16.0),
+        )
+        arm = arm.cut(trim_width_hi)
+
+        # Boss + middle bore, both anchored to the arm's own outboard edge
+        # -- now the real LDraw 35.6/36.0 mm figures, not the class's own
+        # BEAM_WIDTH/2, since the width trim above runs first (design
+        # brief round 16, Conflict 2 resolution; see class docstring).
         # Built along local Z then rotated -90 deg about the X-axis, the
         # same "build along Z, rotate onto the width axis" technique
         # PerpendicularHolesLiftarm itself uses for its "perp" holes --

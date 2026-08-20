@@ -82,6 +82,31 @@ section to the new version and date.
   precondition of adding the `thickness` kwarg, with a durable regression
   test (`test_thickness_override_main_holes_break_through`) asserting both Z
   faces show through-holes at a diverging thickness.
+- `PoweredUpHubBatteryTray`: fixed a `960.4 mm³` interference against
+  `PoweredUpHubHousing` (design round 16, Escalation 5) — the tray's outer
+  wall was uniform `27.2/26.4 mm` across its full height, numerically
+  identical to Housing's own upper-band wall material above its `Z = 22.0 mm`
+  step. The wall now steps inward above the tray's own local `Z = 20.800 mm`
+  (Housing's step, offset for the tray's `1.2 mm` seated datum) to
+  `26.400 mm minus the active profile's free.radial allowance / 25.600 mm`,
+  matching Housing's real upper-band inner face with a tolerance-routed gap
+  instead of a bare literal. Confirmed by cross-part boolean intersection:
+  the targeted wall-vs-wall overlap is fully eliminated (zero interference in
+  Housing's upper wall band); a separate, pre-existing lower-band conflict
+  between Housing's arm root-bridge gusset and the tray's own (unaffected)
+  lower-band wall remains open — see the design brief's Escalation 8.
+- `PoweredUpHubHousing`: fixed a `72.6 mm` vs. the exact-copy `72.0 mm`
+  target X envelope (design round 16, Escalation 7) — the arms kept the
+  shared `PerpendicularHolesLiftarm` class's Cailliau-calibrated
+  `BEAM_WIDTH` (half-width `3.9 mm`) rather than the real LDraw half-width
+  (`3.6 mm`), and the middle-hole boss/bore, anchored dynamically off the
+  arm's own edge, propagated the same `+0.3 mm` overshoot. Fixed with a
+  housing-local composition trim (no shared-class change): one additional
+  one-sided cut in `_build_arm_and_bore_local` removing arm material beyond
+  the real half-width, after which the boss/bore code's existing dynamic
+  read self-corrects. Verified via section slice: arm flat face at
+  `X = ±35.600 mm`, boss tip at `X = ±36.000 mm`, overall envelope exactly
+  `72.000 mm`.
 
 ## [0.1.6] - 2026-08-10
 

@@ -103,9 +103,15 @@ class PoweredUpHubBatteryTray:
           never removes it.
         - The tray's real vertical wall/top-frame transition (plain wall to
           22.400 mm, a separate top-frame feature at 27.600/28.000 mm) is
-          simplified to one uniform-height wall extruded straight to
-          :attr:`WALL_Z_HI` (28.000 mm) -- structurally equivalent, and the
-          real transition is a cosmetic frame detail, not a mating surface.
+          simplified to one wall extruded straight to :attr:`WALL_Z_HI`
+          (28.000 mm) -- structurally equivalent, and the real transition
+          is a cosmetic frame detail, not a mating surface. **Not uniform
+          in X**, though: above :attr:`WALL_STEP_Z` the wall steps inward
+          to clear :class:`~vibe_cading.lego_adapters.poweredup_hub.housing.PoweredUpHubHousing`'s
+          own real wall step -- a functional (interference-avoiding), not
+          cosmetic, departure from the original uniform-wall
+          simplification -- see :attr:`WALL_STEP_Z`'s own comment and
+          design brief round 16, Escalation 5.
         - The ``+Z`` guide rails (K6) and the top-outer-corner rounds
           (R1.600) are not modelled -- both are secondary LEGO-to-LEGO
           engagement/cosmetic features with no role in the LiPo-pack /
@@ -126,7 +132,9 @@ class PoweredUpHubBatteryTray:
     ----------
     profile:
         Manufacturing tolerance profile, applied to the strap-holder slots'
-        running clearance (``profile.free.radial``). Accepts a
+        running clearance (``profile.free.radial``) and to the upper wall
+        band's outer-face clearance off Housing's own inner face (also
+        ``profile.free.radial`` -- see :attr:`WALL_STEP_Z`). Accepts a
         :class:`~vibe_cading.print_settings.ToleranceProfile` instance, a
         profile name string, or ``None`` for the process-global default.
     """
@@ -135,6 +143,22 @@ class PoweredUpHubBatteryTray:
     WALL_OUTER_X = 27.200
     WALL_INNER_X = 26.400
     WALL_Z_HI = 28.000  # simplified uniform wall height, see docstring
+
+    # --- Upper-band wall step (round 16, Escalation 5) ---
+    # Housing's own real inner-cavity wall (housing.py WALL_STEP_Z = 22.000,
+    # world Z) steps inward at that height, and the tray's own Z=0 datum
+    # sits 1.200 mm below world Z (seated on the Cover's PLATE_THICKNESS),
+    # so the housing step maps to this tray's own local Z = 22.000 - 1.200
+    # = 20.800 mm. Above that local Z, the tray's wall (previously uniform
+    # 27.200/26.400 mm the whole height) numerically overlapped Housing's
+    # own upper-band wall material (26.400-27.200 mm) -- a 960.4 mm^3
+    # interference, not mere tight clearance. Fix: step the tray's own
+    # wall inward by the same 0.800 mm Housing itself steps by, so the
+    # upper band sits flush inside Housing's own upper-band inner face
+    # (26.400 mm) instead of on top of its wall.
+    WALL_STEP_Z = 20.800
+    WALL_OUTER_X_UPPER_NOMINAL = 26.400  # before the profile clearance gap, see __init__
+    WALL_INNER_X_UPPER = 25.600
 
     # --- End walls (kept, SS2.2) ---
     END_WALL_NEG_Y_LO = -30.400
@@ -177,6 +201,14 @@ class PoweredUpHubBatteryTray:
         self._end_wall_pos_y_lo = self.END_WALL_POS_Y_LO_NOMINAL + self.RELIEF
         self._end_wall_pos_y_hi = self.END_WALL_POS_Y_HI_NOMINAL + self.RELIEF
 
+        # Upper-band wall step (round 16, Escalation 5): the outer face
+        # gets an explicit, tolerance-aware running-clearance gap off
+        # Housing's own upper-band inner face, routed through the active
+        # profile rather than a bare literal (this project's tolerance-
+        # profile convention) -- the inner face (WALL_INNER_X_UPPER) needs
+        # no such gap, since it only bounds the tray's own cavity.
+        self._wall_outer_x_upper = self.WALL_OUTER_X_UPPER_NOMINAL - prof.free.radial
+
         self._solid = self._build()
 
     def _build(self) -> cq.Workplane:
@@ -194,26 +226,66 @@ class PoweredUpHubBatteryTray:
         return (self.END_WALL_NEG_Y_HI, self._end_wall_pos_y_lo)
 
     def _build_shell(self) -> cq.Workplane:
-        """Outer envelope minus the inner cavity -- both side walls (X) and
-        both end walls (Y) fall out of one subtraction, since their
-        thicknesses are just the outer-vs-inner face gap on each axis.
+        """Outer envelope minus the inner cavity -- both side walls (X)
+        and both end walls (Y) fall out of one subtraction per band, since
+        their thicknesses are just the outer-vs-inner face gap on each
+        axis. Built as two stacked X-bands (round 16, Escalation 5): the
+        lower band keeps the tray's original uniform wall; the upper band
+        (Z >= WALL_STEP_Z) steps inward to clear Housing's own wall -- see
+        the WALL_STEP_Z / WALL_OUTER_X_UPPER_NOMINAL / WALL_INNER_X_UPPER
+        class-attribute comment for the interference this resolves. The
+        Y-direction end walls are identical in both bands -- this is an
+        X-axis-only fix.
+        """
+        lower = self._shell_band(self.WALL_OUTER_X, self.WALL_INNER_X, 0.0, self.WALL_STEP_Z)
+        # Coincident-faces guard at the step seam -- the same OCCT
+        # boolean-fuse pitfall PoweredUpHubHousing._build_side_wall's own
+        # comment documents for its analogous wall step: widen the upper
+        # band's wall footprint by a tiny construction-only `overlap` and
+        # drop its Z start by the same amount, so the two bands share a
+        # genuine overlapping volume at the seam rather than touching only
+        # along the Z = WALL_STEP_Z plane (which OCCT's fuse does not
+        # reliably merge). The 0.05 mm ledge this leaves at the step
+        # corner is well under FDM tolerance and does not change any
+        # externally-visible dimension.
+        overlap = 0.05
+        upper = self._shell_band(
+            self._wall_outer_x_upper + overlap,
+            self.WALL_INNER_X_UPPER - overlap,
+            self.WALL_STEP_Z - overlap,
+            self.WALL_Z_HI,
+        )
+        return lower.union(upper)
+
+    def _shell_band(
+        self, outer_x: float, inner_x: float, z_lo: float, z_hi: float
+    ) -> cq.Workplane:
+        """One Z-band of the outer-wall ring: an outer box minus an inner
+        cavity box, both sharing the tray's Y footprint (``_cavity_y_span``)
+        -- ``outer_x``/``inner_x`` set this band's X extent only.
         """
         y_lo_outer = self.END_WALL_NEG_Y_LO
         y_hi_outer = self._end_wall_pos_y_hi
         outer = rounded_box(
-            width=2 * self.WALL_OUTER_X,
+            width=2 * outer_x,
             depth=y_hi_outer - y_lo_outer,
-            height=self.WALL_Z_HI,
+            height=z_hi - z_lo,
             corner_r=0.0,
-            center=(0.0, (y_lo_outer + y_hi_outer) / 2.0, 0.0),
+            center=(0.0, (y_lo_outer + y_hi_outer) / 2.0, z_lo),
         )
         cavity_y_lo, cavity_y_hi = self._cavity_y_span()
+        # Break cleanly through this band's own top/bottom Z faces (see
+        # cq_utils overcut convention) -- harmless beyond the band's own
+        # footprint, since `cut()` only removes material `outer` actually
+        # has (bounded by `outer`'s own [z_lo, z_hi] extent), so this
+        # cannot reach into the neighbouring band's already-built solid.
+        band_overcut = 0.5
         inner = rounded_box(
-            width=2 * self.WALL_INNER_X,
+            width=2 * inner_x,
             depth=cavity_y_hi - cavity_y_lo,
-            height=self.WALL_Z_HI + 1.0,  # through-cut overcut, see cq_utils convention
+            height=(z_hi - z_lo) + 2 * band_overcut,
             corner_r=0.0,
-            center=(0.0, (cavity_y_lo + cavity_y_hi) / 2.0, -0.5),
+            center=(0.0, (cavity_y_lo + cavity_y_hi) / 2.0, z_lo - band_overcut),
         )
         return outer.cut(inner)
 

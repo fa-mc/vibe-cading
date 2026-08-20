@@ -145,3 +145,57 @@ def test_default_preserving_profile_kwarg():
     a = PoweredUpHubBatteryTray(profile=prof)
     b = PoweredUpHubBatteryTray(profile="fdm_standard")
     assert abs(a.solid.val().Volume() - b.solid.val().Volume()) < 1e-9
+
+
+def _probe_material(solid: cq.Workplane, x: float, y: float, z: float, size: float = 0.6) -> float:
+    """Volume of `solid` inside a small box centred at (x, y, z) -- see
+    PoweredUpHubHousing's own test-suite helper of the same name."""
+    box = cq.Workplane("XY").transformed(offset=cq.Vector(x, y, z - size / 2)).box(
+        size, size, size, centered=(True, True, False)
+    )
+    inter = solid.intersect(box)
+    vals = inter.solids().vals()
+    return sum(s.Volume() for s in vals) if vals else 0.0
+
+
+def test_upper_band_wall_steps_inward_above_step_z():
+    """Post-fix hardening (round 16, Escalation 5): above WALL_STEP_Z the
+    outer wall must have retreated inward off the pre-fix uniform
+    26.4-27.2 mm band -- a regression here would silently reopen the
+    960.4 mm^3 Housing interference this fix closed. Probed at the
+    pre-fix band's outer half (X~26.9) plus the un-relieved end margin
+    (Y=0, well inside the cavity's Y span) so only the wall step is
+    exercised."""
+    t = PoweredUpHubBatteryTray()
+    below_step_z = PoweredUpHubBatteryTray.WALL_STEP_Z - 1.0
+    above_step_z = PoweredUpHubBatteryTray.WALL_STEP_Z + 1.0
+    probe_x = 26.9  # inside the old uniform band (26.4-27.2), outside the new upper band's outer face
+    assert _probe_material(t.solid, probe_x, 0.0, below_step_z) > 1e-3, (
+        "expected the unchanged lower band to still carry wall material at X=26.9"
+    )
+    assert _probe_material(t.solid, probe_x, 0.0, above_step_z) < 1e-6, (
+        "expected the upper band to have stepped inward, clearing X=26.9 "
+        "(regression would reopen the Housing interference this fix closed)"
+    )
+
+
+def test_upper_band_outer_face_routes_profile_radial_allowance():
+    """The upper band's outer face gap must actually move with the active
+    profile (not a bare hardcoded literal) -- a tighter profile's smaller
+    `free.radial` allowance must produce a larger (less-retreated) upper
+    outer face, per print_settings.get_profile(...)."""
+    import dataclasses
+
+    from vibe_cading.print_settings import get_profile as _get_profile
+
+    default_prof = _get_profile("fdm_standard")
+    t_default = PoweredUpHubBatteryTray(profile=default_prof)
+    assert abs(
+        t_default._wall_outer_x_upper
+        - (PoweredUpHubBatteryTray.WALL_OUTER_X_UPPER_NOMINAL - default_prof.free.radial)
+    ) < 1e-9
+
+    tighter_free = dataclasses.replace(default_prof.free, radial=default_prof.free.radial / 2.0)
+    tighter = dataclasses.replace(default_prof, free=tighter_free)
+    t_tighter = PoweredUpHubBatteryTray(profile=tighter)
+    assert t_tighter._wall_outer_x_upper > t_default._wall_outer_x_upper

@@ -166,6 +166,70 @@ def test_undercut_wall_thickness_floor_holds():
     assert local_wall >= PoweredUpHubHousing._MIN_MATERIAL_BEHIND_UNDERCUT
 
 
+def test_envelope_is_exactly_72mm_in_x():
+    """Post-fix hardening (round 16, Escalation 7): the arm's outboard face
+    used to overshoot the exact-copy target by 0.3 mm (72.6 mm measured);
+    the housing-local width trim in _build_arm_and_bore_local must pin the
+    overall X envelope to exactly 72.0 mm, per Success Criterion #1. A
+    regression here (e.g. the trim being dropped or misplaced) would
+    silently reopen the overshoot."""
+    h = PoweredUpHubHousing()
+    bbox = h.solid.val().BoundingBox()
+    assert abs(bbox.xlen - 72.0) < 1e-6
+    assert abs(bbox.xmax - 36.0) < 1e-6
+    assert abs(bbox.xmin + 36.0) < 1e-6
+
+
+def test_arm_flat_face_matches_real_ldraw_half_width():
+    """The arm's own flat outboard face (not just the boss tip) must land
+    at the real LDraw half-width (X = 35.6 mm), confirming the width trim
+    targets ARM_WIDTH_TRIM_Y (3.6 mm) and not some other boundary."""
+    h = PoweredUpHubHousing().solid
+    # Probe between the inner and middle hole positions (Y=20, clear of both
+    # the pin holes' chamfer rings and the middle-hole boss at Y=24) on the
+    # arm's own flat face -- must be solid just inside X=35.6 (the real
+    # face) and open just past it (the old, overshot 35.9 mm face this fix
+    # removed sat further out again).
+    probe_y = 20.0
+    assert _probe_material(h, 35.3, probe_y, PoweredUpHubHousing.HOLE_AXIS_Z, size=0.6) > 0.1
+    # A small (0.6 mm) probe box well clear of the flat face's own boundary
+    # (X=35.6) -- the default 2.0 mm probe would straddle that boundary and
+    # register a spurious sliver.
+    assert _probe_material(h, 36.5, probe_y, PoweredUpHubHousing.HOLE_AXIS_Z, size=0.6) < 1e-6
+
+
+def test_housing_tray_upper_band_interference_is_zero():
+    """The mandatory cross-part acceptance check for round 16, Escalation 5:
+    PoweredUpHubBatteryTray, seated on PoweredUpHubCover's own floor (world
+    Z = tray-local Z + PLATE_THICKNESS -- see design brief round 16), must
+    not intersect Housing's own *upper* wall band (world Z >= WALL_STEP_Z)
+    at all -- this is the interference the wall-step fix specifically
+    targets and fully eliminates. (A separate, pre-existing lower-band
+    conflict between Housing's arm root-bridge and the tray's own
+    unaffected lower-band wall is out of this fix's scope -- see the design
+    brief's Escalation 8; it is NOT asserted zero here.)
+    """
+    import cadquery as cq
+
+    from vibe_cading.lego_adapters.poweredup_hub.battery_tray import PoweredUpHubBatteryTray
+
+    h = PoweredUpHubHousing()
+    t = PoweredUpHubBatteryTray()
+    tray_world = t.solid.translate((0, 0, PoweredUpHubCover.PLATE_THICKNESS))
+
+    upper_band = cq.Workplane("XY").box(200, 200, 20.0, centered=(True, True, False)).translate(
+        (-100, -100, PoweredUpHubHousing.WALL_STEP_Z)
+    )
+    h_upper = h.solid.intersect(upper_band)
+    t_upper = tray_world.intersect(upper_band)
+    inter = h_upper.intersect(t_upper)
+    vol = sum(s.Volume() for s in inter.solids().vals()) if inter.solids().vals() else 0.0
+    assert vol < 1e-6, (
+        f"Housing/Tray upper-band interference {vol:.4f} mm^3 -- expected 0 "
+        "(round 16, Escalation 5)"
+    )
+
+
 def test_default_preserving_profile_kwarg():
     """Passing an explicit profile object vs. the same profile by name
     produces byte-identical geometry (volume as a cheap proxy)."""
