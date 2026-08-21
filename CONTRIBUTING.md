@@ -115,7 +115,7 @@ Before opening a PR, validate locally:
 | Tool | When to use |
 |---|---|
 | `python3 vibe_cading/tools/preview.py <module.path.ClassName>` | Generate orthographic SVGs (top, front, left, iso_ne) to visually validate orientation and dimensions against drawings. |
-| `python3 vibe_cading/tools/view.py <module.path.ClassName>` | Launch the OCP CAD Viewer (port 3939) for live 3D inspection. Supports `--demo` and `--assembly`. |
+| `python3 vibe_cading/tools/view.py <module.path.ClassName>` | Push to the OCP CAD Viewer (port 3939) for live 3D inspection. Supports `--demo` and `--assembly`. Needs a viewer already running — the VS Code panel, or a browser tab via `python3 -m ocp_vscode --host 0.0.0.0` ([docs/viewer.md](docs/viewer.md)). |
 | `python3 vibe_cading/tools/section_slicer.py` | Slice a part along an axis to verify internal features (blind holes, snap rings, counterbores) that external views can't show. |
 | `python3 vibe_cading/tools/boolean_diff.py <reference.step> <module.path.ClassName> --model` | Quantitative volume comparison against a reference STEP file. |
 | `python3 vibe_cading/tools/calibrate.py [all\|free\|slip\|press]` | Calibrate your `print_profiles_user.json` against a printed gauge (see `--help` for flags). |
