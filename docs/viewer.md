@@ -60,19 +60,45 @@ The model appears in the browser tab. `--demo` and `--assembly` work identically
 
 ---
 
-## Port forwarding
+## Reaching the viewer — localhost vs. another device
 
-Port 3939 is already declared in
+Where you can open the viewer from depends on **how the container exposes the
+port**, and the two mechanisms are not equivalent.
+
+### Under VS Code — `localhost` only
+
+Port 3939 is declared in
 [`.devcontainer/devcontainer.json`](../.devcontainer/devcontainer.json)
 (`forwardPorts`), so under **VS Code Remote-Containers or Codespaces nothing
-further is required** — open `localhost:3939` on the host once the server is
-running.
+further is required** — open <http://localhost:3939/viewer>.
 
-Running the image directly instead? Publish the port yourself:
+But `forwardPorts` is **not** a Docker port publish: it is VS Code's own
+tunnel, bound to `localhost` on the machine running the VS Code UI. The
+container itself publishes nothing (`docker inspect` reports
+`PortBindings: {}`), so **another device on your network cannot reach it** this
+way, and neither can a browser outside VS Code's forwarding.
+
+### Running the image directly — reachable from any device
+
+Publish the port with `docker run -p`, which is a real Docker publish (binds
+`0.0.0.0` on the host). Run the server and `view.py` in the **same** container —
+`view.py` connects to `ws://127.0.0.1` and `OCP_PORT` overrides only the port,
+not the host, so a split setup is awkward to wire up.
 
 ```bash
-docker run -p 3939:3939 ...
+docker run --rm -it -p 3939:3939 \
+    -v /path/to/vibe-cading:/workspaces/vibe-cading \
+    -w /workspaces/vibe-cading/main \
+    <image> bash
 ```
+
+Then inside that container start the server (`python3 -m ocp_vscode --host
+0.0.0.0 --port 3939`) and push with `view.py` as usual. The viewer is now
+reachable at `http://<host-lan-ip>:3939/viewer` from a phone, tablet, or second
+machine — not just `localhost`.
+
+> `--host 0.0.0.0` on the server **and** `-p` on the container are both
+> required. Either one alone leaves the viewer unreachable from outside.
 
 ---
 
