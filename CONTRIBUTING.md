@@ -35,14 +35,16 @@ For non-trivial geometry changes, please open an issue first describing the use 
 
 The repo ships a VS Code Dev Container with everything pre-installed (Python 3.11, CadQuery, OCP CAD Viewer, Claude Code). See [README.md > Quick start](README.md#quick-start) for the click-by-click.
 
-**Not using VS Code?** The image definition lives in [`docker/Dockerfile`](docker/Dockerfile) and is shared with [`docker/compose.yaml`](docker/compose.yaml), so the same environment runs without VS Code or the devcontainer CLI:
+**Not using VS Code?** The image definition lives in [`docker/Dockerfile`](docker/Dockerfile) and is shared with [`docker/compose.yaml`](docker/compose.yaml), so the same *image* runs without VS Code or the devcontainer CLI:
 
 ```bash
 docker compose -f docker/compose.yaml up -d --build
 docker compose -f docker/compose.yaml exec dev bash
 ```
 
-`.devcontainer/devcontainer.json` is only the VS Code integration layer on top of that image — it owns no image content. Compose also *publishes* port 3939 (a real Docker publish, unlike the devcontainer's `forwardPorts` tunnel, which is a localhost-bound VS Code tunnel), so the OCP CAD viewer is reachable from another device on your network — provided the viewer server also binds `--host 0.0.0.0`. If your host user is not UID 1000, build with `USER_UID=$(id -u) USER_GID=$(id -g)` so bind-mounted files keep the right owner.
+`.devcontainer/devcontainer.json` is only the VS Code integration layer on top of that image — it owns no image content. Compose also *publishes* port 3939 (a real Docker publish, unlike the devcontainer's `forwardPorts` tunnel, which is a localhost-bound VS Code tunnel), so the OCP CAD viewer is reachable from another device on your network — provided the viewer server also binds `--host 0.0.0.0`. If your host user is not UID 1000, build with `USER_UID=$(id -u) USER_GID=$(id -g) docker compose -f docker/compose.yaml up -d --build` — `--build` matters, because a bare `up -d` reuses the existing `vibe-cading:dev` tag and silently ignores changed UID args.
+
+The image is the same, but the Compose service is **not** a full devcontainer replacement: it deliberately omits the VS Code integration layer's convenience mounts (SSH keys, agent credentials) and its `postCreateCommand`. So `git` may report `detected dubious ownership` on a UID mismatch — fix with `git config --global --add safe.directory <path>` — and agent hosts or `gh` may need credentials wired up yourself.
 
 **First-clone checklist:**
 

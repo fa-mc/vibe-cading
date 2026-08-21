@@ -4,7 +4,7 @@
 # .devcontainer/devcontainer.json is only the VS Code integration layer on top.
 # Use this file when you are not using VS Code — or when you need the OCP CAD
 # viewer reachable from another device, which VS Code's `forwardPorts` cannot do
-# (it is a localhost-bound tunnel, not a Docker publish — see docs/viewer.md).
+# (it is a localhost-bound tunnel, not a Docker publish).
 #
 #   docker compose -f docker/compose.yaml up -d --build
 #   docker compose -f docker/compose.yaml exec dev bash
@@ -15,9 +15,18 @@
 #   python3 -m ocp_vscode --host 0.0.0.0 --port 3939     # then browse :3939/viewer
 #   python3 vibe_cading/tools/view.py <module.path.ClassName>
 
-# Without this the project name defaults to the containing directory ("docker"),
-# which is meaningless in `docker ps` alongside other projects' containers.
-name: vibe-cading
+# Compose project name. Without it the name defaults to the containing directory
+# ("docker"), which is meaningless in `docker ps` alongside other projects.
+#
+# It MUST stay overridable: the project name is the container's identity, so two
+# checkouts sharing one name do not coexist — `up` from the second silently
+# RECREATES the first's container, killing a long build or a live viewer inside
+# it. If you run more than one checkout at a time (see the worktree note below),
+# give each a distinct VIBE_PROJECT in its docker/.env — and a distinct
+# VIBE_VIEWER_PORT, since they would otherwise both try to publish 3939 (that
+# one at least fails loudly with "port is already allocated" rather than
+# clobbering anything).
+name: ${VIBE_PROJECT:-vibe-cading}
 
 services:
   dev:
