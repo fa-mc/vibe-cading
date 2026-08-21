@@ -49,12 +49,18 @@ services:
     # Default (any clone location): mount the repo root and work in it.
     #
     # Using the nested-sibling worktree layout (a project dir holding `main`
-    # plus sibling worktrees)? Sibling worktrees carry a .git FILE pointing into
-    # main/.git/worktrees/, which only resolves if the whole project root is
-    # mounted at the same absolute path. Set these three in docker/.env:
-    #   VIBE_SOURCE=../..
-    #   VIBE_TARGET=/workspaces/vibe-cading
-    #   VIBE_WORKDIR=/workspaces/vibe-cading/main
+    # plus sibling worktrees)? Sibling worktrees carry a .git FILE whose
+    # `gitdir:` is an ABSOLUTE path into main/.git/worktrees/, so it resolves
+    # only if the whole project root is mounted at the identical absolute path
+    # it has on the host. Mirror YOUR host path — do not copy these literally:
+    #   VIBE_SOURCE=../..                       # the project root
+    #   VIBE_TARGET=/abs/host/path/to/project   # MUST equal that root's host path
+    #   VIBE_WORKDIR=/abs/host/path/to/project/main
+    # e.g. a project root at ~/src/vibe-cading uses VIBE_TARGET=/home/you/src/vibe-cading.
+    # Mount the project root once and `cd` between worktrees inside that single
+    # container — that is the layout devcontainer.json uses too. Prefer a
+    # separate container per checkout instead? Then also set a distinct
+    # VIBE_PROJECT and VIBE_VIEWER_PORT (see the project-name note above).
     volumes:
       - ${VIBE_SOURCE:-..}:${VIBE_TARGET:-/workspaces/vibe-cading/main}
     working_dir: ${VIBE_WORKDIR:-/workspaces/vibe-cading/main}
