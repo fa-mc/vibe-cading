@@ -113,15 +113,16 @@ This project runs in a **VS Code Dev Container** — no local Python or CadQuery
    ```bash
    python3 examples/gear_from_iso.py
    ```
-3. Preview any part live in the OCP CAD viewer (port 3939):
+3. Preview any part live in the OCP CAD viewer (port 3939). **Start a viewer
+   first** — `view.py` only pushes to one, it does not launch one. Either open
+   the VS Code panel (Command Palette → *OCP CAD Viewer: Open viewer*), or run
+   the standalone server and use a plain browser tab, which needs no VS Code:
+   ```bash
+   python3 -m ocp_vscode --host 0.0.0.0 --port 3939   # then open http://localhost:3939/viewer
+   ```
+   With a viewer running, push any part to it:
    ```bash
    python3 vibe_cading/tools/view.py vibe_cading.mechanical.gears.spur.SpurGear
-   ```
-   That pushes to the VS Code viewer panel. Prefer a plain browser tab? Start
-   the standalone server first — no VS Code needed — then open
-   <http://localhost:3939/viewer> and run the same command:
-   ```bash
-   python3 -m ocp_vscode --host 0.0.0.0 --port 3939
    ```
    Details and troubleshooting: [docs/viewer.md](docs/viewer.md).
 4. **Before your first print**, calibrate the slip fit for your printer + material:

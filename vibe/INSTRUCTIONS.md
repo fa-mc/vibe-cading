@@ -274,7 +274,9 @@ consumer.
 `view.py` is a *client*: it needs a viewer already listening on port 3939 — the
 VS Code panel, or the standalone server (`python3 -m ocp_vscode`) which serves
 the same viewer in a plain browser tab with no VS Code at all. It aborts with
-exit 1 when none is reachable. See [docs/viewer.md](../docs/viewer.md).
+exit 1 when none is reachable — except under `--export`, which still writes the
+STEP and exits 0, so headless export needs no viewer. See
+[docs/viewer.md](../docs/viewer.md).
 
 Use the dedicated `vibe_cading/tools/view.py` entry point instead:
 
