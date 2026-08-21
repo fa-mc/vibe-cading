@@ -19,9 +19,13 @@ section to the new version and date.
 - `vibe_cading/tools/view.py`: no longer reports a false success when no OCP CAD
   Viewer is listening. Previously it printed `Showing <Class>` and exited 0 while
   the model was never transmitted (the underlying connection failure surfaced only
-  as a warning). It now aborts with exit 1 and a message naming both ways to start
-  a viewer. A STEP file requested via `--export` is still written before the abort,
-  so headless export keeps working without a viewer.
+  as a warning). It now resolves the target port, probes it, and aborts with exit 1
+  and a message naming both ways to start a viewer. The probe is deliberate:
+  `ocp_vscode.get_port()` trusts `OCP_PORT` without checking it, so resolution alone
+  would let `OCP_PORT=<dead port>` reopen the same false success.
+  `--export` is unaffected — the STEP file is written and the command still exits 0,
+  warning on stderr that nothing was displayed, so headless export keeps working in
+  scripts and `&&` chains.
 
 ### Added
 - `docs/viewer.md`: guide to running the OCP CAD Viewer **in a plain browser tab**

@@ -129,8 +129,13 @@ OCP_PORT=3940 python3 vibe_cading/tools/view.py <module.path.ClassName>
 **No viewer at all** → `view.py` aborts with exit 1 and a message telling you
 how to start one. It deliberately does *not* proceed silently; before this guard
 existed it printed `Showing <Class>` and exited 0 having transmitted nothing.
-A STEP file requested with `--export` is still written before the abort, so
-headless export works without any viewer.
+This holds for a dead `OCP_PORT` too: the port is probed, not just resolved.
+
+**`--export` is exempt.** The STEP file is written before the viewer is needed,
+so with no viewer the export still succeeds and exits 0 — it only warns on
+stderr that nothing was displayed. Headless export therefore stays usable in
+scripts and `&&` chains (e.g. the calibration-gauge step in
+[print-tolerances.md](print-tolerances.md)).
 
 ---
 
