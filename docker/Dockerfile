@@ -42,7 +42,12 @@ RUN pip install --no-cache-dir cadquery ocp_vscode
 # standard devcontainer posture for the dev user and is strictly LESS privileged
 # than the previous root-by-default setup; it is required by postCreateCommand to
 # chown the runtime-mounted workspace (which does not exist at build time).
-RUN groupadd --gid ${USER_GID} ${USERNAME} \
+# The GID may already exist in the base image — 20 is `dialout` in Debian and
+# `staff` on macOS, so a Docker Desktop user passing their host GID would
+# otherwise hit `groupadd: GID '20' already exists` and fail the build. Reuse a
+# pre-existing GID rather than failing; `useradd --gid` takes the numeric id
+# either way, so the group's *name* does not matter.
+RUN (getent group ${USER_GID} > /dev/null || groupadd --gid ${USER_GID} ${USERNAME}) \
     && useradd  --uid ${USER_UID} --gid ${USER_GID} -m -s /bin/bash ${USERNAME} \
     && echo "${USERNAME} ALL=(root) NOPASSWD:ALL" > /etc/sudoers.d/${USERNAME} \
     && chmod 0440 /etc/sudoers.d/${USERNAME}

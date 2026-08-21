@@ -40,7 +40,11 @@ services:
         #   USER_UID=$(id -u) USER_GID=$(id -g) docker compose ... up -d --build
         USER_UID: "${USER_UID:-1000}"
         USER_GID: "${USER_GID:-1000}"
-    image: vibe-cading:dev
+    # Tagged per project, NOT a fixed tag: a shared tag re-points under any
+    # checkout's `up -d --build`, so a plain `up -d` elsewhere recreates that
+    # container from a foreign image (wrong USER_UID included) — reintroducing
+    # exactly the clobbering the project name above exists to prevent.
+    image: ${VIBE_PROJECT:-vibe-cading}:dev
 
     # Default (any clone location): mount the repo root and work in it.
     #
