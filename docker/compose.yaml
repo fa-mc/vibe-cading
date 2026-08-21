@@ -1,0 +1,63 @@
+# IDE-independent runtime for vibe-cading.
+#
+# The dev container and this file share ONE image definition (docker/Dockerfile);
+# .devcontainer/devcontainer.json is only the VS Code integration layer on top.
+# Use this file when you are not using VS Code — or when you need the OCP CAD
+# viewer reachable from another device, which VS Code's `forwardPorts` cannot do
+# (it is a localhost-bound tunnel, not a Docker publish — see docs/viewer.md).
+#
+#   docker compose -f docker/compose.yaml up -d --build
+#   docker compose -f docker/compose.yaml exec dev bash
+#   docker compose -f docker/compose.yaml down
+#
+# Inside the container, the usual commands work unchanged:
+#   python3 build.py
+#   python3 -m ocp_vscode --host 0.0.0.0 --port 3939     # then browse :3939/viewer
+#   python3 vibe_cading/tools/view.py <module.path.ClassName>
+
+# Without this the project name defaults to the containing directory ("docker"),
+# which is meaningless in `docker ps` alongside other projects' containers.
+name: vibe-cading
+
+services:
+  dev:
+    build:
+      context: ..
+      dockerfile: docker/Dockerfile
+      args:
+        # The image defaults to 1000:1000. Override when your host user is not
+        # UID 1000, so bind-mounted files keep the right owner — VS Code does
+        # this automatically via updateRemoteUserUID, but plain Docker does not.
+        #   USER_UID=$(id -u) USER_GID=$(id -g) docker compose ... up -d --build
+        USER_UID: "${USER_UID:-1000}"
+        USER_GID: "${USER_GID:-1000}"
+    image: vibe-cading:dev
+
+    # Default (any clone location): mount the repo root and work in it.
+    #
+    # Using the nested-sibling worktree layout (a project dir holding `main`
+    # plus sibling worktrees)? Sibling worktrees carry a .git FILE pointing into
+    # main/.git/worktrees/, which only resolves if the whole project root is
+    # mounted at the same absolute path. Set these three in docker/.env:
+    #   VIBE_SOURCE=../..
+    #   VIBE_TARGET=/workspaces/vibe-cading
+    #   VIBE_WORKDIR=/workspaces/vibe-cading/main
+    volumes:
+      - ${VIBE_SOURCE:-..}:${VIBE_TARGET:-/workspaces/vibe-cading/main}
+    working_dir: ${VIBE_WORKDIR:-/workspaces/vibe-cading/main}
+    environment:
+      PYTHONPATH: ${VIBE_WORKDIR:-/workspaces/vibe-cading/main}
+
+    # A real Docker publish, unlike devcontainer.json's `forwardPorts`: binds
+    # 0.0.0.0 on the host, so http://<host-lan-ip>:3939/viewer works from a
+    # phone or a second machine. The viewer server must ALSO bind 0.0.0.0
+    # (`--host 0.0.0.0`) — either half alone leaves it unreachable.
+    ports:
+      - "${VIBE_VIEWER_PORT:-3939}:3939"
+
+    # Keep the container alive so `exec` can attach; reap zombies from
+    # long-running dev processes (the viewer server, build.py).
+    command: ["sleep", "infinity"]
+    init: true
+    stdin_open: true
+    tty: true

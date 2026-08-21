@@ -35,9 +35,18 @@ For non-trivial geometry changes, please open an issue first describing the use 
 
 The repo ships a VS Code Dev Container with everything pre-installed (Python 3.11, CadQuery, OCP CAD Viewer, Claude Code). See [README.md > Quick start](README.md#quick-start) for the click-by-click.
 
+**Not using VS Code?** The image definition lives in [`docker/Dockerfile`](docker/Dockerfile) and is shared with [`docker/compose.yaml`](docker/compose.yaml), so the same environment runs without VS Code or the devcontainer CLI:
+
+```bash
+docker compose -f docker/compose.yaml up -d --build
+docker compose -f docker/compose.yaml exec dev bash
+```
+
+`.devcontainer/devcontainer.json` is only the VS Code integration layer on top of that image — it owns no image content. Compose also *publishes* port 3939 (a real Docker publish, unlike the devcontainer's `forwardPorts` tunnel, which is a localhost-bound VS Code tunnel), so the OCP CAD viewer is reachable from another device on your network — provided the viewer server also binds `--host 0.0.0.0`. If your host user is not UID 1000, build with `USER_UID=$(id -u) USER_GID=$(id -g)` so bind-mounted files keep the right owner.
+
 **First-clone checklist:**
 
-1. **Reopen in Container** when VS Code prompts.
+1. **Reopen in Container** when VS Code prompts (or `docker compose … up -d` per above).
 2. **Initialize the workspace.** From inside your AI agent host (e.g. Claude Code or Google Antigravity): *"please initialize the project"*. This creates `tmp/` and `.agents/plans/`, copies `print_profiles.json.example` → `print_profiles_user.json`, and runs the host-specific runtime scaffolder ([`vibe_cading/tools/init-claude-runtime.sh`](vibe_cading/tools/init-claude-runtime.sh) for Claude Code, or [`vibe_cading/tools/init-agy-runtime.sh`](vibe_cading/tools/init-agy-runtime.sh) for Antigravity) to populate per-clone runtime aliases/skills. (Equivalent manual steps are documented in [vibe/INSTRUCTIONS.md](vibe/INSTRUCTIONS.md) §*Workspace Initialization*.)
 3. **Calibrate your printer's `slip.radial`.** The shipped `fdm_standard` profile is a reasonable starting point, but the slip fit for Lego pins/axles is printer-specific. Print the axle gauge and run `python3 vibe_cading/tools/calibrate.py slip` — the calibrated value lands in your gitignored `print_profiles_user.json`. Full procedure in [docs/print-tolerances.md](docs/print-tolerances.md).
 4. **Try an example.** `python3 examples/lego_technic_beam.py` writes a STEP file under `examples/build/` — confirms your environment works end-to-end.
