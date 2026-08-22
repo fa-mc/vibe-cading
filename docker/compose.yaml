@@ -20,9 +20,20 @@
 # path (a worktree's .git holds an absolute pointer into the main checkout), and
 # that is deliberately NOT attempted here.
 
-# Project name — also the container's identity. Keep it overridable: two
-# checkouts sharing one name do not coexist, and `up` from the second would
-# recreate the first's container, killing a long build or a running viewer.
+# Knobs, all optional. Compose reads them from `docker/.env` (NOT the repo-root
+# .env, which is this project's PRINT_PROFILE / GH_TOKEN file — a different file
+# for a different consumer) or from the environment:
+#
+#   VIBE_PROJECT       project + image name          default: vibe-cading
+#   VIBE_WORKDIR       mount target / cwd / PYTHONPATH
+#                                                    default: /workspaces/vibe-cading/main
+#   VIBE_VIEWER_PORT   host port for the viewer      default: 3939
+#   USER_UID/USER_GID  build-time container user     default: 1000/1000
+#
+# Project name — also the container's identity. Two checkouts left on the
+# DEFAULT name do not coexist: `up` from the second recreates the first's
+# container, killing a long build or a running viewer. Running more than one at
+# a time? Give each its own VIBE_PROJECT *and* VIBE_VIEWER_PORT.
 name: ${VIBE_PROJECT:-vibe-cading}
 
 services:
@@ -38,9 +49,11 @@ services:
         USER_UID: "${USER_UID:-1000}"
         USER_GID: "${USER_GID:-1000}"
 
-    # Tagged per project, not a fixed tag: a shared tag re-points under any
-    # checkout's `up -d --build`, so a plain `up -d` elsewhere would recreate
-    # that container from a foreign image (wrong USER_UID included).
+    # Tracks VIBE_PROJECT rather than being a fixed literal, so a per-checkout
+    # project name also gets its own tag. (On the DEFAULT name it is still one
+    # shared tag — `up -d --build` re-points it, and a plain `up -d` elsewhere
+    # would then start from a foreign image, wrong USER_UID included. Setting
+    # VIBE_PROJECT is what actually separates two checkouts.)
     image: ${VIBE_PROJECT:-vibe-cading}:dev
 
     # ONE variable for the mount target, the working directory and PYTHONPATH,
