@@ -149,6 +149,7 @@ This codebase must be maintained at a high standard of structural quality and re
 - [docs/print-tolerances.md](../docs/print-tolerances.md) — Fit-grade / allowance tolerance model (`free`/`slip`/`press` × `radial`/`axial`/`slot`) and which model classes read which knob
 - [docs/screws.md](../docs/screws.md) — Fastener reference (metric / imperial sizes, drive types, fit semantics)
 - [docs/mcp.md](../docs/mcp.md) — MCP interface (engine tools over stdio for LLM clients)
+- [docs/viewer.md](../docs/viewer.md) — Live 3D viewer: VS Code panel vs. standalone browser tab, port forwarding, troubleshooting
 - [docs/agentic-workflow.md](../docs/agentic-workflow.md) — Multi-role agentic workflow (Admin / Designer / TL / Developer)
 
 ## Reference-Doc Freshness
@@ -269,6 +270,13 @@ definitions.  This rule is **CI-enforced** via `vibe_cading/tools/check_no_main_
 the lint step.  No `vibe_cading/**/*.py` or `parts/**/*.py` file may import
 `ocp_vscode` either — `vibe_cading/tools/view.py` is the only sanctioned `ocp_vscode`
 consumer.
+
+`view.py` is a *client*: it needs a viewer already listening on port 3939 — the
+VS Code panel, or the standalone server (`python3 -m ocp_vscode`) which serves
+the same viewer in a plain browser tab with no VS Code at all. It aborts with
+exit 1 when none is reachable — except under `--export`, which still writes the
+STEP and exits 0, so headless export needs no viewer. See
+[docs/viewer.md](../docs/viewer.md).
 
 Use the dedicated `vibe_cading/tools/view.py` entry point instead:
 
