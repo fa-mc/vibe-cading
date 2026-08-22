@@ -65,6 +65,23 @@ else
     VIBE_ROOT="$MAIN_CHECKOUT"
 fi
 
+# Only VIBE_ROOT is mounted, and the container's working directory is this
+# checkout — so this checkout MUST live inside VIBE_ROOT. It does not when a
+# worktree sits outside its project root (e.g. a worktree of a flat clone):
+# detection still resolves VIBE_ROOT from the main checkout, but this directory
+# is elsewhere. Compose's `:?` guards only catch an UNSET variable, so without
+# this check the container starts "healthy" with the checkout not mounted at
+# all and the working directory an empty, root-owned path.
+if [[ "$REPO_ROOT/" != "$VIBE_ROOT"/* ]]; then
+    printf 'ERROR: this checkout is not inside the project root, so mounting the\n' >&2
+    printf '       root would not include it.\n\n' >&2
+    printf '         checkout    : %s\n' "$REPO_ROOT" >&2
+    printf '         project root: %s\n\n' "$VIBE_ROOT" >&2
+    printf 'This happens when a worktree is created outside the directory holding\n' >&2
+    printf 'the main checkout. Move it under %s and re-run.\n' "$VIBE_ROOT" >&2
+    exit 1
+fi
+
 if [[ -e "$ENV_FILE" && "$FORCE" -eq 0 ]]; then
     printf 'docker/.env already exists — leaving it alone (re-run with --force to overwrite):\n\n'
     sed 's/^/    /' "$ENV_FILE"
@@ -103,6 +120,12 @@ else
     printf '\nLayout: flat — this clone cannot host sibling worktrees.\n'
     printf 'That is fine for ordinary use. To enable them later, move this\n'
     printf 'checkout one level down so worktrees can sit beside it:\n\n'
-    printf '    mkdir vibe-cading && mv %s vibe-cading/main\n\n' "$(basename "$REPO_ROOT")"
-    printf 'then re-run this script with --force.\n'
+    # Via a temp name, because the clone is usually already called
+    # "vibe-cading": `mkdir vibe-cading && mv vibe-cading vibe-cading/main`
+    # fails twice over (dir exists; cannot move a directory into itself).
+    NAME="$(basename "$REPO_ROOT")"
+    printf '    cd %s\n' "$(dirname "$REPO_ROOT")"
+    printf '    mkdir %s.tmp && mv %s %s.tmp/main && mv %s.tmp %s\n\n' \
+           "$NAME" "$NAME" "$NAME" "$NAME" "$NAME"
+    printf 'then re-run this script with --force from inside %s/main.\n' "$NAME"
 fi
