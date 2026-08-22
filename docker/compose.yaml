@@ -1,0 +1,68 @@
+# IDE-independent runtime for vibe-cading.
+#
+# The dev container and this file share ONE image definition (docker/Dockerfile);
+# .devcontainer/devcontainer.json is only the VS Code integration layer on top.
+# Use this when you are not using VS Code — or when you need the OCP CAD viewer
+# reachable from another device, which VS Code's `forwardPorts` cannot do (it is
+# a localhost-bound tunnel, not a Docker publish).
+#
+#   docker compose -f docker/compose.yaml up -d --build
+#   docker compose -f docker/compose.yaml exec dev bash
+#   docker compose -f docker/compose.yaml down
+#
+# Inside the container the usual commands work unchanged:
+#   python3 build.py
+#   python3 -m ocp_vscode --host 0.0.0.0 --port 3939   # then browse :3939/viewer
+#   python3 vibe_cading/tools/view.py <module.path.ClassName>
+#
+# Scope: this mounts THIS checkout. Running git worktrees inside the container
+# additionally requires the whole project directory to be mounted at its host
+# path (a worktree's .git holds an absolute pointer into the main checkout), and
+# that is deliberately NOT attempted here.
+
+# Project name — also the container's identity. Keep it overridable: two
+# checkouts sharing one name do not coexist, and `up` from the second would
+# recreate the first's container, killing a long build or a running viewer.
+name: ${VIBE_PROJECT:-vibe-cading}
+
+services:
+  dev:
+    build:
+      context: ..
+      dockerfile: docker/Dockerfile
+      args:
+        # The image defaults to 1000:1000. On native Linux, override when your
+        # host user differs so bind-mounted files keep the right owner — VS Code
+        # does this via updateRemoteUserUID, plain Docker does not:
+        #   USER_UID=$(id -u) USER_GID=$(id -g) docker compose ... up -d --build
+        USER_UID: "${USER_UID:-1000}"
+        USER_GID: "${USER_GID:-1000}"
+
+    # Tagged per project, not a fixed tag: a shared tag re-points under any
+    # checkout's `up -d --build`, so a plain `up -d` elsewhere would recreate
+    # that container from a foreign image (wrong USER_UID included).
+    image: ${VIBE_PROJECT:-vibe-cading}:dev
+
+    # ONE variable for the mount target, the working directory and PYTHONPATH,
+    # so they cannot drift out of step. The default matches the dev container's
+    # workspaceFolder, so every documented command reads the same either way.
+    volumes:
+      - ..:${VIBE_WORKDIR:-/workspaces/vibe-cading/main}
+    working_dir: ${VIBE_WORKDIR:-/workspaces/vibe-cading/main}
+    environment:
+      PYTHONPATH: ${VIBE_WORKDIR:-/workspaces/vibe-cading/main}
+
+    # A real Docker publish, unlike devcontainer.json's `forwardPorts`: binds
+    # 0.0.0.0 on the host, so http://<host-lan-ip>:3939/viewer works from a
+    # phone or a second machine. The viewer server must ALSO bind 0.0.0.0
+    # (`--host 0.0.0.0`) — either half alone leaves it unreachable. Override the
+    # host port when running more than one checkout at a time.
+    ports:
+      - "${VIBE_VIEWER_PORT:-3939}:3939"
+
+    # Keep the container alive so `exec` can attach; reap zombies from
+    # long-running dev processes (the viewer server, build.py).
+    command: ["sleep", "infinity"]
+    init: true
+    stdin_open: true
+    tty: true

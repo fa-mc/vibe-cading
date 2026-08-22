@@ -38,7 +38,7 @@ jobs:
       - uses: actions/checkout@v4
       - uses: actions/setup-python@v5
         with:
-          # Matches the dev container (.devcontainer/Dockerfile uses
+          # Matches the container image (docker/Dockerfile uses
           # python:3.11-slim). Pin a single recent 3.x — the extractor is
           # pure stdlib so we do not need a matrix.
           python-version: "3.11"

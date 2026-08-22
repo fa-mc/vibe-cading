@@ -1,7 +1,16 @@
 {
     "name": "CadQuery Dev",
     "build": {
-        "dockerfile": "Dockerfile"
+        // The image definition lives in docker/ — a neutral home shared with
+        // docker/compose.yaml, so the container is buildable without VS Code or
+        // the devcontainer CLI. This file is now purely the VS Code integration
+        // layer (extensions, forwarding, mounts); it owns no image content.
+        // Both paths are relative to THIS file. "context": ".." is the repo
+        // root; the Dockerfile has no COPY/ADD, so the context is not actually
+        // consumed — it is set to the repo root simply because that is the
+        // sane, conventional scope.
+        "dockerfile": "../docker/Dockerfile",
+        "context": ".."
         // To pin the user to a non-1000 host UID at build time, add:
         // "args": { "USER_UID": "1001", "USER_GID": "1001" }
         // On the common path this is unnecessary: the default is UID 1000 and
