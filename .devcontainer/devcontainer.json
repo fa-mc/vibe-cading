@@ -33,11 +33,25 @@
     // Path-identity worktree layout: mount the whole PROJECT ROOT at the identical
     // host==container path so every sibling worktree — and its .git, which points
     // back into main/.git/worktrees/ — resolves the same from host and container.
-    // The container always opens in `main` (the only checkout that runs Claude);
-    // work in sibling worktrees by `cd`-ing to them within this same container.
-    // Migrated 2026-06-20 from the flat /workspaces/vibe-cading layout.
-    "workspaceMount": "source=/workspaces/vibe-cading,target=/workspaces/vibe-cading,type=bind",
-    "workspaceFolder": "/workspaces/vibe-cading/main",
+    // Open `main` normally; work in sibling worktrees by `cd`-ing to them within
+    // this same container (or open one directly — the paths below follow it).
+    //
+    // `${localWorkspaceFolder}/..` is the PARENT of the opened checkout, i.e. the
+    // project root. Docker normalizes the `/..` away, so both source and target
+    // resolve to that root and stay identical. Derived, NOT hardcoded: a literal
+    // path only works on a clone that happens to sit there, and this repo is
+    // OSS — a contributor cloning anywhere else would bind a non-existent host
+    // path and the container would fail to start.
+    //
+    // This assumes the checkout is nested one level under a project directory
+    // (`<somewhere>/vibe-cading/main`), which is what makes sibling worktrees
+    // possible. A flat clone still works, but the parent is then whatever
+    // directory happens to contain it, so the mount is wider than intended —
+    // clone into `vibe-cading/main` to avoid that.
+    // Migrated 2026-06-20 from the flat /workspaces/vibe-cading layout;
+    // de-hardcoded 2026-08-22.
+    "workspaceMount": "source=${localWorkspaceFolder}/..,target=${localWorkspaceFolder}/..,type=bind",
+    "workspaceFolder": "${localWorkspaceFolder}",
     "mounts": [
         "source=${localEnv:HOME}/.ssh,target=/tmp/host-ssh,type=bind,readonly",
         // If you override USERNAME (default "vscode") via build args, also update
@@ -65,12 +79,12 @@
     "initializeCommand": "mkdir -p ${localEnv:HOME}${localEnv:USERPROFILE}/.claude-creds/vibe-cading && { [ -f ${localEnv:HOME}${localEnv:USERPROFILE}/.claude-creds/vibe-cading/.credentials.json ] || cp ${localEnv:HOME}${localEnv:USERPROFILE}/.claude/.credentials.json ${localEnv:HOME}${localEnv:USERPROFILE}/.claude-creds/vibe-cading/.credentials.json 2>/dev/null || touch ${localEnv:HOME}${localEnv:USERPROFILE}/.claude-creds/vibe-cading/.credentials.json; }",
     "remoteEnv": {
         "SSH_AUTH_SOCK": "/ssh-agent",
-        "PYTHONPATH": "/workspaces/vibe-cading/main"
+        "PYTHONPATH": "${containerWorkspaceFolder}"
     },
     // SSH key copy is best-effort: copy only files the container user can READ
     // (skip root-owned files like a known_hosts written by a root-context process
     // into the shared host ~/.ssh — `cp -a` aborts postCreate with exit 1 on an
     // unreadable source). `cp -p` keeps mode/timestamps but not ownership (avoids
     // the non-root chown EPERM); the chmod steps below then normalize perms.
-    "postCreateCommand": "git config --global --add safe.directory /workspaces/vibe-cading/main && sudo chown -R \"$(id -u):$(id -g)\" /workspaces/vibe-cading/main && mkdir -p \"$HOME/.ssh\" && { find /tmp/host-ssh -maxdepth 1 -type f -readable -exec cp -p {} \"$HOME/.ssh/\" \\; || true; } && chmod 700 \"$HOME/.ssh\" && find \"$HOME/.ssh\" -maxdepth 1 -type f ! -name '*.pub' -exec chmod 600 {} + && find \"$HOME/.ssh\" -maxdepth 1 -name '*.pub' -exec chmod 644 {} +"
+    "postCreateCommand": "git config --global --add safe.directory ${containerWorkspaceFolder} && sudo chown -R \"$(id -u):$(id -g)\" ${containerWorkspaceFolder} && mkdir -p \"$HOME/.ssh\" && { find /tmp/host-ssh -maxdepth 1 -type f -readable -exec cp -p {} \"$HOME/.ssh/\" \\; || true; } && chmod 700 \"$HOME/.ssh\" && find \"$HOME/.ssh\" -maxdepth 1 -type f ! -name '*.pub' -exec chmod 600 {} + && find \"$HOME/.ssh\" -maxdepth 1 -name '*.pub' -exec chmod 644 {} +"
 }
