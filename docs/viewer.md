@@ -80,17 +80,18 @@ way, and neither can a browser outside VS Code's forwarding.
 
 ### Running the image directly — reachable from any device
 
-Publish the port with `docker run -p`, which is a real Docker publish (binds
-`0.0.0.0` on the host). Run the server and `view.py` in the **same** container —
-`view.py` connects to `ws://127.0.0.1` and `OCP_PORT` overrides only the port,
-not the host, so a split setup is awkward to wire up.
+Use [`docker/compose.yaml`](../docker/compose.yaml), which publishes 3939 for
+real (binds `0.0.0.0` on the host) instead of tunnelling it:
 
 ```bash
-docker run --rm -it -p 3939:3939 \
-    -v /path/to/vibe-cading:/workspaces/vibe-cading \
-    -w /workspaces/vibe-cading/main \
-    <image> bash
+docker compose -f docker/compose.yaml up -d --build
+docker compose -f docker/compose.yaml exec dev bash
 ```
+
+Run the server and `view.py` in the **same** container — `view.py` connects to
+`ws://127.0.0.1` and `OCP_PORT` overrides only the port, not the host, so a
+split setup is awkward to wire up. Run `exec` twice for two shells in the one
+container, which is what you want here.
 
 Then inside that container start the server (`python3 -m ocp_vscode --host
 0.0.0.0 --port 3939`) and push with `view.py` as usual. The viewer is now
