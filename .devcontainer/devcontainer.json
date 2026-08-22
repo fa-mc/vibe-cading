@@ -33,8 +33,12 @@
     // Path-identity worktree layout: mount the whole PROJECT ROOT at the identical
     // host==container path so every sibling worktree — and its .git, which points
     // back into main/.git/worktrees/ — resolves the same from host and container.
-    // Open `main` normally; work in sibling worktrees by `cd`-ing to them within
-    // this same container (or open one directly — the paths below follow it).
+    // Open `main`; work in sibling worktrees by `cd`-ing to them within this same
+    // container. Do NOT open a worktree as its own window: the CLI keys container
+    // reuse on the opened folder, so that starts a SECOND container binding the
+    // same ~/.claude-creds/vibe-cading/.credentials.json — reintroducing, within
+    // one project, exactly the OAuth-refresh eviction race that mount prevents
+    // across projects (see the credentials note below).
     //
     // `${localWorkspaceFolder}/..` is the PARENT of the opened checkout, i.e. the
     // project root. Docker normalizes the `/..` away, so both source and target
@@ -43,11 +47,19 @@
     // OSS — a contributor cloning anywhere else would bind a non-existent host
     // path and the container would fail to start.
     //
-    // This assumes the checkout is nested one level under a project directory
-    // (`<somewhere>/vibe-cading/main`), which is what makes sibling worktrees
-    // possible. A flat clone still works, but the parent is then whatever
-    // directory happens to contain it, so the mount is wider than intended —
-    // clone into `vibe-cading/main` to avoid that.
+    // This REQUIRES the checkout to be nested one level under a project directory
+    // (`<somewhere>/vibe-cading/main`) — the arrangement that makes sibling
+    // worktrees possible. The requirement is not stylistic: mounting the parent
+    // of a FLAT clone would bind-mount whatever directory happens to contain it,
+    // read-write, under its real path. For `~/vibe-cading` that is the entire
+    // home directory — handing the container `~/.ssh` read-write, while the
+    // mount three entries below deliberately exposes it `readonly`. At `/vibe-cading`
+    // the target resolves to `/` and the daemon refuses outright.
+    //
+    // initializeCommand therefore asserts the layout on the HOST and fails with
+    // an explanation before any of this is used. Loud failure by design: the
+    // hardcoded path this replaced failed loudly too (non-existent bind source),
+    // and trading that for a silent over-broad mount would be a bad bargain.
     // Migrated 2026-06-20 from the flat /workspaces/vibe-cading layout;
     // de-hardcoded 2026-08-22.
     "workspaceMount": "source=${localWorkspaceFolder}/..,target=${localWorkspaceFolder}/..,type=bind",
@@ -76,7 +88,17 @@
     // Seed the per-project credentials file on first create: make the dir, then
     // copy the shared token in once (or touch an empty file if none exists yet) so
     // the nested bind mount above always has a real host file to bind. Idempotent.
-    "initializeCommand": "mkdir -p ${localEnv:HOME}${localEnv:USERPROFILE}/.claude-creds/vibe-cading && { [ -f ${localEnv:HOME}${localEnv:USERPROFILE}/.claude-creds/vibe-cading/.credentials.json ] || cp ${localEnv:HOME}${localEnv:USERPROFILE}/.claude/.credentials.json ${localEnv:HOME}${localEnv:USERPROFILE}/.claude-creds/vibe-cading/.credentials.json 2>/dev/null || touch ${localEnv:HOME}${localEnv:USERPROFILE}/.claude-creds/vibe-cading/.credentials.json; }",
+    // Runs on the HOST before the container is created. Two jobs, in order:
+    //
+    // 1. Assert the nested layout that workspaceMount depends on. The parent of
+    //    the opened folder is bind-mounted read-write, so it MUST be a project
+    //    directory and not, say, your home directory. A project directory is
+    //    identified by containing a `main` checkout — which also holds when a
+    //    sibling worktree is the folder opened. Refusing here converts an
+    //    over-broad mount into a clear, actionable message.
+    // 2. Seed the per-project credentials file, because a missing bind source
+    //    makes Docker create a DIRECTORY, which breaks Claude Code.
+    "initializeCommand": "sh -c 'root=$(cd \"${localWorkspaceFolder}/..\" && pwd); if [ ! -d \"$root/main\" ]; then printf \"\\nERROR: expected this checkout to sit inside a project directory alongside a \\\"main\\\" checkout.\\n\\n  opened      : %s\\n  would mount : %s (read-write)\\n\\nRe-clone as <somewhere>/vibe-cading/main, or move this checkout:\\n  mkdir vibe-cading.tmp && mv <clone> vibe-cading.tmp/main && mv vibe-cading.tmp vibe-cading\\n\\n\" \"${localWorkspaceFolder}\" \"$root\" >&2; exit 1; fi' && mkdir -p ${localEnv:HOME}${localEnv:USERPROFILE}/.claude-creds/vibe-cading && { [ -f ${localEnv:HOME}${localEnv:USERPROFILE}/.claude-creds/vibe-cading/.credentials.json ] || cp ${localEnv:HOME}${localEnv:USERPROFILE}/.claude/.credentials.json ${localEnv:HOME}${localEnv:USERPROFILE}/.claude-creds/vibe-cading/.credentials.json 2>/dev/null || touch ${localEnv:HOME}${localEnv:USERPROFILE}/.claude-creds/vibe-cading/.credentials.json; }",
     "remoteEnv": {
         "SSH_AUTH_SOCK": "/ssh-agent",
         "PYTHONPATH": "${containerWorkspaceFolder}"
@@ -86,5 +108,5 @@
     // into the shared host ~/.ssh — `cp -a` aborts postCreate with exit 1 on an
     // unreadable source). `cp -p` keeps mode/timestamps but not ownership (avoids
     // the non-root chown EPERM); the chmod steps below then normalize perms.
-    "postCreateCommand": "git config --global --add safe.directory ${containerWorkspaceFolder} && sudo chown -R \"$(id -u):$(id -g)\" ${containerWorkspaceFolder} && mkdir -p \"$HOME/.ssh\" && { find /tmp/host-ssh -maxdepth 1 -type f -readable -exec cp -p {} \"$HOME/.ssh/\" \\; || true; } && chmod 700 \"$HOME/.ssh\" && find \"$HOME/.ssh\" -maxdepth 1 -type f ! -name '*.pub' -exec chmod 600 {} + && find \"$HOME/.ssh\" -maxdepth 1 -name '*.pub' -exec chmod 644 {} +"
+    "postCreateCommand": "git config --global --add safe.directory \"${containerWorkspaceFolder}\" && sudo chown -R \"$(id -u):$(id -g)\" \"${containerWorkspaceFolder}\" && mkdir -p \"$HOME/.ssh\" && { find /tmp/host-ssh -maxdepth 1 -type f -readable -exec cp -p {} \"$HOME/.ssh/\" \\; || true; } && chmod 700 \"$HOME/.ssh\" && find \"$HOME/.ssh\" -maxdepth 1 -type f ! -name '*.pub' -exec chmod 600 {} + && find \"$HOME/.ssh\" -maxdepth 1 -name '*.pub' -exec chmod 644 {} +"
 }

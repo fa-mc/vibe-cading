@@ -57,8 +57,9 @@ services:
     image: ${VIBE_PROJECT:-vibe-cading}:dev
 
     # ONE variable for the mount target, the working directory and PYTHONPATH,
-    # so they cannot drift out of step. The default matches the dev container's
-    # workspaceFolder, so every documented command reads the same either way.
+    # so they cannot drift out of step. The default is a fixed container path and
+    # is NOT tied to the dev container's workspaceFolder, which is derived from
+    # wherever you opened it — set VIBE_WORKDIR if you want the two to coincide.
     volumes:
       - ..:${VIBE_WORKDIR:-/workspaces/vibe-cading/main}
     working_dir: ${VIBE_WORKDIR:-/workspaces/vibe-cading/main}
