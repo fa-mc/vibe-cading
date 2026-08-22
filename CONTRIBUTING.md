@@ -35,16 +35,39 @@ For non-trivial geometry changes, please open an issue first describing the use 
 
 The repo ships a VS Code Dev Container with everything pre-installed (Python 3.11, CadQuery, OCP CAD Viewer, Claude Code). See [README.md > Quick start](README.md#quick-start) for the click-by-click.
 
-**Not using VS Code?** The image definition lives in [`docker/Dockerfile`](docker/Dockerfile) and is shared with [`docker/compose.yaml`](docker/compose.yaml), so the same *image* runs without VS Code or the devcontainer CLI:
+### Where to clone
+
+Clone the repo into a `main/` directory beneath a project directory:
 
 ```bash
+git clone <url> vibe-cading/main
+cd vibe-cading/main
+```
+
+This costs nothing now and is what lets you add **git worktrees** later — parallel branches checked out side by side as siblings of `main`, rather than stashing and switching:
+
+```
+vibe-cading/main                  <- stable checkout, where you work by default
+vibe-cading/<branch>              <- one worktree per branch, directory name == branch name
+```
+
+Worktrees are entirely optional; a plain `git clone <url>` works fine for ordinary use. If you skip the nesting and want them later, `mkdir vibe-cading && mv <clone> vibe-cading/main` and you are back on this path.
+
+### Running it without VS Code
+
+The image definition lives in [`docker/Dockerfile`](docker/Dockerfile) and is shared with [`docker/compose.yaml`](docker/compose.yaml), so the same *image* runs without VS Code or the devcontainer CLI:
+
+```bash
+vibe_cading/tools/init-docker-env.sh              # once per clone
 docker compose -f docker/compose.yaml up -d --build
 docker compose -f docker/compose.yaml exec dev bash
 ```
 
-`.devcontainer/devcontainer.json` is only the VS Code integration layer on top of that image — it owns no image content. Compose also *publishes* port 3939 (a real Docker publish, unlike the devcontainer's `forwardPorts` tunnel, which is a localhost-bound VS Code tunnel), so the OCP CAD viewer is reachable from another device on your network — provided the viewer server also binds `--host 0.0.0.0`. **On native Linux**, if your host user is not UID 1000, build with `USER_UID=$(id -u) USER_GID=$(id -g) docker compose -f docker/compose.yaml up -d --build` so bind-mounted files keep the right owner. `--build` matters: a bare `up -d` reuses the existing image tag and silently ignores changed UID args. On **macOS**, and on **Windows** for a clone kept on an NTFS drive, leave these alone — Docker Desktop maps ownership for you. On **WSL2 with the clone inside the Linux filesystem** (the arrangement Microsoft recommends) the bind mount is real ext4, so treat it exactly like native Linux and pass your UID/GID.
+The first command writes a gitignored `docker/.env` recording where you cloned, then prints the worktree commands for your layout. It is required: Compose mounts your project directory at the **same absolute path inside the container as it has on the host**, and that path cannot be a committed default. Without it Compose stops with an explanatory error rather than starting a misconfigured container.
 
-Running **more than one checkout at once** (e.g. git worktrees)? Give each a distinct `VIBE_PROJECT` and `VIBE_VIEWER_PORT` in its `docker/.env`, or they will contend for the same container identity and the same published port.
+That path identity is what makes worktrees work — a worktree's `.git` is a file holding an *absolute* pointer into `main/.git/`, so mounting the project anywhere else leaves git unable to resolve any worktree. Because the whole project directory is mounted, **one container serves every checkout**: `cd` between `main` and any worktree inside the same shell. You only need a second container to run two checkouts simultaneously — then give each a distinct `VIBE_PROJECT` and `VIBE_VIEWER_PORT` in its `docker/.env`, or they contend for the same container identity and host port.
+
+`.devcontainer/devcontainer.json` is only the VS Code integration layer on top of that image — it owns no image content. Compose also *publishes* port 3939 (a real Docker publish, unlike the devcontainer's `forwardPorts` tunnel, which is a localhost-bound VS Code tunnel), so the OCP CAD viewer is reachable from another device on your network — provided the viewer server also binds `--host 0.0.0.0`. **On native Linux**, if your host user is not UID 1000, build with `USER_UID=$(id -u) USER_GID=$(id -g) docker compose -f docker/compose.yaml up -d --build` so bind-mounted files keep the right owner. `--build` matters: a bare `up -d` reuses the existing image tag and silently ignores changed UID args. On **macOS**, and on **Windows** for a clone kept on an NTFS drive, leave these alone — Docker Desktop maps ownership for you. On **WSL2 with the clone inside the Linux filesystem** (the arrangement Microsoft recommends) the bind mount is real ext4, so treat it exactly like native Linux and pass your UID/GID.
 
 The image is the same, but the Compose service is **not** a full devcontainer replacement: it deliberately omits the VS Code integration layer's convenience mounts (SSH keys, agent credentials) and its `postCreateCommand`. So `git` may report `detected dubious ownership` on a UID mismatch — fix with `git config --global --add safe.directory <path>` — and agent hosts or `gh` may need credentials wired up yourself.
 

@@ -46,26 +46,25 @@ services:
     # exactly the clobbering the project name above exists to prevent.
     image: ${VIBE_PROJECT:-vibe-cading}:dev
 
-    # Default (any clone location): mount the repo root and work in it.
+    # PATH IDENTITY: the project directory is mounted at the SAME absolute path
+    # it has on the host (source and target are both VIBE_ROOT). One container
+    # sees every checkout under that root, and you `cd` between them — the same
+    # arrangement .devcontainer/devcontainer.json uses.
     #
-    # Using the nested-sibling worktree layout (a project dir holding `main`
-    # plus sibling worktrees)? Sibling worktrees carry a .git FILE whose
-    # `gitdir:` is an ABSOLUTE path into main/.git/worktrees/, so it resolves
-    # only if the whole project root is mounted at the identical absolute path
-    # it has on the host. Mirror YOUR host path — do not copy these literally:
-    #   VIBE_SOURCE=../..                       # the project root
-    #   VIBE_TARGET=/abs/host/path/to/project   # MUST equal that root's host path
-    #   VIBE_WORKDIR=/abs/host/path/to/project/main
-    # e.g. a project root at ~/src/vibe-cading uses VIBE_TARGET=/home/you/src/vibe-cading.
-    # Mount the project root once and `cd` between worktrees inside that single
-    # container — that is the layout devcontainer.json uses too. Prefer a
-    # separate container per checkout instead? Then also set a distinct
-    # VIBE_PROJECT and VIBE_VIEWER_PORT (see the project-name note above).
+    # This is not cosmetic. A stream worktree's .git is a FILE holding an
+    # ABSOLUTE `gitdir:` into main/.git/worktrees/. Mount the project anywhere
+    # else and git inside the container cannot resolve any worktree.
+    #
+    # VIBE_ROOT therefore depends on where you cloned and CANNOT have a
+    # committed default — generate docker/.env once:
+    #     vibe_cading/tools/init-docker-env.sh
+    # Unset, compose fails with the message below rather than silently starting
+    # a container whose working directory is an empty, root-owned path.
     volumes:
-      - ${VIBE_SOURCE:-..}:${VIBE_TARGET:-/workspaces/vibe-cading/main}
-    working_dir: ${VIBE_WORKDIR:-/workspaces/vibe-cading/main}
+      - ${VIBE_ROOT:?run vibe_cading/tools/init-docker-env.sh to generate docker/.env}:${VIBE_ROOT}
+    working_dir: ${VIBE_WORKDIR:?run vibe_cading/tools/init-docker-env.sh to generate docker/.env}
     environment:
-      PYTHONPATH: ${VIBE_WORKDIR:-/workspaces/vibe-cading/main}
+      PYTHONPATH: ${VIBE_WORKDIR}
 
     # A real Docker publish, unlike devcontainer.json's `forwardPorts`: binds
     # 0.0.0.0 on the host, so http://<host-lan-ip>:3939/viewer works from a
