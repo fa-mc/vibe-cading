@@ -1,0 +1,129 @@
+# Reference conformance contracts.
+#
+# Sibling of `visual_contracts.toml`. That file pins "committed == regenerable";
+# this one pins "our model == the reference, EXCEPT where we say otherwise".
+#
+# Why this file exists
+# --------------------
+# A whole-part similarity number cannot be trusted or enforced, because it
+# conflates three different things:
+#
+#   1. unintended drift        -- real defects; only these should fail a gate
+#   2. intended deviation      -- features removed/added by design
+#   3. reference artifacts     -- moulding detail we never meant to copy
+#
+# Undifferentiated, the aggregate is unactionable: the PoweredUp hub's latch
+# scored "closely matching" for 25 rounds while being non-functional, and its
+# residual is now dominated by battery ribs we deleted on purpose. Registering
+# COMPONENTS with their own regions and thresholds, plus explicitly declared
+# accepted deviations, is what separates (1) from (2) and (3).
+#
+# Checked by: vibe_cading/tools/check_reference_conformance.py
+#
+# Fields
+# ------
+#   name            unique id
+#   model           module.path.ClassName
+#   reference       .stl / .step path (see the CI caveat below)
+#   region          [xmin, xmax, ymin, ymax, zmin, zmax] -- the component
+#   min_agreement   floor, in percent, on the WORSE of the two directions
+#   tolerance       mm; a sample within this counts as agreeing
+#
+#   [[component.accepted_deviation]]
+#     what / why    prose, mandatory -- a deviation without a reason is drift
+#     region        optional AABB; when present its samples are EXCLUDED from
+#                   scoring, which is what makes the declaration load-bearing
+#                   rather than a comment
+#
+# CI caveat (do not paper over)
+# -----------------------------
+# Some references are derived from third-party sources that must never be
+# committed (for the PoweredUp hub: LDraw parts -- see the design brief). Rows
+# whose `reference` is absent are SKIPPED WITH NOTICE, not silently passed.
+# Those components are therefore contributor-local checks, not CI gates, and
+# the checker says so on every run.
+
+[[component]]
+name = "poweredup-hub-cover-latch-u"
+model = "vibe_cading.lego_adapters.poweredup_hub.cover.PoweredUpHubCover"
+reference = "tmp/ldraw/ref_lid.stl"
+region = [5.6, 19.2, -36.0, -30.0, 0.0, 13.5]
+min_agreement = 46.0
+tolerance = 0.2
+notes = """
+The cantilever latch U: release leg, retention bead, finger, fused head.
+Scoped deliberately -- whole-lid agreement is 39.6% and says nothing about
+this component, because it is dominated by side handles we added by design.
+"""
+
+  [[component.accepted_deviation]]
+  what = "The U is modelled as a spring, not as a copy of the reference"
+  why = """
+  DELIBERATE FLOOR REDUCTION, 89.0 -> 55.0, round 38. `--update` refuses to
+  lower a floor precisely so this has to be a reviewed edit with a reason.
+  This is that reason.
+
+  The U is a hairpin cantilever spring and is now built as ONE
+  constant-thickness ribbon (open centreline, single `offset2D`), not as
+  unioned solids chasing the reference's face positions. What that bought:
+
+    * wall thickness exactly 0.800 at every z on both legs, by construction;
+    * an inner bend radius of 0.800 = 1.00 x wall. The previous model
+      terminated its aperture in a FLAT-BOTTOMED SLOT (0.618 mm at z = 10.00,
+      closed by 10.25) -- a sharp internal corner at the most cyclically
+      loaded point in the spring, carrying Kt 2-5 and consuming the entire
+      PLA strain margin (tmp/research/spring-latch-practice.md S4).
+
+  What it cost: the reference's legs converge (centrelines 2.39 -> 1.15 mm)
+  and its walls differ per leg (0.70 vs 1.09); a constant-section hairpin
+  reproduces neither. Mean deviation 0.228 mm, max 0.801 mm, agreement 55.2%.
+
+  The reference's own bend implies an inner radius of ~0.224 mm at its 0.70 mm
+  wall -- below even Covestro's 0.38 mm absolute floor. Acceptable for
+  injection moulding; not for FDM. Copying it faithfully would score higher
+  and be the worse part.
+
+  NOTE: the 89.0 figure is not directly comparable. It was measured before
+  surface_diff's point-to-triangle distance was corrected to use triangle
+  EDGES rather than vertices (round 38); the old metric overestimated against
+  coarse meshes, so every earlier figure was a lower bound.
+  """
+
+  [[component.accepted_deviation]]
+  what = "The bend is thicker than the legs (user-directed, round 39)"
+  why = """
+  SECOND DELIBERATE FLOOR REDUCTION, 55.0 -> 46.0. Reviewed edit, as `--update`
+  refuses to lower a floor.
+
+  The bend is the most highly and most cyclically loaded section of the spring,
+  so it now carries more material: wall 1.038 at z = 11 against 0.800 down the
+  legs. The reference's own bend measures 1.047, so this MATCHES it. It is
+  achieved by flaring the OUTER surface from z = 8.000, not by shrinking the
+  inner radius -- which stays 0.800 (= 1.00 x leg wall), because reducing it
+  would raise the very stress concentration the radius exists to avoid.
+
+  Cost: the flare is SYMMETRIC, so the finger thickens too (0.800 -> 1.038)
+  where the reference's finger stays constant (1.086 -> 1.073) and only its leg
+  thickens. That is the whole of the 55.2% -> 46.1% drop. Flaring the leg side
+  alone would recover most of it and is the obvious next refinement.
+
+  An earlier attempt at 1.200 was worse on both counts: it put the leg's outer
+  face 0.050 mm from the housing wall and scored 41.3%.
+  """
+
+  [[component.accepted_deviation]]
+  what = "Leg thickness above z = 8, and the aperture it sets"
+  why = """
+  The reference's two legs converge to an 0.087 mm slot by z = 11 -- an
+  injection-moulded dimension no FDM process can resolve; it would fuse into a
+  blob unpredictably. We copy the leg's OUTER face exactly (verified at
+  z = 6..11) and hold a printable 0.436..0.926 mm aperture, fusing at
+  HEAD_Z_LO. The structural property copied is 'the legs are one mass at the
+  top'; the slot width is deliberately not copied.
+  """
+
+# The R34 open gap (thumb-pad tall end-walls, 1.361 mm) is CLOSED as of
+# round 36: `_build_pad_end_walls` models the two 0.800 mm walls at the ends
+# of the hook width, measured at z = 2.5 as present at x = 5.8 / 6.2 (mirrored
+# 18.6 / 19.0) and absent from 6.6 through 18.2. Missing-max fell 1.361 ->
+# 0.217 and the component's agreement 84.1% -> 89.0%. No open gaps remain.

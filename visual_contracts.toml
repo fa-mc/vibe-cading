@@ -253,18 +253,6 @@ view  = "bottom"
 [contract.params]
 
 [[contract]]
-svg   = "visual_contracts/2026-08-19-poweredup-hub-battery-box_design_tray_iso_ne.svg"
-model = "vibe_cading.lego_adapters.poweredup_hub.battery_tray.PoweredUpHubBatteryTray"
-view  = "iso_ne"
-[contract.params]
-
-[[contract]]
-svg   = "visual_contracts/2026-08-19-poweredup-hub-battery-box_design_tray_top.svg"
-model = "vibe_cading.lego_adapters.poweredup_hub.battery_tray.PoweredUpHubBatteryTray"
-view  = "top"
-[contract.params]
-
-[[contract]]
 svg   = "visual_contracts/2026-08-19-poweredup-hub-battery-box_design_iso_ne.svg"
 model = "vibe_cading.lego_adapters.poweredup_hub.housing.PoweredUpHubHousing"
 view  = "iso_ne"

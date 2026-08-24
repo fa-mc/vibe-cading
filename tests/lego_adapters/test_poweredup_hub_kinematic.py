@@ -56,9 +56,11 @@ equivalent to the rotation path.
 from __future__ import annotations
 
 import cadquery as cq
+import pytest
 
 from vibe_cading.lego_adapters.poweredup_hub.cover import PoweredUpHubCover
 from vibe_cading.lego_adapters.poweredup_hub.housing import PoweredUpHubHousing
+from vibe_cading.lego_adapters.poweredup_hub.latch_geometry import get_latch_geometry
 
 
 def _intersect_volume(a: cq.Workplane, b: cq.Workplane) -> float:
@@ -88,50 +90,32 @@ def _latch_only_volume(a: cq.Workplane, b: cq.Workplane) -> float:
 _PIVOT = (0.0, PoweredUpHubCover.TONGUE_Y_HI, PoweredUpHubCover.TIP_Z_LO)
 
 
-def test_latch_catch_seated_engagement_is_the_proven_minimum():
-    """At the seated (zero-transform) position, the ONLY nonzero
-    Cover/Housing interference is the latch catch's own necessary
-    engagement sliver -- everything else (tongue rebate, general body,
-    pin holes) is exactly zero (see
-    tests/lego_adapters/test_poweredup_hub_housing.py's own
-    ``test_general_body_seated_interference_is_zero`` for that half).
+def test_latch_catch_seated_interference_is_zero():
+    """At the seated position the Cover and Housing must NOT overlap at all.
 
-    This test asserts the catch's OWN seated volume is small (bounded,
-    not exactly zero -- see this module's own docstring for the geometric
-    proof of why exactly zero is unachievable for this finger's
-    cross-section) and stable, so a future change that silently grows it
-    (e.g. a wider or taller nub re-colliding with more of the finger) is
-    caught.
+    **This test is the inversion of the one it replaces.** Until round 27
+    this file asserted ``vol > 0.0`` at the seated position, commented
+    *"proof it exists at all"*, and its upper bound was ratcheted across
+    rounds (45.0 -> 25.0 mm^3) with growing justification for the residual.
+    No achievable geometry could fail it except a part that had drifted
+    apart entirely -- and the latch it certified retained nothing. A nonzero
+    seated interference between two rigid printed parts is not engagement,
+    it is a collision: the lid cannot be closed without deforming it.
 
-    **Round 20, Escalation 11c**: the bound grew from 25.0 to 45.0 mm^3.
-    C1-C3's release-leg profile correction (round 20) makes the spine's
-    own outer face reach further outboard at z in [5, 11] than the old,
-    flat 0.5 mm wall did, which now genuinely collides with Housing's own
-    latch-catch boss (`_build_latch_catch`) -- a Housing-side feature
-    derived (round 18, B1) against the OLD leg shape and not re-verified
-    against the corrected one.
-
-    **Round 21, Escalation 11c (1) fixed** (measured ~20.7 mm^3, down from
-    ~39.4): the catch boss's own Z-banded retreat (`_build_latch_catch`)
-    narrows the new 21.324 mm^3 collision down to a small residual
-    (~2.6 mm^3) at the barb window's own Z boundary (z ~ 11), where the
-    release leg's spine (correctly positioned, round 20 C1-C3) grazes the
-    boss's own full-reach region by a fraction of a millimetre -- the
-    structural floor for the undercut backing (`_MIN_MATERIAL_BEHIND_UNDERCUT`)
-    requires SOME full-reach window bracketing the barb, and the leg's own
-    z=11 sample sits right at that window's edge. This residual is smaller
-    than, and a different mechanism from, the already-accepted barb-in-catch
-    seated residual (Escalation 10, ~18.1 mm^3, unchanged -- see
-    `test_seated_cross_part_interference_zero_for_tray_pairs`'s sibling note
-    below and the design brief's own Escalation 11c). The bound tightens to
-    25.0 mm^3 (comfortably covering ~20.7 mm^3 measured -- the accepted
-    barb residual plus this small new-mechanism sliver), down from 45.0.
+    Retention is asserted separately and kinematically by
+    ``test_barb_is_reachable_by_the_housing_at_all`` -- zero here, growing
+    under withdrawal there. Both halves are required; either alone is
+    satisfiable by a broken part. See the reference-comparison artifact's
+    R26/R27.
     """
     housing = PoweredUpHubHousing()
     cover = PoweredUpHubCover()
-    vol = _latch_only_volume(cover.solid, housing.solid)
-    assert vol > 0.0, "expected a nonzero seated engagement at the catch (proof it exists at all)"
-    assert vol < 25.0, f"catch's seated engagement grew unexpectedly large: {vol:.3f} mm^3"
+    inter = housing.solid.intersect(cover.solid).solids().vals()
+    vol = sum(s.Volume() for s in inter) if inter else 0.0
+    assert vol < 1e-6, (
+        f"Cover and Housing overlap by {vol:.4f} mm^3 when seated -- they "
+        "cannot be assembled. Retention must come from a catch that engages "
+        "under displacement, not from interference at rest.")
 
 
 def test_latch_catch_rotation_release_shows_growing_interference():
@@ -207,67 +191,27 @@ def test_latch_catch_insertion_path_is_bounded_by_the_seated_minimum():
         )
 
 
-def test_seated_cross_part_interference_zero_for_tray_pairs():
-    """Tray<->Housing and Tray<->Cover must both be exactly zero at the
-    assembled seated position -- unlike the Cover<->Housing latch catch,
-    neither of these interfaces has an intentional snap/retention feature,
-    so there is no analogous "necessary minimum" to carve out.
-
-    **Round 20, Escalation 11a/11b**: Tray<->Housing was NO LONGER exactly
-    zero. Two genuine new findings, both escalated to the Designer (design
-    brief Escalation 11): (a) H1's deck-height correction genuinely
-    overlapped the tray's own topmost extent by ~0.08 mm across nearly the
-    whole footprint (~21 mm^3); (b) H3's corrected (smaller) side window no
-    longer cleared a tray tab the old, oversized window used to clear by
-    construction (~2.3 mm^3, 4 slivers).
-
-    **Round 21 fixes both, back to exactly zero**: (a) E11-a routes the
-    deck's own thickness through `profile.free.radial` (real running
-    clearance against the tray's top face, not a flat literal derived from
-    an explicitly-undetermined corrugated-ceiling centre value -- see
-    `PoweredUpHubHousing.__init__`'s own `self._deck_thickness`); (b) E11-b
-    reduces the tray's own extraction-tab Y-reach
-    (`PoweredUpHubBatteryTray.TAB_PAD_Y_HALF_NOMINAL`, also
-    running-clearance-corrected) to clear Housing's own corrected window
-    taper at the pad's actual seated Z. Tray<->Cover is UNCHANGED (still
-    exactly zero -- neither escalation ever touched the Cover interface).
-    """
-    from vibe_cading.lego_adapters.poweredup_hub.battery_tray import PoweredUpHubBatteryTray
-
-    housing = PoweredUpHubHousing()
-    cover = PoweredUpHubCover()
-    tray = PoweredUpHubBatteryTray()
-    tray_seated = tray.solid.translate((0, 0, PoweredUpHubCover.PLATE_THICKNESS))
-
-    v_th = _intersect_volume(tray_seated, housing.solid)
-    assert v_th < 1e-6, (
-        f"Tray/Housing interference volume {v_th:.4f} mm^3 -- expected 0 "
-        "(round 21 fixed Escalation 11a/11b, see docstring)"
-    )
-
-    v_tc = _intersect_volume(tray_seated, cover.solid)
-    assert v_tc < 1e-6, f"Tray/Cover interference volume {v_tc:.4f} mm^3 -- expected 0"
-
-
 def test_envelope_and_single_solid_guards_hold():
-    """Housing envelope stays exactly 72.000 x 71.200 x 29.600 mm (round
-    20, H1: the earlier 33.800 mm figure was the LDraw part's bounding
-    box, not the shell's own envelope), and all three parts remain single
-    solids -- the final cross-part sign-off checks from the round-18
-    acceptance gate.
-    """
-    from vibe_cading.lego_adapters.poweredup_hub.battery_tray import PoweredUpHubBatteryTray
+    """Housing envelope stays 72.000 x 71.200 mm in plan, and both parts
+    remain single solids -- the final cross-part sign-off checks from the
+    round-18 acceptance gate.
 
+    **Round 22**: the Z assertion now reads DECK_Z (24.000 mm = 3 studs,
+    the user's bottom-layer cap) rather than the reference shell's own
+    29.600 mm. Asserted against the constant, not a re-typed literal, so
+    the stud count is the single source of truth. The BatteryTray is gone
+    (it no longer fits under a 3-stud deck), so this is a two-part check.
+    """
     housing = PoweredUpHubHousing()
     cover = PoweredUpHubCover()
-    tray = PoweredUpHubBatteryTray()
 
     bb = housing.solid.val().BoundingBox()
     assert abs(bb.xlen - 72.000) < 1e-6
     assert abs(bb.ylen - 71.200) < 1e-6
-    assert abs(bb.zlen - 29.600) < 1e-6
+    assert abs(bb.zlen - PoweredUpHubHousing.DECK_Z) < 1e-6
+    assert abs(PoweredUpHubHousing.DECK_Z - 3 * 8.000) < 1e-9
 
-    for part in (housing, cover, tray):
+    for part in (housing, cover):
         assert len(part.solid.solids().vals()) == 1
 
 
@@ -299,3 +243,69 @@ def test_thumb_pads_exist_at_their_corrected_footprint():
         assert _intersect_volume(probe, cover.solid) > 0.0, (
             f"expected Cover material (the thumb pad) at its own corrected footprint, side={side}"
         )
+
+
+_LATCH_BAND = cq.Workplane("XY").box(60.0, 8.0, 16.0).translate((0.0, -32.0, 8.0))
+
+
+def _latch_band_interference(cover_solid, housing_solid, dz=0.0, dy=0.0):
+    """Cover/Housing interference restricted to the latch band.
+
+    Two traps this avoids, both hit while writing it:
+
+    1. A WHOLE-COVER measurement is dominated by the tongue end (y ~ +34),
+       which interferes under any straight -Z pull because the lid is
+       designed to pivot about it. That masks the latch completely.
+    2. The cover is clipped to the band FIRST. Chaining
+       ``housing.intersect(cover).intersect(BAND)`` is unsafe: when the first
+       intersect is empty CadQuery falls back to the original stack and the
+       second returns the band's own volume (observed: a seated reading of
+       2973.180 mm^3 where the true value is 0.0).
+    """
+    piece = cover_solid.translate((0.0, dy, dz)).intersect(_LATCH_BAND)
+    v = housing_solid.intersect(piece).solids().vals()
+    return sum(s.Volume() for s in v) if v else 0.0
+
+
+def test_latch_retains_under_withdrawal():
+    """Withdrawing the lid must be RESISTED by growing interference.
+
+    Retention comes from the release leg's own bead (``BEAD_Z_LO`` ..
+    ``BEAD_Z_HI``, 0.220 mm proud -- the reference's own feature) riding on
+    the housing's ``_build_latch_land`` rail. Seated it must be free.
+    """
+    housing = PoweredUpHubHousing().solid
+    cover = PoweredUpHubCover().solid
+
+    seated = _latch_band_interference(cover, housing)
+    assert seated < 1e-6, f"latch interferes when seated ({seated:.4f} mm^3)"
+
+    far = _latch_band_interference(cover, housing, dz=-0.8)
+    near = _latch_band_interference(cover, housing, dz=-0.4)
+    assert far > near > 0.0, (
+        "withdrawal must be resisted by GROWING interference, got "
+        f"{near:.4f} then {far:.4f} mm^3 -- a latch whose resistance falls "
+        "off is a press fit that gets easier to pull, not a catch")
+
+
+def test_latch_releases_when_the_pad_is_pressed():
+    """...and pressing the thumb pad must let it go.
+
+    **This is the half round 27 did not test, and it was fatal.** That round
+    verified retention kinematically, passed, and shipped a latch needing
+    64.5 mm of thumb travel to open -- the bead sat 1.200 mm from the leg's
+    anchor, where a cantilever barely deflects (R30). A mechanism has TWO
+    working directions; verifying one is not partial credit.
+
+    The pad press is modelled as an inboard (+Y) deflection of the leg.
+    """
+    housing = PoweredUpHubHousing().solid
+    cover = PoweredUpHubCover().solid
+
+    engaged = _latch_band_interference(cover, housing, dz=-0.4)
+    assert engaged > 0.0, "nothing to release -- the latch is not engaged"
+
+    released = _latch_band_interference(cover, housing, dz=-0.4, dy=0.10)
+    assert released < 1e-6, (
+        f"a 0.10 mm inboard deflection leaves {released:.4f} mm^3 engaged; "
+        "the bead must clear within a plausible thumb press")

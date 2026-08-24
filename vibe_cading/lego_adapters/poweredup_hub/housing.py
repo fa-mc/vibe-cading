@@ -26,9 +26,13 @@ Full design rationale:
 ``docs/design_plans/2026-08-19-poweredup-hub-battery-box_design.md``,
 *Multi-part structure -> Housing*.
 
-Per that design, this is an exact copy of the real ``25560`` shell's own
-**shell envelope** -- ``72.0 x 71.2 x 29.6 mm`` -- with a scoped,
-deliberate departure at the two lid-retention regions only: the latch end
+Per that design, this was an exact copy of the real ``25560`` shell's own
+**shell envelope** -- ``72.0 x 71.2 x 29.6 mm``.  **Round 22 caps the
+height at 3 studs (24.0 mm)** by explicit user direction -- this part is
+the BOTTOM LAYER of a two-layer box, not a whole hub -- so the built
+envelope is now ``72.0 x 71.2 x 24.0 mm``: an exact copy in plan, a
+declared departure in Z.  See :attr:`PoweredUpHubHousing.DECK_Z`.  There
+is also a scoped, deliberate departure at the two lid-retention regions: the latch end
 (``-Y``) and the tongue end (``+Y``) each carry a single wall instead of
 LEGO's real two-skin sandwich construction, per the design's *Single wall
 at BOTH ends* section.  Everything else -- overall envelope, the four
@@ -41,9 +45,10 @@ envelope" without separately noting that the real *shell* tops out
 ``4.2 mm`` short of that box -- only two narrow connector-port tubes
 (``26.9 mm^2`` of face, now ruled out of scope -- see *Known
 simplifications*) reach ``Z = 33.8``.  The shell's own top face --
-``3,469.6 mm^2`` of up-facing area -- is at ``Z = 29.6``.  The class's
-overall height is therefore ``DECK_Z`` (``29.6 mm``), not the retired
-``TOP_Z`` (``33.8 mm``) figure quoted by rounds 1-19.
+``3,469.6 mm^2`` of up-facing area -- is at ``Z = 29.6``.  The retired
+``TOP_Z`` (``33.8 mm``) figure quoted by rounds 1-19 is the bounding box,
+not the shell.  (Round 22 then cut the class's own height below both
+figures, to ``DECK_Z = 24.0 mm``, for the design reason above.)
 """
 
 from __future__ import annotations
@@ -77,23 +82,27 @@ class PoweredUpHubHousing:
     the lid-to-housing LDraw transform is a pure translation with no
     rotation and no sign flip, and that translation is already baked into
     each class's own ``Z = 0`` datum). Every feature extrudes ``+Z`` from
-    there, up to :attr:`DECK_Z` (29.600 mm -- the shell's own top face, not
-    the LDraw part's bounding box; see *Round 20 correction* above). X is
+    there, up to :attr:`DECK_Z` (24.000 mm -- 3 studs, the round-22
+    bottom-layer cap; see that constant's own comment). X is
     centred on the housing's mid-width (hole plane at ``X = +-32.000``);
     Y follows the same frame as the Cover (latch end at ``-Y``, tongue end
     at ``+Y``).
 
     Kept, as an exact copy (design brief *Housing*):
-        - Overall envelope 72.0 x 71.2 x 29.6 mm (with the arm bosses
-          included in the 72.0 mm X figure) -- the shell's own envelope,
-          not the LDraw part's bounding box (round 20, H1).
+        - Overall envelope 72.0 x 71.2 mm **in plan** (with the arm
+          bosses included in the 72.0 mm X figure) -- the shell's own
+          envelope, not the LDraw part's bounding box (round 20, H1).
+          Height is the round-22 3-stud cap, not the reference's own.
         - Stepped side walls (0.8 mm, outward step at height 22.0 mm).
         - Four arms -- literally LDraw 3-hole liftarms, reusing
           :class:`~vibe_cading.lego.technic_beam_perp.PerpendicularHolesLiftarm`
           per the TL round's decision (composed, not a class-contract
           change) -- with the real 12-hole pin map, the middle-hole boss,
           and the one-sided three-step middle bore.
-        - Two side windows (tray-tab access), simplified to a single
+        - Two side windows (handle access -- these cleared the deleted
+          tray's extraction tabs, and now clear
+          :class:`PoweredUpHubCover`'s own re-homed side handles),
+          simplified to a single
           rectangular cutout each -- see *Known simplifications*.
         - The tongue-end rebate (a lap, not a snap -- fully specified from
           LDraw) and the latch-end catch (derived, absent from LDraw, from
@@ -112,15 +121,15 @@ class PoweredUpHubHousing:
           not an undercut).
         - The 6 locating teeth and the 1.6 mm locating groove are dropped
           from this interface entirely (confirmed non-load-bearing here;
-          the groove survives on :class:`PoweredUpHubCover`, which mates
-          with the tray, not the housing).
+          the groove survived on :class:`PoweredUpHubCover` for the tray
+          interface, and round 22 deleted the tray with it).
 
     Known simplifications (documented deviations, all cosmetic /
     non-load-bearing unless noted, per this project's Experimental
     Integrity convention):
         - **Top deck** modelled as a solid slab, ``DECK_THICKNESS``
           (2.082 mm) thick, spanning ``Z`` in
-          ``[DECK_Z - DECK_THICKNESS, DECK_Z]`` (``[27.518, 29.600]``)
+          ``[DECK_Z - DECK_THICKNESS, DECK_Z]`` (``[22.000, 24.000]``)
           rather than a hollow shell -- the real deck's own *internal*
           structure (corrugated AA-cell cradle ceiling, four connector-port
           keying ribs, one asymmetric screw boss) is genuinely unreadable
@@ -147,14 +156,12 @@ class PoweredUpHubHousing:
           face (half-width 8.400 mm at ``Z = 8.400``, matching a real
           planar face in the LDraw source) rather than a point apex --
           round 20's 8.500 mm figure replaced that flat top with a point,
-          corrected here. **Re-verified round 18 (finding C4)**: this
-          simplification was previously *masking*
-          :class:`~vibe_cading.lego_adapters.poweredup_hub.battery_tray.PoweredUpHubBatteryTray`'s
-          S2 Z-datum error (the tab ledge would not have passed the real,
-          ramped window profile) -- now that S2 is corrected, the tab
-          ledge's real Z-band clears this corrected, shorter window with
-          margin to spare (re-confirmed by the cross-part tests below), so
-          the masking relationship is now moot rather than live.
+          corrected here. (An earlier round-18 note here recorded that
+          this simplification had been *masking* the deleted BatteryTray's
+          own Z-datum error; both the masking and the tray are gone as of
+          round 22. The windows now clear
+          :class:`PoweredUpHubCover`'s re-homed side handles instead --
+          see the cross-part tests.)
         - **End-wall X extent** (latch and tongue walls) simplified to a
           constant :attr:`WALL_X_OUTER_LOWER` (28.0 mm) across their full
           height, rather than stepping to match the side walls' own
@@ -166,6 +173,14 @@ class PoweredUpHubHousing:
           own end-wall extent exactly -- the earlier ``|x| <= 32.0 mm``
           reference-doc figure was itself a transcription error in
           ``docs/design_plans/2026-08-19-poweredup-hub-battery-box_ldraw-housing-geometry.md``, not a modelling gap here.
+        - **End-wall thickness** -- **round 22**: both end walls are
+          thickened inward to meet :class:`PoweredUpHubCover`'s own plate
+          edges (latch end to ``PLATE_Y_LO``, tongue end to
+          ``PLATE_Y_HI`` above the riser), closing the open perimeter slot
+          the round-18 single-skin walls left. The latch-U band is cut
+          straight back to the original 1.200 mm skin
+          (:meth:`_build_latch_clearance`), so no verified latch interface
+          moved -- see :attr:`LATCH_WALL_THICKNESS`.
         - **End-wall Z extent** (latch and tongue walls), ``Z`` in
           ``[0, END_WALL_Z_HI]`` (``0..24.0 mm``) -- round 18 (finding C3)
           originally built these full-height to ``DECK_Z`` (``29.6 mm``,
@@ -252,39 +267,47 @@ class PoweredUpHubHousing:
 
     # --- Envelope (SS0, SS1) ---
     HALF_Y = 35.600
-    # DECK_Z is the housing's own overall height -- the real shell's top
-    # face (round 20, H1). TOP_Z (33.800 mm) is RETIRED: it was the LDraw
-    # part's bounding box, reached only by two 26.9 mm^2 connector-port
-    # tubes now ruled out of scope, not by the shell itself -- nothing
-    # should build above DECK_Z any more.
-    DECK_Z = 29.600
-    # Round 21 (finding E11-a): DECK_THICKNESS is no longer a bare literal.
-    # Round 20's H1 fix used 27.518 mm as the deck's underside -- but that
-    # figure was round 20's OWN prior extraction explicitly flagged as the
-    # *centre value of a corrugated ceiling* whose off-centre thickness was
-    # NOT determined; applying it as a global flat plane collides with the
-    # Tray's own top face (26.400 + PoweredUpHubCover.PLATE_THICKNESS =
-    # 27.600 mm). DECK_THICKNESS_NOMINAL (2.000 mm) is the zero-clearance
-    # figure (DECK_Z - 2.000 = 27.600, flush with the tray's top); the
-    # instance's own running clearance (see __init__) is subtracted from it
-    # so the deck's underside clears the tray by the project's own
-    # profile.free.radial convention, like every other cross-part
-    # clearance in this brief, rather than a bare literal touch. This
-    # remains a conservative, honest simplification -- a flat plane where
-    # the real part corrugates -- not an attempt to fabricate the
-    # undetermined off-centre profile (see *Known simplifications* below).
-    DECK_THICKNESS_NOMINAL = 2.000
+    # DECK_Z is the housing's own overall height.
+    #
+    # **Round 22 -- this is now a DESIGN DECISION, not a copy of the
+    # reference.** Rounds 20/21 set this to 29.600 mm, the real 25560
+    # shell's own measured top face, under the round-12 "match the real
+    # part" direction. The user's round-22 direction supersedes that: this
+    # part is the BOTTOM LAYER of a two-layer box and is capped at **3
+    # studs**, i.e. 3 x STUD_PITCH = 3 x 8.000 = 24.000 mm (the design
+    # brief's own *Height convention* section, corrected round 10: the real
+    # hub is 40.0 mm for 5 studs, so the module is STUD_PITCH, NOT the
+    # 9.6 mm brick height). The shell is therefore 5.600 mm SHORTER than
+    # the reference by intent -- a declared departure, not a fidelity
+    # regression, and the reason the separate BatteryTray part had to go
+    # (it no longer fits; see the assembly module's round-22 note).
+    #
+    # TOP_Z (33.800 mm) remains RETIRED: it was the LDraw part's bounding
+    # box, reached only by two 26.9 mm^2 connector-port tubes ruled out of
+    # scope, not by the shell itself.
+    STUD_PITCH = 8.000
+    DECK_STUDS = 3
+    DECK_Z = DECK_STUDS * STUD_PITCH   # 24.000
+    # Round 22: DECK_THICKNESS is a plain constant again. Round 21's
+    # E11-a wired an instance-level running clearance into it so the deck's
+    # underside would clear PoweredUpHubBatteryTray's own top face. That
+    # tray no longer exists (round 22), so there is nothing under the deck
+    # to clear and the derived value would be a clearance against nothing.
+    # 2.000 mm puts the underside at DECK_Z - 2.000 = 22.000 mm, which is
+    # exactly WALL_STEP_Z -- the deck seats on the side walls' own upper
+    # band rather than floating at an arbitrary offset.
+    DECK_THICKNESS = 2.000
 
-    # Round 21 (finding RH1) -- the deck's own plan footprint is narrower
-    # than the full housing envelope: the real shell narrows to the
-    # inner-skin line above the end walls' own height (see END_WALL_Z_HI
-    # below), so the deck top face spans only this asymmetric Y range (the
-    # X half-width is unchanged -- it already matches WALL_X_OUTER_UPPER
-    # exactly). Asymmetric because the housing's own Y frame is (latch end
-    # at -Y, tongue end at +Y), matching the Cover's frame, not a
-    # symmetric envelope.
-    DECK_Y_LO = -32.000
-    DECK_Y_HI = 33.200
+    # Round 22 -- the deck spans the FULL Y envelope again.
+    # Round 21 (RH1) narrowed it to [-32.000, 33.200] because the real
+    # shell narrows to its inner-skin line ABOVE the end walls' own
+    # 24.000 mm height. At round 22's DECK_Z the end walls and the deck top
+    # are the same 24.000 mm plane, so that narrowing band no longer exists
+    # in this part at all -- the deck now caps the end walls instead of
+    # sitting inboard of them, which is also what closes the top of the
+    # box. X is unchanged (WALL_X_OUTER_UPPER, the side walls' upper band).
+    DECK_Y_LO = -HALF_Y
+    DECK_Y_HI = HALF_Y
 
     # --- Side walls (X-direction, stepped -- SS4) ---
     WALL_THICKNESS = 0.800
@@ -292,15 +315,13 @@ class PoweredUpHubHousing:
     WALL_X_OUTER_LOWER = 28.000   # |X| outer face, Z < WALL_STEP_Z
     WALL_X_OUTER_UPPER = 27.200   # |X| outer face, Z >= WALL_STEP_Z
 
-    # Round 21 (finding RH1) -- the latch-end and tongue-end walls (built by
-    # _build_latch_wall / _build_tongue_wall) stop here, not at DECK_Z: the
-    # real end walls span Z 0..24.000 mm; above that the shell narrows to
-    # the deck's own (narrower) footprint (see DECK_Y_LO/DECK_Y_HI above).
-    # The X-direction side walls (_build_side_wall) are unaffected -- they
-    # already reach DECK_Z, and their own upper band already narrows in X
-    # (WALL_X_OUTER_UPPER) at WALL_STEP_Z, matching the reference's own
-    # narrowing there; only the two END walls were over-height.
-    END_WALL_Z_HI = 24.000
+    # Round 22: the end walls run the shell's full height, which is now
+    # the same 24.000 mm they were already capped at by round 21 (RH1) --
+    # the number is unchanged, but its MEANING is: it used to be "the real
+    # end wall stops here, below the deck", and is now "the end wall
+    # reaches the deck". Derived from DECK_Z rather than re-typed so the
+    # two cannot drift apart.
+    END_WALL_Z_HI = DECK_Z
 
     # --- Side windows, tapered (SS7.2, round 20 H3, round 21 RH3) ---
     WINDOW_Y_HALF = 12.000        # flat half-width, Z <= WINDOW_SHOULDER_Z
@@ -376,10 +397,43 @@ class PoweredUpHubHousing:
 
     # --- Latch end (-Y), SS5.2 / SS11 ---
     LATCH_Y = -HALF_Y
-    LATCH_WALL_THICKNESS = 1.200
+    # Round 22 -- thickened from the round-18 single 1.200 mm skin so the
+    # wall actually MEETS the cover instead of leaving an open 3.600 mm
+    # slot around the leg end. The inner face now lands on
+    # PoweredUpHubCover.PLATE_Y_LO (-30.800 mm), i.e. the cover's own plate
+    # edge, closing the gap the user flagged.
+    #
+    # The tongue end carries the mating LIP for the cover's own 6 locating
+    # teeth (PoweredUpHubCover.TOOTH_X_BANDS); per the round-22 decision the
+    # teeth and their notches both live on the cover, exactly as in the
+    # reference, so this class carries no ridges of its own.
+    #
+    # This does NOT re-thicken the wall where the latch U lives. That band
+    # (|X| in [5.600, 19.200] -- the cover's hook legs AND release legs
+    # share one hook_width footprint) is cut straight back to the original
+    # 1.200 mm skin by _build_latch_clearance, so every verified round-18
+    # to round-21 latch interface -- the catch boss, its undercut slot, the
+    # keeper nub, the retention ledge -- still sits in exactly the wall it
+    # was derived against. The thickening is confined to the three spans
+    # BETWEEN and OUTBOARD of the fingers, which is precisely where the
+    # gaps were and precisely where the alignment ridges go.
+    LATCH_WALL_THICKNESS = 4.800   # -35.600 -> -30.800
+    LATCH_SKIN_THICKNESS = 1.200   # what survives in the latch-U band
+
     LATCH_WINDOW_X_LO = 5.600
     LATCH_WINDOW_X_HI = 19.200
     LATCH_WINDOW_Z_HI = 3.600
+    # Retention land (round 30) -- see _build_latch_land. Proud to within
+    # 0.050 mm of the leg's -34.000 baseline, spanning Z strictly below
+    # the bead's seated band (Cover.BEAD_Z_LO = 4.750).
+    # Round 38: -34.050 -> -34.000. The Cover's U ribbon put the leg's
+    # outer face at -33.950 (was -34.000), which cut bead engagement from
+    # 0.170 to 0.120 mm and dropped retention at dz = -0.400 to zero.
+    # This restores 0.170 mm engagement while keeping the same 0.050 mm
+    # running clearance against the leg.
+    LATCH_LAND_Y = -34.000
+    LATCH_LAND_Z_LO = 3.700
+    LATCH_LAND_Z_HI = 4.500
     _LATCH_CATCH_Z_MARGIN = 3.0   # boss Z-band margin around the engagement band
     # Round 21 (finding E11-c (1)) -- the real part's own inner-skin depth
     # at the latch end; the catch boss retreats to this Y outside the barb
@@ -419,12 +473,6 @@ class PoweredUpHubHousing:
         # inner face TOWARD the tip and thickened the wall -- the opposite
         # of clearance -- and measurably collided with Cover's tongue tip.)
         self._tongue_inner_y_upper = self.TONGUE_INNER_Y_UPPER + prof.free.radial
-
-        # Round 21, finding E11-a: the deck's underside clears the tray's
-        # own top face (26.400 + Cover.PLATE_THICKNESS = 27.600 mm) by the
-        # project's own running-clearance convention, not a bare literal
-        # touch -- see DECK_THICKNESS_NOMINAL's own comment above.
-        self._deck_thickness = self.DECK_THICKNESS_NOMINAL - prof.free.radial
 
         self._solid = self._build()
 
@@ -559,12 +607,20 @@ class PoweredUpHubHousing:
         simplifications* for why this is solid rather than a hollow shell.
 
         **Round 20 correction (finding H1, blocking)**: this slab spans
-        ``Z`` in ``[DECK_Z - self._deck_thickness, DECK_Z]`` -- the real
+        ``Z`` in ``[DECK_Z - DECK_THICKNESS, DECK_Z]`` -- the real
         shell's own measured deck, sitting at and below its top face. The
         pre-round-20 version built this slab *above* ``DECK_Z`` (the
         retired ``TOP_Z = 33.800``), which put ~16,270 mm^3 (61% of the
         model's own volume) entirely outside the reference envelope -- see
         the class docstring's *Round 20 correction* note.
+
+        **Round 22**: the slab is FLAT and SOLID by explicit user
+        direction -- the top-layer connecting holes (the stud/pin pattern
+        that would mate this bottom layer to the second layer) are
+        deliberately NOT modelled yet, so nothing perforates it. Its plan
+        footprint also widened back to the full Y envelope; see
+        :attr:`DECK_Y_LO`. The round-21 note below is kept for the record
+        but no longer describes the built geometry.
 
         **Round 21 correction (finding RH1)**: the deck's own plan
         footprint is narrower than the full housing envelope --
@@ -583,9 +639,9 @@ class PoweredUpHubHousing:
         return rounded_box(
             width=2 * self.WALL_X_OUTER_UPPER,
             depth=y_span,
-            height=self._deck_thickness,
+            height=self.DECK_THICKNESS,
             corner_r=0.0,
-            center=(0.0, (self.DECK_Y_LO + self.DECK_Y_HI) / 2.0, self.DECK_Z - self._deck_thickness),
+            center=(0.0, (self.DECK_Y_LO + self.DECK_Y_HI) / 2.0, self.DECK_Z - self.DECK_THICKNESS),
         )
 
     # ------------------------------------------------------------------
@@ -973,27 +1029,125 @@ class PoweredUpHubHousing:
 
     def _build_latch_wall(self) -> cq.Workplane:
         # Round 21 (finding RH1): capped at END_WALL_Z_HI (24.000 mm), not
-        # DECK_Z (29.600 mm) -- the real end wall stops there; above it the
+        # DECK_Z -- which round 22 made the same number; above it the
         # shell narrows to the (unaffected) X-direction side walls' own
         # upper band and the deck's own narrower footprint (see class
         # docstring's *Known simplifications* -> *End-wall Z extent*).
         base = self._y_slab(
             self.LATCH_Y, self.LATCH_WALL_THICKNESS, 0.0, self.END_WALL_Z_HI, inward=True
         )
+        # Round 22 -- order matters. Cut the latch-U band back to the
+        # original skin FIRST, so everything below runs against the same
+        # 1.200 mm wall the round-18..21 catch geometry was derived
+        # against, then re-add the catch bosses into that band exactly as
+        # before.
+        base = base.cut(self._build_latch_clearance())
         base = base.cut(self._build_finger_windows())
 
         for side in (+1, -1):
-            boss, pocket, nub = self._build_latch_catch(side)
+            boss, pocket, _nub = self._build_latch_catch(side)
             base = base.union(boss)
             base = base.cut(pocket)
-            # The keeper nub MUST be unioned back in AFTER the slot cut --
-            # it sits inside the slot's own footprint by construction (see
-            # _build_latch_catch's docstring), so applying it before the
-            # cut would just have the slot cutter remove it again.
-            base = base.union(nub)
+            # Round 27: the keeper nub is NO LONGER unioned back in. It was
+            # the old retention feature, reaching behind the barb crest while
+            # the barb was on the finger -- and it sat inside the finger's own
+            # envelope, contributing 6.710 mm^3 of the 7.374 mm^3 seated
+            # Cover/Housing interference (measured: tmp/ldraw/which_feature.py).
+            # Retention now comes from the release-leg bead against
+            # _build_latch_land, which engages with ZERO seated
+            # interference, so the nub buys nothing and costs assembly.
+
+        # LAST: the retention land shares the skin band with the catch boss
+        # above, so it is unioned after it rather than being swallowed.
+        base = base.union(self._build_latch_land())
 
         assert len(base.solids().vals()) == 1, "Expected single solid, got multiple pieces"
         return base
+
+    def _build_latch_land(self) -> cq.Workplane:
+        """Retention land: a rail on the latch wall's inner face that the
+        cover's release-leg bead snaps over (round 30).
+
+        Round 27 had this backwards. Philo's bead is only 0.220 mm proud and
+        this wall's inner face sat at -34.400 -- 0.400 mm off the leg -- so
+        nothing could reach it. Instead of correcting the wall, round 27 grew
+        a 1.000 mm bead on the *cover* near the leg's anchor; it retained but
+        could not be released (64.5 mm of pad travel required, R30). The
+        defect was on this side all along.
+
+        The rail stands proud to :attr:`LATCH_LAND_Y`, leaving 0.050 mm
+        running clearance against the leg's -34.000 baseline, and spans Z
+        only BELOW the bead's seated band. Hence:
+
+        * **seated** -- the bead (z 4.750..5.750) sits above the rail: zero
+          interference, so the lid closes without deforming anything;
+        * **withdrawal** -- the bead's lower flank drives into the rail's top
+          face and resistance grows;
+        * **insertion** -- the bead rides over the rail, deflecting the leg
+          0.170 mm inboard, then snaps clear;
+        * **release** -- pressing the thumb pad deflects the leg inboard, and
+          only 0.170 mm is needed. The bead sits at z ~ 5 of an 11.600 mm free
+          length, so ~0.4 mm of pad travel suffices.
+        """
+        from vibe_cading.lego_adapters.poweredup_hub.cover import PoweredUpHubCover
+
+        lg: LatchGeometry = self._latch
+        half_w = lg.hook_width / 2.0
+        y_wall = self.LATCH_Y + self.LATCH_SKIN_THICKNESS      # -34.400
+        depth = y_wall - self.LATCH_LAND_Y
+        height = self.LATCH_LAND_Z_HI - self.LATCH_LAND_Z_LO
+        assert self.LATCH_LAND_Z_HI < PoweredUpHubCover.BEAD_Z_LO, (
+            "the land must sit BELOW the bead's seated band, else the lid "
+            "cannot close without interference")
+
+        land = None
+        for side in (+1, -1):
+            x_center = side * (lg.hook_pitch / 2.0 + half_w)
+            rail = rounded_box(
+                width=lg.hook_width,
+                depth=depth,
+                height=height,
+                corner_r=0.0,
+                center=(x_center, self.LATCH_LAND_Y + depth / 2.0, self.LATCH_LAND_Z_LO),
+            )
+            land = rail if land is None else land.union(rail)
+        return land
+
+    def _build_latch_clearance(self) -> cq.Workplane:
+        """Cut the round-22 thickened latch wall back to its original
+        :attr:`LATCH_SKIN_THICKNESS` skin across the band the cover's latch
+        U occupies -- see :attr:`LATCH_WALL_THICKNESS` for why this exists.
+
+        Z extent stops at the latch geometry's own
+        ``engagement_band_hi``: above that the catch's ledge material must
+        stay solid (it is the surface the barb cannot rise past), and
+        :meth:`_build_latch_catch`'s ``boss_window_and_ledge`` re-adds the
+        band between ``engagement_band_lo`` and ``engagement_band_hi``
+        anyway, so cutting to exactly ``engagement_band_hi`` composes with
+        that boss instead of fighting it.
+
+        X extent is the cover's own ``hook_width`` plus a running clearance
+        each side -- the hook legs and the release legs share one footprint
+        (both are extruded ``hook_width`` about the same ``x_center``), so
+        one channel per side clears both.
+        """
+        lg: LatchGeometry = self._latch
+        clearance = self._profile.free.radial
+        y_inner = self.LATCH_Y + self.LATCH_WALL_THICKNESS   # -30.800
+        y_outer = self.LATCH_Y + self.LATCH_SKIN_THICKNESS   # -34.400
+        overcut = 1.0  # break cleanly through the wall's own inner face
+        channels = None
+        for side in (+1, -1):
+            x_center = side * (lg.hook_pitch / 2.0 + lg.hook_width / 2.0)
+            channel = rounded_box(
+                width=lg.hook_width + 2 * clearance,
+                depth=(y_inner + overcut) - y_outer,
+                height=lg.engagement_band_hi,
+                corner_r=0.0,
+                center=(x_center, (y_outer + y_inner + overcut) / 2.0, 0.0),
+            )
+            channels = channel if channels is None else channels.union(channel)
+        return channels
 
     def _build_finger_windows(self) -> cq.Workplane:
         overcut = 1.0
@@ -1047,7 +1201,10 @@ class PoweredUpHubHousing:
 
         clearance = self._profile.free.radial  # running clearance, not a retention surface
         y_slot_inner = PoweredUpHubCover.PLATE_Y_LO + clearance
-        y_slot_outer = PoweredUpHubCover.HOOK_FACE_Y1 - clearance - lg.undercut_depth
+        # Round 22: derived from the Cover's REAL bead. Rounds 18-21 measured
+        # this off HOOK_FACE_Y1 plus an undercut because the barb was a facet
+        # buried in the crown with no outboard reach of its own to measure.
+        y_slot_outer = PoweredUpHubCover.barb_outboard_y(lg) - clearance
 
         local_wall = y_slot_outer - self.LATCH_Y  # material behind the pocket's deepest point
         assert local_wall >= self._MIN_MATERIAL_BEHIND_UNDERCUT, (
@@ -1097,12 +1254,29 @@ class PoweredUpHubHousing:
             corner_r=0.0,
             center=(x_center, (self.LATCH_Y + retreat_y) / 2.0, z_lo),
         )
+        # Round 22: this band now starts at engagement_band_HI, not _LO --
+        # it is purely the retention LEDGE above the barb's travel. Rounds
+        # 18-21 started it at _LO and relied on the slot cutter to reopen
+        # the band below; that worked only while the Cover's release leg sat
+        # inboard of the slot's own outer face. With the leg corrected to
+        # its reference position (-34.000 outer) it lands squarely inside
+        # this boss, so the boss must not fill that band at all. The band
+        # below is left as _build_latch_clearance already cut it.
+        # Round 27: start the ledge ABOVE the finger's own tip, not a seam
+        # BELOW engagement_band_hi. Since the retention bead moved to the
+        # release leg (see _build_latch_land), this ledge backs nothing
+        # on the finger -- while `engagement_band_hi - seam` (12.500) put it
+        # squarely inside the finger, which reaches hook_depth (13.000). That
+        # was 2 x 3.687 mm^3 of seated interference: the lid could not be
+        # closed without deforming it, and the clash was being reported as
+        # the latch's own "engagement".
+        ledge_z_lo = lg.hook_depth + clearance
         boss_window_and_ledge = rounded_box(
             width=lg.hook_width,
             depth=y_slot_inner - self.LATCH_Y,
-            height=z_hi - (lg.engagement_band_lo - seam),
+            height=z_hi - ledge_z_lo,
             corner_r=0.0,
-            center=(x_center, (self.LATCH_Y + y_slot_inner) / 2.0, lg.engagement_band_lo - seam),
+            center=(x_center, (self.LATCH_Y + y_slot_inner) / 2.0, ledge_z_lo),
         )
         boss = boss_below_window.union(boss_window_and_ledge)
 
@@ -1188,6 +1362,24 @@ class PoweredUpHubHousing:
     # ------------------------------------------------------------------
 
     def _build_tongue_wall(self) -> cq.Workplane:
+        """Three Z bands (round 22 adds the third).
+
+        1. ``[0, TONGUE_STEP_Z]`` -- the rebate, inner face at
+           :attr:`TONGUE_INNER_Y_LOWER`. This is the lap the cover's
+           tongue tip hooks under; unchanged.
+        2. ``[TONGUE_STEP_Z, tongue_clear_z_hi]`` -- the band the cover's
+           tongue tip and riser actually occupy, inner face held back at
+           :attr:`TONGUE_INNER_Y_UPPER` (+ running clearance); unchanged.
+        3. ``[tongue_clear_z_hi, END_WALL_Z_HI]`` -- **new in round 22.**
+           Above the riser there is nothing to clear, so the wall thickens
+           inward to the cover's own plate edge
+           (``PoweredUpHubCover.PLATE_Y_HI``), closing the open slot the
+           user flagged at this end. This is the tongue-end counterpart of
+           the latch end's own :attr:`LATCH_WALL_THICKNESS` thickening --
+           and it needs no clearance channel, because the tongue is a
+           low feature (it tops out at ``RISER_Z_HI``) rather than a
+           full-height one like the latch U.
+        """
         lower = self._y_slab(
             self.TONGUE_Y,
             self.TONGUE_Y - self.TONGUE_INNER_Y_LOWER,
@@ -1195,16 +1387,24 @@ class PoweredUpHubHousing:
             self.TONGUE_STEP_Z,
             inward=False,
         )
-        # Round 21 (finding RH1): capped at END_WALL_Z_HI, not DECK_Z --
-        # see _build_latch_wall's own comment for the shared rationale.
-        upper = self._y_slab(
+        # The cover's riser tops out at RISER_Z_HI; clear it by the
+        # project's own running-clearance convention before thickening.
+        tongue_clear_z_hi = PoweredUpHubCover.RISER_Z_HI + self._profile.free.radial
+        middle = self._y_slab(
             self.TONGUE_Y,
             self.TONGUE_Y - self._tongue_inner_y_upper,
             self.TONGUE_STEP_Z,
+            tongue_clear_z_hi,
+            inward=False,
+        )
+        upper = self._y_slab(
+            self.TONGUE_Y,
+            self.TONGUE_Y - PoweredUpHubCover.PLATE_Y_HI,
+            tongue_clear_z_hi,
             self.END_WALL_Z_HI,
             inward=False,
         )
-        return lower.union(upper)
+        return lower.union(middle).union(upper)
 
     def _y_slab(
         self, y_outer: float, thickness: float, z_lo: float, z_hi: float, *, inward: bool

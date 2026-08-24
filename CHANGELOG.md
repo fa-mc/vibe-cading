@@ -15,6 +15,116 @@ section to the new version and date.
 
 ## [Unreleased]
 
+### Removed
+- **`PoweredUpHubBatteryTray` is deleted** (user direction, 2026-08-20). The
+  housing is now capped at a 3-stud (`24.000 mm`) bottom layer, and a separate
+  tray no longer fits underneath: cover plate `1.2` + tray floor `1.5` + the
+  named `20 mm` pack + strap `~1.8` = `24.5 mm` against the `22.0 mm` available
+  below the deck — `2.5 mm` over, even after reclaiming the tray's own
+  `2.500 mm` raised-floor standoff. The pack now sits directly on
+  `PoweredUpHubCover`. **Breaking**: the class, its module
+  `vibe_cading.lego_adapters.poweredup_hub.battery_tray`, its two
+  `visual_contracts.toml` rows and their SVGs are all gone, and
+  `assembly.assemble()` returns two parts instead of three.
+- `PoweredUpHubCover`: the locating land (and its `LAND_Y_LO` / `LAND_Y_HI` /
+  `LAND_HEIGHT` constants) is removed — it existed solely to register the
+  deleted tray's bottom rim, so it now registers nothing.
+
+### Changed
+- **`PoweredUpHubHousing` height is now a design decision, not a copy of the
+  reference**: `DECK_Z` drops `29.600 → 24.000 mm`, expressed as
+  `DECK_STUDS * STUD_PITCH` (3 × 8.0) so the stud count is the single source of
+  truth. This part is the *bottom layer* of a two-layer box. The top deck stays
+  a flat, solid, unperforated slab — the top-layer connecting holes are
+  deliberately not modelled yet — and its plan footprint widens back to the
+  full `±HALF_Y` (the round-21 narrowing described a shell region that no
+  longer exists at this height). `DECK_THICKNESS` is a plain `2.000 mm`
+  constant again, the round-21 instance-level tray clearance having lost its
+  referent.
+- **`PoweredUpHubHousing` end walls thickened at both ends** so they meet the
+  cover instead of leaving an open perimeter slot. The latch wall goes
+  `1.200 → 4.800 mm` (inner face onto `PoweredUpHubCover.PLATE_Y_LO`); the
+  tongue wall gains a third Z band above the riser at
+  `PoweredUpHubCover.PLATE_Y_HI`. The latch-U band (`|X| ∈ [5.600, 19.200]`,
+  shared by the hook legs and release legs) is cut straight back to the
+  original `1.200 mm` skin by the new `_build_latch_clearance`, so every
+  round-18…21 latch interface — catch boss, undercut slot, keeper nub,
+  retention ledge — still sits in the wall it was derived against. Verified:
+  `Housing ∩ Cover` is byte-identical to the pre-change value.
+
+### Fixed
+- **`PoweredUpHubCover`'s latch crown buried the barb, so nothing gripped.**
+  Rounds 18–22 joined the two legs of the cantilever U with a box spanning
+  leg-to-plate across the top. That box swallowed the barb bead whole — a
+  section at `z = 12.0` returned a single solid span, no protrusion and no
+  undercut anywhere — so the lid was in fact retained by the housing's keeper
+  nub pressing on the *crown*, not by a barb. The crown is now the material
+  between the release leg's inner wall and the bead's own outboard surface,
+  over the bead's upper band only: the U stays joined at the top (so pressing
+  the thumb pad still flexes the hook, per SS1.4) while everything below stays
+  open, leaving the bead's re-entrant face — the 157.5° sweep passes vertical,
+  so it overhangs — exposed as the surface that actually grabs. Measured: the U
+  is open by 1.065 / 0.741 / 0.442 mm at `z` = 11.0 / 11.6 / 12.0 with the bead
+  bulging into it, and `Housing ∩ Cover` retention is now **7.37 mm³ against
+  the bead itself** instead of 18.1 mm³ against a crown box.
+- **`PoweredUpHubCover`'s side handles were the wrong shape and 1.6 mm out of
+  position.** The first port copied the deleted `PoweredUpHubBatteryTray`'s own
+  constants, which were expressed in the *tray's* datum (its bottom rim, one
+  `PLATE_THICKNESS` above the lid face) and had additionally been shrunk by that
+  class's round-20 window-collision fix. Rebuilt directly from the tray part's
+  own SS2.3 figures, which transfer with no rebasing because this class's `Z = 0`
+  *is* the lid outer face: pad `±12.000 × 0…8.400`, ledge at `7.200…8.400`, grip
+  ribs at `1.920…2.880` / `3.920…4.880`, and — the feature whose absence made it
+  read as the wrong shape — the **R3.600 corner round-over**, which was simply
+  absent before. The handle carries a running clearance plus a chord allowance,
+  because `PoweredUpHubHousing`'s window approximates its ramp with a
+  piecewise-linear taper and a chord always lies inside the arc it subtends.
+- **`PoweredUpHubCover`'s ledge started 0.400 mm too far forward** — from the
+  plate edge (32.000) rather than §1.5's `LEDGE_Y_LO` (32.400). Found by a
+  plane-reconciliation sweep of the reference mesh, not by eye. (That sweep also
+  flagged the 15 plate through-slots as unmodelled; they were built and then
+  removed again at the user's direction — this box does not want them.) After both fixes 14 planes remain and **all are
+  explained**: 13 are the three deliberately-deleted AA-divider ribs and their
+  gussets (design brief O1), and 1 is an internal face of the hollow thumb-pad
+  shell, which this model builds solid. See the reference-comparison doc,
+  section R23 — including why `boolean_diff.py` cannot be used against this
+  reference (it returns all-zero, Jaccard 0: a failed measurement, not a match).
+- **`PoweredUpHubCover`'s latch barb did nothing.** Rounds 18–21 modelled it as a
+  three-point facet whose crest sat at `z = 12.000` — inside the crown's own
+  `[11.800, 13.000]` band — so the crown bridged straight over it. A section at
+  `z = 12.0` returned one solid Y span: no protrusion anywhere. Retention was
+  actually occurring between the housing's keeper nub and the **crown**, not a
+  barb. Root cause was not the crown but the **release leg**: round 21's *"held
+  flat beyond z = 11.0"* deviation put the leg's inner face at `-32.320`, closing
+  the release aperture to **0.043 mm** where the reference holds it at
+  **1.062 mm** (`parts/24853.dat` sectioned at the finger centre; measured at
+  z = 11.2 / 11.4 / 11.6). Fixed by stepping `_LEG_OUTER_Y`'s top point out to
+  `-34.000` with the reference's base `0.698 mm` thickness, which lands the inner
+  face on `-33.302` exactly. The barb is now a **true R1.000 cylindrical bead**
+  swept through the reference's 157.5° arc about `(-32.200, 12.000)`, and
+  `PoweredUpHubHousing`'s catch slot derives from its real outboard extreme via
+  the new `PoweredUpHubCover.barb_outboard_y()` instead of from the arm face.
+  `PoweredUpHubHousing`'s catch boss is reduced to the retention **ledge** above
+  the engagement band, since it no longer needs to refill the band the leg
+  occupies. Net: envelope unchanged at `13.000 mm`, `Housing ∩ Cover` **20.71 →
+  19.08 mm³** (18.1 of which is the intended keeper-nub retention).
+
+### Added
+- **Tongue-end castellation restored to the reference** (user direction): the
+  6 ledge locating teeth and the 4 notches between them (`TOOTH_X_BANDS`,
+  `NOTCH_FLOOR_Z`), which rounds 18–21 dropped as non-load-bearing. Both live on
+  `PoweredUpHubCover` exactly as in the real part, so the housing carries a plain
+  mating lip and no ridges. The **locating groove** (`GROOVE_*`, Y ∈ [30.0, 31.2]
+  at 1.600 mm) is restored with them: it had been deleted alongside the tray on
+  round 18's claim that it registered the tray's rim, but §1.5 of the LDraw
+  extract states plainly that *the lid seats laterally* on it — a lid-to-housing
+  feature that never had anything to do with the tray.
+- **`PoweredUpHubCover` side handles** (`HANDLE_*`), re-homed 1:1 from the
+  deleted tray's extraction tabs. The port needed no re-dimensioning: the
+  tray's outer wall face and the cover's plate half-width are the same
+  `27.200 mm`, so the handles still emerge through the housing's own side
+  windows with the ledge `0.400 mm` proud of the outer wall face.
+
 ### Added
 - `PerpendicularHolesLiftarm`: two default-preserving constructor additions
   (TL round, 2026-08-19 — see

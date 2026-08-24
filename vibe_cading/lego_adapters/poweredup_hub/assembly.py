@@ -13,8 +13,7 @@
 # You should have received a copy of the GNU Affero General Public License
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
-"""Combined Housing + Cover + BatteryTray seated view -- a cross-class
-composition.
+"""Combined Housing + Cover seated view -- a cross-class composition.
 
 Per this project's *Assembly modules* convention (see
 ``vibe/INSTRUCTIONS.md``), a demonstration spanning more than one class belongs in a
@@ -33,25 +32,32 @@ that reuses this module's own placement, then committed as an
 it replaces was. Flagged in the design brief's Implementation Status as a
 pre-existing tooling gap, not a regression introduced here.
 
-**All three parts now shown (round 18)** -- an earlier version omitted
+**Both parts shown** -- an earlier version omitted
 :class:`~vibe_cading.lego_adapters.poweredup_hub.housing.PoweredUpHubHousing`
 because it did not exist yet when this module was first written; leaving it
 out afterward hid exactly the seating faults (B1/B2/B3) the round-18 audit
 found, since this is the view most likely to expose them.
 
+**Round 22 -- the BatteryTray is gone.** A separate tray part could not fit
+under a 3-stud (24.0 mm) bottom layer alongside a 20 mm pack: the stack
+(cover plate 1.2 + tray floor 1.5 + pack 20.0 + strap 1.8 = 24.5 mm) blew
+the 22.0 mm available below the deck by 2.5 mm even after the tray's raised
+floor standoff was reclaimed. Per the user's round-22 direction the tray was
+deleted outright and its side extraction tabs re-homed onto
+:class:`PoweredUpHubCover` (which already spans the same |X| = 27.200 mm
+edge), so the pack now sits directly on the cover with the handles still
+reachable through the housing's own side windows.
+
 Placement: :class:`~vibe_cading.lego_adapters.poweredup_hub.housing.PoweredUpHubHousing`
 and :class:`PoweredUpHubCover` share one ``Z = 0`` datum (the lid *is* the
-housing's floor -- see ``PoweredUpHubHousing``'s own docstring), so Housing
-needs no transform either. The tray's floor rests directly on the cover's
-inner face (``PoweredUpHubCover.PLATE_THICKNESS`` above the cover's own
-``Z = 0`` datum).
+housing's floor -- see ``PoweredUpHubHousing``'s own docstring), so neither
+part needs a transform.
 """
 
 from __future__ import annotations
 
 import cadquery as cq
 
-from vibe_cading.lego_adapters.poweredup_hub.battery_tray import PoweredUpHubBatteryTray
 from vibe_cading.lego_adapters.poweredup_hub.cover import PoweredUpHubCover
 from vibe_cading.lego_adapters.poweredup_hub.housing import PoweredUpHubHousing
 from vibe_cading.print_settings import ToleranceProfile
@@ -60,9 +66,9 @@ from vibe_cading.print_settings import ToleranceProfile
 def assemble(
     profile: ToleranceProfile | str | None = None,
 ) -> list[tuple[cq.Workplane, str, str]]:
-    """Housing + Cover + BatteryTray, seated as they seat when the lid is closed.
+    """Housing + Cover, seated as they seat when the lid is closed.
 
-    ``profile`` forwards to all three parts' own ``profile`` constructor
+    ``profile`` forwards to both parts' own ``profile`` constructor
     argument (each resolves ``None`` to the process-global default via
     :func:`vibe_cading.print_settings.get_profile`), so a caller can render
     the seated assembly under a non-default tolerance profile. This is the
@@ -76,12 +82,8 @@ def assemble(
     """
     housing = PoweredUpHubHousing(profile=profile)
     cover = PoweredUpHubCover(profile=profile)
-    tray = PoweredUpHubBatteryTray(profile=profile)
-
-    tray_solid = tray.solid.translate((0, 0, PoweredUpHubCover.PLATE_THICKNESS))
 
     return [
         (housing.solid, "Housing", "lightgray"),
         (cover.solid, "Cover", "gold"),
-        (tray_solid, "BatteryTray", "royalblue"),
     ]

@@ -30,11 +30,13 @@ def test_single_solid():
 
 
 def test_envelope_matches_25560():
-    """72.0 x 71.2 x 29.6 mm -- the real shell's own envelope, not the
-    LDraw part's bounding box (round 20, H1: the earlier 33.8 mm figure
-    was the bbox, reached only by two now-out-of-scope port tubes). X
-    grows to 72.0/72.6ish with the arm bosses; Y and Z are exact -- see
-    class docstring's cross-section note."""
+    """72.0 x 71.2 mm in plan; Z is DECK_Z.
+
+    **Round 22**: Z is now 24.000 mm (3 studs -- the user's bottom-layer
+    cap), a deliberate departure from the reference shell's own 29.600 mm.
+    Asserted against the constant so the stud count stays the single
+    source of truth. X grows to 72.0/72.6ish with the arm bosses; Y and Z
+    are exact -- see class docstring's cross-section note."""
     h = PoweredUpHubHousing()
     bbox = h.solid.val().BoundingBox()
     assert abs(bbox.ylen - 2 * PoweredUpHubHousing.HALF_Y) < 1e-6
@@ -240,98 +242,6 @@ def test_arm_flat_face_matches_real_ldraw_half_width():
     # (X=35.6) -- the default 2.0 mm probe would straddle that boundary and
     # register a spurious sliver.
     assert _probe_material(h, 36.5, probe_y, PoweredUpHubHousing.HOLE_AXIS_Z, size=0.6) < 1e-6
-
-
-def test_housing_tray_upper_band_interference_is_zero():
-    """The mandatory cross-part acceptance check for round 16, Escalation 5:
-    PoweredUpHubBatteryTray, seated on PoweredUpHubCover's own floor (world
-    Z = tray-local Z + PLATE_THICKNESS -- see design brief round 16), must
-    not intersect Housing's own *upper* wall band (world Z >= WALL_STEP_Z)
-    at all -- this is the interference the wall-step fix specifically
-    targets and fully eliminates.
-
-    **Round 20, Escalation 11a**: this was NO LONGER exactly zero. H1's
-    deck-height correction (round 20) positioned the deck at its real,
-    lower height for the first time -- before H1, the deck sat entirely
-    above z=29.6, leaving the whole [22, 29.6] band clear regardless of
-    the tray's own height, which structurally hid this collision. The
-    tray's own topmost extent fell ~0.08 mm inside the corrected deck's
-    own underside across nearly its whole footprint.
-
-    **Round 21 fixes this, back to exactly zero (Escalation 11a)**: the
-    deck's own thickness now routes through `profile.free.radial` (a real
-    running clearance against the tray's top face) instead of a flat
-    literal derived from a corrugated ceiling's explicitly-undetermined
-    centre value -- see `PoweredUpHubHousing.__init__`'s own
-    `self._deck_thickness`.
-    """
-    import cadquery as cq
-
-    from vibe_cading.lego_adapters.poweredup_hub.battery_tray import PoweredUpHubBatteryTray
-
-    h = PoweredUpHubHousing()
-    t = PoweredUpHubBatteryTray()
-    tray_world = t.solid.translate((0, 0, PoweredUpHubCover.PLATE_THICKNESS))
-
-    upper_band = cq.Workplane("XY").box(200, 200, 20.0, centered=(True, True, False)).translate(
-        (-100, -100, PoweredUpHubHousing.WALL_STEP_Z)
-    )
-    h_upper = h.solid.intersect(upper_band)
-    t_upper = tray_world.intersect(upper_band)
-    inter = h_upper.intersect(t_upper)
-    vol = sum(s.Volume() for s in inter.solids().vals()) if inter.solids().vals() else 0.0
-    assert vol < 1e-6, (
-        f"Housing/Tray upper-band interference {vol:.4f} mm^3 -- expected 0 "
-        "(round 21 fixed Escalation 11a, see docstring)"
-    )
-
-
-def test_housing_tray_root_bridge_band_interference_is_zero():
-    """Round 17, Escalation 8's own acceptance check: the root-bridge's own
-    Band B Z-range (world Z in [ARM_Z_LO, WALL_STEP_Z] = [16.0, 22.0],
-    where the tray's lower-band wall sits) must be interference-free.
-    Before the Z-dependent two-band root bridge, the bridge's uniform
-    reach crossed through this exact region -- 259.014 mm^3, independently
-    re-derived in the design brief. The fix drops the bridge's
-    wall-reaching extension entirely there, so this must now be exactly
-    zero, not merely reduced.
-
-    Probed at Z in [16.0, 21.9] rather than the full [16.0, 22.0] --
-    the top 0.1 mm is deliberately excluded to isolate this check from a
-    separate, smaller (~4.05 mm^3) residual discovered *while verifying
-    this fix*, at the Z = 22.0 wall-step seam itself: Housing's and the
-    Tray's own independent 0.05 mm coincident-faces overlap tricks (each
-    part's own `_build_side_wall` / `_build_shell`, both citing the same
-    "coincident faces" pitfall) each extend their own upper wall band
-    0.05 mm *below* the nominal Z = 22.0 step -- and each part's downward
-    extension turns out to reach into the *other* part's still-present
-    lower-band wall material in that sliver, producing a tiny genuine
-    interference neither part's own single-part construction comment
-    anticipated. This is unrelated to the root bridge (confirmed by
-    computing it with `_build_side_wall()` alone, no arms) and out of
-    this fix's scope -- see the design brief's Escalations for the
-    follow-up entry. NOT asserted zero here.
-    """
-    import cadquery as cq
-
-    from vibe_cading.lego_adapters.poweredup_hub.battery_tray import PoweredUpHubBatteryTray
-
-    h = PoweredUpHubHousing()
-    t = PoweredUpHubBatteryTray()
-    tray_world = t.solid.translate((0, 0, PoweredUpHubCover.PLATE_THICKNESS))
-
-    band_z_hi = PoweredUpHubHousing.WALL_STEP_Z - 0.1  # clear of the seam sliver, see docstring
-    band = cq.Workplane("XY").box(
-        200, 200, band_z_hi - PoweredUpHubHousing.ARM_Z_LO, centered=(True, True, False)
-    ).translate((-100, -100, PoweredUpHubHousing.ARM_Z_LO))
-    h_band = h.solid.intersect(band)
-    t_band = tray_world.intersect(band)
-    inter = h_band.intersect(t_band)
-    vol = sum(s.Volume() for s in inter.solids().vals()) if inter.solids().vals() else 0.0
-    assert vol < 1e-6, (
-        f"Housing/Tray root-bridge-band interference {vol:.4f} mm^3 -- expected 0 "
-        "(round 17, Escalation 8)"
-    )
 
 
 def test_root_bridge_band_a_retains_structural_fuse_margin():

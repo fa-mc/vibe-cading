@@ -60,6 +60,13 @@ Project-specific instructions further down inherit from and build upon the unive
 - **Fast-Feedback Gate:** NEVER use `python build.py` (full model-tree rebuild) or `boolean_diff.py` against a full reference STEP as iterative debugging tools. First isolate the root cause using fast, targeted tools — `vibe_cading/tools/preview.py <module.path.ClassName>` for a single class, `vibe_cading/tools/section_slicer.py` for an internal cavity, or a `tmp/` probe that exercises just the failing primitive. Only run the full build / volume diff as a single-pass final verification once the fix is confirmed by a fast tool.
 - **Representative-Scale Verification (Pre-Merge Final Pass):** When a task ships a new model class, a change to `build.toml`-registered geometry, or a tool whose only true exercise is the **full model-tree rebuild** (`python build.py`) or a **full-reference volume diff** (`vibe_cading/tools/boolean_diff.py` against a complete reference STEP), the design's Tests table MUST include at least one **pre-merge** row that runs that real path once — exercising the actual build pipeline / full-volume comparison, not just the fast single-class `preview.py` / `section_slicer.py` probes used during iteration. Fast targeted tools (per the Fast-Feedback Gate above) are necessary for iteration but NOT sufficient for sign-off: they bypass the build-manifest wiring, cross-class union seams, and full-volume residuals that only surface at whole-tree scale. A *post-merge* full build does NOT substitute — deferring the only full-scale exercise to post-merge means a merged model carries unquantified build-integration and volume-fidelity risk. This is the final-verification complement of the Fast-Feedback Gate: that rule forbids the full build as an *iterative* tool; this rule requires it as the *single-pass pre-merge gate*.
 - **Entry-Point Full-Execution Probe (contract-grounding scale check):** When a requirements or design artifact asserts a wall-time / memory / build-time / CI-step-duration budget at a **named entry point** — a CLI such as `vibe_cading/tools/calibrate.py --help`, the full `python build.py` rebuild, a CI step, or any `vibe_cading/tools/*.py` command — the probe that *grounds* that budget MUST measure the entry point's **actual command end-to-end** (run the real invocation once on a minimal-but-realistic input and report total cost), NOT a decomposition of its components. A probe that times one component in isolation (a single import, one helper call, a stratified sample of an inner function) and then *sums or extrapolates* to a budget is structurally unsound: the measured component can pass cleanly while an un-measured sibling cost — a different layer of the call chain, import-cascade or arg-parse overhead, per-iteration work outside the sampled function — dominates the entry point's real cost, so the human signs off on a budget that was never measured against the path it constrains. Run this probe **before** the budget is locked at the requirements-approval gate, not deferred to implementation. This is the *contract-grounding* sibling of **Representative-Scale Verification** above (which requires the Tests-table row to exercise the real full-scale path before merge) and the lifecycle-earlier complement of the **Fast-Feedback Gate** (which forbids the slow full path only as an *iterative debugging* tool): a fast targeted probe is fine for mechanism choice during discovery, but it cannot be the sole evidence behind a budget claim at a named entry point. *(Concrete vibe-cading shape: a `--help` "Runtime budget" is grounded by timing the real `python3 vibe_cading/tools/<tool>.py --help` command — which is why such a tool lazy-imports CadQuery so `--help` skips the import cascade — not by timing the module import in isolation; a `python build.py` rebuild-time budget is grounded by one real full-tree build, not by summing per-class `preview.py` times.)*
+- **A Check That Cannot Fail Is Not A Check (state the falsifier first):** Before relying on any check — a test, a probe, a metric, a comparison — state *what result would falsify the claim it is defending*. If no achievable result would, the check is decorative and must not be cited as evidence. Apply this at the moment the check is written, when the falsifier is cheap to state, not after it has been quoted for several rounds. *(Triggering incident: a latch's retention was certified by `assert seated_interference > 0.0` with the comment "proof it exists at all". No geometry could fail that assertion except a part that had drifted apart entirely — and the latch it certified engaged nothing at all, for 25 rounds.)*
+- **Functional Claims Need Kinematic Evidence, Never Shape Evidence:** When an artifact claims a *mechanism works* — a latch retains, a snap engages, a joint holds, a press-fit grips — the verifying test MUST measure displacement along the mechanism's own working axis, not shape. Two substitutions are specifically forbidden, because each has shipped a non-functional mechanism in this repo:
+  1. **A static seated-interference volume is not evidence of engagement.** Between two rigid printed parts a *nonzero* seated interference is evidence of a **collision** — the parts cannot be assembled. A working mechanism shows ≈ zero interference seated and *nonzero* interference along the release/removal path. Assert both halves; either alone is satisfiable by a broken part.
+  2. **A silhouette or cross-section match against a reference is not evidence of function.** A part can track a reference outline to ±0.001 mm while its functional feature engages nothing — reference fidelity and mechanism correctness are independent properties, and only the second one is what the part is for.
+  **Ratchet corollary:** when a tolerance bound is *widened*, or an accepted residual is re-justified at greater length each round, treat that as a signal to question the premise that made the residual necessary — not as a licence to re-derive it. Escalating justification for a stubborn number is the characteristic sound of a wrong premise being defended.
+- **Verification Samples Must Be Chosen By The Data, Not By The Agent:** When a check samples a continuum — which cross-section station to slice, which angle to probe, which Z to measure — do NOT hand-pick the sample. Sweep the range, score every station, and rank them, then inspect the worst. A hand-picked sample is systematically biased toward the flattering one, and the bias is invisible in the result. *(Triggering incident: a latch was repeatedly verified by a section at `X = hook_pitch/2 + hook_width/2` — the hook's own centreline, i.e. the single most self-similar plane on the feature and structurally blind to everything varying along X. Sweeping and ranking put the worst stations at the hook's edges and found the real defect immediately.)*
+- **Positive Control Before Any Absence Claim:** A probe that reports *nothing found* — zero interference, no collision, no matching feature, an empty result set — MUST first be shown to report *something* where something is known to exist. Without that positive control, a mis-built probe and a genuine absence are indistinguishable, and the mis-built probe is the more likely of the two. This applies to ad-hoc scripts under `tmp/` with special force: they are not covered by the test suite, so nothing else will catch them. *(Triggering incident: a latch's retention was declared absent — "the barb grabs air", `barb ∩ housing = 0.000 mm³` — from a bead built on `cq.Workplane("XZ")`, whose normal is global −Y; the offset displaced the bead along −Y instead of +X and `.center()` was fed a global-Y value as a local-X coordinate, placing it entirely outside the part. The number was specific, confident, reproducible, published in a design artifact, and fictional. The re-measurement showed the barb interferes by 3.701 mm³ at rest. Note the failure survived BECAUSE it agreed with the reviewer's expectation — a positive control is what breaks that loop.)*
 - **Wire-Format Contract Verification:** Before writing code that consumes STEP-analysis output (`vibe_cading/tools/face_catalog.py --json`, `vibe_cading/tools/hole_finder.py --json`), `vibe_cading/tools/engine_api/` contracts, or any external library output, first verify the exact wire format by running the producer once against a known input and reading the raw output. Never assume field names, axis conventions, or feature counts from documentation alone — always confirm from live output.
 - **Cross-Host Reproducibility Verification:** A `committed == regenerable` gate (the visual-contract freshness check, or any check that regenerates an artifact and byte-compares it against a committed file) MUST be certified on a **different host or in CI** — NOT only in a clean `git worktree` on the same machine. A clean worktree neutralizes gitignored *local files* (`.env`, `print_profiles_user.json`) but still shares the host's fonts, freetype, and OCCT build, so any artifact whose bytes depend on the *host environment* — notably `cq.Workplane.text()` glyph tessellation — reproduces falsely (passes locally, drifts in CI). The committed artifact must be a pure function of *tracked* repo state; if a byte differs by host, that input does not belong in the byte-compared artifact (e.g. render visual contracts label-free — see the §Visual Contract Deliverable *Host-dependent rendering* note). *(Rationale: PR #19's freshness check passed 9/9 in a same-container clean worktree but failed 6/9 in CI — host-font glyph drift, not a real regression.)*
 - **Debugging Anti-Loop Rule:** NEVER get trapped in blind retry loops (e.g., repeated test timeouts). If an operation fails iteratively, drop down to faster, isolated scripts or unit tests to inspect the exact data layer. Stop brute-forcing and fundamentally evaluate the root cause.
@@ -565,6 +572,7 @@ argument.  Every tool supports `--json` for machine-readable output.
 | `section_slicer.py` | Slice at one or more planes, export 2D cross-section SVGs; `--report` prints a table of edge types, radii, and centres per slice | `--axis Z --at 5 10`, `--sweep 3`, `--report` |
 | `step_preview.py` | Orthographic SVG previews (same as `preview.py` but for STEP files) | `--views top front left` |
 | `boolean_diff.py` | Volume comparison via boolean A−B / B−A | `--model`, `--align-bbox`, `--export` |
+| `surface_diff.py` | Two-sided **surface** deviation, incl. non-watertight meshes (STL); region-scoped, station-ranked | `--region`, `--sweep`, `--ray`, `--worst`, `--json` |
 
 **Workflow**
 
@@ -590,6 +598,51 @@ argument.  Every tool supports `--json` for machine-readable output.
    and the model coordinate system before comparing any numbers.  STEP
    files often use a different origin or axis orientation.
 9. Place any temporary analysis scripts under `tmp/`, never in the repo root.
+
+**Choosing between `boolean_diff.py` and `surface_diff.py`**
+
+They answer different questions and neither replaces the other:
+
+- **`boolean_diff.py`** — *how much* volume differs. Needs **watertight solids**
+  on both sides; against an open mesh it returns all-zero / Jaccard 0, which is a
+  failed measurement, not a match. Use it for STEP-vs-STEP or STEP-vs-model.
+- **`surface_diff.py`** — *where* and *which way* the surfaces differ. Works on
+  triangles, so a mesh / STL / scan reference is fine. Reports the two directions
+  separately (`reference → ours` = what we're **missing**; `ours → reference` =
+  what we **invented**) because they call for opposite fixes and a symmetric mean
+  hides both. `--region` scopes it to one component — essential when a small,
+  delicate feature would otherwise be averaged away by the bulk of the part —
+  and `--sweep` ranks every cross-section station so the *data* picks which slice
+  to inspect rather than the agent picking a flattering one. `--ray` prints raw
+  surface crossings along a line, valid on open meshes where parity is undefined.
+
+`surface_diff.py` refuses to report agreement for a region either shape does not
+occupy, raising `InconclusiveRegion` instead — see the *Positive Control Before
+Any Absence Claim* rule above; an empty probe reporting "no difference" is the
+failure mode it is built to prevent.
+
+**Per-component reference conformance ([`reference_contracts.toml`](../reference_contracts.toml))**
+
+A whole-part similarity number cannot be enforced, because it conflates
+*unintended drift*, *deliberate deviation* and *reference artifacts we never
+meant to copy* — only the first should fail a gate. `reference_contracts.toml`
+registers **components** (name, region AABB, model, reference, minimum
+agreement) together with explicitly declared deviations, and
+`vibe_cading/tools/check_reference_conformance.py` enforces them. Rules:
+
+- An `accepted_deviation` MUST state `what` and `why`; one without a reason is
+  indistinguishable from drift someone stopped fixing, and the checker rejects
+  it. Give it a `region` to exclude its samples from scoring — that is what
+  makes the declaration load-bearing rather than a comment.
+- An **open gap** is declared WITHOUT a region, so a real shortfall keeps
+  counting against the score instead of being defined away.
+- `--update` may only ever RAISE a floor. Lowering one to accommodate a
+  regression is how this project shipped a non-functional latch (an accepted
+  bound widened across rounds while the premise stayed wrong); it must be a
+  reviewed edit with a written reason.
+- References derived from third-party geometry are not committed, so those rows
+  SKIP WITH NOTICE and are contributor-local checks, never CI gates. The checker
+  says so on every run rather than implying coverage it lacks.
 
 **Feature reconciliation (mandatory before volume comparison)**
 
