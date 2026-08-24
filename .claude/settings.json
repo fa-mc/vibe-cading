@@ -39,15 +39,11 @@
       "Bash(mkdir -p .agents/plans:*)",
       "Bash(vibe_cading/tools/init-claude-runtime.sh:*)",
       "Bash(bash vibe_cading/tools/init-claude-runtime.sh:*)",
-      "Bash(rm tmp/*)",
       "Bash(cp print_profiles.json.example print_profiles_user.json)",
       "Bash(cp machine_profiles.json.example machine_profiles_user.json)"
     ],
     "deny": [
-      "Bash(rm -rf:*)",
-      "Bash(rm -fr:*)",
-      "Bash(rm -r:*)",
-      "Bash(rm -R:*)",
+      "Bash(rm -*)",
       "Bash(git push --force:*)",
       "Bash(git push -f:*)",
       "Bash(git reset --hard:*)",
