@@ -43,6 +43,11 @@
       "Bash(cp machine_profiles.json.example machine_profiles_user.json)"
     ],
     "deny": [
+      "Bash(rm -rf tmp)",
+      "Bash(rm -rf tmp/)",
+      "Bash(rm -rf /)",
+      "Bash(rm -rf ~)",
+      "Bash(rm -rf .)",
       "Bash(git push --force:*)",
       "Bash(git push -f:*)",
       "Bash(git reset --hard:*)",

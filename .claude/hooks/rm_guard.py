@@ -15,59 +15,102 @@
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
 """PreToolUse guard for `rm`, wired in .claude/settings.json.
 
-Why a hook rather than permission rules: allow/deny patterns match text with `*`
-as a wildcard, so the single pattern `rm -rf tmp/*` means BOTH "delete the
-scratch directory I created" and "delete everything under tmp/". Those need
-opposite answers, and a pattern cannot separate them. This hook reads the actual
-command, so it can.
+Why a hook rather than permission rules: those match text with `*` as a
+wildcard, so the single pattern `rm -rf tmp/*` means BOTH "delete the scratch
+directory I created" and "delete everything under tmp/". Those need opposite
+answers and a pattern cannot separate them. This hook reads the real command.
 
 Policy:
-  ALLOW  a delete confined to named paths under tmp/, recursive or not
-         (`rm -rf tmp/probe-run`) — an agent clearing up after itself.
-  DENY   a delete that would empty tmp/ wholesale (`rm -rf tmp`, `tmp/`,
-         `tmp/*`), or that targets a glob / `.` / `..` / `/` / `~`.
-  SILENT anything else — no decision, so the normal permission flow applies and
-         the user is asked. Unparseable input is silent too: this fails to
-         "ask", never to "allow".
+  ALLOW  only when the ENTIRE command is one `rm` whose every operand is a
+         literal, non-escaping path under tmp/ (`rm -rf tmp/probe-run`).
+  DENY   any fragment that would empty tmp/ wholesale, or that targets a glob,
+         `.`, `..`, `/`, `~`, or $HOME.
+  SILENT everything else — no decision, so the user is asked.
 
-tmp/ accumulates real working state across sessions and sibling worktrees, so a
-bulk wipe destroys work the deleting agent did not create. That is the accident
-this exists to stop; it is not a security boundary (see README note in the PR).
+THE ALLOW IS DELIBERATELY NARROW, and the reason is the important part: a
+PreToolUse `allow` approves the WHOLE tool call, not the fragment that earned
+it. Judging only the `rm` pieces of a compound command turns this guard into an
+auto-approver — `rm -rf tmp/x && curl … | sh` would run unprompted. So a
+command containing anything other than one safe `rm` is never allowed; at most
+it is denied, otherwise it falls through to a prompt.
+
+Everything uncertain resolves toward "ask": unbalanced quotes, shell
+metacharacters that could expand ($, backtick, braces, ~, globs), paths that
+normalize outside tmp/, unparseable input, or any error. This fails to "ask",
+never to "allow".
+
+tmp/ accumulates scratch state across sessions and sibling worktrees, so a bulk
+wipe destroys work the deleting agent did not create. That accident is what this
+prevents. It is NOT a security boundary — `python3 -c`, `find -delete`, `xargs`
+and friends are untouched.
 """
 from __future__ import annotations
 
 import json
 import os
+import posixpath
 import re
 import shlex
 import sys
 
-# Operands that must never be handed to a recursive delete, whatever the flags.
-_FORBIDDEN_OPERANDS = {
-    "/", ".", "..", "~", "*", "-r", "-rf",
-    "$HOME", "${HOME}", "~/", "/*",
-}
-
-# The wholesale-wipe spellings this guard exists to stop.
-_BULK_TMP = {"tmp", "tmp/", "tmp/*", "./tmp", "./tmp/", "./tmp/*"}
-
+# Globs select an unknown set of victims. Rooted at tmp/ that IS the bulk wipe,
+# so they are denied rather than merely disqualified from ALLOW.
 _GLOB_CHARS = set("*?[]")
 
-# Splits a command line into the pieces a shell would run separately, so a
-# dangerous subcommand cannot hide behind a harmless one.
+# Shell expansions whose value is unknowable here. These never ALLOW, but they
+# are not denied either — `tmp/$DIR` may be perfectly legitimate, so ask.
+_EXPAND_CHARS = set("$`{}\\!\"'")
+
+# Operands never acceptable to a delete, whatever the flags.
+_FORBIDDEN = {"/", ".", "..", "~", "*", ""}
+
 _SPLIT = re.compile(r"&&|\|\||;|\||\n")
 
+_ALLOW, _DENY = "allow", "deny"
 
-def _decide(part: str) -> tuple[str, str] | None:
-    """Return (decision, reason) for one subcommand, or None to stay silent."""
+
+def _classify_operand(raw: str) -> str:
+    """Return 'safe' (a literal path strictly inside tmp/), 'bulk', or 'unknown'."""
+    p = raw[2:] if raw.startswith("./") else raw
+    p = p.rstrip("/")
+
+    # Checked FIRST: `~` and friends carry metacharacters, so a
+    # metacharacter test placed earlier would divert them away from DENY.
+    if raw in _FORBIDDEN or p in _FORBIDDEN or p.startswith("~"):
+        return "bulk"
+
+    if set(raw) & _GLOB_CHARS:
+        # A glob rooted at tmp/ (or bare) can match everything under it.
+        return "bulk" if p == "tmp" or p.startswith("tmp/") else "unknown"
+
+    if set(raw) & _EXPAND_CHARS:
+        return "unknown"
+
+    # Normalize `..` BEFORE deciding containment: `tmp/../tmp` is tmp/, and
+    # `tmp/../../main` is not under tmp/ at all.
+    norm = posixpath.normpath(p)
+    if norm in (".", "..", "/") or norm.startswith("../") or norm.startswith("/"):
+        return "bulk" if norm in (".", "..", "/") else "unknown"
+    if norm in ("tmp",):
+        return "bulk"
+    if norm.startswith("tmp/") and len(norm) > len("tmp/"):
+        return "safe"
+    return "unknown"
+
+
+def _decide(fragment: str) -> tuple[str, str] | None:
+    """Classify one subcommand. None = no opinion."""
     try:
-        tokens = shlex.split(part)
+        tokens = shlex.split(fragment)
     except ValueError:
-        return None  # unbalanced quotes — not ours to judge
+        return None
 
-    # Skip leading env assignments (FOO=bar rm ...), matching how the harness
-    # itself looks past them.
-    while tokens and re.fullmatch(r"[A-Za-z_][A-Za-z0-9_]*=.*", tokens[0]):
+    # Look past leading env assignments and privilege/wrapper prefixes, so
+    # `sudo rm -rf /` is judged as the `rm` it is rather than skipped.
+    while tokens and (
+        re.fullmatch(r"[A-Za-z_][A-Za-z0-9_]*=.*", tokens[0])
+        or os.path.basename(tokens[0]) in ("sudo", "command", "env", "nice", "time")
+    ):
         tokens = tokens[1:]
     if not tokens:
         return None
@@ -75,61 +118,29 @@ def _decide(part: str) -> tuple[str, str] | None:
     if os.path.basename(tokens[0]) != "rm":
         return None
 
-    args = tokens[1:]
     operands: list[str] = []
-    recursive = False
     end_of_flags = False
-
-    for arg in args:
+    for arg in tokens[1:]:
         if not end_of_flags and arg == "--":
             end_of_flags = True
             continue
-        if not end_of_flags and arg.startswith("--"):
-            if arg in ("--recursive", "--dir"):
-                recursive = True
-            continue
         if not end_of_flags and arg.startswith("-") and len(arg) > 1:
-            # Combined short flags: -rf, -vrf, -fR …
-            if "r" in arg[1:] or "R" in arg[1:] or "d" in arg[1:]:
-                recursive = True
             continue
         operands.append(arg)
 
     if not operands:
         return None
 
-    norm = [o.rstrip("/") + ("/" if o.endswith("/") else "") for o in operands]
-
-    for o in norm:
-        stripped = o.rstrip("/")
-        if o in _FORBIDDEN_OPERANDS or stripped in _FORBIDDEN_OPERANDS:
-            return ("deny", f"`rm` targeting {o!r} is refused outright.")
-        if o in _BULK_TMP or stripped in ("tmp", "./tmp"):
-            return (
-                "deny",
-                "This would empty tmp/ wholesale. tmp/ holds scratch state from "
-                "other sessions and sibling worktrees. Delete the specific "
-                "directory you created instead, e.g. `rm -rf tmp/<your-dir>`.",
-            )
-
-    # Every operand must sit under tmp/ and name something concrete.
-    def _under_tmp(path: str) -> bool:
-        p = path[2:] if path.startswith("./") else path
-        if not p.startswith("tmp/"):
-            return False
-        rest = p[len("tmp/"):].strip("/")
-        return bool(rest) and not (set(rest) & _GLOB_CHARS)
-
-    if all(_under_tmp(o) for o in norm):
-        return (
-            "allow",
-            "Delete confined to named path(s) under tmp/: "
-            + ", ".join(norm),
-        )
-
-    if recursive:
-        return None  # recursive outside tmp/ — let the user decide
-
+    kinds = [_classify_operand(o) for o in operands]
+    if "bulk" in kinds:
+        return (_DENY,
+                "Refused: this would empty tmp/ wholesale (or target /, ., .., ~). "
+                "tmp/ holds scratch state from other sessions and sibling "
+                "worktrees. Delete the specific directory you created, e.g. "
+                "`rm -rf tmp/<your-dir>`.")
+    if all(k == "safe" for k in kinds):
+        return (_ALLOW, "Delete confined to named path(s) under tmp/: "
+                + ", ".join(operands))
     return None
 
 
@@ -137,23 +148,30 @@ def main() -> None:
     try:
         payload = json.load(sys.stdin)
     except Exception:
-        return  # silent: normal permission flow applies
+        return
 
     command = (payload.get("tool_input") or {}).get("command") or ""
-    if "rm" not in command:
+    if not command.strip():
         return
 
-    decisions = [d for d in (_decide(p) for p in _SPLIT.split(command)) if d]
-    if not decisions:
-        return
+    fragments = [f for f in _SPLIT.split(command) if f.strip()]
+    verdicts = [_decide(f) for f in fragments]
 
-    # A single dangerous piece condemns the whole command line.
-    for decision, reason in decisions:
-        if decision == "deny":
-            break
-    else:
-        decision, reason = "allow", "; ".join(r for _, r in decisions)
+    # A single dangerous fragment condemns the whole line.
+    for v in verdicts:
+        if v and v[0] == _DENY:
+            _emit(_DENY, v[1])
+            return
 
+    # ALLOW only if the command is exactly ONE fragment and that fragment is a
+    # safe rm. An `allow` blesses the entire tool call, so anything unexamined
+    # riding alongside would be approved with it.
+    if len(fragments) == 1 and verdicts[0] and verdicts[0][0] == _ALLOW:
+        _emit(_ALLOW, verdicts[0][1])
+    # else: stay silent -> normal permission flow asks.
+
+
+def _emit(decision: str, reason: str) -> None:
     json.dump({
         "hookSpecificOutput": {
             "hookEventName": "PreToolUse",
