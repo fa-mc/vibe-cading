@@ -43,31 +43,12 @@
       "Bash(cp machine_profiles.json.example machine_profiles_user.json)"
     ],
     "deny": [
-      "Bash(rm -rf tmp)",
-      "Bash(rm -rf tmp/)",
-      "Bash(rm -rf /)",
-      "Bash(rm -rf ~)",
-      "Bash(rm -rf .)",
+      "Bash(rm -*)",
       "Bash(git push --force:*)",
       "Bash(git push -f:*)",
       "Bash(git reset --hard:*)",
       "Bash(git clean -f:*)",
       "Bash(git branch -D main:*)"
-    ]
-  },
-  "hooks": {
-    "PreToolUse": [
-      {
-        "matcher": "Bash",
-        "hooks": [
-          {
-            "type": "command",
-            "command": "python3 .claude/hooks/rm_guard.py",
-            "if": "Bash(rm *)",
-            "timeout": 10
-          }
-        ]
-      }
     ]
   }
 }

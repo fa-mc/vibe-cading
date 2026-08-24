@@ -36,9 +36,6 @@ examples/build/
 # ~/.claude/ (for shared persona stacks not intended to live in this repo).
 .claude/*
 !.claude/settings.json
-# Hooks referenced by settings.json must be tracked too — a hook missing from a
-# clone is a permission guard that silently does not run.
-!.claude/hooks/
 
 # Local machine tolerances
 print_profiles_user.json
