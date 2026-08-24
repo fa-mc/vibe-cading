@@ -36,32 +36,41 @@ well-intentioned agent running a plausible cleanup command with too wide a glob.
 -"Bash(rm tmp/*)",
 -"Bash(rm -r tmp/*)",
  "deny": [
--  "Bash(rm -rf:*)", "Bash(rm -fr:*)", "Bash(rm -r:*)", "Bash(rm -R:*)",
+-  "Bash(rm -rf:*)",
 +  "Bash(rm -*)",
 ```
 
 Two changes:
 
 - **Removed both allows.** Nothing `rm`-shaped is auto-approved any more.
-- **Collapsed four enumerated denies into `Bash(rm -*)`.**
+- **Widened the single deny `Bash(rm -rf:*)` to `Bash(rm -*)`.**
 
-The enumeration was the more interesting bug. Permission matching is **textual
-prefix matching, not flag parsing**, and each `:*` rule desugars to a trailing
-`␣*` that enforces a word boundary. So `Bash(rm -rf:*)` matches `rm -rf x` but
-**not** `rm -rfv x` — the flag cluster is one word, and `-rf` is only a prefix of
-it. Every combined or reordered spelling escaped the deny set:
+The deny was the more interesting bug. Permission matching is **textual prefix
+matching, not flag parsing**, and each `:*` rule desugars to a trailing `␣*` that
+enforces a word boundary. So `Bash(rm -rf:*)` matches `rm -rf x` but **not**
+`rm -rfv x` — the flag cluster is a single word, and `-rf` is only a prefix of
+it. It also, of course, says nothing about `-r` without `-f`. Every other
+spelling escaped:
 
-| Spelling | Old deny set | `Bash(rm -*)` |
+| Spelling | `Bash(rm -rf:*)` | `Bash(rm -*)` |
 |---|---|---|
 | `rm -rf x` | denied | denied |
+| `rm -r x` | **passed** | denied |
+| `rm -R x` | **passed** | denied |
+| `rm -fr x` | **passed** | denied |
 | `rm -rfv x` | **passed** | denied |
 | `rm -rv x` | **passed** | denied |
-| `rm -fR x` | **passed** | denied |
 | `rm -Rf x` | **passed** | denied |
 | `rm -vrf x` | **passed** | denied |
 | `rm -f -r x` | **passed** | denied |
 | `rm --recursive x` | **passed** | denied |
 | `rm tmp/ -r` | **passed** (and was *auto-approved* by the allow) | denied |
+
+An intermediate commit on this branch tried to fix it by enumerating
+`-rf`/`-fr`/`-r`/`-R` as four separate deny rules. Review showed that still
+missed every combined and reordered spelling above, because the bug is the word
+boundary, not the number of rules. Enumeration cannot win against flag
+clustering; the wildcard can.
 
 Net effect: any flagged `rm` is refused outright; every unflagged `rm` prompts.
 Deletion is never silent.
