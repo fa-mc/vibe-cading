@@ -18,6 +18,8 @@ docs/design_plans/2026-08-19-poweredup-hub-battery-box_design.md,
 *Multi-part structure -> Housing* and *Success Criteria*.
 """
 
+import cadquery as cq
+
 from vibe_cading.lego_adapters.poweredup_hub.cover import PoweredUpHubCover
 from vibe_cading.lego_adapters.poweredup_hub.housing import PoweredUpHubHousing
 from vibe_cading.print_settings import get_profile
@@ -120,36 +122,26 @@ def test_middle_bore_breaks_through():
 
 
 def test_general_body_seated_interference_is_zero():
-    """Every part of the seated Cover/Housing overlay EXCEPT the latch
-    catch's own necessary engagement sliver must be exactly zero -- the
-    tongue rebate, the general envelope, the pin-hole/arm region, etc.
+    """The seated Cover/Housing overlay must be zero EVERYWHERE.
 
-    Round 18 replaced the single blanket
-    ``test_latch_catch_zero_interference_with_cover`` (which asserted
-    total seated interference == 0) with this test plus
-    ``tests/lego_adapters/test_poweredup_hub_kinematic.py``'s own tests,
-    because the B1 catch fix makes a small, geometrically UNAVOIDABLE
-    seated engagement at the catch itself (see that module's own
-    ``test_latch_catch_seated_engagement_is_the_proven_minimum`` for the
-    full proof) -- filtering it out here isolates the ONE thing this test
-    still needs to guarantee: nothing ELSE in the seated overlay regressed.
+    Round 40 removed this test's carve-out. Rounds 18-39 excluded the latch
+    catch's own footprint because the catch made "a geometrically
+    UNAVOIDABLE seated engagement" -- which was never true of a working
+    mechanism (two rigid printed parts that overlap when seated cannot be
+    assembled) and is now moot: the catch is gone and retention comes from
+    the release-leg bead against the land, which engages with zero seated
+    interference by construction.
+
+    Note what this test canNOT see, which is why the two clearance tests
+    below exist: a gap of exactly zero encloses no volume, so a part butted
+    face-to-face against another scores 0.000 mm^3 here and passes.
     """
     h = PoweredUpHubHousing()
     c = PoweredUpHubCover()
     inter = h.solid.intersect(c.solid)
-    non_catch_vol = 0.0
-    for s in inter.solids().vals():
-        bb = s.BoundingBox()
-        # The catch nub's own footprint (both sides): |X| in
-        # [LATCH_WINDOW_X_LO, LATCH_WINDOW_X_HI], Y < -30 (latch end only).
-        is_catch = (
-            bb.ymax < -30.0
-            and min(abs(bb.xmin), abs(bb.xmax)) >= PoweredUpHubHousing.LATCH_WINDOW_X_LO - 0.01
-        )
-        if not is_catch:
-            non_catch_vol += s.Volume()
-    assert non_catch_vol < 1e-6, (
-        f"Non-catch Housing/Cover interference volume {non_catch_vol:.4f} mm^3 -- expected 0"
+    vol = sum(s.Volume() for s in inter.solids().vals())
+    assert vol < 1e-6, (
+        f"Housing/Cover seated interference {vol:.4f} mm^3 -- expected 0"
     )
 
 
@@ -179,37 +171,138 @@ def test_finger_windows_expose_thumb_pads():
             ), f"unexpected material inside a finger window: {bb}"
 
 
-def test_undercut_wall_thickness_floor_holds():
-    """Post-fix hardening (TL round Q2): the undercut-depth-sets-a-floor
-    assertion inside _build_latch_catch must not be silently satisfied by
-    accident -- verify the margin is comfortably positive for the active
-    profile, matching the class's own assertion."""
-    from vibe_cading.lego_adapters.poweredup_hub.latch_geometry import get_latch_geometry
+def test_side_window_is_the_handle_outline_across_the_whole_round_over():
+    """The side window must be the cover's tab outline, offset by the
+    clearance -- checked at every Z through the round-over.
 
-    prof = get_profile()
-    lg = get_latch_geometry(prof)
-    clearance = prof.free.radial
-    y_slot_outer = PoweredUpHubCover.HOOK_FACE_Y1 - clearance - lg.undercut_depth
-    local_wall = y_slot_outer - PoweredUpHubHousing.LATCH_Y
-    assert local_wall >= PoweredUpHubHousing._MIN_MATERIAL_BEHIND_UNDERCUT
+    Round 41. The window used to be three straight chords sampled off the
+    reference's arc, and a chord lies inside the arc it subtends, so it was
+    narrower than the tab at every INTERMEDIATE Z while matching it exactly
+    at the sampled ones. The cover paid for that by shrinking its whole tab
+    0.320 mm. Probing only the shoulder and the top would still report a
+    clean fit -- which is why this sweeps and ranks on the worst station
+    instead of picking one.
+
+    Falsifier: restore the chord window and the worst gap goes to -0.452 mm
+    against a nominal tab.
+    """
+    h = PoweredUpHubHousing()
+    c = PoweredUpHubCover()
+    clearance = h._profile.free.radial
+    handle = c._build_side_handle(+1)
+    window = h._build_side_window(+1)
+
+    worst = None
+    for i in range(41):
+        z = PoweredUpHubCover.HANDLE_ROUND_CZ + i * (
+            PoweredUpHubCover.HANDLE_PAD_Z_HI + 0.2 - PoweredUpHubCover.HANDLE_ROUND_CZ) / 40.0
+        sl = cq.Workplane("XY").box(4.0, 40.0, 0.04).translate((27.6, 0.0, z))
+        w, t = window.intersect(sl), handle.intersect(sl)
+        if not w.solids().vals() or not t.solids().vals():
+            continue
+        gap = w.val().BoundingBox().ymax - t.val().BoundingBox().ymax
+        if worst is None or gap < worst[1]:
+            worst = (z, gap)
+
+    assert worst is not None, "positive control failed: tab and window never overlap in Z"
+    z, gap = worst
+    assert gap >= clearance - 1e-6, (
+        f"side window is {gap:.3f} mm clear of the tab at z = {z:.3f}, "
+        f"expected at least the running clearance {clearance:.3f} mm"
+    )
 
 
-def test_barb_crest_matches_ldraw_reference():
-    """Post-fix hardening (TL phase-4 review, finding M2): LatchGeometry
-    exists precisely to prevent PoweredUpHubCover.HOOK_FACE_Y1 and
-    LatchGeometry.barb_protrusion silently drifting apart. Neither number
-    alone is checked anywhere else -- this pins their sum to the LDraw-
-    measured barb crest (Y = -31.200, see
-    docs/design_plans/2026-08-19-poweredup-hub-battery-box_ldraw-parts-geometry.md
-    SS1.4 and latch_geometry.py's own derivation comment). A regression
-    here means someone edited one of HOOK_FACE_Y1 / barb_protrusion
-    without re-deriving the other, and the crest has moved off the real
-    part without any other gate in this repo catching it."""
-    from vibe_cading.lego_adapters.poweredup_hub.latch_geometry import get_latch_geometry
+def test_side_handle_is_built_at_reference_size():
+    """The tab carries no clearance of its own -- it lives on the window.
 
-    lg = get_latch_geometry()
-    crest_y = PoweredUpHubCover.HOOK_FACE_Y1 + lg.barb_protrusion
-    assert abs(crest_y - (-31.200)) < 1e-9
+    Round 41 moved it there (hole, not shaft) and this pins the tab to the
+    reference's measured figures, so a future clearance change cannot quietly
+    start shrinking the part again.
+    """
+    bb = PoweredUpHubCover()._build_side_handle(+1).val().BoundingBox()
+    assert abs(bb.ymax - PoweredUpHubCover.HANDLE_PAD_Y_HALF) < 1e-6
+    assert abs(bb.ymin + PoweredUpHubCover.HANDLE_PAD_Y_HALF) < 1e-6
+    assert abs(bb.zmax - PoweredUpHubCover.HANDLE_PAD_Z_HI) < 1e-6
+
+
+def test_thumb_pad_has_running_clearance_in_its_window():
+    """The pad must be able to enter, and then move in, its window.
+
+    Round 40. Before the fix this gap was 0.000 mm on BOTH X edges -- a
+    13.600 mm pad cut into a 13.600 mm slot -- because the window was cut to
+    the LATCH_WINDOW_X_LO/HI literals rather than to the hook footprint plus
+    a running clearance.
+
+    Falsifier, stated up front: shrink the window by any amount and the
+    measured gap goes negative; remove the clearance term and it goes to
+    exactly zero. The seated-interference test cannot stand in for this one
+    -- at zero clearance the two faces are tangent, enclose no volume, and
+    that test scores them 0.000 mm^3 and passes.
+    """
+    h = PoweredUpHubHousing()
+    c = PoweredUpHubCover()
+    clearance = h._profile.free.radial
+
+    pad = c._build_thumb_pad(+1).union(c._build_pad_end_walls(+1))
+    pb = pad.val().BoundingBox()
+    win = h._build_finger_windows().intersect(
+        cq.Workplane("XY").box(60.0, 40.0, 40.0).translate((30.0, -33.0, 5.0))
+    )
+    wb = win.val().BoundingBox()
+
+    for name, gap in (("-X", pb.xmin - wb.xmin), ("+X", wb.xmax - pb.xmax)):
+        assert gap >= clearance - 1e-9, (
+            f"thumb pad {name} edge has {gap:.3f} mm of window clearance, "
+            f"expected at least the running clearance {clearance:.3f} mm"
+        )
+
+
+def test_latch_u_crown_has_headroom_under_the_wall():
+    """The spring's crown must not be butted against the wall above it.
+
+    Round 40. _build_latch_clearance cut its channel to engagement_band_hi,
+    which for this latch geometry is the same number as hook_depth, so the
+    wall resumed at exactly the crown's top face. Measured headroom at the
+    apex was 0.024 mm (the arc falls away either side, which is the only
+    reason it was not exactly zero) against a 0.150 mm running clearance
+    everywhere else on this interface. A crown held against the ceiling
+    preloads the spring and holds the lid off its seat.
+
+    Falsifier: restore the old `height=lg.engagement_band_hi` and the
+    measured headroom drops below the running clearance.
+    """
+    h = PoweredUpHubHousing()
+    c = PoweredUpHubCover()
+    clearance = h._profile.free.radial
+    lg = c._latch
+
+    u_top = c._build_latch_u(+1).val().BoundingBox().zmax
+    x_center = lg.hook_pitch / 2.0 + lg.hook_width / 2.0
+    solid = h.solid
+
+    # Only material ABOVE the crown can be the ceiling. Without this bound
+    # the column also catches the retention land (z 3.700..4.500), which
+    # sits below the crown and reports a spurious -9.300 mm "headroom".
+    above = cq.Workplane("XY").box(0.10, 0.10, 40.0).translate(
+        (x_center, 0.0, u_top + 20.0))
+
+    worst = None
+    for i in range(21):  # sweep the crown in Y; do not hand-pick a station
+        y = -34.0 + i * (34.0 - 30.6) / 20.0
+        col = above.translate((0.0, y, 0.0))
+        hit = solid.intersect(col)
+        if not hit.solids().vals():
+            continue
+        head = hit.val().BoundingBox().zmin - u_top
+        if worst is None or head < worst[1]:
+            worst = (y, head)
+
+    assert worst is not None, "positive control failed: no housing material above the crown"
+    y, head = worst
+    assert head >= clearance - 1e-9, (
+        f"latch U crown has {head:.3f} mm of headroom at y = {y:.3f}, "
+        f"expected at least the running clearance {clearance:.3f} mm"
+    )
 
 
 def test_envelope_is_exactly_72mm_in_x():

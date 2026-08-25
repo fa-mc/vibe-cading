@@ -1370,3 +1370,102 @@ of the segmentation, not ribs added to a solid blade.
 **Not implemented** -- segmenting the tongue cuts into the retention blade
 (`TONGUE_X_HALF` = 15.600 is retention-critical), so it needs a decision
 before geometry changes.
+
+### R40 — The housing still encoded the old barb; and two clearances were zero
+
+Round 38 rebuilt the cover's latch as a hairpin spring. The housing was never
+brought along: it still carried the mating half of a barb-on-the-finger that
+no longer exists, and two of its clearances against the new geometry had
+silently gone to zero.
+
+**Finding 1 — `_build_latch_catch` was dead, and had been for two rounds.**
+Measured, not inferred (`tmp/catch_contribution_probe.py`), with the retention
+land removed as the positive control:
+
+| piece | contribution |
+|---|---|
+| slot cutter | overlaps **0.0000 mm³** of the built wall — cuts nothing |
+| keeper nub | not unioned since round 27 |
+| boss | 5.814 mm³/side, entirely a 0.150 mm overhang above the crown |
+| control: drop the land | −8.704 mm³ (so the method does detect real loss) |
+
+The boss's overhang duplicates what the wall itself already provides above
+`hook_depth`. The whole method is removed, and with it `_LATCH_CATCH_Z_MARGIN`,
+`_LATCH_CATCH_RETREAT_Y`, `_MIN_MATERIAL_BEHIND_UNDERCUT`, and the cover's
+`HOOK_FACE_Y0/Y1/Z1`, `BARB_AXIS_Y`, `_BARB_ARC_SEGMENTS`, `barb_arc_points()`
+and `barb_outboard_y()` — the last four were public API describing a feature
+the part does not have.
+
+**Finding 2 — the crown was butted against the wall.** `_build_latch_clearance`
+cut its channel to `engagement_band_hi`, which for this geometry is the same
+number as `hook_depth`, so the wall resumed at exactly the crown's top face.
+Measured headroom **0.024 mm** at the apex — nonzero only because the arc falls
+away either side — against 0.150 mm everywhere else on the interface. A crown
+held against the ceiling preloads the spring and holds the lid off its seat.
+Now `hook_depth + clearance`.
+
+**Finding 3 — the thumb pad had no room in its window.** `_build_finger_windows`
+cut to the `LATCH_WINDOW_X_LO/HI` literals, which happen to equal the hook
+footprint exactly: a 13.600 mm pad into a 13.600 mm slot, **0.000 mm on both X
+edges**, while the U leg's own channel next door carried 0.150 mm per side. Now
+`hook_width + 2 × clearance`, with an assert tying the literals to the hook
+footprint so they cannot drift apart.
+
+**Why nothing caught findings 2 and 3.** A gap of exactly zero encloses no
+volume. `test_general_body_seated_interference_is_zero` scored both at
+0.000 mm³ and passed — the same unfalsifiable-check pattern as R30's
+`assert seated_interference > 0.0`, in a new disguise. Two tests now pin the
+gaps directly, and both were confirmed to fail on the restored old geometry
+(`tmp/verify_round40.py`: 0.000 mm measured either way against a 0.150 mm
+requirement) before being accepted.
+
+That test also loses its carve-out. It had excluded the catch's footprint since
+round 18 on the grounds that the catch made "a geometrically UNAVOIDABLE seated
+engagement" — which was never true of a working mechanism between two rigid
+printed parts. Seated interference is now asserted zero everywhere.
+
+**Still open.** `LatchGeometry.barb_protrusion`, `undercut_depth`, `catch_width`
+and `ramp_angle_deg` now have no consumer — they describe the retired barb.
+Left in place so this round stays reviewable; they should go in a follow-up.
+
+### R41 — The side window is now the tab's own outline
+
+The housing's side window and the cover's side tab are one feature in the
+reference (both measure ±12.000 half-width, shoulder at 4.800, flat top
+±8.400 at 8.400), but they were modelled as two:
+
+* the **tab** as a true `R3.600` corner round-over;
+* the **window** as `WINDOW_TAPER_PROFILE = ((6.000, 11.761), (8.000, 9.966),
+  (8.400, 8.400))` — three points sampled off the reference's own faceted arc
+  and joined by straight lines.
+
+A chord lies inside the arc it subtends, so the window was narrower than the
+tab at every *intermediate* Z while matching it exactly at the three sampled
+ones. The previous round's response was to shrink the whole tab by
+`_HANDLE_CHORD_ALLOWANCE = 0.320` on top of the running clearance — deleting
+0.320 mm of material the reference has, from the part, to fit a hole that was
+the thing modelled wrong. The constant's own comment named the mechanism
+("a chord always lies inside the arc it subtends") and sized the allowance from
+the measured penetration, so the diagnosis was right and only the direction of
+the fix was wrong.
+
+**Now:** the window is the tab's outline offset outward by the running
+clearance. The offset is exact rather than re-derived, because the round-over's
+centre is at `(HANDLE_ROUND_CZ, HANDLE_LEDGE_Y_HALF)` and its tangent points are
+the side face and the top face — so offsetting by `c` moves the sides to
+`PAD_Y_HALF + c`, the top to `PAD_Z_HI + c`, and keeps the arc centre with
+radius `ROUND_R + c`.
+
+The clearance moves to the window, which is the hole rather than the shaft and
+the right side of the pair for it. The tab goes back to nominal: measured bbox
+now `Y ±12.000, Z 0..8.400`, i.e. the reference's own figures.
+
+| window | worst gap over the round-over |
+|---|---|
+| round-41 arc | **+0.150 mm** (uniform — it is a true offset) |
+| control: retired chord window, nominal tab | **−0.452 mm** at z = 8.315 |
+
+The sweep matters here: probing only the shoulder and the top reports a clean
+fit for *both* windows, because those are the stations the chords were sampled
+at. `test_side_window_is_the_handle_outline_across_the_whole_round_over` sweeps
+41 stations and ranks on the worst.

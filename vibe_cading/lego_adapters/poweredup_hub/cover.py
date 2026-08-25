@@ -34,8 +34,6 @@ modelled), per the design's round-13 user decision.
 
 from __future__ import annotations
 
-import math
-
 import cadquery as cq
 
 from vibe_cading.cq_utils import rounded_box
@@ -199,14 +197,6 @@ class PoweredUpHubCover:
     LATCH_BAND_Y_HI = -30.000
     LATCH_BAND_THICKNESS = 2.000
 
-    # --- Latch finger geometry (SS1.4) -- Y positions of the hook's own
-    # drafted inboard face; barb dimensions come from the shared
-    # LatchGeometry parameter object (single source of truth with the
-    # future HousingBox catch).
-    HOOK_FACE_Y0 = -31.840          # drafted face, Z = 0
-    HOOK_FACE_Y1 = -32.240          # drafted face, Z = HOOK_FACE_Z1
-    HOOK_FACE_Z1 = 11.200
-
     # --- Tongue / ledge (SS1.5, simplified -- see class docstring) ---
     # The riser fills the full plate thickness up to the ledge height over
     # [PLATE_Y_HI, TONGUE_STEP_Y] -- this is what fuses to the plate with a
@@ -323,12 +313,6 @@ class PoweredUpHubCover:
     U_BEND_WALL = 1.050
     U_FLARE_Z = 8.000
 
-    # Bead-arc sampling, retained because
-    # PoweredUpHubHousing._build_latch_catch still derives its slot from
-    # barb_outboard_y(). Not used by the U ribbon itself.
-    BARB_AXIS_Y = -32.200
-    _BARB_ARC_SEGMENTS = 24
-
     BEAD_Z_LO = 4.750
     BEAD_Z_HI = 5.750
     BEAD_PEAK_Y = -34.220
@@ -397,10 +381,6 @@ class PoweredUpHubCover:
     # Y = +-HANDLE_PAD_Y_HALF at that Z up to Z = HANDLE_PAD_Z_HI.
     HANDLE_ROUND_R = 3.600
     HANDLE_ROUND_CZ = 4.800
-    # Sized empirically against the built window, not guessed: 0.250 left a
-    # 0.034 mm^3 residual that test_general_body_seated_interference_is_zero
-    # correctly caught; 0.320 is the first value that clears it exactly.
-    _HANDLE_CHORD_ALLOWANCE = 0.320
 
     def __init__(self, profile: ToleranceProfile | str | None = None) -> None:
         if profile is None or isinstance(profile, str):
@@ -409,22 +389,6 @@ class PoweredUpHubCover:
             prof = profile
         self._profile = prof
         self._latch = get_latch_geometry(prof)
-        # Round 22: the reference tab and the reference window are exactly
-        # coincident -- tab +-12.000 into a 12.000 half-width window, ledge
-        # +-8.400 into an 8.400 taper. That is normal for injection moulding
-        # and unbuildable on FDM, so the handle (the part that must PASS
-        # through) carries the running clearance, per this project's
-        # tolerance-profile convention. The window keeps its reference size.
-        # ...plus a chord allowance. PoweredUpHubHousing's side window
-        # approximates the reference's ramped profile with a PIECEWISE-LINEAR
-        # taper, and a chord always lies inside the arc it subtends -- so the
-        # tab's true R3.600 corner round fouls the window by ~0.2 mm over
-        # Z 6.2..7.9 even at nominal size. This is this project's own
-        # chord-vs-arc pitfall, and the allowance is sized from the measured
-        # penetration rather than guessed. Taken on the tab (the part that
-        # passes through) so the window keeps its reference-derived profile.
-        self._handle_clear = prof.free.radial + self._HANDLE_CHORD_ALLOWANCE
-
         self._solid = self._build()
 
     def _build(self) -> cq.Workplane:
@@ -468,53 +432,6 @@ class PoweredUpHubCover:
             ),
         )
         return plate.union(band)
-
-    @classmethod
-    def barb_arc_points(cls, lg: LatchGeometry) -> list[tuple[float, float]]:
-        """The bead's ``(Y, Z)`` silhouette, ``phi = 0 -> lg.barb_arc_deg``.
-
-        A true R = ``barb_diameter``/2 cylindrical bead about
-        ``(BARB_AXIS_Y, lg.barb_axis_z)``, axis parallel to X, swept through
-        the reference's 157.5 deg (LDraw ``7-16cylo``) -- replacing the
-        rounds-18..21 three-point facet.
-
-        ``phi`` follows the reference's own convention: 0 at the +Y
-        (inboard) extreme, increasing toward +z, so
-        ``phi = 90`` lands exactly on ``lg.hook_depth`` (the tip) and
-        ``phi = barb_arc_deg`` on the OUTBOARD extreme -- the working
-        retention face. Verified against the part: a section at z = 12.2
-        gives -33.124 here and -33.18 on the true circle.
-
-        Shared with
-        :class:`~vibe_cading.lego_adapters.poweredup_hub.housing.PoweredUpHubHousing`,
-        which derives its catch slot from :meth:`barb_outboard_y` rather
-        than re-typing a literal.
-        """
-        r = lg.barb_diameter / 2.0
-        n = cls._BARB_ARC_SEGMENTS
-        phis = [lg.barb_arc_deg * i / n for i in range(n + 1)]
-        # The tip (phi = 90) is NOT a multiple of barb_arc_deg / n, so the
-        # uniform sampling above steps straight over it and the faceted
-        # bead's apex lands one chord sagitta (~0.0005 mm) BELOW
-        # lg.hook_depth. That height is functional -- it is the crown's own
-        # top, i.e. what seats against the housing -- and the docstring
-        # above promises phi = 90 is on the curve, so sample it explicitly.
-        if 0.0 < 90.0 < lg.barb_arc_deg:
-            phis = sorted(set(phis) | {90.0})
-        return [
-            (
-                cls.BARB_AXIS_Y + r * math.cos(math.radians(phi)),
-                lg.barb_axis_z + r * math.sin(math.radians(phi)),
-            )
-            for phi in phis
-        ]
-
-    @classmethod
-    def barb_outboard_y(cls, lg: LatchGeometry) -> float:
-        """Y of the bead's outboard (most ``-Y``) extreme -- the face the
-        housing's catch slot must clear and its keeper nub retains against.
-        """
-        return min(y for y, _z in cls.barb_arc_points(lg))
 
     @staticmethod
     def _interp(profile: tuple[tuple[float, float], ...], z: float) -> float:
@@ -787,10 +704,19 @@ class PoweredUpHubCover:
         reference's ``HANDLE_ROUND_R`` round-over, which is large relative
         to the tab and is what gives the real tab its shape. The ledge and
         the two grip ribs are plain bands stacked outboard of it.
+
+        Round 41 -- **built at nominal reference size.** Rounds 22-40 shrank
+        the whole tab by the running clearance plus a 0.320 mm chord
+        allowance, because
+        :meth:`~vibe_cading.lego_adapters.poweredup_hub.housing.PoweredUpHubHousing._build_side_window`
+        approximated its arc with straight chords and so cut a hole narrower
+        than this tab at every intermediate Z. That window now cuts the same
+        arc, offset outward by the clearance, so the clearance lives on the
+        hole rather than the shaft and this part keeps the reference's own
+        dimensions.
         """
-        cl = self._handle_clear
-        yh, r, cz = self.HANDLE_PAD_Y_HALF - cl, self.HANDLE_ROUND_R, self.HANDLE_ROUND_CZ
-        ly, zhi = self.HANDLE_LEDGE_Y_HALF - cl, self.HANDLE_PAD_Z_HI - cl
+        yh, r, cz = self.HANDLE_PAD_Y_HALF, self.HANDLE_ROUND_R, self.HANDLE_ROUND_CZ
+        ly, zhi = self.HANDLE_LEDGE_Y_HALF, self.HANDLE_PAD_Z_HI
 
         # YZ outline: up one side, round over, across the top, round back down.
         wp = (
@@ -825,12 +751,12 @@ class PoweredUpHubCover:
             )
 
         handle = pad.union(
-            _band(self.HANDLE_LEDGE_X, self.HANDLE_LEDGE_Y_HALF - cl,
-                  self.HANDLE_LEDGE_Z_LO, self.HANDLE_LEDGE_Z_HI - cl)
+            _band(self.HANDLE_LEDGE_X, self.HANDLE_LEDGE_Y_HALF,
+                  self.HANDLE_LEDGE_Z_LO, self.HANDLE_LEDGE_Z_HI)
         )
         for z_lo, z_hi in (self.HANDLE_RIB_1_Z, self.HANDLE_RIB_2_Z):
             handle = handle.union(
-                _band(self.HANDLE_RIB_X, self.HANDLE_RIB_Y_HALF - cl, z_lo, z_hi)
+                _band(self.HANDLE_RIB_X, self.HANDLE_RIB_Y_HALF, z_lo, z_hi)
             )
         return handle
 

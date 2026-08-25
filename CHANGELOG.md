@@ -16,6 +16,18 @@ section to the new version and date.
 ## [Unreleased]
 
 ### Removed
+- **`PoweredUpHubHousing`'s latch catch is deleted** — the catch boss, its
+  undercut slot and the keeper nub were the mating half of a barb-on-the-finger
+  `PoweredUpHubCover` has not had since the latch became a hairpin spring, and
+  they were measured dead before removal: the slot cutter overlapped
+  `0.0000 mm³` of the built wall, the nub had not been unioned since round 27,
+  and the boss's only remaining effect was a `0.150 mm` overhang the wall
+  already provides. With it go `_LATCH_CATCH_Z_MARGIN`,
+  `_LATCH_CATCH_RETREAT_Y` and `_MIN_MATERIAL_BEHIND_UNDERCUT`.
+- **Breaking** — `PoweredUpHubCover` drops the public barb API that only the
+  deleted catch consumed: the `HOOK_FACE_Y0` / `HOOK_FACE_Y1` / `HOOK_FACE_Z1`
+  constants and the `barb_arc_points()` / `barb_outboard_y()` classmethods.
+  They described a drafted hook face and bead arc the part no longer has.
 - **`PoweredUpHubBatteryTray` is deleted** (user direction, 2026-08-20). The
   housing is now capped at a 3-stud (`24.000 mm`) bottom layer, and a separate
   tray no longer fits underneath: cover plate `1.2` + tray floor `1.5` + the
@@ -53,6 +65,33 @@ section to the new version and date.
   `Housing ∩ Cover` is byte-identical to the pre-change value.
 
 ### Fixed
+- **`PoweredUpHubHousing`'s side window is now the cover tab's own outline**,
+  offset outward by the running clearance, instead of a three-point
+  piecewise-linear taper sampled off the reference's faceted arc. A chord lies
+  inside the arc it subtends, so the old cut was narrower than the tab at every
+  *intermediate* Z (worst `-0.452 mm` at `z = 8.315`) while matching it at the
+  three sampled stations — and `PoweredUpHubCover` compensated by shrinking its
+  whole tab `0.320 mm`, deleting reference material from the part to fit a
+  mis-modelled hole. The window now carries the clearance (hole, not shaft) and
+  the tab is built at reference size: bbox `Y ±12.000, Z 0..8.400`. Gap over the
+  round-over is a uniform `+0.150 mm`. **Breaking**: `WINDOW_TAPER_PROFILE` is
+  removed from `PoweredUpHubHousing`.
+- **`PoweredUpHubHousing` had two zero clearances against the cover's latch,
+  and no test could see either.** The clearance channel stopped at
+  `engagement_band_hi`, which equals `hook_depth`, so the wall resumed at
+  exactly the spring crown's top face — measured headroom `0.024 mm` at the
+  apex (nonzero only because the arc falls away either side) against `0.150 mm`
+  everywhere else; a crown held against the ceiling preloads the spring and
+  holds the lid off its seat. The finger windows were cut to the
+  `LATCH_WINDOW_X_LO/HI` literals, which equal the hook footprint exactly, so
+  the thumb pad had `0.000 mm` on both X edges — a `13.600 mm` pad in a
+  `13.600 mm` slot. Both are now `+ profile.free.radial`, and the window
+  asserts its literals still match the hook footprint. Neither was visible to
+  `test_general_body_seated_interference_is_zero`: a gap of exactly zero
+  encloses no volume, so it scored both `0.000 mm³` and passed. Two tests now
+  pin the gaps directly, each confirmed to fail on the restored old geometry.
+  That test also loses its round-18 catch carve-out — seated interference is
+  asserted zero everywhere now.
 - **`PoweredUpHubCover`'s latch crown buried the barb, so nothing gripped.**
   Rounds 18–22 joined the two legs of the cantilever U with a box spanning
   leg-to-plate across the top. That box swallowed the barb bead whole — a

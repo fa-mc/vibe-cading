@@ -53,6 +53,8 @@ figures, to ``DECK_Z = 24.0 mm``, for the design reason above.)
 
 from __future__ import annotations
 
+import math
+
 import cadquery as cq
 
 from vibe_cading.cq_utils import cylinder, rounded_box
@@ -226,33 +228,29 @@ class PoweredUpHubHousing:
           are not independent numbers -- they are self-consistent, per
           that method's docstring).
 
-    Latch catch derivation
-    -----------------------
-    The catch's Y-depth placement is **derived from
-    :class:`PoweredUpHubCover`'s own built geometry** (its
-    ``HOOK_FACE_Y1`` constant plus the shared
-    :class:`~vibe_cading.lego_adapters.poweredup_hub.latch_geometry.LatchGeometry`'s
-    ``barb_protrusion``), not re-typed as a literal -- this keeps the two
-    parts' mating geometry synchronised at the source, per the design
-    brief's *Latch catch -- derived design* section and the TL round's Q2
-    ruling (single shared parameter object, not shared geometry). The
-    design's own illustrative "~2.6 mm local wall" figure is a *stated
-    minimum*, not the literal placement -- reaching the barb's own
-    computed crest position requires more local material than that
-    (documented at the constant below); the code asserts the minimum
-    floor is met, not the illustrative figure exactly.
+    Latch interface (round 40)
+    --------------------------
+    This class mates the cover's **hairpin-spring** latch, and carries no
+    catch boss, undercut slot, or keeper nub -- those belonged to a
+    barb-on-the-finger the cover has not had since round 38, and they were
+    measured dead before removal (the slot cutter overlapped 0.0000 mm^3 of
+    the built wall; the nub was already not unioned; the boss's only
+    remaining effect was a 0.150 mm overhang the wall itself provides). The
+    interface is now three surfaces, each derived from the cover rather than
+    re-typed:
 
-    The catch is modelled as a **slot**, not a pocket cut into an
-    otherwise-solid boss -- an earlier iteration used the latter and
-    failed the cross-part verification (the finger's *drafted face*,
-    not just its barb crest, occupies the engagement-band height; see
-    :meth:`_build_latch_catch`'s own docstring for the full derivation).
-    The retention ledge falls out of this slot's own bounds rather than
-    from a separately-modelled sloped ramp -- :attr:`LatchGeometry.ramp_angle_deg`
-    is therefore **not** geometrically realised as a distinct surface in
-    this class (the slot's own generous, constant-cross-section mouth
-    makes a separate lead-in unnecessary for interference-free assembly);
-    this is flagged honestly rather than silently ignoring the field.
+    * :meth:`_build_latch_clearance` -- the channel the U ribbon lives in,
+      ``hook_width`` wide and reaching ``hook_depth`` **plus a running
+      clearance**, so the crown is not butted against the wall above it;
+    * :meth:`_build_finger_windows` -- the through-slot the thumb pad
+      passes into, likewise clearance-widened against the pad's own span;
+    * :meth:`_build_latch_land` -- the rail the release-leg bead snaps
+      over, which is where retention actually comes from.
+
+    Because clearances that go to exactly zero enclose no volume, a boolean
+    intersection reports 0.000 mm^3 for them and reads as a *pass*. Both
+    clearance-bearing surfaces above are therefore pinned by explicit
+    minimum-gap tests, not by the seated-interference test alone.
 
     Parameters
     ----------
@@ -323,22 +321,25 @@ class PoweredUpHubHousing:
     # two cannot drift apart.
     END_WALL_Z_HI = DECK_Z
 
-    # --- Side windows, tapered (SS7.2, round 20 H3, round 21 RH3) ---
+    # --- Side windows (SS7.2, round 20 H3, round 21 RH3, round 41) ---
+    # The window is the SAME OUTLINE as the cover's side handle, offset
+    # outward by the running clearance -- see _build_side_window. These two
+    # constants are the reference's own measurements of it, kept as the
+    # cross-check that this class and the cover still describe one feature
+    # (asserted in _build_side_window, not merely documented here).
     WINDOW_Y_HALF = 12.000        # flat half-width, Z <= WINDOW_SHOULDER_Z
-    WINDOW_SHOULDER_Z = 4.800     # where the ramped taper begins
-    # Piecewise-linear taper, (z, half_width) pairs read directly off the
-    # reference between WINDOW_SHOULDER_Z and the flat top (the last
-    # entry). The real part's ramped-end trapezoid profile, corrected from
-    # an earlier flat 16.0 mm rectangle (round 20), then re-corrected
-    # round 21 (finding H3/RH3): `24851.dat` carries a genuine PLANAR face
-    # at Z = 8.400 (26.9 mm^2, y +-8.400) -- not a point apex (round 20's
-    # 8.500 mm figure replaced the reference's own flat top with one) --
-    # and the taper at Z = 8.0 is 0.690 mm wider than round 20 built
-    # (9.966 mm half-width, not 9.276). The last profile entry IS the flat
-    # top's own edge (half-width 8.400 at Z = 8.400): the sweep below
-    # connects it straight across to its own mirror instead of converging
-    # to a point, reproducing the reference's flat 16.8 mm-wide top face.
-    WINDOW_TAPER_PROFILE = ((6.000, 11.761), (8.000, 9.966), (8.400, 8.400))
+    WINDOW_SHOULDER_Z = 4.800     # where the corner round-over begins
+    #
+    # Round 41 retires WINDOW_TAPER_PROFILE = ((6.000, 11.761),
+    # (8.000, 9.966), (8.400, 8.400)) -- three points sampled off the
+    # reference's own faceted arc and joined by straight lines. A chord
+    # always lies INSIDE the arc it subtends, so that outline was narrower
+    # than the tab passing through it at every intermediate Z, and the cover
+    # compensated by shrinking the whole tab 0.320 mm (its retired
+    # _HANDLE_CHORD_ALLOWANCE) -- removing material the reference has, from
+    # the part, to fit a cut that was the thing modelled wrong. This is
+    # exactly the chord-vs-arc pitfall in vibe/INSTRUCTIONS.md, and the fix
+    # the pitfall prescribes is to cut the true arc, not to trim the part.
 
     # --- Pin-hole / arm map (SS1, SS2) ---
     HOLE_X = 32.000
@@ -434,11 +435,6 @@ class PoweredUpHubHousing:
     LATCH_LAND_Y = -34.000
     LATCH_LAND_Z_LO = 3.700
     LATCH_LAND_Z_HI = 4.500
-    _LATCH_CATCH_Z_MARGIN = 3.0   # boss Z-band margin around the engagement band
-    # Round 21 (finding E11-c (1)) -- the real part's own inner-skin depth
-    # at the latch end; the catch boss retreats to this Y outside the barb
-    # window (see _build_latch_catch), leaving y in [-34.4, leg] clear.
-    _LATCH_CATCH_RETREAT_Y = -34.400
 
     # --- Tongue end (+Y), SS12 ---
     TONGUE_Y = HALF_Y
@@ -453,9 +449,6 @@ class PoweredUpHubHousing:
     # value actually used by _build_tongue_wall -- this class constant is
     # kept for its docstring/reference value only.
     TONGUE_INNER_Y_UPPER = 34.400
-
-    # --- Post-fix hardening (TL round Q2's promoted constraint) ---
-    _MIN_MATERIAL_BEHIND_UNDERCUT = 1.8  # mm, round-8 FDM precedent
 
     def __init__(self, profile: ToleranceProfile | str | None = None) -> None:
         if profile is None or isinstance(profile, str):
@@ -556,17 +549,30 @@ class PoweredUpHubHousing:
         )
 
     def _build_side_window(self, x_sign: int) -> cq.Workplane:
-        """Tab-access cutout through one side wall (SS7.2), a piecewise-
-        linear taper matching the reference's ramped-end trapezoid profile
-        (round 20, finding H3 -- corrected from an earlier flat-topped
-        rectangle whose own comment mis-stated the peak height; see class
-        docstring's *Known simplifications*).
+        """Tab-access cutout through one side wall (SS7.2).
 
-        Built the same way :meth:`_build_latch_finger` builds its own
-        swept cross-section: a closed polyline in the YZ plane (this
-        window's Y/Z profile), extruded along X through the wall's full
-        thickness (with a generous overcut so the cut breaks cleanly
-        through both wall faces).
+        Round 41 -- **the window is the cover's own side-handle outline,
+        offset outward by the running clearance.** Same construction as the
+        tab: vertical sides, then the ``HANDLE_ROUND_R`` corner round-over
+        about the same centre, then the flat top. Offsetting that outline
+        uniformly by ``c`` is exact and needs no re-derivation, because the
+        round-over's centre sits at ``(HANDLE_ROUND_CZ, HANDLE_LEDGE_Y_HALF)``
+        and its two tangent points are the side and the top -- so the sides
+        move to ``PAD_Y_HALF + c``, the top to ``PAD_Z_HI + c``, and the arc
+        keeps its centre with radius ``ROUND_R + c``.
+
+        It used to be a three-point piecewise-linear taper sampled off the
+        reference (see :attr:`WINDOW_TAPER_PROFILE`'s retired note). Chords
+        lie inside the arc they subtend, so that cut was narrower than the
+        tab at every intermediate Z, and the cover shrank its whole tab by
+        0.320 mm to get through -- deleting reference material from the part
+        to accommodate a mis-modelled hole. Cutting the true arc is what the
+        chord-vs-arc pitfall in ``vibe/INSTRUCTIONS.md`` prescribes, and it
+        lets the tab go back to nominal.
+
+        The clearance now lives HERE rather than on the tab, which is the
+        right side of a hole/shaft pair for it and restores the cover to its
+        reference dimensions.
         """
         overcut = 1.0  # break cleanly through the wall's X extent
         x_outer = self.WALL_X_OUTER_LOWER + overcut
@@ -575,27 +581,36 @@ class PoweredUpHubHousing:
         x_hi = x_sign * max(x_outer, x_inner)
         width = abs(x_hi - x_lo)
 
-        # The last WINDOW_TAPER_PROFILE entry is the flat top's own edge
-        # (round 21, RH3) -- connecting the forward taper's last point
-        # straight across to the reversed taper's first point (the SAME
-        # entry, mirrored) draws a flat top segment instead of converging
-        # to a point apex, reproducing the reference's genuine planar face.
-        half = self.WINDOW_Y_HALF
-        pts = [(-half, 0.0), (-half, self.WINDOW_SHOULDER_Z)]
-        for z, hw in self.WINDOW_TAPER_PROFILE:
-            pts.append((-hw, z))
-        for z, hw in reversed(self.WINDOW_TAPER_PROFILE):
-            pts.append((hw, z))
-        pts.append((half, self.WINDOW_SHOULDER_Z))
-        pts.append((half, 0.0))
+        c = self._profile.free.radial
+        cz = PoweredUpHubCover.HANDLE_ROUND_CZ          # round-over centre Z
+        ly = PoweredUpHubCover.HANDLE_LEDGE_Y_HALF      # round-over centre |Y|
+        r = PoweredUpHubCover.HANDLE_ROUND_R + c        # offset arc radius
+        half = PoweredUpHubCover.HANDLE_PAD_Y_HALF + c  # side face
+        zhi = PoweredUpHubCover.HANDLE_PAD_Z_HI + c     # flat top
 
+        # The reference measured this window independently of the tab; if
+        # the two ever stop describing one feature, say so here rather than
+        # cutting a hole that silently no longer matches what goes through it.
+        assert (
+            abs(half - c - self.WINDOW_Y_HALF) < 1e-9
+            and abs(cz - self.WINDOW_SHOULDER_Z) < 1e-9
+        ), (
+            "the cover's side handle and this class's own reference-measured "
+            "window figures have drifted apart"
+        )
+
+        # 45-degree point on each round-over, for the three-point arc.
+        d = r * math.sqrt(0.5)
         sketch = (
             cq.Workplane("YZ")
             .transformed(offset=cq.Vector(0.0, 0.0, min(x_lo, x_hi)))
-            .moveTo(*pts[0])
+            .moveTo(-half, 0.0)
+            .lineTo(-half, cz)
+            .threePointArc((-ly - d, cz + d), (-ly, zhi))
+            .lineTo(ly, zhi)
+            .threePointArc((ly + d, cz + d), (half, cz))
+            .lineTo(half, 0.0)
         )
-        for p in pts[1:]:
-            sketch = sketch.lineTo(*p)
         return sketch.close().extrude(width)
 
     # ------------------------------------------------------------------
@@ -1044,21 +1059,17 @@ class PoweredUpHubHousing:
         base = base.cut(self._build_latch_clearance())
         base = base.cut(self._build_finger_windows())
 
-        for side in (+1, -1):
-            boss, pocket, _nub = self._build_latch_catch(side)
-            base = base.union(boss)
-            base = base.cut(pocket)
-            # Round 27: the keeper nub is NO LONGER unioned back in. It was
-            # the old retention feature, reaching behind the barb crest while
-            # the barb was on the finger -- and it sat inside the finger's own
-            # envelope, contributing 6.710 mm^3 of the 7.374 mm^3 seated
-            # Cover/Housing interference (measured: tmp/ldraw/which_feature.py).
-            # Retention now comes from the release-leg bead against
-            # _build_latch_land, which engages with ZERO seated
-            # interference, so the nub buys nothing and costs assembly.
+        # Round 40: the catch boss / undercut slot / keeper nub are GONE.
+        # They were the mating half of a barb-on-the-finger the cover no
+        # longer has (round 38 rebuilt the latch as a hairpin spring whose
+        # retention is the release-leg bead against _build_latch_land), and
+        # they had been dead for two rounds without anyone measuring it:
+        # the slot cutter overlapped 0.0000 mm^3 of the built wall, the nub
+        # was already not unioned, and the boss's entire remaining effect was
+        # a 0.150 mm overhang above the crown that the wall itself already
+        # provides. See R40 in the reference-comparison for the measurements.
 
-        # LAST: the retention land shares the skin band with the catch boss
-        # above, so it is unioned after it rather than being swallowed.
+        # The retention land stands proud of the skin, so it is unioned last.
         base = base.union(self._build_latch_land())
 
         assert len(base.solids().vals()) == 1, "Expected single solid, got multiple pieces"
@@ -1118,13 +1129,22 @@ class PoweredUpHubHousing:
         :attr:`LATCH_SKIN_THICKNESS` skin across the band the cover's latch
         U occupies -- see :attr:`LATCH_WALL_THICKNESS` for why this exists.
 
-        Z extent stops at the latch geometry's own
-        ``engagement_band_hi``: above that the catch's ledge material must
-        stay solid (it is the surface the barb cannot rise past), and
-        :meth:`_build_latch_catch`'s ``boss_window_and_ledge`` re-adds the
-        band between ``engagement_band_lo`` and ``engagement_band_hi``
-        anyway, so cutting to exactly ``engagement_band_hi`` composes with
-        that boss instead of fighting it.
+        Z extent is the U's own ``hook_depth`` **plus a running clearance**.
+
+        Round 40 -- it used to be ``engagement_band_hi``, which for the
+        current latch geometry is the same number as ``hook_depth``, so the
+        wall resumed at exactly the crown's top face: a zero-clearance butt
+        against the ceiling that would preload the spring and hold the lid
+        off its seat. It survived because it is *invisible to a boolean
+        intersection* -- tangent faces enclose no volume, so the seated
+        interference test scored it 0.000 mm^3 and passed. Measured
+        headroom before the fix was 0.024 mm at the crown apex (the arc
+        falls away either side of it), against a 0.150 mm running clearance
+        everywhere else on this interface.
+
+        The old wording justified stopping here by ``_build_latch_catch``'s
+        ledge re-adding the band above; that method is gone (see the class
+        docstring's *Latch interface*), so the constraint is gone with it.
 
         X extent is the cover's own ``hook_width`` plus a running clearance
         each side -- the hook legs and the release legs share one footprint
@@ -1142,7 +1162,7 @@ class PoweredUpHubHousing:
             channel = rounded_box(
                 width=lg.hook_width + 2 * clearance,
                 depth=(y_inner + overcut) - y_outer,
-                height=lg.engagement_band_hi,
+                height=lg.hook_depth + clearance,
                 corner_r=0.0,
                 center=(x_center, (y_outer + y_inner + overcut) / 2.0, 0.0),
             )
@@ -1150,212 +1170,49 @@ class PoweredUpHubHousing:
         return channels
 
     def _build_finger_windows(self) -> cq.Workplane:
+        """The through-slot the cover's thumb pad passes into.
+
+        Round 40 -- the cut is now ``hook_width`` plus a running clearance
+        each side, centred on the hook's own ``x_center``, instead of the
+        bare :attr:`LATCH_WINDOW_X_LO` / :attr:`LATCH_WINDOW_X_HI` literals.
+        Those literals are the *nominal* footprint (they equal the hook
+        footprint exactly, which is asserted below so the two cannot drift),
+        and cutting to them gave the pad **0.000 mm of clearance on both X
+        edges** -- a 13.600 mm pad into a 13.600 mm slot -- while the U leg's
+        own channel next door carried the standard 0.150 mm per side. The
+        pad could not enter the window, let alone slide in it once pressed.
+
+        As with the crown headroom (see :meth:`_build_latch_clearance`), a
+        zero clearance is invisible to a boolean intersection, so no seated
+        test caught it; :func:`test_thumb_pad_has_running_clearance_in_its_window`
+        pins the gap directly.
+        """
+        lg: LatchGeometry = self._latch
+        clearance = self._profile.free.radial
         overcut = 1.0
         y_lo = self.LATCH_Y - overcut
         y_hi = self.LATCH_Y + self.LATCH_WALL_THICKNESS + overcut
+        half_w = lg.hook_width / 2.0
+        nominal = lg.hook_pitch / 2.0 + half_w
+        assert (
+            abs((nominal - half_w) - self.LATCH_WINDOW_X_LO) < 1e-9
+            and abs((nominal + half_w) - self.LATCH_WINDOW_X_HI) < 1e-9
+        ), (
+            "LATCH_WINDOW_X_LO/HI must stay equal to the cover's own hook "
+            "footprint -- they are the nominal span the clearance is added to"
+        )
         windows = None
         for side in (+1, -1):
-            x_lo = side * self.LATCH_WINDOW_X_LO
-            x_hi = side * self.LATCH_WINDOW_X_HI
+            x_center = side * nominal
             win = rounded_box(
-                width=abs(x_hi - x_lo),
+                width=lg.hook_width + 2 * clearance,
                 depth=y_hi - y_lo,
                 height=self.LATCH_WINDOW_Z_HI,
                 corner_r=0.0,
-                center=((x_lo + x_hi) / 2.0, (y_lo + y_hi) / 2.0, 0.0),
+                center=(x_center, (y_lo + y_hi) / 2.0, 0.0),
             )
             windows = win if windows is None else windows.union(win)
         return windows
-
-    def _build_latch_catch(self, side: int) -> tuple[cq.Workplane, cq.Workplane, cq.Workplane]:
-        """One latch-end catch: ``(boss, slot, nub)`` -- the finger-
-        clearance boss, its undercut slot cutter, and the round-18
-        retention keeper nub that re-adds solid material inside the slot's
-        own footprint after the slot cut runs (caller order matters: union
-        boss, cut slot, THEN union nub -- see :meth:`_build_latch_wall`).
-        Derived from :class:`PoweredUpHubCover`'s own barb geometry per the
-        design brief's *Latch catch -- derived design* section and the
-        class docstring's *Latch catch derivation* note.
-
-        Cross-part verification (a static boolean intersection of the
-        built :class:`PoweredUpHubCover` against this class) caught an
-        earlier version of this method: it built a *solid* boss reaching
-        only to the barb's own crest position (``HOOK_FACE_Y1 +
-        barb_protrusion``), which collides with the finger's own **drafted
-        face** -- the finger's rigid body is *not* a thin wire at the
-        crest, it is a wedge whose drafted face reaches ``HOOK_FACE_Y1``
-        (deeper / more outboard than the crest) across the whole
-        engagement-band height.  The fix models the catch as a genuine
-        **slot**, not a pocket cut into an otherwise-solid boss:
-        finger-clearance is a rectangular cut sized to the finger's own
-        worst-case (deepest) reach across the engagement band, with the
-        **undercut** measured from that same worst-case reach (not from
-        the crest) -- so retention depth is real material *behind* the
-        finger's own natural shape, verified interference-free by
-        construction.  The **retention ledge** falls out for free: the
-        boss stays solid for ``Z > engagement_band_hi`` (the finger has no
-        material above its own ``hook_depth`` there), forming a shelf the
-        barb cannot rise past without deflecting.
-        """
-        lg: LatchGeometry = self._latch
-
-        clearance = self._profile.free.radial  # running clearance, not a retention surface
-        y_slot_inner = PoweredUpHubCover.PLATE_Y_LO + clearance
-        # Round 22: derived from the Cover's REAL bead. Rounds 18-21 measured
-        # this off HOOK_FACE_Y1 plus an undercut because the barb was a facet
-        # buried in the crown with no outboard reach of its own to measure.
-        y_slot_outer = PoweredUpHubCover.barb_outboard_y(lg) - clearance
-
-        local_wall = y_slot_outer - self.LATCH_Y  # material behind the pocket's deepest point
-        assert local_wall >= self._MIN_MATERIAL_BEHIND_UNDERCUT, (
-            f"Latch catch local wall ({local_wall:.3f} mm) is thinner than the "
-            f"undercut-depth-sets-a-floor rule requires "
-            f"({self._MIN_MATERIAL_BEHIND_UNDERCUT:.3f} mm) -- "
-            f"see the design brief's 'The wall-thickness conflict' section."
-        )
-
-        x_center = side * (lg.hook_pitch / 2.0 + lg.hook_width / 2.0)
-
-        # Boss: local thickening from the outer face out to y_slot_inner
-        # (past where the barb needs to reach), confined to the hook's own
-        # X footprint and a Z band bracketing the engagement band with
-        # margin for the finger's drafted face above/below it.
-        z_lo = lg.engagement_band_lo - self._LATCH_CATCH_Z_MARGIN
-        z_hi = lg.engagement_band_hi + self._LATCH_CATCH_Z_MARGIN
-
-        # Round 21 (finding E11-c (1)): the boss used to reach y_slot_inner
-        # across the WHOLE [z_lo, z_hi] band. The round-20 release-leg
-        # correction (C1-C3) now places the leg's own material exactly in
-        # the Y-band this boss's outer portion (behind the undercut, i.e.
-        # material the slot cut below does NOT remove) occupies below the
-        # barb -- 21.324 mm^3 of new interference, root-caused to this
-        # class's own round-14 single-wall departure (the real part's inner
-        # skin leaves y [-34.4, -32.0] clear for exactly this leg).
-        # Z-banded retreat, matching round 18's original "Z-localised
-        # keeper nub" recommendation: OUTSIDE a tight window bracketing
-        # the barb (engagement_band_lo..hi -- the barb's own physical
-        # extent, not an arbitrary margin), cap the reach at
-        # _LATCH_CATCH_RETREAT_Y (-34.400 mm, the reference's own
-        # inner-skin depth, not an arbitrary retreat) instead of
-        # y_slot_inner -- leaving y in [-34.4, leg's own position] clear.
-        # INSIDE the window, retain the full y_slot_inner reach (the slot
-        # cut below still removes finger clearance regardless; keeping the
-        # boss at full depth there is what feeds the undercut-depth-sets-
-        # a-floor assert its required backing). Above engagement_band_hi
-        # (the retention-ledge band, z_hi's own upper portion) also keeps
-        # full reach, unaffected -- that band never appeared in the
-        # measured collision.
-        seam = 0.05  # coincident-faces guard between adjacent Z bands
-        retreat_y = self._LATCH_CATCH_RETREAT_Y
-        boss_below_window = rounded_box(
-            width=lg.hook_width,
-            depth=retreat_y - self.LATCH_Y,
-            height=(lg.engagement_band_lo + seam) - z_lo,
-            corner_r=0.0,
-            center=(x_center, (self.LATCH_Y + retreat_y) / 2.0, z_lo),
-        )
-        # Round 22: this band now starts at engagement_band_HI, not _LO --
-        # it is purely the retention LEDGE above the barb's travel. Rounds
-        # 18-21 started it at _LO and relied on the slot cutter to reopen
-        # the band below; that worked only while the Cover's release leg sat
-        # inboard of the slot's own outer face. With the leg corrected to
-        # its reference position (-34.000 outer) it lands squarely inside
-        # this boss, so the boss must not fill that band at all. The band
-        # below is left as _build_latch_clearance already cut it.
-        # Round 27: start the ledge ABOVE the finger's own tip, not a seam
-        # BELOW engagement_band_hi. Since the retention bead moved to the
-        # release leg (see _build_latch_land), this ledge backs nothing
-        # on the finger -- while `engagement_band_hi - seam` (12.500) put it
-        # squarely inside the finger, which reaches hook_depth (13.000). That
-        # was 2 x 3.687 mm^3 of seated interference: the lid could not be
-        # closed without deforming it, and the clash was being reported as
-        # the latch's own "engagement".
-        ledge_z_lo = lg.hook_depth + clearance
-        boss_window_and_ledge = rounded_box(
-            width=lg.hook_width,
-            depth=y_slot_inner - self.LATCH_Y,
-            height=z_hi - ledge_z_lo,
-            corner_r=0.0,
-            center=(x_center, (self.LATCH_Y + y_slot_inner) / 2.0, ledge_z_lo),
-        )
-        boss = boss_below_window.union(boss_window_and_ledge)
-
-        # Slot: clears the finger's full swept cross-section across the
-        # engagement band and provides the undercut depth behind its
-        # deepest (drafted-face) reach.  Bounded to
-        # [engagement_band_lo - margin, engagement_band_hi] so the boss
-        # stays solid above engagement_band_hi, forming the retention
-        # ledge (see method docstring) -- the finger has zero material
-        # above its own hook_depth, so this cannot interfere with it.
-        #
-        # Width uses hook_width, NOT the narrower catch_width: the
-        # finger's own extrusion spans its full hook_width (13.6 mm), so
-        # a catch_width-wide slot (13.3 mm, per LatchGeometry's own
-        # "clear the hook's side walls without rubbing" formula) leaves a
-        # ~0.15 mm boss sliver at each X edge that collides with the
-        # finger there -- caught by the cross-part verification probe.
-        # catch_width remains available on the shared LatchGeometry object
-        # for any future lateral-guide refinement; it is not applied here.
-        slot = rounded_box(
-            width=lg.hook_width,
-            depth=y_slot_inner - y_slot_outer,
-            height=lg.engagement_band_hi - z_lo,
-            corner_r=0.0,
-            center=(x_center, (y_slot_outer + y_slot_inner) / 2.0, z_lo),
-        )
-
-        # Retention keeper nub (round 18, B1 -- the actual fix): before this,
-        # y_slot_inner bounded BOTH the boss and the slot, so no material
-        # ever separated the "deflection pocket" side of the slot from the
-        # finger's own root -- zero retention (audit findings B1/S4).
-        #
-        # y_lip is derived from the corrected LatchGeometry.barb_protrusion
-        # (see that module's own docstring) via PoweredUpHubCover's own
-        # HOOK_FACE_Y1 -- crest_y_relaxed = HOOK_FACE_Y1 + barb_protrusion
-        # (the barb's undeflected resting Y), then y_lip = crest_y_relaxed
-        # - lg.undercut_depth. The nub re-adds solid material across
-        # Y in [y_lip, y_slot_inner] -- the sub-band of the slot closest to
-        # the finger's own root -- while Y in [y_slot_outer, y_lip] stays
-        # open as the barb's deflection pocket (retreat room). Z-localised
-        # tightly around barb_axis_z (NOT the full engagement band) per the
-        # design brief's own explicit warning: a full-band lip re-collides
-        # with the finger's drafted-face flanks near Z = engagement_band_lo
-        # / _hi, which is exactly the round-14->15 regression this slot
-        # topology was rebuilt to avoid. The nub's Z half-width is kept at
-        # the lip Y depth's own natural taper: solving where the finger's
-        # own drafted-face polyline crosses Y = y_lip on each side of
-        # barb_axis_z bounds how far the nub can safely reach in Z before
-        # colliding with material the finger has at ITS OWN root-ward
-        # (non-deflected) position -- verified empirically via
-        # section_slicer.py and the mandatory kinematic-sweep tests below,
-        # not hand-derived blind (see the design brief's own instruction).
-        crest_y_relaxed = PoweredUpHubCover.HOOK_FACE_Y1 + lg.barb_protrusion
-        y_lip = crest_y_relaxed - lg.undercut_depth
-
-        # The nub's Y-span [y_lip, y_slot_inner] never touches the slot's
-        # own outboard remainder of `boss` (Y <= y_slot_outer) -- that gap
-        # (Y in [y_slot_outer, y_lip]) is the deflection pocket, and must
-        # stay open. So the nub is instead connected in Z: its top edge
-        # reaches (with a coincident-faces overlap) into
-        # engagement_band_hi, where `boss` is still solid across its own
-        # full Y-span (the slot cutter's own height stops at
-        # engagement_band_hi -- see the slot's own height above) -- this is
-        # the existing "retention ledge" the class docstring already
-        # describes, and the nub fuses directly onto its underside rather
-        # than floating disconnected in space.
-        nub_reach = 0.500  # how far below engagement_band_hi the nub extends
-        seam_overlap = 0.05
-        nub_z_lo = lg.engagement_band_hi - nub_reach
-        nub_z_hi = lg.engagement_band_hi + seam_overlap
-        nub = rounded_box(
-            width=lg.hook_width,
-            depth=y_slot_inner - y_lip,
-            height=nub_z_hi - nub_z_lo,
-            corner_r=0.0,
-            center=(x_center, (y_lip + y_slot_inner) / 2.0, nub_z_lo),
-        )
-
-        return boss, slot, nub
 
     # ------------------------------------------------------------------
     # Tongue-end wall (+Y) -- single wall, rebate step only
