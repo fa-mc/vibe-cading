@@ -29,6 +29,11 @@ flange_thickness = 1.0
 
 # ── RC hex tire hubs ──────────────────────────────────────────────────────────
 
+# NOTE: FreespinHexHub is deprecated in favor of
+# vibe_cading.rc.hex_hub_bearing.hex_hub_with_bearing.HexHubWithBearing (see
+# docs/design_plans/2026-08-25-rc-hex-hub-bearing_design.md). This
+# registration is left in place pending an explicit human decision on
+# whether/when to swap it for the new hub -- comment-only, not a build change.
 [[build]]
 model  = "vibe_cading.rc.freespin_hex_hub.FreespinHexHub"
 output = "rc/hex_wheel_hub_12mm.step"

@@ -185,3 +185,19 @@ teeth = 20
 mate_teeth = 20
 face_width = 6.0
 bore = 5.0
+
+# ── HexHubWithBearing (fused RC 12mm hex hub + MR85 bearing housing) ──────────
+# Design brief: docs/design_plans/2026-08-25-rc-hex-hub-bearing_design.md
+# Human design gate approved 2026-08-25 (Round 3 — wrapper class renamed
+# HexHubAssembly -> HexHubWithBearing). All-defaults construction; no
+# [contract.params] needed. No text labels engraved -> fully byte-reproducible.
+
+[[contract]]
+svg   = "visual_contracts/2026-08-25-rc-hex-hub-bearing_design_iso_ne.svg"
+model = "vibe_cading.rc.hex_hub_bearing.hex_hub_with_bearing.HexHubWithBearing"
+view  = "iso_ne"
+
+[[contract]]
+svg   = "visual_contracts/2026-08-25-rc-hex-hub-bearing_design_top.svg"
+model = "vibe_cading.rc.hex_hub_bearing.hex_hub_with_bearing.HexHubWithBearing"
+view  = "top"

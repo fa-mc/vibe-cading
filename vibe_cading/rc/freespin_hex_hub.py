@@ -15,6 +15,20 @@
 
 """12 mm hex free-spinning wheel hub for RC cars (front axle / non-driven).
 
+.. deprecated::
+    Superseded by
+    :class:`vibe_cading.rc.hex_hub_bearing.hex_hub_with_bearing.HexHubWithBearing`,
+    which models the same "12 mm hex + MR85-2RS bearing" family as two
+    independently-buildable component classes (:class:`~vibe_cading.rc.hex_hub_bearing.hex_hub_nut.HexHubNut`,
+    :class:`~vibe_cading.rc.hex_hub_bearing.bearing_hex_housing.BearingHexHousing`)
+    fused into one printed body, with tolerance-profile-driven fit grades on
+    both the axle-clearance bore and the bearing pocket (see
+    ``docs/design_plans/2026-08-25-rc-hex-hub-bearing_design.md``). This
+    class is kept for backward compatibility with its existing ``build.toml``
+    registration (``rc/hex_wheel_hub_12mm.step``) and may be removed in a
+    future release once that registration is migrated. New designs should
+    use ``HexHubWithBearing`` instead.
+
 Coordinate system
 -----------------
 Z = 0            : bottom face (inner bearing seat — knuckle side)
@@ -42,6 +56,7 @@ flat-to-flat — the "12 mm hex" standard used by most 1:10-scale RC wheels.
 from __future__ import annotations
 
 import math
+import warnings
 
 import cadquery as cq
 
@@ -55,6 +70,13 @@ MR85_W  = 2.5   # mm – axial width
 
 class FreespinHexHub:
     """12 mm hex free-spinning wheel hub for RC front axles (non-driven).
+
+    .. deprecated::
+        Superseded by
+        :class:`vibe_cading.rc.hex_hub_bearing.hex_hub_with_bearing.HexHubWithBearing`.
+        Kept for backward compatibility with its existing ``build.toml``
+        registration; may be removed in a future release. Instantiating
+        this class emits a :class:`DeprecationWarning`.
 
     The hub body rotates freely around a fixed stub axle on two MR85-2RS
     ball bearings, one seated in each end face.  This is the standard
@@ -104,6 +126,13 @@ class FreespinHexHub:
         hex_chamfer: float = 0.5,
         profile: str | None = None,
     ) -> None:
+        warnings.warn(
+            "FreespinHexHub is deprecated and superseded by "
+            "vibe_cading.rc.hex_hub_bearing.hex_hub_with_bearing.HexHubWithBearing; "
+            "it may be removed in a future release.",
+            DeprecationWarning,
+            stacklevel=2,
+        )
         self.hex_across_flats = float(hex_across_flats)
         self.height           = float(height)
         self.bearing_od       = float(bearing_od)

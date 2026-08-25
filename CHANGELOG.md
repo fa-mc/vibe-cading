@@ -34,6 +34,24 @@ section to the new version and date.
   with no VS Code required. Covers the client/server split, port forwarding, and
   the "browser tab must be open before you push" behaviour. Port 3939 was already
   in the dev container's `forwardPorts`, so no container change was needed.
+- `vibe_cading/rc/hex_hub_bearing/`: RC 12 mm hex-wheel-adapter hub fused with
+  an MR85-2RS bearing housing (`HexHubNut`, `BearingHexHousing`, and the
+  primary deliverable `HexHubWithBearing`, which `.union()`s the two into a
+  single printed body with a 0.02 mm boolean-robustness overlap epsilon at the
+  flush join — no press-fit register). `HexHubNut`'s through-bore is 6.0 mm
+  nominal (`free`-fit-grade), sized as a running-clearance hole around a
+  uniform 5 mm-nominal stub axle — matching `FreespinHexHub`'s established
+  convention. See `docs/design_plans/2026-08-25-rc-hex-hub-bearing_design.md`.
+
+### Deprecated
+- `vibe_cading.rc.freespin_hex_hub.FreespinHexHub` — superseded by
+  `vibe_cading.rc.hex_hub_bearing.hex_hub_with_bearing.HexHubWithBearing`
+  (same "12 mm hex + MR85-2RS bearing" family, modelled as fused component
+  classes with tolerance-profile-driven fit grades on both the bore and the
+  bearing pocket). `FreespinHexHub` now emits a `DeprecationWarning` on
+  construction; its `build.toml` registration (`rc/hex_wheel_hub_12mm.step`)
+  is unchanged pending a separate human decision on migration. May be removed
+  in a future release.
 
 ## [0.1.4] - 2026-06-26
 
