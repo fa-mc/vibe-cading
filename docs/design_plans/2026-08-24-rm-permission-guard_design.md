@@ -64,7 +64,16 @@ spelling escaped:
 | `rm -vrf x` | **passed** | denied |
 | `rm -f -r x` | **passed** | denied |
 | `rm --recursive x` | **passed** | denied |
-| `rm tmp/ -r` | **passed** (and was *auto-approved* by the allow) | denied |
+| `rm tmp/ -r` | **passed** (and was *auto-approved* by the allow) | **still passes the deny** — see below |
+
+**The one spelling the deny does not catch is operand-first.** `Bash(rm -*)`
+anchors on the literal text `rm -`, so `rm tmp/ -r` never reaches the wildcard
+and is not denied. Measured against the live matcher, not inferred: it returns
+no permission denial and deletes the directory. What stops it is the *other*
+half of this change — with both allows removed, nothing auto-approves it, so it
+prompts. The accurate guarantee is therefore **"no deletion happens without
+either a prompt or a refusal"**, not "every flagged `rm` is refused". Do not
+restate the stronger claim; it is false.
 
 An intermediate commit on this branch tried to fix it by enumerating
 `-rf`/`-fr`/`-r`/`-R` as four separate deny rules. Review showed that still
@@ -72,8 +81,12 @@ missed every combined and reordered spelling above, because the bug is the word
 boundary, not the number of rules. Enumeration cannot win against flag
 clustering; the wildcard can.
 
-Net effect: any flagged `rm` is refused outright; every unflagged `rm` prompts.
-Deletion is never silent.
+Net effect: an `rm` written in the ordinary flags-first form is refused outright;
+everything else — unflagged `rm`, operand-first flags, wrapper spellings —
+prompts, because no `rm` allow survives. **Deletion is never silent.** That last
+sentence is the load-bearing guarantee, and it rests on removing the allows, not
+on the deny being exhaustive. The deny is a convenience that turns the common
+mistake into a hard stop instead of a prompt.
 
 Verified before removing the allows that nothing depends on them — no tracked
 script, skill, workflow or CI step invokes `rm -r` as a tool command. The
@@ -143,8 +156,21 @@ Stated plainly so nobody mistakes the deny rule for a sandbox:
   allow is arguably wrong on its own terms. Removing it is a separate change with
   its own blast radius — it is called out here, not fixed here.
 - **`find -delete` and `xargs rm`** are untouched by a rule anchored on `rm`.
-- **Deny is anchored at the start of the command.** Wrappers (`sudo rm`,
-  `/bin/rm`, `env rm`) and any equivalent binary evade a textual `rm` prefix.
+- **Operand-first flags evade the deny** — `rm tmp/ -r`, per §2. It prompts
+  rather than being refused.
+- **Wrappers evade the deny.** `/bin/rm -rf x` executes; so do `sudo rm` and
+  `env rm`. The rule matches command *text*, so any spelling that does not begin
+  `rm -` is outside it. Note this is **not** because matching is anchored to the
+  start of the whole command — it is not. A denied fragment anywhere in a
+  compound command denies the entire call: `ls && rm -f x` is refused even with
+  `ls` allowed. The gap is the fragment's own leading text, not its position.
+
+**A tracked runbook is now agent-unexecutable.**
+`docs/design_plans/2026-06-05-history-rewrite-recipe.md` prescribes `rm -f` and
+`rm -rf` steps. A deny is absolute — it cannot be overridden per-invocation, and
+it outranks `bypassPermissions` — so an agent following that runbook will stop
+there and need a human to run those steps. That is the intended trade, recorded
+here so the next reader meets it as a known consequence rather than a surprise.
 
 None of these are accidents an agent stumbles into while cleaning up, which is
 why the change is still worth having. But the guarantee is "the obvious mistake
@@ -152,8 +178,18 @@ is blocked", not "recursive deletion is impossible".
 
 ## 5. Provenance
 
-The abandoned hook implementation and its 37-case test matrix are in PR #84's
-commit history at `6651cc1` (unreachable once the PR is squash-merged and the
-branch deleted — this document is the durable record, deliberately, because the
-first draft of the revert cited only that commit and three gitignored `tmp/`
-review files, all of which the normal merge process destroys).
+The abandoned hook is a single 185-line file, `.claude/hooks/rm_guard.py`, at
+PR #84's commit `6651cc1` — which becomes unreachable once the PR is
+squash-merged and the branch deleted. **It was never accompanied by committed
+tests.** The 37-case matrix referred to in review discussion was run ad-hoc
+against the hook's functions and lives only in the PR conversation; it is not
+recoverable from the repository, and its non-existence is part of the story —
+the matrix passed while the *deployed wiring* was broken in two ways (§3),
+precisely because it called the functions directly instead of exercising the
+hook as configured.
+
+This section previously claimed the matrix was preserved at `6651cc1`. It was
+not. That claim reproduced, inside the section written to fix a provenance
+failure, exactly the failure it was fixing: citing evidence that the normal
+merge process destroys. Everything in this document that matters is therefore
+stated *in* this document, not pointed at.
