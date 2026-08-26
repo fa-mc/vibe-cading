@@ -106,30 +106,26 @@ class HexHubWithBearing:
         overlap_eps: float = 0.02,
         profile: str | None = None,
     ) -> None:
-        self.hex_across_flats = float(hex_across_flats)
-        self.thickness = float(thickness)
-        self.bore_diameter = float(bore_diameter)
-        self.hex_chamfer = float(hex_chamfer)
-        self.housing_od = float(housing_od)
-        self.bearing_id = float(bearing_id)
-        self.bearing_od = float(bearing_od)
-        self.bearing_width = float(bearing_width)
         self.overlap_eps = float(overlap_eps)
         # Forward the same `profile` argument (name or None) to both
         # components so they each resolve an identical ToleranceProfile and
         # the whole fused body reads one consistent tolerance profile.
+        # Sub-component objects are the single source of truth for their own
+        # dimensions (read via self.hex_nut / self.housing) rather than also
+        # duplicating each forwarded value as a flattened wrapper attribute
+        # -- matches AxleHexHubAdapter's storage shape.
         self.hex_nut = HexHubNut(
-            hex_across_flats=self.hex_across_flats,
-            thickness=self.thickness,
-            bore_diameter=self.bore_diameter,
-            hex_chamfer=self.hex_chamfer,
+            hex_across_flats=hex_across_flats,
+            thickness=thickness,
+            bore_diameter=bore_diameter,
+            hex_chamfer=hex_chamfer,
             profile=profile,
         )
         self.housing = BearingHexHousing(
-            housing_od=self.housing_od,
-            bearing_id=self.bearing_id,
-            bearing_od=self.bearing_od,
-            bearing_width=self.bearing_width,
+            housing_od=housing_od,
+            bearing_id=bearing_id,
+            bearing_od=bearing_od,
+            bearing_width=bearing_width,
             profile=profile,
         )
         self._solid = self._build()
@@ -145,7 +141,7 @@ class HexHubWithBearing:
         # past global Z = 0, rather than exactly coincident with it (design
         # brief Assembly Datum / D2a).
         housing_positioned = self.housing.solid.translate(
-            (0, 0, -self.bearing_width + self.overlap_eps)
+            (0, 0, -self.housing.bearing_width + self.overlap_eps)
         )
 
         fused = nut.union(housing_positioned)
