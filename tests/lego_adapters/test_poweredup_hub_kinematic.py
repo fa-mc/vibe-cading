@@ -56,11 +56,9 @@ equivalent to the rotation path.
 from __future__ import annotations
 
 import cadquery as cq
-import pytest
 
 from vibe_cading.lego_adapters.poweredup_hub.cover import PoweredUpHubCover
 from vibe_cading.lego_adapters.poweredup_hub.housing import PoweredUpHubHousing
-from vibe_cading.lego_adapters.poweredup_hub.latch_geometry import get_latch_geometry
 
 
 def _intersect_volume(a: cq.Workplane, b: cq.Workplane) -> float:

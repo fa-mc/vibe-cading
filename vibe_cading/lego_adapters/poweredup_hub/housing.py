@@ -58,7 +58,8 @@ import math
 import cadquery as cq
 
 from vibe_cading.cq_utils import cylinder, rounded_box
-from vibe_cading.lego.technic_beam_perp import PerpendicularHolesLiftarm
+from vibe_cading.lego.constants import STUD_PITCH
+from vibe_cading.lego.cutters.technic_pin_hole import TechnicPinHole
 from vibe_cading.lego_adapters.poweredup_hub.cover import PoweredUpHubCover
 from vibe_cading.lego_adapters.poweredup_hub.latch_geometry import (
     LatchGeometry,
@@ -219,14 +220,21 @@ class PoweredUpHubHousing:
           trimmed to the real ``X = 35.600``, giving ``35.600 - 28.100 =
           7.500 mm`` as the deliberate, direct consequence of round 16's
           asymmetric outboard-only trim).
-        - **Arm faces dished** (round 20, H2): the reference cuts a
-          shallow relief pocket into both faces of each arm, between the
-          pin-hole positions, blended into each hole/boss by an
-          R3.600 mm cylindrical relief -- see :meth:`_dish_arm_faces` for
-          the Developer-derived construction and its own docstring for the
-          exact-fit reasoning (the pocket half-width and the relief radius
-          are not independent numbers -- they are self-consistent, per
-          that method's docstring).
+        - **Arm faces NOT dished** (round 42, user direction -- a
+          deliberate departure, reversing round 20's H2). The reference
+          cuts a shallow relief pocket into both faces of each arm,
+          leaving a ``2.756 mm`` web; rounds 20-41 reproduced it exactly.
+          It is the wrong shape to *print*: it thins the section of a
+          cantilevered arm precisely where bending stress peaks, and asks
+          an FDM machine to bridge a thin web. This class keeps the plain
+          full-thickness beam instead. Fidelity to the reference's
+          appearance is knowingly traded for strength here; the arm's
+          function -- hole positions, pitch, envelope -- is unchanged.
+        - **Middle hole is a blind standard pin hole** (round 42): a real
+          :class:`~vibe_cading.lego.cutters.technic_pin_hole.TechnicPinHole`
+          entered at the boss tip and floored at the side wall's outer
+          face, replacing a hand-rolled three-step bore whose relief
+          punched through into the battery cavity.
 
     Latch interface (round 40)
     --------------------------
@@ -350,12 +358,6 @@ class PoweredUpHubHousing:
     ARM_Y_LO = 12.400                    # inboard flat face (envelope trim)
     ARM_Y_HI = HALF_Y                    # 35.600, outboard face
 
-    # Real LDraw arm half-width (round 16, Escalation 7) -- the local-frame
-    # Y bound the outboard width trim cuts above. Distinct from the class's
-    # own Cailliau-calibrated BEAM_WIDTH/2 (3.9 mm); see
-    # _build_arm_and_bore_local's width-trim comment.
-    ARM_WIDTH_TRIM_Y = 3.600
-
     # Root-bridge Band A (round 17, Escalation 8) -- the arm-local Z
     # window (thickness axis, pre-_place_arm) where the root bridge
     # reaches deepest into the wall. Local Z in [ROOT_BAND_A_Z_LO,
@@ -372,29 +374,57 @@ class PoweredUpHubHousing:
     ROOT_BAND_A_Z_LO = ARM_THICKNESS - 2.000
 
     # Local-frame -> global-Y translation offset for the arm/bore remap
-    # (see _place_arm): local hole-line X positions (4/12/20, the class's
-    # STUD_PITCH*i + STUD_PITCH/2 formula) must land on global Y = 16/24/32,
-    # so the offset is 16 - 4 = 12 (NOT ARM_Y_LO=12.400 -- the envelope
-    # trim at local X=0.400 is a *different* number from this hole-line
-    # offset, and conflating them was an early implementation bug caught
-    # by the cross-part verification probe).
-    _ARM_Y_OFFSET = 12.0
+    # (see _place_arm). Round 43: the arm is now built at its own real
+    # length with cap centres ON the hole line, so local X = 0 IS the arm's
+    # inboard face and the offset is simply ARM_Y_LO. Rounds 16-42 needed a
+    # separate number (12.0) because the arm was built one stud pitch too
+    # long and then trimmed back, which put local X = 0 outside the part.
+    _ARM_Y_OFFSET = ARM_Y_LO
+
+    # --- Arm plan geometry (round 43) -- measured off Philo's own LDraw
+    # subpart `s\24851s01.dat`, which builds each arm end from
+    # `1-4cylo` at scale 9 LDU centred ON the outer hole:
+    #
+    #     1 16 80 -10 80   9 0 0 / 0 20 0 / 0 0 9   1-4cylo.dat
+    #
+    # 9 LDU = 3.600 mm, so the cap radius EQUALS the arm's half-width and
+    # its centre IS the hole centre. Centred on the hole at 32.000 that
+    # reaches exactly 35.600 in both plan directions -- the cap is
+    # naturally tangent to the envelope, and nothing is trimmed.
+    #
+    # Rounds 16-42 instead took PerpendicularHolesLiftarm's own
+    # Cailliau-calibrated 7.800 width / 3.900 cap radius (overshooting to
+    # 36.000 and 35.900) and squared it off with two flat trims. That is
+    # what cut the round cap into a 3.440 mm flat chord at the tip and a
+    # flat down the outboard side, and what left the re-entrant notch where
+    # the arm met the end wall.
+    ARM_LENGTH = 23.200         # 2 x hole pitch + 2 x cap radius
+    ARM_WIDTH = 7.200           # = 2 x ARM_CAP_R; the reference's own 18 LDU
+    ARM_CAP_R = ARM_WIDTH / 2.0
 
     BOSS_DIAMETER = 7.200
-    BOSS_PROUD = 0.400          # beyond the arm's own BEAM_WIDTH/2 edge, see docstring
+    BOSS_PROUD = 0.400          # beyond the arm's own ARM_WIDTH/2 edge, see docstring
 
-    # Round 21 (finding H2/RH2) -- the arm-dish gap-opening circle radius,
-    # centred at each inter-hole midpoint (not at any hole position) to
-    # widen the dish's own plan footprint without disturbing the exact
-    # R3.6 hole reliefs. See _dish_arm_faces's own docstring for the full
-    # derivation and topology-safety note.
-    _DISH_GAP_OPEN_RADIUS = 2.000
-    MID_BORE_CB_DIAMETER = 6.400
-    MID_BORE_CB_DEPTH = 0.800
-    MID_BORE_DIAMETER = 4.800
-    MID_BORE_GUIDED_LEN = 6.400
-    MID_BORE_RELIEF_DIAMETER = 7.200
-    _MID_BORE_BREAKTHROUGH = 15.0  # generous relief overcut, see _build_arms docstring
+    # --- Horizontal (middle) arm hole, round 43 ---
+    # Philo builds it from LDraw's `connhol3` primitive -- the BLIND pin
+    # hole, counterbored at one rim only -- not the through-hole `connhole`
+    # the two vertical positions use:
+    #
+    #     1 16 80 0 60   0 -1 0 / 1 0 0 / 0 0 1   connhol3.dat
+    #
+    # The matrix sends local +Y to global -X, so the counterbored rim is the
+    # OUTBOARD one (the boss tip, |X| = 90 LDU = 36.000) and the bore floors
+    # inboard at |X| = 72 LDU = 28.800, leaving 0.400 mm of arm behind it
+    # before the root bridge and the side wall. Depth is therefore 7.200,
+    # not the 8.000 of a through hole.
+    #
+    # Round 42 had reached the blind conclusion independently but floored at
+    # 28.000 with counterbores at BOTH rims; the far flange hollowed out
+    # exactly the thin material a blind hole has least of. These figures are
+    # the reference's own.
+    MID_BORE_DEPTH = 7.200
+    MID_BORE_FLOOR_X = 28.800   # |X| the bore stops at, measured from 24851s01
+    MID_BORE_MIN_FLOOR = 0.400  # arm material that must survive behind it
 
     # --- Latch end (-Y), SS5.2 / SS11 ---
     LATCH_Y = -HALF_Y
@@ -663,153 +693,106 @@ class PoweredUpHubHousing:
     # Arms (composed from PerpendicularHolesLiftarm, per the TL round)
     # ------------------------------------------------------------------
 
-    def _dish_arm_faces(self, arm: cq.Workplane) -> cq.Workplane:
-        """Shallow relief pocket on both faces (top and bottom) of the arm,
-        between the pin-hole positions -- round 20, finding H2.
-
-        Reference-derived numbers (``docs/design_plans/2026-08-19-poweredup-hub-battery-box_reference-comparison.md`` H2, read
-        off LDraw's ``rect3.dat`` / ``1-4cyli.dat``): pocket floors at
-        global ``Z = 21.378`` (top) / ``18.622`` (bottom) -- local
-        ``Z = 5.378`` / ``2.622`` here, since ``global Z = local Z +
-        ARM_Z_LO`` -- leaving a ``2.756 mm`` web at the pocket floor
-        (``21.378 - 18.622``), footprint local ``Y`` in
-        ``[-2.546, 2.546]`` (global ``X`` in ``[29.454, 34.546]``, centred
-        on the hole axis ``X = 32``), blended into each hole/boss position
-        by an ``R3.600 mm`` cylindrical relief centred on the hole axis.
-
-        **Why a full-radius relief circle subtracted from the pocket
-        cutter reproduces the reference's own numbers exactly, not just
-        approximately** (the self-consistency check that grounds this
-        construction, since the design brief explicitly delegates the
-        exact cutter construction to the Developer): the relief radius
-        (``R = BOSS_DIAMETER / 2 = 3.600 mm``) and the pocket half-width
-        (``2.546 mm``) satisfy ``2.546 = 3.600 * cos(45 deg)`` -- i.e. the
-        pocket rectangle's own Y-bound is exactly where a ``R3.6`` circle
-        centred on the hole axis crosses at 45 degrees. Subtracting the
-        union of three such circles (one per hole position, local
-        ``X = 4/12/20``) from the rectangular pocket cutter therefore
-        produces, at each end of the arm, a **full-thickness rail of
-        exactly ``1.054 mm``** between the trim boundary (local
-        ``X = 0.400`` / ``23.600``) and the nearest relief circle's own
-        45-degree crossing (local ``X = 1.454`` / ``22.546``) -- matching
-        the reference's own quoted "1.054 mm full-thickness edge rail at
-        the arm's own perimeter" to the micron. This is strong evidence
-        the construction below is not merely plausible but the actual
-        geometric relationship LDraw's own polygon encodes.
-
-        Developer-derived construction (not a literal re-derivation of
-        LDraw's exact ``rect3.dat`` polygon) -- **verified via
-        ``section_slicer.py --axis Y`` through one arm** before treating
-        this as final, per the design brief's own instruction for
-        genuinely new 3D relief features.
-
-        **Round 21 correction (finding H2/RH2)**: the cross-section above
-        (floors, rails, pocket walls) is confirmed exact and untouched.
-        The *plan* footprint was wrong: with all three hole positions
-        using the same ``R3.600`` relief circle, the two inter-hole gaps
-        (8.0 mm hole pitch minus two ``R3.6`` reaches) were only
-        ``8.0 - 2*3.6 = 0.8 mm`` wide -- reproducing the reference's own
-        ``0.84 mm``-measured footprint almost exactly, but the reference's
-        real gaps are ``~4.0 mm`` each. **Shrinking either hole's own
-        R3.6 relief circle was tried and rejected**: at the two OUTER
-        holes it would reopen the exact ``1.054 mm`` end rail derived
-        above; at the MIDDLE hole (local ``X = 12``, the ``"none"``
-        position) it disconnects the arm into multiple solids -- despite
-        that position carrying no *vertical* pin bore, it is where the
-        *horizontal* middle bore is later cut through (see
-        :meth:`_build_arm_and_bore_local`), and that bore's own relief
-        section is close enough in size to the R3.6 dish relief that
-        shrinking the latter leaves an isolated post the bore then severs
-        into two disconnected end-caps (caught by this class's own
-        single-solid assert, not silently missed).
-
-        **The construction that works**: leave all three ``R3.600``
-        relief circles untouched, and additionally subtract two small,
-        independent "gap-opening" circles of radius
-        :attr:`_DISH_GAP_OPEN_RADIUS` (2.000 mm), centred at each
-        inter-hole *midpoint* (local ``X = 8`` / ``16``, not at any hole
-        centre) from the relief union before it protects the band -- i.e.
-        the relief protects everything within R3.6 of a hole EXCEPT where
-        a gap-opening circle also reaches. Centring the gap-opening
-        circles away from the hole positions (rather than shrinking the
-        hole-centred circles themselves) keeps full-radius material
-        directly around every hole -- including the middle hole's own
-        bore -- so this stays topologically safe (verified empirically:
-        single-solid holds up to a gap-opening radius well past the value
-        used here). The gap-opening circle's own diameter sets the open
-        width directly (``2 * 2.000 = 4.000 mm``), independent of the
-        flanking holes' own relief reach. Both reliefs stay plain circles
-        (curved in plan -- the "curved blend, not vertical wall" spec for
-        the pocket's own outer rim), so the boundary between recessed and
-        full-thickness material is a circular arc everywhere, never a
-        straight cut.
-        """
-        pocket_half_y = 2.546          # local Y -> global X in [29.454, 34.546]
-        relief_radius = self.BOSS_DIAMETER / 2.0  # 3.600 mm, see docstring
-        hole_x_locals = (4.0, 12.0, 20.0)  # the arm's own 3 hole/boss positions
-        gap_x_locals = (8.0, 16.0)         # inter-hole midpoints, see docstring
-        overcut = 0.05
-
-        top_floor_local_z = 21.378 - self.ARM_Z_LO      # 5.378
-        bottom_floor_local_z = 18.622 - self.ARM_Z_LO   # 2.622
-
-        def _pocket(z_lo: float, z_hi: float) -> cq.Workplane:
-            band = rounded_box(
-                width=23.2, depth=2 * pocket_half_y, height=z_hi - z_lo,
-                corner_r=0.0, center=(12.0, 0.0, z_lo),
-            )
-            relief = None
-            for hx in hole_x_locals:
-                cyl = cylinder(relief_radius, z_hi - z_lo, center=(hx, 0.0, z_lo))
-                relief = cyl if relief is None else relief.union(cyl)
-            gap_open = None
-            for gx in gap_x_locals:
-                cyl = cylinder(self._DISH_GAP_OPEN_RADIUS, z_hi - z_lo, center=(gx, 0.0, z_lo))
-                gap_open = cyl if gap_open is None else gap_open.union(cyl)
-            return band.cut(relief.cut(gap_open))
-
-        top_pocket = _pocket(top_floor_local_z, self.ARM_THICKNESS + overcut)
-        bottom_pocket = _pocket(-overcut, bottom_floor_local_z)
-        return arm.cut(top_pocket).cut(bottom_pocket)
-
     def _build_arm_and_bore_local(self) -> tuple[cq.Workplane, cq.Workplane]:
         """Build the (+X, +Y)-quadrant arm and its middle-hole bore cutter,
         both still in the class's own **local** frame (X = length,
         Y = width, Z = thickness) -- i.e. *before* the diagonal-mirror
         remap into housing coordinates (see :meth:`_place_arm`).
 
-        Per the TL round's decision (design brief *Reusable classes -> TL
-        round -> Q1*), the shared class provides only the hole pattern,
-        pitch, axis alternation, and the ``thickness``/``"none"`` knobs;
-        the real arm's length (23.2 vs. the class's 24.0 mm), the
-        middle-hole boss, and the three-step middle bore are all
-        housing-local, composed here.
+        Round 43 -- **the arm is a beam and hole cutters, built at the
+        reference's own dimensions**, and it is no longer composed from
+        :class:`~vibe_cading.lego.technic_beam_perp.PerpendicularHolesLiftarm`.
+
+        That class is calibrated to this project's generic liftarm
+        cross-section (``BEAM_WIDTH`` 7.800, cap radius 3.900 seated 0.100
+        off the hole line) and its length is fixed at
+        ``num_holes * STUD_PITCH`` = 24.000. Philo's arm is none of those:
+        18 LDU wide (7.200), cap radius 9 LDU (3.600) centred exactly ON
+        the outer hole, total length 23.200. Rounds 16-42 bridged the gap
+        by building the generic beam and then squaring it off with three
+        flat trims -- which is what chopped the round cap into a 3.440 mm
+        flat chord at the tip, flattened the outboard face, and left the
+        re-entrant notch where the arm met the end wall.
+
+        Built to the reference's own numbers the cap radius equals the
+        half-width and sits on the hole centre, so it comes out exactly
+        tangent to ``|X| = 35.600`` and ``Y = 35.600`` on its own. **No
+        trims at all** -- the envelope is a consequence of the geometry
+        rather than something cut into it afterwards.
+
+        Not a regression in reuse: the holes are still
+        :class:`~vibe_cading.lego.cutters.technic_pin_hole.TechnicPinHole`
+        cutters, which is where the shared, profile-aware, calibrated
+        content actually lives. What is dropped is a *body* whose three
+        governing dimensions all had to be overridden.
         """
-        arm = PerpendicularHolesLiftarm(
-            3, ["main", "none", "main"], profile=self._profile, thickness=self.ARM_THICKNESS
-        ).solid
+        half_w = self.ARM_CAP_R
+        hole_xs = [half_w + i * STUD_PITCH for i in range(3)]   # 3.6, 11.6, 19.6
 
-        # Envelope trim (TL round, Q1(c)): the class's own 4.0 mm end
-        # offset (STUD_PITCH/2) leaves 0.4 mm of surplus end cap at each
-        # end relative to the real 23.2 mm arm.  Hole centres are at local
-        # X = 4/12/20 mapping to global Y = 16/24/32 with a +12 mm offset
-        # (see _place_arm), so the real inboard/outboard faces
-        # (Y = 12.400 / 35.600) land at local X = 0.400 / 23.600.  Neither
-        # cut can clip a counterbore (outermost reaches local X = 23.1,
-        # innermost 0.9 -- both inside the trim bounds), per the TL
-        # round's own clearance derivation.
-        trim_lo = rounded_box(width=20.0, depth=20.0, height=40.0, corner_r=0.0,
-                               center=(-10.0, 0.0, -16.0))
-        trim_hi = rounded_box(width=20.0, depth=20.0, height=40.0, corner_r=0.0,
-                               center=(33.6, 0.0, -16.0))
-        arm = arm.cut(trim_lo).cut(trim_hi)
+        # Stadium: caps centred ON the outer holes, radius = half-width.
+        arm = (
+            cq.Workplane("XY")
+            .sketch()
+            .push([(self.ARM_LENGTH / 2.0, 0.0)])
+            .rect(self.ARM_LENGTH - 2 * half_w, self.ARM_WIDTH)
+            .reset()
+            .push([(hole_xs[0], 0.0), (hole_xs[-1], 0.0)])
+            .circle(half_w)
+            .clean()
+            .finalize()
+            .extrude(self.ARM_THICKNESS)
+        )
+        assert abs(arm.val().BoundingBox().xlen - self.ARM_LENGTH) < 1e-9, (
+            "the stadium's own length must equal ARM_LENGTH -- if the caps "
+            "and the rect disagree the envelope stops being tangent"
+        )
 
-        # Face dishing (round 20, H2) -- applied before the root bridge/
-        # width trim/boss below, since none of those touch this pocket's
-        # own local-Y band ([-2.546, 2.546], well clear of both the root
-        # bridge's negative-Y reach and the boss/mid-bore's positive-Y
-        # edge).
-        arm = self._dish_arm_faces(arm)
+        # Round 44 -- square off the INBOARD half, so the arm meets the body
+        # on a flat face instead of a tangent cusp.
+        #
+        # A full stadium touches the end plane at a single point and curves
+        # away from it immediately, so where the cap approached the housing it
+        # left a sharp re-entrant notch: the body edge ran in at Y = 35.600 to
+        # X = 28.400, dropped to Y = 32.000, and only there did the arc begin.
+        # That is a stress raiser at the arm's root -- the one place on a
+        # cantilever where a notch matters most -- and it prints as a crevice.
+        #
+        # Filling only local y <= 0 keeps the OUTBOARD corner's R3.600 round
+        # (round 43, the reference's own cap) while making the inboard flank
+        # straight for the arm's whole length and the two end faces flat. The
+        # envelope is untouched: this adds material strictly inside
+        # |X| <= HOLE_X and Y in [ARM_Y_LO, HALF_Y], which the cap already
+        # bounded.
+        arm = arm.union(
+            rounded_box(
+                width=self.ARM_LENGTH,
+                depth=half_w,
+                height=self.ARM_THICKNESS,
+                corner_r=0.0,
+                center=(self.ARM_LENGTH / 2.0, -half_w / 2.0, 0.0),
+            )
+        )
+
+        # The two vertical holes: through, counterbored at both faces --
+        # LDraw `connhole`, which is what Philo uses at these positions.
+        through = TechnicPinHole.standard(
+            depth=self.ARM_THICKNESS + 2 * TechnicPinHole._ENTRY_OVERCUT,
+            profile=self._profile,
+        ).to_cutter()
+        for x in (hole_xs[0], hole_xs[-1]):
+            arm = arm.cut(through.translate((x, 0.0, -TechnicPinHole._ENTRY_OVERCUT)))
+
+        # Round 42 -- NO face dishing. Rounds 20-41 cut the real liftarm's
+        # recessed pockets into both faces (floors at local Z 5.378 /
+        # 2.622, leaving a 2.756 mm web), blended into each hole by an
+        # R3.600 relief and opened between holes by two gap circles. It
+        # reproduced the reference's shape faithfully and it is the wrong
+        # shape to print: it removes material from the middle of a
+        # cantilevered arm's section, exactly where bending stress is
+        # highest, and it lays down thin bridged webs on an FDM machine.
+        # Per the user's round-42 direction this part keeps the plain beam
+        # -- solid full-thickness section, standard pin holes -- as a
+        # deliberate, stronger departure from the reference.
 
         # Root bridge: the class's own BEAM_WIDTH/2 edge (local Y = -3.9,
         # -> global X = 28.1) sits just *outside* the side wall's own
@@ -893,12 +876,12 @@ class PoweredUpHubHousing:
         # 20, H4) -- but only by SEAM_MARGIN, not Band A's full depth; the
         # assert after Band B's own construction guards that relationship.
         root = rounded_box(
-            width=23.2,
+            width=self.ARM_LENGTH,
             depth=root_outer_local_y - root_inner_local_y,
             height=self.ROOT_BAND_A_Z_HI - self.ROOT_BAND_A_Z_LO,
             corner_r=0.0,
             center=(
-                12.0,
+                self.ARM_LENGTH / 2.0,
                 (root_inner_local_y + root_outer_local_y) / 2.0,
                 self.ROOT_BAND_A_Z_LO,
             ),
@@ -926,11 +909,12 @@ class PoweredUpHubHousing:
             self.WALL_X_OUTER_LOWER - self.WALL_THICKNESS + SEAM_MARGIN - self.HOLE_X
         )
         root_b = rounded_box(
-            width=23.2,
+            width=self.ARM_LENGTH,
             depth=root_outer_local_y - root_b_inner_local_y,
             height=self.ROOT_BAND_A_Z_LO,  # local Z [0, ROOT_BAND_A_Z_LO], i.e. Band B
             corner_r=0.0,
-            center=(12.0, (root_b_inner_local_y + root_outer_local_y) / 2.0, 0.0),
+            center=(self.ARM_LENGTH / 2.0,
+                    (root_b_inner_local_y + root_outer_local_y) / 2.0, 0.0),
         )
         assert root_b_inner_local_y > root_inner_local_y, (
             "Band B's reach must stay shallower than Band A's own deeper "
@@ -940,69 +924,67 @@ class PoweredUpHubHousing:
         )
         arm = arm.union(root_b)
 
-        # Width envelope trim (round 16, Escalation 7): the class's own
-        # Cailliau-calibrated BEAM_WIDTH (7.8 mm, half-width 3.9 mm) puts
-        # the arm's outboard face 0.3 mm past the real LDraw half-width
-        # (3.6 mm), which this brief's Success Criterion #1 already pins
-        # the housing's overall X envelope against exactly (72.0 mm) -- a
-        # harder datum than the "not changed, deliberately" ruling that
-        # keeps the class's own cross-section shape (see class docstring's
-        # *Known simplifications*). One-sided cut on the outboard
-        # (positive-local-y) side only, at local y > ARM_WIDTH_TRIM_Y.
-        # Deliberately applied AFTER the root bridge above (which reads
-        # BoundingBox().ymax as a proxy for the *inboard* edge's
-        # magnitude, still the untrimmed 3.9 mm -- correct, since the
-        # inboard/root-bridge side is untouched by this fix) and BEFORE
-        # the boss/mid-bore code below (which reads beam_half_width off
-        # this now-trimmed body, so it self-corrects to the real 3.6 mm
-        # edge with no further changes -- design brief round 16, Conflict
-        # 2 resolution). Trimming before the root-bridge read would
-        # corrupt beam_half_width_pre's inboard magnitude to the wrong
-        # (outboard-trimmed) value.
-        trim_width_hi = rounded_box(
-            width=40.0, depth=40.0, height=40.0, corner_r=0.0,
-            center=(12.0, self.ARM_WIDTH_TRIM_Y + 20.0, -16.0),
-        )
-        arm = arm.cut(trim_width_hi)
-
-        # Boss + middle bore, both anchored to the arm's own outboard edge
-        # -- now the real LDraw 35.6/36.0 mm figures, not the class's own
-        # BEAM_WIDTH/2, since the width trim above runs first (design
-        # brief round 16, Conflict 2 resolution; see class docstring).
-        # Built along local Z then rotated -90 deg about the X-axis, the
-        # same "build along Z, rotate onto the width axis" technique
-        # PerpendicularHolesLiftarm itself uses for its "perp" holes --
-        # this maps local Z (stacking axis) -> local Y (width) and a
-        # constant local y = -ARM_THICKNESS/2 -> local Z = +ARM_THICKNESS/2
-        # (mid-thickness, the hole-axis height), confirmed empirically
-        # (rotate(-90, X-axis) on the local-Z axis maps (y, z) -> (z, -y)).
-        beam_half_width = arm.val().BoundingBox().ymax  # BEAM_WIDTH / 2, read from the body
+        # Boss + middle hole, both anchored to the arm's own outboard edge.
+        # Round 43: that edge is now the reference's own 3.600 half-width by
+        # construction, so nothing needs trimming first and nothing needs to
+        # read it back off a bounding box.
+        #
+        # The boss is built along local Z then rotated -90 deg about X, the
+        # "build along Z, rotate onto the width axis" technique the shared
+        # liftarm class uses for its own perpendicular holes: local Z (the
+        # stacking axis) maps to local Y (width), and a constant local
+        # y = -ARM_THICKNESS/2 maps to local Z = +ARM_THICKNESS/2, the
+        # hole-axis mid-height. (rotate(-90, X) maps (y, z) -> (z, -y).)
         mid_z = self.ARM_THICKNESS / 2.0
-        hole_x_local = 12.0  # "none" position (index 1): STUD_PITCH*1 + STUD_PITCH/2
+        hole_x_local = hole_xs[1]
 
         boss_overlap = 0.5  # clean union overlap into the arm's own edge
         boss = cylinder(
             self.BOSS_DIAMETER / 2.0,
             self.BOSS_PROUD + boss_overlap,
-            center=(hole_x_local, -mid_z, beam_half_width - boss_overlap),
+            center=(hole_x_local, -mid_z, half_w - boss_overlap),
         ).rotate((0, 0, 0), (1, 0, 0), -90)
         arm = arm.union(boss)
 
-        boss_tip = beam_half_width + self.BOSS_PROUD
-        entry_overcut = 0.05
-        y_mouth = boss_tip + entry_overcut
-        y_cb_inner = y_mouth - (self.MID_BORE_CB_DEPTH + entry_overcut)
-        y_guided_inner = y_cb_inner - self.MID_BORE_GUIDED_LEN
-        y_relief_inner = y_guided_inner - self._MID_BORE_BREAKTHROUGH
+        # The horizontal hole: BLIND, counterbored at the entry rim only --
+        # LDraw `connhol3`, which is the primitive Philo actually uses here
+        # (the vertical positions get `connhole`, the through-hole variant).
+        # See MID_BORE_DEPTH for the derivation off 24851s01.
+        boss_tip = half_w + self.BOSS_PROUD                  # local y = +4.000
+        floor_local_y = boss_tip - self.MID_BORE_DEPTH       # local y = -3.200
 
-        def _seg(diameter: float, y_lo: float, y_hi: float) -> cq.Workplane:
-            return cylinder(diameter / 2.0, y_hi - y_lo, center=(hole_x_local, -mid_z, y_lo))
+        floor_x = self.HOLE_X + floor_local_y
+        assert abs(floor_x - self.MID_BORE_FLOOR_X) < 1e-9, (
+            f"the bore floors at |X| = {floor_x:.3f}, not the reference's "
+            f"{self.MID_BORE_FLOOR_X:.3f} -- MID_BORE_DEPTH and the boss "
+            f"geometry have drifted apart"
+        )
+        arm_inboard_x = self.HOLE_X - half_w                 # 28.400
+        assert floor_x - arm_inboard_x >= self.MID_BORE_MIN_FLOOR - 1e-9, (
+            f"the bore leaves only {floor_x - arm_inboard_x:.3f} mm of arm "
+            f"behind its floor; the reference leaves "
+            f"{self.MID_BORE_MIN_FLOOR:.3f} mm"
+        )
+        # That the bore does NOT reach the cavity is verified on the BUILT
+        # solid by test_middle_bore_is_blind -- these asserts pin the inputs,
+        # the test pins the outcome.
 
+        # Rotation: +90 deg about X maps (x, y, z) -> (x, -z, y), so the
+        # cutter's native +Z bore points along -Y (inboard, away from the
+        # boss tip) and its mouth plane lands on y = 0. The translate then
+        # puts that mouth on the boss tip at mid-thickness. Note the sign is
+        # the OPPOSITE of the boss's own -90 above: the boss is built
+        # outward from the arm, this is bored inward into it.
         bore = (
-            _seg(self.MID_BORE_CB_DIAMETER, y_cb_inner, y_mouth)
-            .union(_seg(self.MID_BORE_DIAMETER, y_guided_inner, y_cb_inner))
-            .union(_seg(self.MID_BORE_RELIEF_DIAMETER, y_relief_inner, y_guided_inner))
-        ).rotate((0, 0, 0), (1, 0, 0), -90)
+            TechnicPinHole.standard(
+                depth=self.MID_BORE_DEPTH,
+                profile=self._profile,
+                counterbore_ends="entry",
+            )
+            .to_cutter()
+            .rotate((0, 0, 0), (1, 0, 0), 90)
+            .translate((hole_x_local, boss_tip, mid_z))
+        )
 
         assert len(arm.solids().vals()) == 1, "Expected single solid, got multiple pieces"
         return arm, bore

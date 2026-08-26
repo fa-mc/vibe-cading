@@ -16,6 +16,17 @@ section to the new version and date.
 ## [Unreleased]
 
 ### Removed
+- **`PoweredUpHubHousing`'s arm face-dishing is deleted** (user direction) —
+  `_dish_arm_faces` cut the real liftarm's recessed pockets into both faces of
+  each arm, leaving a `2.756 mm` web. It matched the reference, and it is the
+  wrong shape to print: it thins the section of a cantilevered arm exactly where
+  bending stress peaks and asks an FDM machine to bridge a thin web. The arms
+  are now plain full-thickness beams — a declared departure from the reference
+  in favour of strength, with hole positions, pitch and envelope unchanged.
+  `_DISH_GAP_OPEN_RADIUS` goes with it.
+- **Breaking** — the hand-rolled middle-bore constants are removed from
+  `PoweredUpHubHousing`: `MID_BORE_CB_DIAMETER`, `MID_BORE_CB_DEPTH`,
+  `MID_BORE_DIAMETER`, `MID_BORE_GUIDED_LEN`, `MID_BORE_RELIEF_DIAMETER`.
 - **`PoweredUpHubHousing`'s latch catch is deleted** — the catch boss, its
   undercut slot and the keeper nub were the mating half of a barb-on-the-finger
   `PoweredUpHubCover` has not had since the latch became a hairpin spring, and
@@ -64,7 +75,56 @@ section to the new version and date.
   retention ledge — still sits in the wall it was derived against. Verified:
   `Housing ∩ Cover` is byte-identical to the pre-change value.
 
+### Added
+- **`TechnicPinHole` gains `counterbore_ends`** (keyword-only; `"both"` /
+  `"entry"` / `"none"`, default `"both"`). LEGO uses two different pin-hole
+  shapes and LDraw ships a primitive for each: `connhole`, counterbored at both
+  rims, for a through hole, and `connhol3`, counterbored at the entry rim only,
+  where the hole stops inside the part. Cutting a far-side flange into a blind
+  hole hollows out the material immediately behind its floor — exactly where
+  there is least to spare. The default preserves every existing caller
+  byte-for-byte.
+
 ### Fixed
+- **`PoweredUpHubHousing`'s arms are built at the reference's own dimensions
+  instead of being trimmed to fit.** Measured off Philo's `s\24851s01.dat`, the
+  arm is `7.200 mm` wide with an end cap of radius `3.600 mm` centred **on** the
+  outer hole — cap radius equals half-width, so centred at `32.000` it is
+  naturally tangent to `35.600` in both plan directions and nothing needs
+  cutting. Rounds 16–42 instead took `PerpendicularHolesLiftarm`'s generic
+  `7.800`-wide, `3.900`-cap, `24.000`-long beam and squared it off with three
+  flat trims, which left a **`3.440 mm` flat chord across the tip**, a flat down
+  the outboard face, and the re-entrant notch where the arm met the end wall.
+  The arm is now a `23.200 × 7.200` stadium with caps on the hole centres and
+  `TechnicPinHole` cutters; `ARM_WIDTH_TRIM_Y` is removed, `ARM_LENGTH` /
+  `ARM_WIDTH` / `ARM_CAP_R` added, and `PerpendicularHolesLiftarm` is no longer
+  used by this class. Envelope unchanged at `72.0 × 71.2 × 24.0`.
+- **`PoweredUpHubHousing`'s arms now meet the body on a flat face** (user
+  direction). A full stadium cap touches its end plane at a single point, so the
+  arm joined the housing at a sharp re-entrant cusp — body edge in at
+  `Y = 35.600` to `X = 28.400`, dropping to `Y = 32.000` before the arc began —
+  a notch at the root of a cantilever, and a crevice to print. The inboard half
+  is now squared off for the arm's full length, giving flat end faces out to the
+  hole line, while the outboard corner keeps its `R3.600` round. Envelope
+  unchanged; volume `21742.4 → 21910.8 mm³`.
+- **The horizontal arm hole now matches `connhol3`** — `7.200 mm` deep, floored
+  at `|X| = 28.800` with `0.400 mm` of arm behind it, counterbored at the
+  outboard rim only. Round 42 floored it at `28.000` with counterbores at both
+  rims. `MID_BORE_DEPTH` / `MID_BORE_FLOOR_X` replace the round-42
+  `MID_BORE_MIN_FLOOR`-only derivation.
+- **`PoweredUpHubHousing`'s middle arm hole is a real, blind Technic pin hole.**
+  It was three hand-rolled cylinder segments re-implementing a counterbored pin
+  hole without being one — so it never got the profile-aware bore sizing every
+  other pin hole in the repo has — and its `15 mm` relief overcut punched clean
+  through the side wall into the battery cavity. It is now a
+  `TechnicPinHole.standard()` cutter entered at the boss tip (`|X| = 36.000`)
+  and floored at the side wall's outer face (`|X| = 28.000`), leaving the
+  `0.8 mm` wall intact. The depth is that distance rather than a literal, and
+  works out to exactly one stud pitch, so the hole is full-depth *and* blind;
+  both readings are asserted. Measured bore Ø `4.96` against `5.020` nominal.
+  `test_middle_bore_breaks_through` — which asserted the breach by probing a
+  point **inside** the cavity, empty whatever the bore did, and so could not
+  fail — is replaced by `test_middle_bore_is_blind`.
 - **`PoweredUpHubHousing`'s side window is now the cover tab's own outline**,
   offset outward by the running clearance, instead of a three-point
   piecewise-linear taper sampled off the reference's faceted arc. A chord lies

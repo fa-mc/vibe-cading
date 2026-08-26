@@ -18,8 +18,11 @@ docs/design_plans/2026-08-19-poweredup-hub-battery-box_design.md,
 *Multi-part structure -> Housing* and *Success Criteria*.
 """
 
+import math
+
 import cadquery as cq
 
+from vibe_cading.lego.cutters.technic_pin_hole import TechnicPinHole
 from vibe_cading.lego_adapters.poweredup_hub.cover import PoweredUpHubCover
 from vibe_cading.lego_adapters.poweredup_hub.housing import PoweredUpHubHousing
 from vibe_cading.print_settings import get_profile
@@ -109,16 +112,164 @@ def test_twelve_pin_holes_present():
         assert material_vol > 1.0, "expected solid material between adjacent hole positions"
 
 
-def test_middle_bore_breaks_through():
-    """The three-step middle bore must actually open into the cavity
-    (Ø7.2 mm relief) -- not stop blind at the wall's inner face. A probe
-    well inside the nominal cavity, on the middle-hole axis line, must be
-    empty (open bore continuing through, not blind)."""
-    h = PoweredUpHubHousing().solid
+def test_arm_meets_the_body_on_a_flat_face():
+    """The arm's inboard half must be square, not a tangent cusp.
+
+    Round 44. A full stadium cap touches the end plane at a single point and
+    curves away immediately, so where the arm approached the housing it left a
+    sharp re-entrant notch -- the body edge ran in at Y = 35.600 to X = 28.400,
+    dropped to Y = 32.000, and only there did the arc start. A notch at a
+    cantilever's root is the worst place to put one.
+
+    Falsifier: drop the round-44 fill and the sampled points inboard of the
+    hole line move back onto the arc, well short of the end plane.
+    """
+    h = PoweredUpHubHousing()
+    solid = h.solid
+    z = h.HOLE_AXIS_Z
+    for y_end, inward in ((h.HALF_Y, -1.0), (h.ARM_Y_LO, +1.0)):
+        for x in (h.HOLE_X - h.ARM_CAP_R + 0.3, h.HOLE_X - 1.0, h.HOLE_X - 0.2):
+            y = y_end + inward * 0.2          # just inside the end face
+            p = cq.Workplane("XY").box(0.04, 0.04, 0.04).translate((x, y, z))
+            assert solid.intersect(p).solids().vals(), (
+                f"no material at (X={x:.2f}, Y={y:.2f}) -- the arm still meets "
+                f"the body on a curve, leaving a notch at its root"
+            )
+        # ...and the outboard corner must still be relieved (the round).
+        y = y_end + inward * 0.2
+        p = cq.Workplane("XY").box(0.04, 0.04, 0.04).translate((h.HOLE_X + 3.4, y, z))
+        assert not solid.intersect(p).solids().vals(), (
+            "positive control failed: material found where the outboard round "
+            "should have relieved the corner, so the readings above prove nothing"
+        )
+
+
+def test_arm_end_cap_is_a_true_round_on_the_hole_centre():
+    """The arm's outboard end must be a full R3.6 round centred on the outer
+    hole -- not a round chopped by envelope trims.
+
+    Round 43. Rounds 16-42 built the shared liftarm's 3.9 cap (centred 0.1 off
+    the hole line) and squared it off at |X| = 35.6 and Y = 35.6, which left a
+    3.440 mm FLAT CHORD across the tip and a flat down the outboard face. That
+    is the "cut unnaturally" the user reported, and the re-entrant step it left
+    against the end wall was the notch.
+
+    Falsifier: reinstate either trim and one of the sampled points moves inside
+    the nominal radius, because a chord lies inside the arc it subtends.
+    Sampling sweeps the whole arc rather than checking the tangent points --
+    the tangent points are exactly where a truncated cap still agrees.
+    """
+    h = PoweredUpHubHousing()
+    solid = h.solid
+    r = h.ARM_CAP_R
+    cx, cy = h.HOLE_X, 32.0   # outer hole centre of the +X/+Y arm
+    z = h.HOLE_AXIS_Z
+
+    # Sweep the OUTBOARD half of the cap only: 0 deg (+Y, the tip) round to
+    # +90 deg (+X, the tangent). Everything else is legitimately further from
+    # the hole centre than the radius and would measure the wrong surface --
+    # past +90 it is the arm's straight flank, and on the inboard side (angles
+    # < 0) round 44 deliberately squares the cap off flat against the body.
+    worst = None
+    for i in range(0, 19):                     # 0..+90 deg about the hole centre
+        ang = math.radians(i * 5.0)
+        # Step outward along the ray until material ends: that is the cap edge.
+        edge = None
+        for j in range(120):
+            d = r - 0.6 + j * 1.2 / 120.0
+            x, y = cx + d * math.sin(ang), cy + d * math.cos(ang)
+            p = cq.Workplane("XY").box(0.04, 0.04, 0.04).translate((x, y, z))
+            if solid.intersect(p).solids().vals():
+                edge = d
+        if edge is None:
+            continue
+        err = abs(edge - r)
+        if worst is None or err > worst[1]:
+            worst = (i * 5.0, err, edge)
+
+    assert worst is not None, "positive control failed: no material found on the cap at all"
+    ang, err, edge = worst
+    assert err < 0.06, (
+        f"arm cap edge is {edge:.3f} mm from the hole centre at {ang:+.0f} deg, "
+        f"expected the nominal cap radius {r:.3f} mm -- the cap is not a true "
+        f"round (a trim has flattened it)"
+    )
+
+
+def test_horizontal_arm_hole_matches_ldraw_connhol3():
+    """One counterbore, at the entry rim -- LDraw's blind-hole primitive.
+
+    Round 43. Round 42 used the through-hole shape, which put a second Ø6.2
+    flange immediately behind the bore floor: precisely where a blind hole has
+    least material to give. Philo uses `connhol3` here (`connhole` at the two
+    vertical positions), and its counterbored rim is the outboard one.
+
+    Falsifier: switch back to counterbore_ends="both" and the floor-side
+    reading widens from the bore diameter to the counterbore diameter.
+    """
+    h = PoweredUpHubHousing()
+    solid = h.solid
+    z = h.HOLE_AXIS_Z
+    cb_d = TechnicPinHole.DEFAULT_CB_DIAMETER
+    bore_d = 4.8 + 2 * h._profile.slip.radial
+
+    def void_width(x):
+        hits = [20.0 + j * 8.0 / 200.0 for j in range(201)]
+        open_ys = [
+            y for y in hits
+            if not solid.intersect(
+                cq.Workplane("XY").box(0.05, 0.05, 0.05).translate((x, y, z))
+            ).solids().vals()
+        ]
+        return (open_ys[-1] - open_ys[0]) if open_ys else 0.0
+
+    entry = void_width(35.4)          # 0.6 mm in -- inside the entry counterbore
+    mid = void_width(32.0)            # mid-bore
+    floor_side = void_width(29.0)     # 0.2 mm before the floor at 28.8
+
+    assert entry > (cb_d + bore_d) / 2.0, (
+        f"entry rim measures {entry:.3f} mm, expected a counterbore near {cb_d}"
+    )
+    assert abs(mid - bore_d) < 0.15, (
+        f"mid-bore measures {mid:.3f} mm, expected the pin bore {bore_d:.3f}"
+    )
+    assert floor_side < (cb_d + bore_d) / 2.0, (
+        f"the floor end measures {floor_side:.3f} mm -- a second counterbore is "
+        f"still being cut there; the reference's connhol3 has only one"
+    )
+
+
+def test_middle_bore_is_blind():
+    """The middle pin hole must NOT open into the battery cavity.
+
+    Round 42 inverts this test. It used to assert the bore *did* break
+    through -- and asserted it by probing |X| = 22.0, a point well inside
+    the cavity, which is empty whether the bore reaches it or not. Cutting
+    cannot add material, so no geometry could have failed it.
+
+    The claim now has a falsifier and a positive control: the side wall on
+    the hole's own axis must be SOLID (deepen the bore past the wall's outer
+    face and it goes empty), and the same probe on the boss side must be
+    EMPTY (so an "occupied" reading is a real measurement, not a probe that
+    reports material everywhere).
+    """
+    h = PoweredUpHubHousing()
+    solid = h.solid
+    wall_mid_x = h.WALL_X_OUTER_LOWER - h.WALL_THICKNESS / 2.0   # 27.600
     for x_sign in (+1, -1):
         for y_sign in (+1, -1):
-            vol = _probe_material(h, x_sign * 22.0, y_sign * 24.0, PoweredUpHubHousing.HOLE_AXIS_Z)
-            assert vol < 1e-6, "expected the middle-hole relief to break through into the cavity"
+            y = y_sign * 24.0
+            wall = _probe_material(solid, x_sign * wall_mid_x, y, h.HOLE_AXIS_Z)
+            assert wall > 1e-6, (
+                f"the middle bore has breached the side wall at "
+                f"(|X| = {wall_mid_x}, Y = {y}) -- it must stop at the wall's "
+                f"outer face and leave the cavity closed"
+            )
+            bore = _probe_material(solid, x_sign * 31.0, y, h.HOLE_AXIS_Z)
+            assert bore < 1e-6, (
+                "positive control failed: the probe reports material inside "
+                "the bore itself, so the wall reading above proves nothing"
+            )
 
 
 def test_general_body_seated_interference_is_zero():

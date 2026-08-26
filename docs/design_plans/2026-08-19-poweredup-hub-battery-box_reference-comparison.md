@@ -1469,3 +1469,143 @@ The sweep matters here: probing only the shoulder and the top reports a clean
 fit for *both* windows, because those are the stations the chords were sampled
 at. `test_side_window_is_the_handle_outline_across_the_whole_round_over` sweeps
 41 stations and ranks on the worst.
+
+### R42 — The liftarms: plain beam, real pin cutter, blind middle hole
+
+User direction: keep the arms to *the main beam and the holes*, and use the
+hole cutters. Two things came off, one went in.
+
+**Off — the face dishing.** `_dish_arm_faces` cut the real liftarm's recessed
+pockets into both faces (floors at local Z 5.378 / 2.622, a 2.756 mm web,
+blended by R3.600 reliefs and opened between holes by two R2.000 gap circles).
+It reproduced the reference faithfully — the derivation even showed the pocket
+half-width `2.546 = 3.600 · cos 45°` fell out of LDraw's own polygon. It is
+still the wrong shape to *print*: it thins the section of a cantilevered arm
+exactly where bending stress peaks, and asks the machine to bridge a thin web.
+This is a **deliberate, declared departure from the reference in favour of
+strength** — the arm's function (hole positions, pitch, envelope) is unchanged.
+
+**Off — the hand-rolled middle bore.** Three cylinder segments
+(`MID_BORE_CB_DIAMETER` / `MID_BORE_DIAMETER` / `MID_BORE_RELIEF_DIAMETER`,
+`MID_BORE_GUIDED_LEN`) re-implemented a counterbored pin hole without being
+one, so it never got the profile-aware bore sizing every other pin hole in the
+repo has. Its `_MID_BORE_BREAKTHROUGH = 15.0` relief also punched clean through
+the side wall into the battery cavity.
+
+**In — a real `TechnicPinHole`, blind.** Entered at the boss tip
+(`|X| = 36.000`) and floored at the side wall's outer face (`|X| = 28.000`), so
+the 0.8 mm wall survives and the cavity stays closed. Depth is that distance,
+not a literal — and it comes out at exactly one stud pitch, so the hole is
+full-depth *and* blind. Both readings are asserted rather than left to hold by
+coincidence.
+
+Measured on the built solid, outboard → inboard along the hole axis:
+
+| \|X\| | 35.9 | 32.0 | 28.4 | 27.9 | 27.6 | 27.3 | 26.5 | 22.0 |
+|---|---|---|---|---|---|---|---|---|
+| material | — | — | — | **solid** | **solid** | **solid** | — | — |
+
+Bore Ø 4.96 measured against 5.020 nominal (`PIN_HOLE_DIAMETER + 2 ×
+slip.radial`), counterbore Ø 6.14 against 6.200 — both within the ~0.05 mm
+probe-width bias.
+
+### R43 — Measuring Philo's arm, and building it instead of trimming it
+
+The round-42 arms still came from the shared `PerpendicularHolesLiftarm` squared
+off with three flat trims. Measuring the reference showed why that could never
+look right — and that the reference already solves it.
+
+**The arm.** From `s\24851s01.dat`:
+
+```
+1 16 80 -10 80   9 0 0 / 0 20 0 / 0 0 9   1-4cylo.dat
+```
+
+The end cap is **radius 9 LDU = 3.600 mm, centred exactly on the outer hole**,
+and the arm is **7.200 mm wide** (not the shared class's 7.800). Cap radius
+equals half-width, and its centre is the hole centre — so centred on the hole at
+32.000 it comes out **exactly tangent to 35.600 in both plan directions**. In the
+real part nothing is trimmed; the envelope is a *consequence* of the geometry.
+
+Ours was the generic beam (7.800 wide, cap radius 3.900 seated 0.100 off the hole
+line, length fixed at 3 × 8.000 = 24.000) overshooting to 36.000/35.900 and then
+cut back. That is what produced, at Z = 20:
+
+| before | after |
+|---|---|
+| `(28.100, 35.600) → (30.280, 35.600) → (33.720, 35.600)` — a **3.440 mm flat chord** across the tip | `(28.400, 32.000) → arc → (35.600, 32.000)` — a **true semicircle**, tangent-to-tangent |
+| `(35.600, 33.600)` — a second flat down the outboard face | no flat |
+
+The re-entrant step left by that chord is the notch reported against the end
+wall; both were the same defect. The arm is now built directly — a 23.200 ×
+7.200 stadium with caps on the hole centres — and `PerpendicularHolesLiftarm` is
+no longer used here. That is not a loss of reuse: all three of its governing
+dimensions had to be overridden, while the part that carries the shared,
+profile-aware, calibrated content — `TechnicPinHole` — is still what cuts every
+hole.
+
+**The pin holes.** Philo uses LDraw's own primitives, and *two different ones*:
+
+| | primitive | bore | depth | counterbore |
+|---|---|---|---|---|
+| vertical ×2 | `connhole` | Ø4.8 | 8.0 | Ø6.4 × 0.8, **both** rims |
+| horizontal | `connhol3` | Ø4.8 | **7.2** | Ø6.4 × 0.8, **one** rim |
+
+`connhol3` is placed with a matrix sending local +Y to global −X, so its
+counterbored rim is the **outboard** one (the boss tip at |X| = 36.000) and the
+bore floors inboard at |X| = 28.800 — **the reference's horizontal hole is blind
+too**, with 0.400 mm of arm behind it. Round 42 had reached "blind" independently
+but floored at 28.000 with counterbores at *both* rims, so the far flange
+hollowed out exactly the thin material a blind hole has least of.
+
+`TechnicPinHole` gains `counterbore_ends` (`"both"` default / `"entry"` /
+`"none"`) to express this; `"both"` preserves every existing caller byte-for-byte.
+Measured after the change, mouth → floor: counterbore Ø6.12 for 0.0–1.0, bore
+Ø4.96 to 6.8, solid from 7.2. Exactly `connhol3`.
+
+**What this does not fix.** The wall around the outer holes stays ~0.5 mm. Philo's
+own is 0.4 mm (3.6 half-width − 3.2 counterbore radius); ours is slightly better
+only because our counterbore is Ø6.2 rather than Ø6.4. That thinness is inherent
+to the reference's proportions — the lever is the counterbore, not the cap, and
+growing the cap would break the envelope.
+
+### R44 — Flat where the arm joins the body, round at the outboard corner
+
+R43 gave the arm the reference's own full stadium cap. A stadium touches its end
+plane at a *single point* and curves away from it immediately, so where the arm
+met the housing the plan outline read:
+
+```
+body edge in at Y = 35.600 → X = 28.400 → drops to Y = 32.000 → arc begins
+```
+
+— a sharp re-entrant notch at the arm's **root**, which on a cantilever is the
+single worst place to put one, and which prints as a crevice. The reference has
+it because injection moulding does not care; FDM and bending stress do.
+
+Round 44 squares off the **inboard half only** (local `y <= 0`): the flank runs
+straight for the arm's whole length and both end faces are flat out to the hole
+line, while the outboard corner keeps R43's R3.600 round. Flat where it joins,
+round where it is free — which is what the user's mark denoted, and what
+reconciles the two requests that looked contradictory (*"the outer corner should
+be round"* in R43, *"the place where the arm joins the housing, make it flat"*
+here).
+
+The envelope is untouched: the fill lands strictly inside `|X| <= HOLE_X` and
+`Y in [ARM_Y_LO, HALF_Y]`, which the cap already bounded. Volume 21742.4 →
+21910.8 mm³.
+
+**Method note.** This was settled by *rendering the same view the user was
+looking at*, not by reading coordinates. VTK cannot render in this container (no
+X display) and there is no SVG rasteriser, so `tmp/plan_view.py` tessellates the
+section wires and draws them with PIL. Two earlier readings of the mark — "flatten
+the tip" and "fill a gap in the junction band" — were both wrong, and the picture
+disambiguated them immediately where the coordinate dump had not.
+
+**The check that policed this could not fail.** `test_middle_bore_breaks_through`
+asserted the bore reached the cavity by probing `|X| = 22.0` — a point *inside*
+the cavity, empty whether the bore arrives or not. Cutting cannot add material,
+so no geometry could ever have failed it. Third instance this session of the
+same pattern (R30's `assert seated_interference > 0.0`, R40's two zero
+clearances). Replaced by `test_middle_bore_is_blind`, which asserts the wall is
+solid on the hole's axis and carries its own positive control.
