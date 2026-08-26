@@ -42,6 +42,22 @@ section to the new version and date.
   nominal (`free`-fit-grade), sized as a running-clearance hole around a
   uniform 5 mm-nominal stub axle — matching `FreespinHexHub`'s established
   convention. See `docs/design_plans/2026-08-25-rc-hex-hub-bearing_design.md`.
+- `vibe_cading/lego_adapters/axle_hex_hub/`: Lego Technic axle -> 12 mm RC hex
+  hub adapter (`AxleCompressionCollet`, `HexInsertHub`, and the primary
+  deliverable `AxleHexHubAdapter`, which `.union()`s the two into a single
+  printed body with the same 0.02 mm boolean-robustness overlap epsilon
+  convention as `HexHubWithBearing`). `AxleCompressionCollet` is a 10 mm OD,
+  10 mm-tall slotted split-collet cylinder carrying a keyed cross-shaped
+  Technic-axle bore cut to exactly its own height (`free` fit plus a small
+  extra radial clearance bump scoped to the bore only), with 2 axial collet
+  slots (0.6 mm gap) aligned with the bore's arm-tip axis for an
+  off-the-shelf compression collar's grub screws, a raised stop ring 6.5 mm
+  from the shaft end limiting collar insertion depth, and two locating
+  dimples 90 deg off the slots for the collar's set screws. `HexInsertHub`
+  is a 12 mm hex prism carrying a parametrized straight-walled M3-class
+  heat-set-insert pocket (`insert_length` default 5.0 mm) with no axle-bore
+  feature of its own.
+  See `docs/design_plans/2026-08-25-lego-axle-hex-hub-adapter_design.md`.
 
 ### Deprecated
 - `vibe_cading.rc.freespin_hex_hub.FreespinHexHub` — superseded by

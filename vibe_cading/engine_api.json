@@ -771,6 +771,450 @@
       "result_accessor": ".solid"
     },
     {
+      "module": "vibe_cading.lego_adapters.axle_hex_hub.axle_hex_hub_adapter",
+      "name": "AxleHexHubAdapter",
+      "fqn": "vibe_cading.lego_adapters.axle_hex_hub.axle_hex_hub_adapter.AxleHexHubAdapter",
+      "doc": "Fused axle-compression-collet + hex-insert-hub single-print body.\n\nParameters\n----------\ncollet_od : float\n    Forwarded to :class:`AxleCompressionCollet`. Default 10.0 mm.\ncollet_height : float\n    Forwarded to :class:`AxleCompressionCollet` as its own axial height,\n    and used here to compute the flush-join translation. Default\n    10.0 mm.\nslot_count : int\n    Forwarded to :class:`AxleCompressionCollet`. Default 2.\nslot_angles : tuple[float, ...]\n    Forwarded to :class:`AxleCompressionCollet`. Default (0.0, 180.0).\nslot_width : float\n    Forwarded to :class:`AxleCompressionCollet`. Default 0.6 mm.\nslot_depth : float\n    Forwarded to :class:`AxleCompressionCollet`. Default 7.5 mm.\nslot_fillet : float\n    Forwarded to :class:`AxleCompressionCollet`. Default 0.5 mm.\nstop_ring_offset : float\n    Forwarded to :class:`AxleCompressionCollet`. Default 6.5 mm.\nstop_ring_height : float\n    Forwarded to :class:`AxleCompressionCollet`. Default 1.0 mm.\nstop_ring_od : float\n    Forwarded to :class:`AxleCompressionCollet`. Default 11.0 mm.\ndent_diameter : float\n    Forwarded to :class:`AxleCompressionCollet`. Default 2.0 mm.\ndent_depth : float\n    Forwarded to :class:`AxleCompressionCollet`. Default 0.5 mm.\ndent_z : float\n    Forwarded to :class:`AxleCompressionCollet`. Default 3.5 mm.\ndent_angles : tuple[float, ...] | None\n    Forwarded to :class:`AxleCompressionCollet`. Default\n    ``(90.0, 270.0)`` -- 90 deg off the slots.\naxle_bore_extra_clearance : float\n    Forwarded to :class:`AxleCompressionCollet`. Default 0.1 mm\n    (Round 5 -- extra radial allowance on top of ``free.radial``).\nhex_across_flats : float\n    Forwarded to :class:`HexInsertHub`. Default 12.0 mm.\nhex_thickness : float\n    Forwarded to :class:`HexInsertHub` as its own axial thickness.\n    Default 6.0 mm.\nhex_chamfer : float\n    Forwarded to :class:`HexInsertHub`. Default 0.5 mm.\ninsert_diameter : float\n    Forwarded to :class:`HexInsertHub`. Default 5.0 mm.\ninsert_length : float\n    Forwarded to :class:`HexInsertHub`. Default 5.0 mm (D6, Round 3).\noverlap_eps : float\n    Fixed boolean-robustness overlap (mm) applied at the flush join\n    between the two components. Default 0.02 mm -- not profile-derived,\n    since this is not a printed-vs-printed mating fit.\nprofile : str | None\n    Tolerance profile name from ``print_profiles.json``, forwarded to\n    both component classes so the whole fused body reads one consistent\n    tolerance profile. ``None`` uses the globally-configured default.",
+      "constructors": [
+        {
+          "kind": "init",
+          "name": "__init__",
+          "doc": null,
+          "params": [
+            {
+              "name": "collet_od",
+              "type": "float",
+              "required": false,
+              "default": "10.0",
+              "units": null,
+              "allowed_values": null,
+              "value_doc": null
+            },
+            {
+              "name": "collet_height",
+              "type": "float",
+              "required": false,
+              "default": "10.0",
+              "units": "mm",
+              "allowed_values": null,
+              "value_doc": null
+            },
+            {
+              "name": "slot_count",
+              "type": "int",
+              "required": false,
+              "default": "2",
+              "units": null,
+              "allowed_values": null,
+              "value_doc": null
+            },
+            {
+              "name": "slot_angles",
+              "type": "tuple[float, ...]",
+              "required": false,
+              "default": "(0.0, 180.0)",
+              "units": null,
+              "allowed_values": null,
+              "value_doc": null
+            },
+            {
+              "name": "slot_width",
+              "type": "float",
+              "required": false,
+              "default": "0.6",
+              "units": "mm",
+              "allowed_values": null,
+              "value_doc": null
+            },
+            {
+              "name": "slot_depth",
+              "type": "float",
+              "required": false,
+              "default": "7.5",
+              "units": "mm",
+              "allowed_values": null,
+              "value_doc": null
+            },
+            {
+              "name": "slot_fillet",
+              "type": "float",
+              "required": false,
+              "default": "0.5",
+              "units": null,
+              "allowed_values": null,
+              "value_doc": null
+            },
+            {
+              "name": "stop_ring_offset",
+              "type": "float",
+              "required": false,
+              "default": "6.5",
+              "units": "mm",
+              "allowed_values": null,
+              "value_doc": null
+            },
+            {
+              "name": "stop_ring_height",
+              "type": "float",
+              "required": false,
+              "default": "1.0",
+              "units": "mm",
+              "allowed_values": null,
+              "value_doc": null
+            },
+            {
+              "name": "stop_ring_od",
+              "type": "float",
+              "required": false,
+              "default": "11.0",
+              "units": null,
+              "allowed_values": null,
+              "value_doc": null
+            },
+            {
+              "name": "dent_diameter",
+              "type": "float",
+              "required": false,
+              "default": "2.0",
+              "units": "mm",
+              "allowed_values": null,
+              "value_doc": null
+            },
+            {
+              "name": "dent_depth",
+              "type": "float",
+              "required": false,
+              "default": "0.5",
+              "units": "mm",
+              "allowed_values": null,
+              "value_doc": null
+            },
+            {
+              "name": "dent_z",
+              "type": "float",
+              "required": false,
+              "default": "3.5",
+              "units": null,
+              "allowed_values": null,
+              "value_doc": null
+            },
+            {
+              "name": "dent_angles",
+              "type": "tuple[float, ...] | None",
+              "required": false,
+              "default": "(90.0, 270.0)",
+              "units": null,
+              "allowed_values": null,
+              "value_doc": null
+            },
+            {
+              "name": "axle_bore_extra_clearance",
+              "type": "float",
+              "required": false,
+              "default": "0.1",
+              "units": "mm",
+              "allowed_values": null,
+              "value_doc": null
+            },
+            {
+              "name": "hex_across_flats",
+              "type": "float",
+              "required": false,
+              "default": "12.0",
+              "units": null,
+              "allowed_values": null,
+              "value_doc": null
+            },
+            {
+              "name": "hex_thickness",
+              "type": "float",
+              "required": false,
+              "default": "6.0",
+              "units": "mm",
+              "allowed_values": null,
+              "value_doc": null
+            },
+            {
+              "name": "hex_chamfer",
+              "type": "float",
+              "required": false,
+              "default": "0.5",
+              "units": null,
+              "allowed_values": null,
+              "value_doc": null
+            },
+            {
+              "name": "insert_diameter",
+              "type": "float",
+              "required": false,
+              "default": "5.0",
+              "units": "mm",
+              "allowed_values": null,
+              "value_doc": null
+            },
+            {
+              "name": "insert_length",
+              "type": "float",
+              "required": false,
+              "default": "5.0",
+              "units": "mm",
+              "allowed_values": null,
+              "value_doc": null
+            },
+            {
+              "name": "overlap_eps",
+              "type": "float",
+              "required": false,
+              "default": "0.02",
+              "units": null,
+              "allowed_values": null,
+              "value_doc": null
+            },
+            {
+              "name": "profile",
+              "type": "str | None",
+              "required": false,
+              "default": "None",
+              "units": null,
+              "allowed_values": null,
+              "value_doc": null
+            }
+          ]
+        }
+      ],
+      "result_accessor": ".solid"
+    },
+    {
+      "module": "vibe_cading.lego_adapters.axle_hex_hub.compression_collet",
+      "name": "AxleCompressionCollet",
+      "fqn": "vibe_cading.lego_adapters.axle_hex_hub.compression_collet.AxleCompressionCollet",
+      "doc": "Slotted collet cylinder carrying a keyed Technic-axle through-bore.\n\nParameters\n----------\ncollet_od : float\n    Nominal cylinder outer diameter (mm).  Default 10.0 mm -- must slip\n    through a 10 mm ID off-the-shelf compression collar (D2).  The\n    *printed* OD is shrunk by ``2 * profile.slip.radial`` (Round 4 --\n    tightened from ``free`` to ``slip`` to remove the play reported on\n    the printed part) -- see :attr:`_od_printed`.\nheight : float\n    Axial height of the cylinder (mm).  Default 10.0 mm.  The keyed\n    axle bore is always cut to exactly this depth (D3b) -- there is no\n    separate bore-depth parameter, since ``bore_depth == height`` by\n    construction.\nslot_count : int\n    Number of collet slots.  Default 2 (D4).  Must equal\n    ``len(slot_angles)`` -- kept as an explicit, self-validating\n    parameter (Explicit Public APIs) rather than silently derived, so a\n    caller who edits one without the other gets a clear error instead of\n    a silently mismatched part.\nslot_angles : tuple[float, ...]\n    Angular position (degrees, measured from +X) of each slot, aligned\n    with the keyed bore's arm-tip axis.  Default ``(0.0, 180.0)`` (D4).\nslot_width : float\n    Tangential width of each slot (mm).  Default 0.6 mm (D4, Round 4 --\n    narrowed from 1.0 mm).\nslot_depth : float\n    Axial depth of each slot, measured from the open (``Z = 0``) face\n    (mm).  Default 7.5 mm (D4, Round 3 -- rescaled proportionally,\n    0.75 x height, for the 10 mm collet), leaving a solid base ring of\n    ``height - slot_depth`` (2.5 mm nominal) that anchors the flexing\n    fingers to the joint end.\nslot_fillet : float\n    Root-fillet radius (mm) at each slot's blind (``Z = slot_depth``)\n    end.  Default 0.5 mm (D4) -- stress-concentration relief for the\n    cantilevered finger.  Implemented as a round-nosed cap on the slot\n    *cutter* itself (a clean primitive union of a box + half-cylinder,\n    rotated into place) rather than a post-cut ``.fillet()`` call on\n    freshly-cut internal edges -- the latter is a known-fragile OCCT\n    operation on concave geometry; the former is a reliable boolean of\n    clean primitives (see module docstring / Known Modelling Pitfalls).\nstop_ring_offset : float\n    Axial distance (mm) from the open (``Z = 0``, shaft-entry) end to\n    the *near* face of the raised stop ring.  Default 6.5 mm (Round 4,\n    explicit user requirement).  The ring limits how far an\n    off-the-shelf compression collar can be pushed onto the collet.\nstop_ring_height : float\n    Axial thickness of the stop ring (mm).  Default 1.0 mm -- kept\n    small per the user's own framing (\"the collar has 10 mm ID so the\n    ring doesn't have to be large\").\nstop_ring_od : float\n    Outer diameter of the stop ring (mm).  Default 11.0 mm -- 1.0 mm\n    (diametral) proud of the collar's 10 mm ID, printed at raw nominal\n    with no fit-grade shrink (this is a hard mechanical stop, not a\n    mating/sliding fit, so it deliberately does *not* read a tolerance\n    profile).\ndent_diameter : float\n    Diameter (mm) of each grub-screw locating dimple.  Default 2.0 mm.\ndent_depth : float\n    Depth (mm) each dimple cuts into the nominal OD surface.  Default\n    0.5 mm -- shallow enough not to meaningfully weaken the collet\n    wall at that cross-section.\ndent_z : float\n    Axial position (mm) of each dimple's centre, measured from the\n    open (``Z = 0``) end.  Default 3.5 mm -- derived from the actual\n    6 mm-tall compression collar: pushed until its leading face meets\n    the stop ring at ``stop_ring_offset`` (6.5 mm), the collar spans\n    ``[0.5, 6.5]``, and its grub screw sits at the collar's own\n    mid-height -- 3 mm in from either end, i.e. 3 mm from the ring.\ndent_angles : tuple[float, ...] | None\n    Angular position (degrees) of each dimple.  Default\n    ``(90.0, 270.0)`` -- 90 deg off the collet slots (``slot_angles``,\n    default ``(0.0, 180.0)``), i.e. on solid, unslotted wall rather\n    than straddling the split (corrected in Round 4: an earlier\n    assumption placed the dimples directly over the slots, which the\n    human explicitly rejected -- the grub screws seat on the intact\n    wall between the two flexing fingers, not on the split itself).\n    Pass ``None`` to instead reuse ``slot_angles`` verbatim, or any\n    other explicit tuple for a different collar's screw layout.\naxle_bore_extra_clearance : float\n    Additional radial allowance (mm) added on top of the ``free``\n    grade's own ``radial`` value, for the axle bore only.  Default\n    0.1 mm (Round 5 -- ``free`` is already the loosest named fit\n    grade, so a human report of \"still too tight\" can't be answered\n    by picking a looser grade name; this is a local, per-bore bump on\n    top of it, applied via a one-off :class:`ToleranceProfile` copy so\n    it does not affect the collet OD's own ``slip`` fit or any other\n    ``free``-fit consumer elsewhere in the library). Set to 0.0 to\n    fall back to the profile's bare ``free.radial`` value.\nprofile : str | None\n    Tolerance profile name from ``print_profiles.json`` (Material-Specific\n    Tolerances convention).  ``None`` uses the globally-configured\n    default.  The axle bore uses ``free`` fit grade (D5) -- a Lego axle\n    passes through loosely, no press/snug-fit function; the outer OD\n    shrink reads ``slip.radial`` (Round 4).",
+      "constructors": [
+        {
+          "kind": "init",
+          "name": "__init__",
+          "doc": null,
+          "params": [
+            {
+              "name": "collet_od",
+              "type": "float",
+              "required": false,
+              "default": "10.0",
+              "units": null,
+              "allowed_values": null,
+              "value_doc": null
+            },
+            {
+              "name": "height",
+              "type": "float",
+              "required": false,
+              "default": "10.0",
+              "units": "mm",
+              "allowed_values": null,
+              "value_doc": null
+            },
+            {
+              "name": "slot_count",
+              "type": "int",
+              "required": false,
+              "default": "2",
+              "units": null,
+              "allowed_values": null,
+              "value_doc": null
+            },
+            {
+              "name": "slot_angles",
+              "type": "tuple[float, ...]",
+              "required": false,
+              "default": "(0.0, 180.0)",
+              "units": null,
+              "allowed_values": null,
+              "value_doc": null
+            },
+            {
+              "name": "slot_width",
+              "type": "float",
+              "required": false,
+              "default": "0.6",
+              "units": "mm",
+              "allowed_values": null,
+              "value_doc": null
+            },
+            {
+              "name": "slot_depth",
+              "type": "float",
+              "required": false,
+              "default": "7.5",
+              "units": "mm",
+              "allowed_values": null,
+              "value_doc": null
+            },
+            {
+              "name": "slot_fillet",
+              "type": "float",
+              "required": false,
+              "default": "0.5",
+              "units": null,
+              "allowed_values": null,
+              "value_doc": null
+            },
+            {
+              "name": "stop_ring_offset",
+              "type": "float",
+              "required": false,
+              "default": "6.5",
+              "units": "mm",
+              "allowed_values": null,
+              "value_doc": null
+            },
+            {
+              "name": "stop_ring_height",
+              "type": "float",
+              "required": false,
+              "default": "1.0",
+              "units": "mm",
+              "allowed_values": null,
+              "value_doc": null
+            },
+            {
+              "name": "stop_ring_od",
+              "type": "float",
+              "required": false,
+              "default": "11.0",
+              "units": null,
+              "allowed_values": null,
+              "value_doc": null
+            },
+            {
+              "name": "dent_diameter",
+              "type": "float",
+              "required": false,
+              "default": "2.0",
+              "units": "mm",
+              "allowed_values": null,
+              "value_doc": null
+            },
+            {
+              "name": "dent_depth",
+              "type": "float",
+              "required": false,
+              "default": "0.5",
+              "units": "mm",
+              "allowed_values": null,
+              "value_doc": null
+            },
+            {
+              "name": "dent_z",
+              "type": "float",
+              "required": false,
+              "default": "3.5",
+              "units": null,
+              "allowed_values": null,
+              "value_doc": null
+            },
+            {
+              "name": "dent_angles",
+              "type": "tuple[float, ...] | None",
+              "required": false,
+              "default": "(90.0, 270.0)",
+              "units": null,
+              "allowed_values": null,
+              "value_doc": null
+            },
+            {
+              "name": "axle_bore_extra_clearance",
+              "type": "float",
+              "required": false,
+              "default": "0.1",
+              "units": "mm",
+              "allowed_values": null,
+              "value_doc": null
+            },
+            {
+              "name": "profile",
+              "type": "str | None",
+              "required": false,
+              "default": "None",
+              "units": null,
+              "allowed_values": null,
+              "value_doc": null
+            }
+          ]
+        }
+      ],
+      "result_accessor": ".solid"
+    },
+    {
+      "module": "vibe_cading.lego_adapters.axle_hex_hub.hex_insert_hub",
+      "name": "HexInsertHub",
+      "fqn": "vibe_cading.lego_adapters.axle_hex_hub.hex_insert_hub.HexInsertHub",
+      "doc": "12 mm hex prism with a parametrized heat-set-insert pocket.\n\nParameters\n----------\nhex_across_flats : float\n    Hex outer profile measured flat-to-flat (mm).  Default 12.0 mm,\n    matching :class:`~vibe_cading.rc.hex_hub_bearing.hex_hub_nut.HexHubNut`\n    / :class:`~vibe_cading.rc.freespin_hex_hub.FreespinHexHub`'s\n    established RC-hex-part convention.\nthickness : float\n    Axial thickness of the hex prism (mm).  Default 6.0 mm.\nhex_chamfer : float\n    Chamfer size applied to all sharp hex edges (mm).  Default 0.5 mm,\n    matching the same RC-hex-part family convention.\ninsert_diameter : float\n    Heat-set-insert pocket diameter (mm), raw nominal -- no profile\n    allowance, since heat-set inserts rely on knurl-bite into the\n    plastic rather than a designed cold mechanical fit (D6).  Default\n    5.0 mm, matching the user's on-hand M3-class inserts.\ninsert_length : float\n    Heat-set-insert pocket depth (mm).  Constructor parameter -- one of\n    3.0 / 4.0 / 5.0 mm are the user's on-hand physical options; default\n    5.0 mm (D6, Round 3 -- the human's final choice, prioritizing\n    thread-engagement / pull-out and torque-out holding power over\n    floor-margin conservatism).  3.0 mm and 4.0 mm remain fully valid,\n    equally-safe ``--params`` overrides for a user who prefers more\n    floor margin.\nprofile : str | None\n    Tolerance profile name from ``print_profiles.json``.  ``None`` uses\n    the globally-configured default.  Currently only consulted for\n    forward-compatibility / consistency with the sibling component --\n    the insert pocket itself takes no profile-driven allowance (D6).\n\nRaises\n------\nValueError\n    If ``thickness - insert_length < MIN_INSERT_FLOOR_MARGIN`` -- a\n    defensive floor-thickness guard (D6/D7, Post-Fix Hardening).  Not\n    expected to fire for any of the three intended insert-length\n    options (1.0 - 3.0 mm computed margin, all well above the 0.5 mm\n    floor); it exists to catch a future pathological parameter override.",
+      "constructors": [
+        {
+          "kind": "init",
+          "name": "__init__",
+          "doc": null,
+          "params": [
+            {
+              "name": "hex_across_flats",
+              "type": "float",
+              "required": false,
+              "default": "12.0",
+              "units": null,
+              "allowed_values": null,
+              "value_doc": null
+            },
+            {
+              "name": "thickness",
+              "type": "float",
+              "required": false,
+              "default": "6.0",
+              "units": "mm",
+              "allowed_values": null,
+              "value_doc": null
+            },
+            {
+              "name": "hex_chamfer",
+              "type": "float",
+              "required": false,
+              "default": "0.5",
+              "units": null,
+              "allowed_values": null,
+              "value_doc": null
+            },
+            {
+              "name": "insert_diameter",
+              "type": "float",
+              "required": false,
+              "default": "5.0",
+              "units": "mm",
+              "allowed_values": null,
+              "value_doc": null
+            },
+            {
+              "name": "insert_length",
+              "type": "float",
+              "required": false,
+              "default": "5.0",
+              "units": "mm",
+              "allowed_values": null,
+              "value_doc": null
+            },
+            {
+              "name": "profile",
+              "type": "str | None",
+              "required": false,
+              "default": "None",
+              "units": null,
+              "allowed_values": null,
+              "value_doc": null
+            }
+          ]
+        }
+      ],
+      "result_accessor": ".solid"
+    },
+    {
       "module": "vibe_cading.lego_adapters.axle_to_pin_bore_adapter",
       "name": "AxleToPinBoreAdapter",
       "fqn": "vibe_cading.lego_adapters.axle_to_pin_bore_adapter.AxleToPinBoreAdapter",
