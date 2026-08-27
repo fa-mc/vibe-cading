@@ -13,10 +13,18 @@
 # You should have received a copy of the GNU Affero General Public License
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
-"""Parametric ball bearings with press-fit clearances."""
+"""Parametric ball bearings with configurable fit-grade clearances."""
 
 from __future__ import annotations
+
+from typing import Literal, get_args
+
 import cadquery as cq
+
+# Single source of truth for outer_pocket()'s `fit` param -- reused for both
+# the type annotation and runtime validation so the two can't drift apart.
+_FitGradeName = Literal["press", "free", "slip"]
+
 
 class Bearing:
     """Parametric radial ball bearing.
@@ -75,16 +83,25 @@ class Bearing:
         """The CadQuery solid representing the exact bearing geometry."""
         return self._solid
 
-    def outer_pocket(self, profile=None) -> cq.Workplane:
-        from vibe_cading.print_settings import get_profile
-        prof = profile or get_profile()
-        radial_clearance = prof.press.radial
-        depth_clearance = prof.press.axial
+    def outer_pocket(
+        self, profile=None, fit: _FitGradeName = "press"
+    ) -> cq.Workplane:
         """Generates a cutter for burying the outer race into a printed housing.
 
-        Use `radial_clearance` ~0.05mm for a tight press fit, or ~0.1mm for a looser
-        slip fit on FDM printers.
+        ``fit`` selects which fit grade of ``profile`` supplies the radial
+        and axial allowance — ``"press"`` (default, permanent/non-serviceable
+        seating) or ``"free"`` (drop-in/pop-out by hand, e.g. a user-
+        replaceable bearing). Defaults to ``"press"`` to preserve every
+        existing caller's behavior unchanged.
         """
+        from vibe_cading.print_settings import get_profile
+        prof = profile or get_profile()
+        allowed_fits = get_args(_FitGradeName)
+        if fit not in allowed_fits:
+            raise ValueError(f"unknown fit {fit!r}; expected one of {allowed_fits}")
+        grade = getattr(prof, fit)
+        radial_clearance = grade.radial
+        depth_clearance = grade.axial
         p = (
             cq.Workplane("XY")
             .circle((self.outer_diameter / 2.0) + radial_clearance)

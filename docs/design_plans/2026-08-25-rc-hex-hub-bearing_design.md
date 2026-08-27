@@ -9,14 +9,17 @@
   separate `_req.md`.
 - **Requester role**: User (direct request)
 - **Date**: 2026-08-25
-- **Dialog rounds**: 4 (Round 1 — human design-gate review resolved D2 from "independent
+- **Dialog rounds**: 5 (Round 1 — human design-gate review resolved D2 from "independent
   pair" to "coaxial stacked assembly" and requested a joint-mechanism decision. Round 2 —
   human simplified the joint away entirely: no press-fit register: the two parts print as one
   **fused/unioned** body. Round 3 — human approved the design at Step 4 and requested a pure
   rename of the wrapper class (`HexHubAssembly` → `HexHubWithBearing`). Round 4 —
   post-implementation correction: `HexHubNut`'s through-bore changes from 4 mm to 6 mm,
   resolving D8's stepped-shaft assumption into a direct match with `FreespinHexHub`'s
-  established clearance-bore convention. See Design Dialog Log.)
+  established clearance-bore convention. Round 5 — post-implementation addition: `HexHubNut`
+  gains its own blind bearing pocket (same MR85-2RS bearing as the shaft side), and both
+  bearing pockets switch from `press` to `free` fit grade so the bearing is user-replaceable
+  at both ends. See Design Dialog Log / D9.)
 
 ---
 
@@ -949,3 +952,187 @@ Output path convention verified live against `build.toml:32-33` (`rc.freespin_he
 the module's subpackage path. Matched that convention above (flat under `rc/`, even though the
 source modules live in the new `rc/hex_hub_bearing/` subpackage per D1). This is still a
 proposal for human approval, not a final decision.
+
+---
+
+## Round 5 — Hex-side bearing pocket + free-fit for both bearings
+
+**Request (direct to Developer, no separate Designer round):** the user asked for a pocket
+on the hex side of `HexHubNut` for the *same* MR85-2RS ball bearing already seated on the
+shaft side by `BearingHexHousing`, plus advice on whether a depth-tolerance margin is
+warranted. Two decisions were confirmed with the user via structured questions before
+implementation (equivalent to a Designer round, folded into this addendum rather than a
+separate dialog-log entry since the two decisions are the entire scope of this round):
+
+1. **Fit grade for both bearings: `free`** (not the shaft side's existing `press`). The user
+   chose `free` for *both* ends, not just the new hex-side pocket — this round therefore also
+   changes `BearingHexHousing`'s existing pocket from `press` to `free`, so both bearings are
+   user-replaceable (drop-in/pop-out by hand) rather than one press-fit and one free-fit.
+2. **Depth margin: FreespinHexHub's `+0.5 mm` proud-margin formula** (`bearing_width +
+   free.axial + 0.5`), not just the raw profile axial allowance `BearingHexHousing` uses for
+   its through-cut pocket. Applies to the new hex-side pocket only — it is blind, so unlike
+   `BearingHexHousing`'s through-cut the bearing can sit proud of the face and be pressed
+   flush by hand.
+
+### D9 — Hex-side pocket is blind, sequenced after the through-bore, sized via native
+### workplane cuts (not `Bearing.outer_pocket()`)
+
+`HexHubNut`'s bottom face (`Z = 0`) is the union seam with `BearingHexHousing` in the fused
+`HexHubWithBearing` body — it must stay flat, so the new pocket can only open at the top
+(outward, wheel-facing) face and must be **blind**, not through. This mirrors
+`FreespinHexHub`'s existing two-blind-pocket pattern exactly: the narrower shaft-clearance
+bore is cut through-all *first*, then the wider bearing-OD pocket is cut blind from the
+outward face *second*, so the pocket swallows the bore's opening and the bore's end becomes a
+smaller-diameter step centred in the pocket floor. A runtime assertion
+(`_pocket_depth < thickness`) guards against a pocket deep enough to reach the union seam.
+
+Implementation reuses `HexHubNut`'s own existing native-workplane cut style
+(`.faces(">Z").workplane().circle(...).cutBlind(...)`) rather than
+`Bearing.outer_pocket()` (which `BearingHexHousing` uses) — `HexHubNut` never adopted that
+helper for its existing bore cut, and matching the file's own established style avoids
+introducing a second construction idiom into one class for no functional benefit.
+
+`Bearing.outer_pocket()` gained a `fit: str = "press"` parameter (defaulting to the prior
+behavior, so every other existing caller is unaffected) so `BearingHexHousing` could switch to
+`fit="free"` without hand-rolling a second clearance-circle helper.
+
+**Wall-thickness check (new, mirrors D8's Test 13 for the bore):** the pocket radius
+(`bearing_od/2 + free.radial` = 4.15 mm on `fdm_standard`, MR85-2RS defaults) is closer to the
+hex flats (inradius 6.0 mm) than the bore radius (3.15 mm) was, giving a 1.85 mm wall at the
+pocket — thinner than D8's 2.85 mm bore-wall but still comfortably clear of a typical
+multi-perimeter FDM thin-wall minimum. Asserted as a test floor (`wall > 1.5`), not just an
+existence check.
+
+### Round 5 Dimension Table additions
+
+| Dimension | Value | Source |
+|---|---|---|
+| Hex-side bearing pocket diameter, printed | `8.0 + 2 × free.radial` = 8.30 mm on `fdm_standard` | New (D9) — `free.radial` per the user's fit-grade decision, doubled for diameter. |
+| Hex-side bearing pocket depth | `2.5 + free.axial + 0.5` = 3.20 mm on `fdm_standard` | New (D9) — mirrors `FreespinHexHub._pocket_depth` exactly, per the user's depth-margin decision. |
+| Hex-side pocket wall thickness (pocket edge to nearest hex flat) | `12.0/2 − 8.30/2` = 1.85 mm on `fdm_standard` | New (D9) — see wall-thickness check above. |
+| Shaft-side bearing pocket diameter, printed | `8.0 + 2 × free.radial` = 8.30 mm on `fdm_standard` *(was 8.08 mm at `press` grade)* | Changed (D9) — `BearingHexHousing` switches from `press` to `free` per the user's fit-grade decision. |
+
+### Round 5 Tests
+
+| # | Test | Assertion | Location |
+|---|---|---|---|
+| 14 | `HexHubNut`'s hex-side pocket admits a nominal 8.000 mm bearing at the pocket's achievable depth with zero interference | `intersect()` volume ≈ 0.0 | `tests/rc/test_hex_hub_bearing.py::test_hex_hub_nut_bearing_pocket_admits_nominal_bearing` |
+| 15 | Positive control for #14: an oversized 8.40 mm probe MUST interfere | `intersect()` volume > 0.0 | `tests/rc/test_hex_hub_bearing.py::test_hex_hub_nut_bearing_pocket_rejects_oversized_probe` |
+| 16 | Hex-side pocket wall thickness floor | `wall == 1.85 mm` and `wall > 1.5` | `tests/rc/test_hex_hub_bearing.py::test_hex_hub_nut_bearing_pocket_wall_thickness_not_thin` |
+| 17 | Hex-side pocket depth stays clear of the union-seam bottom face | `_pocket_depth < thickness` | `tests/rc/test_hex_hub_bearing.py::test_hex_hub_nut_bearing_pocket_depth_clears_union_seam` |
+| 18 | `BearingHexHousing`'s shaft-side pocket, now at `free` fit, rejects an oversized 8.40 mm probe (updated from the prior `press`-grade 8.10 mm positive control, which the wider `free` pocket now admits) | `intersect()` volume > 0.0 | `tests/rc/test_hex_hub_bearing.py::test_bearing_hex_housing_pocket_rejects_oversized_probe` |
+
+### Round 5 Verification
+
+Confirmed via `vibe_cading/tools/section_slicer.py --axis X --at 0 --report` on an exported
+`HexHubNut` STEP: pocket radius 4.15 mm from the chamfered top face down to the pocket floor
+(depth matches `_pocket_depth` = 3.20 mm including the chamfer lead-in), then the bore
+continues at radius 3.15 mm to the bottom — a clean step, no floating slivers, no coincident-face
+artifact. All 606 project tests pass; `engine_api.json` regenerated;
+`check_visual_contract_freshness.py --update` refreshed the two `HexHubWithBearing` contract
+SVGs (`_iso_ne.svg`, `_top.svg`) — the only two contracts affected.
+
+### Round 5 PR Review Findings Addressed (PR #88)
+
+Multi-role isolated review (`tl` + `designer` + `admin`) surfaced two blockers and several
+non-blocking nits in the first review cycle, all addressed in the same PR — but the fix
+itself introduced a new anchor-drift defect, caught in cycles 2 and 3 (see the Iteration 2/3
+notes below; three review cycles total, not one, correcting the record here). Verify against
+the reviewers' comments directly; this section is a pointer, not a restatement:
+
+- **Blocker (admin):** `BearingHexHousing`'s class-docstring summary line still read
+  "press-fit-house" after the module docstring and `profile` param doc were updated to
+  `free` — corrected; the stale string had shipped verbatim into `engine_api.json`.
+- **Blocker (admin):** the Reference-Doc Freshness sweep was missed for
+  `docs/print-tolerances.md`, which documents `Bearing.outer_pocket`'s fit-grade consumers
+  with pinned line anchors — the anchors had drifted (`outer_pocket` gained a leading
+  docstring + validation block) and the doc didn't record that `outer_pocket` is now
+  parametrized or that `BearingHexHousing`/`HexHubNut` are new `free`-grade consumers.
+  Anchors corrected; new consumer rows and a footnote added, mirroring the existing
+  `TechnicAxleHole`/`TechnicPinHole` `fit=` convention.
+- **Question → correction (tl + designer, independently):** `Bearing.outer_pocket`'s new
+  `fit` parameter resolved via bare `getattr(prof, fit)` — a typo fails late with an opaque
+  `AttributeError`. Fixed to raise `ValueError` on an unrecognized grade, matching
+  `MetricHexNut.to_cutter`'s existing convention; typed as
+  `Literal["press", "free", "slip"]` matching `TechnicAxleHole`'s convention.
+  `Bearing`'s module docstring ("with press-fit clearances") was also stale — corrected.
+- **Question → correction (tl + admin, independently):** the version bump was originally
+  0.1.6 -> 0.1.7 (patch). Per `docs/releasing.md`'s explicit policy, a *behavior* change to
+  an already-shipped class's printed geometry (not merely an additive parameter) is
+  **breaking** in the 0.x scheme — corrected to a minor bump, 0.1.6 -> 0.2.0.
+- **Nit (tl):** the depth-formula test derived its own probe geometry from `_pocket_depth`,
+  so it couldn't fail if the formula itself regressed — added a direct assertion pinning
+  `_pocket_depth == bearing_width + free.axial + 0.5` against independently-computed inputs.
+  Also added a regression test asserting `HexHubWithBearing` forwards `bearing_od` /
+  `bearing_width` to *both* sub-components (previously only checked indirectly via visual
+  contract freshness).
+- **Not applied (nit, tl):** consolidating `FreespinHexHub` / `HexHubNut` / `Bearing` into a
+  single shared blind-pocket helper — deferred as a follow-up refactor rather than folded
+  into this PR (architectural, out of scope for an addendum whose scope is the two decisions
+  in R1-R3). Tracked as a `TODO.md` row per the second review cycle's request (see below).
+- **Not applied (question, tl):** whether the `+0.5 mm` proud-margin docstring wording is
+  physically accurate (pocket is deeper than the bearing, so a fully-seated bearing is
+  recessed, not proud) — the phrasing is inherited verbatim from `FreespinHexHub`'s
+  pre-existing, out-of-diff docstring; not corrected here to avoid scope creep into an
+  unrelated file's prose, but flagged for a future doc pass.
+
+**Iteration 2 (second review cycle):** the first fix commit's own re-derived line anchors in
+`docs/print-tolerances.md` were themselves wrong (off by 9 and 13 lines respectively) --
+caught independently by both `tl` and `admin`. Corrected against the actual post-edit file
+(verified by `grep -n` against `bearings.py`, not recomputed by hand a second time); the
+matching comment anchor in `bearing_hex_housing.py` was also stale and fixed. Also applied:
+`ValueError` (not `assert`) for the pocket-depth guard, a single source of truth for the
+`fit` grade names (`typing.get_args` instead of a second literal tuple), the `TODO.md` row
+above, and a correction to the live PR body's stale `0.1.7` mention. Full method/detail:
+PR #88 review-comment history.
+
+**Iteration 3 (third review cycle):** the same anchor-correction commit had itself made one
+more edit to `bearings.py` (the `typing.get_args` import + `_FitGradeName` module alias)
+*after* computing the "fixed" anchors, shifting every subsequent line by 4 more -- the same
+failure mode recurring a third time from re-deriving line numbers mid-edit instead of after
+all edits landed. Fixed by verifying via `grep -n` against the file with zero pending edits,
+immediately before this cycle's re-review, rather than trusting a hand recount. All three
+reviewers (`tl`, `designer`, `admin`) independently re-verified the final anchors against the
+diff's own hunk arithmetic this round and returned unanimous `approve` with nits only (no
+blockers) -- ending the review cycle within the workflow's 2-rewrite loop cap (2
+review-triggered rewrites: cycle 1 -> cycle 2's fix, cycle 2 -> cycle 3's fix; this cycle's
+own anchor correction was self-caught before review, not review-triggered, so it does not
+count as a third rewrite).
+
+## Acceptance Contract
+
+### Success criteria
+
+- [ ] `HexHubNut` exposes `bearing_od` (default 8.0 mm) and `bearing_width` (default 2.5 mm)
+  constructor parameters and cuts a blind bearing pocket into its top (outward) face, sized
+  and positioned per D9.
+- [ ] The hex-side pocket is cut *after* the existing through-bore, so the bore's end forms a
+  smaller-diameter step centred in the pocket floor (no coincident-face artifact, single
+  contiguous solid).
+- [ ] `HexHubNut._pocket_dia` == `bearing_od + 2 * profile.free.radial`; `_pocket_depth` ==
+  `bearing_width + profile.free.axial + 0.5`.
+- [ ] `Bearing.outer_pocket()` accepts a `fit: str = "press"` parameter; every existing call
+  site not touched by this round (i.e. every caller other than `BearingHexHousing`) keeps its
+  prior behavior unchanged (default `fit="press"`).
+- [ ] `BearingHexHousing` calls `outer_pocket(profile=self._prof, fit="free")` and its
+  symmetric-overlap translate uses `self._prof.free.axial` (not `.press.axial`).
+- [ ] `HexHubWithBearing` forwards `bearing_od` / `bearing_width` to *both* `HexHubNut` and
+  `BearingHexHousing`, so both ends of the fused body seat the identical bearing.
+- [ ] A runtime assertion prevents `_pocket_depth >= thickness` (pocket reaching the
+  union-seam face) from silently producing broken geometry.
+- [ ] `tests/rc/test_hex_hub_bearing.py` covers: pocket admits nominal 8.000 mm bearing (zero
+  interference); an oversized probe is rejected (positive control); pocket wall thickness
+  floor; pocket depth clears the union seam; the pre-existing `BearingHexHousing` oversized-probe
+  positive control is updated for the new `free`-grade pocket diameter (8.30 mm, not 8.08 mm).
+- [ ] Full test suite passes (no regressions in any other consumer of
+  `Bearing.outer_pocket()` — the parameter is additive/backward-compatible).
+- [ ] `vibe_cading/engine_api.json` regenerated (public constructor signatures changed) and
+  `pyproject.toml` `[project].version` bumped in the same PR (CI's `version-bump-guard`
+  requires this whenever `engine_api.json` changes).
+- [ ] The two `HexHubWithBearing` visual-contract SVGs
+  (`visual_contracts/2026-08-25-rc-hex-hub-bearing_design_{iso_ne,top}.svg`) are regenerated
+  via `check_visual_contract_freshness.py --update` to reflect the new visible pocket geometry;
+  no other registered visual contract drifts.
+- [ ] `CHANGELOG.md` gets an `[Unreleased]` entry describing the change.
+- [ ] No new `build.toml` registration (none was requested, and the project rule requires
+  explicit human approval before adding one).
