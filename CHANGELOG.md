@@ -24,9 +24,14 @@ section to the new version and date.
   `FreespinHexHub`, `HexHubNut`, and `BearingHexHousing` each previously
   duplicated independently — `FreespinHexHub` and `HexHubNut` now delegate
   their pocket-dimension properties to the shared formula (verified
-  behavior-identical by a regression test comparing each class's output
-  against the shared formula directly). Pure refactor — no consumer's
-  printed geometry changes. See `TODO.md`'s "Consolidate blind bearing-pocket
+  behavior-identical by a regression test that computes each consumer's
+  expected diameter/depth independently, from the original inline formula
+  against an explicit fit-grade profile — not by re-deriving "expected" via
+  the same shared call under test, which couldn't catch a drift in the
+  shared formula's own defaults). `MR85_ID` was previously importable from
+  `vibe_cading.rc.freespin_hex_hub` (unused there) and is no longer —
+  import it from `vibe_cading.mechanical.bearings` instead. Pure refactor —
+  no consumer's printed geometry changes. See `TODO.md`'s "Consolidate blind bearing-pocket
   sizing" entry (flagged in PR #88's review cycle).
 
 ### Changed
