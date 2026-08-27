@@ -42,7 +42,27 @@ found, since this is the view most likely to expose them.
 under a 3-stud (24.0 mm) bottom layer alongside a 20 mm pack: the stack
 (cover plate 1.2 + tray floor 1.5 + pack 20.0 + strap 1.8 = 24.5 mm) blew
 the 22.0 mm available below the deck by 2.5 mm even after the tray's raised
-floor standoff was reclaimed. Per the user's round-22 direction the tray was
+floor standoff was reclaimed.
+
+**Round 47 -- the 20 mm pack figure above is WRONG, and the box is 0.1 mm
+too short.** The target pack (Spektrum SPMX812SH2) is listed by every
+vendor at 58 x 32 x 20 mm, which is what rounds 22-46 designed against.
+Caliper-measured on the real part, it is **20.9 mm** tall. The interior is
+``DECK_Z - DECK_THICKNESS - PLATE_THICKNESS`` = 24.0 - 2.0 - 1.2 =
+**20.800 mm** (measured on the built solids, not just derived: the deck
+underside is at Z = 22.000 exactly, flat across the whole footprint), so
+the real pack interfered by 0.100 mm and held the Cover proud of its latch.
+X and Y were never the problem -- the pack has 12.0 mm of free width each
+side.
+
+**Fixed in the same round** by thinning the deck: ``DECK_THICKNESS``
+2.000 -> 1.600, so the interior is 21.200 mm and the measured pack clears
+by 0.300 mm. The user chose this over raising ``DECK_STUDS``, so the
+external 3-stud / 24.000 mm height is deliberately unchanged. Guarded by
+``test_interior_clears_the_target_battery``, which measures the built
+solids against the pack rather than re-deriving the constants -- until
+round 47 every test here checked the two printed parts against each other
+and none checked them against their payload. Per the user's round-22 direction the tray was
 deleted outright and its side extraction tabs re-homed onto
 :class:`PoweredUpHubCover` (which already spans the same |X| = 27.200 mm
 edge), so the pack now sits directly on the cover with the handles still

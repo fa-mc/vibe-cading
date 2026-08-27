@@ -137,12 +137,31 @@ class PoweredUpHubCover:
           surface, still judged non-blocking (max radial error < 0.03 mm).
         - The tongue's distal *tip* (the actual 0.926 mm-thick, |X| <=
           TONGUE_X_HALF = 15.600 mm retention blade) is modelled as one
-          uniform-thickness blade spanning the full measured
-          tongue-to-ledge Y range, rather than reproducing the 6 locating
-          teeth or the ledge notches between them -- confirmed
-          non-load-bearing for either mating interface in the design brief
-          (dropped from the Housing side outright; the Tray side only
-          needs the groove, not the teeth).
+          uniform *thickness* spanning the full measured tongue-to-ledge Y
+          range. (The 6 locating teeth and the notches between them are no
+          longer a simplification -- round 22 restored them in full; see
+          :attr:`TOOTH_X_BANDS`.)
+        - **Tongue segmentation -- no longer a simplification either
+          (round 45).** Rounds 18-44 built the tongue as one continuous
+          slab across the width; the reference is four separate blades
+          (|X| in [0.800, 15.600] and [17.200, 26.000]) with 1.600 mm gaps
+          that receive the housing's own locating ribs. The gaps are now
+          cut -- see :attr:`TONGUE_GAP_X_INNER`. Measured over the tongue
+          region against the reference, worst-direction surface agreement
+          went 91.2% -> 98.8%; the residual that the slab carried sat
+          exactly on the four blade boundaries, which is what the earlier
+          rounds read as "reinforcements at both edges".
+          **Mirrored on the Housing in round 46**, which was the other
+          half of this: ``PoweredUpHubHousing._build_tongue_ribs`` now
+          builds the three mirrored rib pairs that enter these slots, so
+          the reference's +-X location at this end (SS12.2's "Sideways ->
+          located") is present rather than merely implied by a slot with
+          nothing in it. Each flank carries ``profile.free.radial``
+          clearance, measured: the ribs contribute no interference to a
+          sideways displacement within that clearance and a growing one
+          beyond it, and none at all to withdrawal along -Y. The lap
+          retention, which is what the tongue is for, is unaffected
+          either way -- it bears on the ledge in Z.
         - **Tongue B's own plan-outline footprint restored (round 20,
           finding C4, supersedes round 18's "just document it" triage).**
           Round 18 (finding S6) omitted Tongue B (the outer pair,
@@ -210,6 +229,25 @@ class PoweredUpHubCover:
     TONGUE_Y_HI = 34.400
     RISER_Z_HI = 2.800
     TIP_Z_LO = 1.874
+
+    # --- Tongue segmentation (round 45) ---
+    # The reference tongue is NOT one continuous slab: rays along X give
+    # four separate blades, |X| in [0.800, 15.600] (Tongue A, the pair
+    # either side of the centreline) and [17.200, 26.000] (Tongue B), with
+    # 1.600 mm gaps between them. The gaps are where the HOUSING's own ribs
+    # sit -- ldraw-housing-geometry.md SS12.2 T1/T2/T3 measures the slot
+    # side walls at |X| = 0.800 / 15.600 / 17.200 / 26.000 and the ribs
+    # between the slots at |X| 15.600..17.200 and 26.000..28.000. Those
+    # walls are what locate the lid in +-X; a continuous slab could not
+    # enter the slots at all on the real part.
+    # Rounds 18-22 built the tongue as one slab and the residual deviation
+    # sat exactly on these four boundaries (the reference reading as
+    # "reinforcements at both edges" -- an artefact of the segmentation,
+    # not ribs added to a blade). Cut here as gaps rather than built as
+    # four bodies, so TONGUE_X_HALF / RISER_X_HALF keep their meaning as
+    # the tongue's outer bounds.
+    TONGUE_GAP_X_INNER = 0.800   # centre gap is |X| <= this (half-width)
+    TONGUE_RIB_X_HI = 17.200     # rib gap spans TONGUE_X_HALF .. this
 
     # --- Locating groove / land (SS1.5) -- RESTORED round 22 ---
     # The inner face steps 1.200 -> 1.600 mm deep over Y in [30.0, 31.2],
@@ -367,8 +405,12 @@ class PoweredUpHubCover:
     HANDLE_PAD_X = 28.000         # 0.800 mm proud
     HANDLE_PAD_Y_HALF = 12.000    # 24.000 long
     HANDLE_PAD_Z_HI = 8.400
-    HANDLE_LEDGE_X = 28.400       # 1.200 mm proud -- the fingernail undercut
-    HANDLE_LEDGE_Y_HALF = 8.400
+    HANDLE_LEDGE_X = 28.400       # 1.200 mm proud -- the border's own face
+    HANDLE_LEDGE_Y_HALF = 8.400   # the corner round-over's centre |Y|
+    # The border's TOP segment -- still exactly these two planes, and still
+    # the fingernail undercut. Rounds 22-46 built this segment alone, as a
+    # straight band; round 47 keeps it and adds the two side legs and the
+    # corners that carry it round. See HANDLE_FRAME_WIDTH.
     HANDLE_LEDGE_Z_LO = 7.200
     HANDLE_LEDGE_Z_HI = 8.400
     HANDLE_RIB_X = 28.320         # 0.320 mm proud of the pad
@@ -381,6 +423,30 @@ class PoweredUpHubCover:
     # Y = +-HANDLE_PAD_Y_HALF at that Z up to Z = HANDLE_PAD_Z_HI.
     HANDLE_ROUND_R = 3.600
     HANDLE_ROUND_CZ = 4.800
+    # --- The tab's raised border (round 47) ---
+    # SS2.3 describes X = +-28.400 as a straight "finger ledge" over
+    # Y +-8.400, z 7.200..8.400. Read off 24849's own triangles, that plane
+    # spans the tab's WHOLE envelope (Y +-12.000, z 0..8.400) at only
+    # 42.702 mm^2 -- about 21% of its own bounding box, which no solid band
+    # can be. It is a BORDER following the tab outline round three edges
+    # (up one side, over the top through both corner rounds, back down the
+    # other), open at the plate; the pad face at X = 28.000 is the recessed
+    # interior it encloses, and SS2.3's "R 2.400 quarter-round recess at
+    # each corner" is that interior's own corner, not a separate feature.
+    #
+    # The border is a UNIFORM 1.200 mm wide, which is what makes it cheap to
+    # express: the interior profile is the outer profile offset inward by
+    # that one number, and all three measured pairs agree exactly --
+    #   side     12.000 - 1.200 = 10.800   (measured 10.800)
+    #   corner    3.600 - 1.200 =  2.400   (measured 2.400, same centre)
+    #   top       8.400 - 1.200 =  7.200   (measured 7.200)
+    # so no second set of literals is introduced for a shape that is one
+    # offset of the first. The round-over centre (HANDLE_ROUND_CZ,
+    # HANDLE_LEDGE_Y_HALF) is shared by both profiles, which is why the
+    # offset is exact rather than approximate -- the same property
+    # PoweredUpHubHousing._build_side_window relies on for its own outward
+    # offset of this outline.
+    HANDLE_FRAME_WIDTH = 1.200
 
     def __init__(self, profile: ToleranceProfile | str | None = None) -> None:
         if profile is None or isinstance(profile, str):
@@ -636,7 +702,45 @@ class PoweredUpHubCover:
                 self.TIP_Z_LO,
             ),
         )
-        return riser_inner.union(riser_outer).union(tip)
+        tongue = riser_inner.union(riser_outer).union(tip)
+
+        # Round 45 -- segment the tongue into the reference's four blades.
+        # One cutter per gap, spanning the tongue's whole Y and Z extent so
+        # the slot is open on every face the housing rib has to pass; the
+        # overcut keeps the cutter off the tongue's own bounding faces
+        # (coincident faces are unreliable in the OCCT boolean kernel --
+        # see CLAUDE.md, *Chord-vs-arc ring*). The centre gap runs the full
+        # depth (the reference rebate's own side walls stand at |X| =
+        # 0.800 over the tip band, SS12.2 T4); the rib gaps only ever meet
+        # material out to TONGUE_STEP_Y, since the tip is |X| <=
+        # TONGUE_X_HALF, but are cut to the same depth for one shape.
+        # The -Y overcut is safe *here* and only here: this cut is applied
+        # to the tongue alone, before it is unioned with the plate, and the
+        # tongue carries no material below PLATE_Y_HI -- so the overcut
+        # buys a clean non-coincident cutter face at the plate seam without
+        # touching the full-width plate or the ledge teeth that straddle it.
+        oc = 1.0
+        gap_y_lo = self.PLATE_Y_HI - oc
+        gap_y_hi = self.TONGUE_Y_HI + oc
+        gap_bands = [(-self.TONGUE_GAP_X_INNER, self.TONGUE_GAP_X_INNER)]
+        for sign in (-1.0, 1.0):
+            lo, hi = sorted((sign * self.TONGUE_X_HALF, sign * self.TONGUE_RIB_X_HI))
+            gap_bands.append((lo, hi))
+        for x_lo, x_hi in gap_bands:
+            tongue = tongue.cut(
+                rounded_box(
+                    width=x_hi - x_lo,
+                    depth=gap_y_hi - gap_y_lo,
+                    height=self.RISER_Z_HI + 2 * oc,
+                    corner_r=0.0,
+                    center=(
+                        (x_lo + x_hi) / 2.0,
+                        (gap_y_lo + gap_y_hi) / 2.0,
+                        -oc,
+                    ),
+                )
+            )
+        return tongue
 
     def _build_locating_groove(self) -> cq.Workplane:
         """The full-width locating land over ``[GROOVE_Y_LO, GROOVE_Y_HI]``
@@ -715,29 +819,56 @@ class PoweredUpHubCover:
         hole rather than the shaft and this part keeps the reference's own
         dimensions.
         """
-        yh, r, cz = self.HANDLE_PAD_Y_HALF, self.HANDLE_ROUND_R, self.HANDLE_ROUND_CZ
-        ly, zhi = self.HANDLE_LEDGE_Y_HALF, self.HANDLE_PAD_Z_HI
+        cz, ly = self.HANDLE_ROUND_CZ, self.HANDLE_LEDGE_Y_HALF
 
-        # YZ outline: up one side, round over, across the top, round back down.
-        wp = (
-            cq.Workplane("YZ")
-            .transformed(offset=cq.Vector(0.0, 0.0, side * self.HANDLE_ROOT_X))
-            .moveTo(-yh, 0.0)
-            .lineTo(-yh, cz)
-            .threePointArc(
-                (-ly - r * 0.7071, cz + r * 0.7071),   # 45 deg point on the round
-                (-ly, zhi),
+        def _outline(x_at: float, inset: float) -> cq.Workplane:
+            """The tab's YZ outline at ``x_at``, shrunk by ``inset``.
+
+            Up one side, round over, across the top, round back down. Both
+            the tab's own profile (``inset = 0``) and the border's interior
+            (``inset = HANDLE_FRAME_WIDTH``) are this one curve -- the
+            round-over centre is shared, so an inset moves the sides, the
+            top and the arc radius by the same amount and nothing needs
+            re-deriving. See :attr:`HANDLE_FRAME_WIDTH`.
+            """
+            yh = self.HANDLE_PAD_Y_HALF - inset
+            r = self.HANDLE_ROUND_R - inset
+            zhi = self.HANDLE_PAD_Z_HI - inset
+            d = r * 0.7071                      # 45 deg point on the round
+            return (
+                cq.Workplane("YZ")
+                .transformed(offset=cq.Vector(0.0, 0.0, side * x_at))
+                .moveTo(-yh, 0.0)
+                .lineTo(-yh, cz)
+                .threePointArc((-ly - d, cz + d), (-ly, zhi))
+                .lineTo(ly, zhi)
+                .threePointArc((ly + d, cz + d), (yh, cz))
+                .lineTo(yh, 0.0)
+                .close()
             )
-            .lineTo(ly, zhi)
-            .threePointArc((ly + r * 0.7071, cz + r * 0.7071), (yh, cz))
-            .lineTo(yh, 0.0)
-            .close()
-        )
-        # The YZ workplane's normal is +X regardless of `side`, so the
+
+        # The YZ workplane's normal is +X regardless of `side`, so every
         # extrusion must be signed or the -X handle grows inboard, detaches
         # from its own ledge and the part stops being a single solid.
-        depth = self.HANDLE_PAD_X - self.HANDLE_ROOT_X
-        pad = wp.extrude(side * depth)
+        pad = _outline(self.HANDLE_ROOT_X, 0.0).extrude(
+            side * (self.HANDLE_PAD_X - self.HANDLE_ROOT_X)
+        )
+
+        # Round 47 -- the raised border round three edges (SS2.3 re-read from
+        # 24849's triangles; see HANDLE_FRAME_WIDTH). Built as the tab's own
+        # outline minus its inset copy, so the border cannot drift from the
+        # profile it is supposed to trace. The cutter carries an X overcut on
+        # both ends: its side faces would otherwise be coincident with the
+        # ring's own bounding faces, which the OCCT boolean kernel handles
+        # unreliably (CLAUDE.md, *Chord-vs-arc ring*).
+        oc = 1.0
+        frame_depth = self.HANDLE_LEDGE_X - self.HANDLE_PAD_X
+        frame = _outline(self.HANDLE_PAD_X, 0.0).extrude(side * frame_depth)
+        frame = frame.cut(
+            _outline(self.HANDLE_PAD_X - oc, self.HANDLE_FRAME_WIDTH)
+            .extrude(side * (frame_depth + 2 * oc))
+        )
+        pad = pad.union(frame)
 
         def _band(x_face, y_half, z_lo, z_hi):
             x_lo = min(side * self.HANDLE_PAD_X, side * x_face)
@@ -750,10 +881,12 @@ class PoweredUpHubCover:
                 center=((x_lo + x_hi) / 2.0, 0.0, z_lo),
             )
 
-        handle = pad.union(
-            _band(self.HANDLE_LEDGE_X, self.HANDLE_LEDGE_Y_HALF,
-                  self.HANDLE_LEDGE_Z_LO, self.HANDLE_LEDGE_Z_HI)
-        )
+        # No separate ledge band: rounds 22-46 unioned one here over
+        # Y +-HANDLE_LEDGE_Y_HALF, z [HANDLE_LEDGE_Z_LO, HANDLE_LEDGE_Z_HI].
+        # The border's top segment spans exactly those two planes and is
+        # wider, so that band is now a strict subset of it and its union a
+        # no-op. Dropped rather than left as dead geometry.
+        handle = pad
         for z_lo, z_hi in (self.HANDLE_RIB_1_Z, self.HANDLE_RIB_2_Z):
             handle = handle.union(
                 _band(self.HANDLE_RIB_X, self.HANDLE_RIB_Y_HALF, z_lo, z_hi)

@@ -132,7 +132,7 @@ class PoweredUpHubHousing:
     Integrity convention):
         - **Top deck** modelled as a solid slab, ``DECK_THICKNESS``
           (2.082 mm) thick, spanning ``Z`` in
-          ``[DECK_Z - DECK_THICKNESS, DECK_Z]`` (``[22.000, 24.000]``)
+          ``[DECK_Z - DECK_THICKNESS, DECK_Z]`` (``[22.400, 24.000]``)
           rather than a hollow shell -- the real deck's own *internal*
           structure (corrugated AA-cell cradle ceiling, four connector-port
           keying ribs, one asymmetric screw boss) is genuinely unreadable
@@ -299,10 +299,29 @@ class PoweredUpHubHousing:
     # underside would clear PoweredUpHubBatteryTray's own top face. That
     # tray no longer exists (round 22), so there is nothing under the deck
     # to clear and the derived value would be a clearance against nothing.
-    # 2.000 mm puts the underside at DECK_Z - 2.000 = 22.000 mm, which is
-    # exactly WALL_STEP_Z -- the deck seats on the side walls' own upper
-    # band rather than floating at an arbitrary offset.
-    DECK_THICKNESS = 2.000
+    #
+    # Round 47: 2.000 -> 1.600, on a caliper measurement of the real pack.
+    # The 2.000 figure was chosen because it put the underside at
+    # DECK_Z - 2.000 = 22.000 = WALL_STEP_Z, so the deck seated on the side
+    # walls' own upper band rather than floating at an arbitrary offset.
+    # That was tidy, and it was also 0.100 mm too thick to hold the battery
+    # this box exists for. Interior height is
+    # DECK_Z - DECK_THICKNESS - PoweredUpHubCover.PLATE_THICKNESS; at 2.000
+    # that is 20.800 mm, and the target pack (Spektrum SPMX812SH2)
+    # measures 20.900 mm tall on the real part -- every vendor lists it as
+    # 20 mm, which is what rounds 22-46 designed against. A pack 0.100 mm
+    # proud holds the Cover off its own latch, so this is a functional
+    # miss, not a cosmetic one.
+    #
+    # 1.600 puts the underside at 22.400 and the interior at 21.200 --
+    # 0.300 mm of clearance on the measured pack. The deck no longer lands
+    # on WALL_STEP_Z; it now sits 0.400 mm above it, which costs the
+    # seats-on-the-step relationship and nothing structural (the wall's
+    # upper band continues past the step either way). The user chose this
+    # over raising DECK_STUDS, so the external 3-stud / 24.000 mm height --
+    # the round-22 decision -- is deliberately preserved. 1.600 mm is still
+    # four perimeters at a 0.4 mm nozzle.
+    DECK_THICKNESS = 1.600
 
     # Round 22 -- the deck spans the FULL Y envelope again.
     # Round 21 (RH1) narrowed it to [-32.000, 33.200] because the real
@@ -318,8 +337,76 @@ class PoweredUpHubHousing:
     # --- Side walls (X-direction, stepped -- SS4) ---
     WALL_THICKNESS = 0.800
     WALL_STEP_Z = 22.000
+    # --- Plate-edge running clearance (round 48) ---
+    # The Cover's plate is PLATE_WIDTH/2 = 27.200 mm half-width and this
+    # wall's inner face is WALL_X_OUTER_LOWER - WALL_THICKNESS = 27.200 mm.
+    # Both are reference-measured, and they are the SAME number, so the two
+    # parts butted at zero clearance along the whole 62.8 mm length -- the
+    # lid had to be pushed through a slot exactly its own width. Measured
+    # before the fix: a 0.050 mm sideways displacement already produced
+    # 2.366 mm^3 of interference against these two faces, which is what
+    # made the round-46 tongue ribs' own 0.150 mm clearance moot.
+    #
+    # The clearance goes on the HOUSING, and locally. Shrinking the plate
+    # was the obvious alternative and is wrong here: PoweredUpHubCover's
+    # side tabs root at HANDLE_ROOT_X = 27.200, an independent literal, so
+    # a narrower plate would leave them floating clear of it and the Cover
+    # would stop being one solid.
+    #
+    # Local, because the plate edge is short: measured against the built
+    # Cover it stands 1.200 mm tall over almost the whole length, rising to
+    # GROOVE_THICKNESS (1.600) at the tongue end and LATCH_BAND_THICKNESS
+    # (2.000) at the latch end. Only that band needs relief, so the wall
+    # keeps its full 0.800 mm section everywhere above it and thins to
+    # 0.650 mm only in a 2 mm strip at the bottom rim, where it carries no
+    # load (the Cover IS the floor -- this rim meets nothing).
+    # Inboard/downward overcut for the relief cutter. Kept small and named
+    # because the first version's 1.0 mm ate the tongue ribs -- see
+    # _build_plate_edge_relief. 0.300 mm clears the wall's own inner face
+    # without reaching anything that stands in the interior.
+    _RELIEF_X_OVERCUT = 0.300
+    PLATE_EDGE_RELIEF_Z_HI = max(
+        PoweredUpHubCover.PLATE_THICKNESS,
+        PoweredUpHubCover.GROOVE_THICKNESS,
+        PoweredUpHubCover.LATCH_BAND_THICKNESS,
+    )
     WALL_X_OUTER_LOWER = 28.000   # |X| outer face, Z < WALL_STEP_Z
-    WALL_X_OUTER_UPPER = 27.200   # |X| outer face, Z >= WALL_STEP_Z
+    WALL_X_OUTER_UPPER = 27.200   # |X| outer face inside the socket, and above it
+    # --- Trapezoid mating socket, outer face of each side wall (round 50) ---
+    # Measured off 25560.dat. Rounds 16-49 read the design doc's SS4 line
+    # "side-wall step at 22.0" as a step running the WHOLE length, and built
+    # the wall recessed to 27.200 above Z = 22 everywhere -- which is the
+    # socket smeared across the entire wall, so no socket at all. SS4 also
+    # records that step's own extent, "z +-23" (= Y +-9.200), but the table
+    # does not say that is a LOCAL feature and nothing downstream noticed.
+    #
+    # Ray-cast against the reference, the outer face steps back at:
+    #     Y = 0, +-6  (inside)  -> Z = 22.000
+    #     Y = +-12, +-15 (outside) -> Z = 24.000
+    # i.e. a trapezoidal patch where the recess dips 2 mm lower than the
+    # surrounding wall. Its own panel at X = 27.200 measures 40.800 mm^2,
+    # exactly (18.400 + 22.400) / 2 * 2.000 -- an isosceles trapezoid with
+    # 45-degree flanks, narrow edge down:
+    #
+    #   Z=24.000  (-11.200) ----------------- (+11.200)
+    #                        \               /
+    #   Z=22.000    (-9.200) ----------------- (+9.200)
+    #
+    # The wall is locally DOUBLE thickness so the recess is a real pocket and
+    # not a hole: the inner face steps 27.200 -> 26.400 at Z = 21.200 (the
+    # reference's own X = 26.400 panel starts there), giving 1.600 mm of wall
+    # over Z 21.200..24.000, of which the socket removes the outboard 0.800.
+    # Inside the socket the wall is back to a normal 0.800 section.
+    #
+    # Intended as the mating point for a future cap (user, round 50). In the
+    # reference the socket is a closed recess in a wall that continues up to
+    # 29.600; this part stops at DECK_Z = 24.000, so its top edge IS the top
+    # of the part and the socket reads as a notch open upward -- which is what
+    # makes it usable as a cap register.
+    SOCKET_Z_LO = 22.000          # == the old WALL_STEP_Z, now a local datum
+    SOCKET_Y_HALF_LO = 9.200      # narrow (lower) edge half-width
+    SOCKET_Y_HALF_HI = 11.200     # wide (upper) edge half-width, at DECK_Z
+    WALL_INNER_STEP_Z = 21.200    # where the wall doubles to 1.600 mm
 
     # Round 22: the end walls run the shell's full height, which is now
     # the same 24.000 mm they were already capped at by round 21 (RH1) --
@@ -348,6 +435,49 @@ class PoweredUpHubHousing:
     # the part, to fit a cut that was the thing modelled wrong. This is
     # exactly the chord-vs-arc pitfall in vibe/INSTRUCTIONS.md, and the fix
     # the pitfall prescribes is to cut the true arc, not to trim the part.
+
+    # --- Cord pass-through in the deck (round 49) ---
+    # User-requested opening for the battery lead. Sized 20.0 x 10.0 clear so
+    # an EC3-class connector passes, not just the IC2 the pack ships with.
+    #
+    # ORIENTATION IS FORCED, not chosen. The pack fills the box: 20.9 mm of
+    # 21.2 in Z (0.3 mm -- nothing routes over the top) and 58.0 of 62.8 in Y
+    # (2.4 mm at each end). The only real room is beside it in X, and at DECK
+    # level that channel is 10.4 mm wide, not the 11.2 it is lower down,
+    # because the side wall steps inward at WALL_STEP_Z to an inner face of
+    # WALL_X_OUTER_UPPER - WALL_THICKNESS = 26.400. So the 20 runs along Y and
+    # the 10 across X, and the slot very nearly fills the channel's width.
+    #
+    # The OUTBOARD edge sits FLUSH with the stepped side wall's inner face
+    # (26.400) rather than a little short of it. Stopping short would leave a
+    # 20 mm long, sub-millimetre ligament of deck spanning between hole and
+    # wall: fragile, and about one extrusion wide. Flush, the deck simply ends
+    # where the wall begins.
+    #
+    # The -Y edge does NOT go flush with the latch end wall (-30.800), which
+    # was the first attempt. Measured against the built Cover, two of ITS
+    # features reach into this channel there: the latch U at X 16.4..19.2 up
+    # to Y = -30.700 and Z = 12.160, and the latch band (the plate's own
+    # 1.200 -> 2.000 thickening) out to LATCH_BAND_Y_HI. A slot flush with the
+    # wall cleared the deck slab but the connector fouled the U on the way
+    # down -- a hole is not a route. Taking the Cover's own LATCH_BAND_Y_HI as
+    # the datum clears both, and leaves a 0.800 mm strip of deck between slot
+    # and end wall: not a free ligament, since it is continuous with the deck
+    # capping the wall, and 0.800 is this part's ordinary wall section anyway.
+    #
+    # This puts the slot 6.0 mm off the reference's own forward port centre
+    # (SS7.3: Y = -24.000, 13.600 long). A 20 mm opening cannot be centred
+    # there regardless -- it would reach Y = -34.000, into the end wall's top.
+    # The slot still sits within that port's channel, just pushed inboard.
+    CORD_PORT_WIDTH = 10.000     # X, across the side channel
+    CORD_PORT_LENGTH = 20.000    # Y, along the box
+    # Corner radius, plus the margin that keeps the CLEAR opening at the full
+    # 20.0 x 10.0. A sharp-cornered box of half-extents (a, b) passes a
+    # rounded slot of half-extents (a+m, b+m) with radius r only when
+    # m >= r(1 - 1/sqrt(2)) ~= 0.293r; at r = 1.000 that is 0.293, taken as
+    # 0.300. Without the margin the corners clip and the stated size is a lie.
+    CORD_PORT_CORNER_R = 1.000
+    CORD_PORT_MARGIN = 0.300
 
     # --- Pin-hole / arm map (SS1, SS2) ---
     HOLE_X = 32.000
@@ -480,6 +610,33 @@ class PoweredUpHubHousing:
     # kept for its docstring/reference value only.
     TONGUE_INNER_Y_UPPER = 34.400
 
+    # --- Tongue-end locating ribs (round 46), SS12.2 T1/T2/T3 ---
+    # The reference tongue end is a two-skin structure whose skins are
+    # joined by ribs, and the lid's tongue is not one slab but FOUR blades
+    # that slide into the slots BETWEEN those ribs.  Round 45 cut the four
+    # blades on the Cover (PoweredUpHubCover.TONGUE_GAP_X_INNER /
+    # .TONGUE_RIB_X_HI); this wall stayed full width, so the slots existed
+    # but nothing entered them -- costing the reference's own +/-X location
+    # at this end (SS12.2's "Sideways -> located" row).  These are the ribs
+    # that enter them.  Nominal X bands, measured (SS12.2 T1/T2/T3):
+    #
+    #   centre wall   |X| <= 0.800           between the two Tongue A slots
+    #   inner ribs    |X| 15.600 .. 17.200   Tongue A / Tongue B divider
+    #   outer ribs    |X| 26.000 .. 28.000   Tongue B / shell
+    #
+    # The outer band's |X| 27.200..28.000 is already the shell side wall;
+    # the rib is what fills it inboard to 26.000.
+    #
+    # Load-bearing status, stated plainly because the reference research is
+    # explicit about it (SS12.4, "What the single wall must provide"): the
+    # rebate is the retention, and these ribs are the *optional* X-location
+    # -- the shell's own side walls at |X| 27.200 already locate the lid,
+    # and the ribs only tighten it.  They are built because the Cover now
+    # carries the matching slots, so omitting them leaves the mating
+    # surface deliberately unpaired; they are NOT what holds the lid on.
+    TONGUE_RIB_CENTRE_X_HALF = 0.800
+    TONGUE_RIB_X_BANDS = ((15.600, 17.200), (26.000, 28.000))
+
     def __init__(self, profile: ToleranceProfile | str | None = None) -> None:
         if profile is None or isinstance(profile, str):
             prof = get_profile(profile) if isinstance(profile, str) else get_profile()
@@ -518,6 +675,8 @@ class PoweredUpHubHousing:
 
         body = body.cut(self._build_side_window(+1))
         body = body.cut(self._build_side_window(-1))
+        body = body.cut(self._build_plate_edge_relief())
+        body = body.cut(self._build_cord_port())
 
         assert len(body.solids().vals()) == 1, "Expected single solid, got multiple pieces"
         return body
@@ -527,38 +686,73 @@ class PoweredUpHubHousing:
     # ------------------------------------------------------------------
 
     def _build_side_wall(self, x_sign: int) -> cq.Workplane:
-        """One stepped side wall (SS4): 0.8 mm thick, full Y span, with the
-        outward 0.8 mm step at :attr:`WALL_STEP_Z`.
+        """One side wall, with the trapezoid mating socket in its outer face.
+
+        Three pieces, per the reference (see :attr:`SOCKET_Z_LO`):
+
+        1. ``[0, WALL_INNER_STEP_Z]`` -- plain 0.800 mm skin, outer face at
+           :attr:`WALL_X_OUTER_LOWER`.
+        2. ``[WALL_INNER_STEP_Z, DECK_Z]`` -- the wall doubles to 1.600 mm
+           by stepping its INNER face inboard to
+           ``WALL_X_OUTER_UPPER - WALL_THICKNESS``. This is what lets the
+           socket be a pocket rather than a hole.
+        3. The socket itself, cut out of that thickened band.
+
+        Rounds 16-49 instead built band 2 as a 0.800 mm skin recessed to
+        ``WALL_X_OUTER_UPPER``, i.e. the socket's own depth applied along
+        the whole wall. That is why this part had no socket: it was all
+        socket. The correction adds material outboard over
+        ``[SOCKET_Z_LO, DECK_Z]`` everywhere the trapezoid is not.
         """
+        overlap = 0.050
+        inner_upper = self.WALL_X_OUTER_UPPER - self.WALL_THICKNESS   # 26.400
+
+        # Band 1 runs slightly past the step. Its X span is a subset of band
+        # 2's, so the extra 0.050 mm is a genuine volume overlap that changes
+        # no face -- unlike the round-20 H5 trick it replaces, which widened
+        # an externally-visible face to buy the same overlap.
         lower = self._x_slab(
-            x_sign, self.WALL_X_OUTER_LOWER, self.WALL_THICKNESS, 0.0, self.WALL_STEP_Z
+            x_sign, self.WALL_X_OUTER_LOWER, self.WALL_THICKNESS,
+            0.0, self.WALL_INNER_STEP_Z + overlap,
         )
-        # The upper band's outer face (27.2 mm) is numerically identical to
-        # the lower band's *inner* face (28.0 - 0.8 = 27.2 mm) -- the two
-        # slabs' X-extents are adjacent, sharing only the single line
-        # X = 27.2 at Z = WALL_STEP_Z, not a 2D face or any 3D volume.
-        # OCCT's boolean fuse does not merge solids that only touch along
-        # an edge (this project's own "coincident faces" pitfall), so a
-        # tiny construction-only overlap (widen the upper band's outer
-        # face and drop its Z start slightly) is added here to guarantee
-        # a genuine overlapping union -- the resulting 0.05 mm ledge
-        # rounding is buried at the step corner, well under FDM tolerance.
-        # **Correction (round 20, H5)**: an earlier version of this comment
-        # claimed this "does not change any externally-visible dimension" --
-        # it does: the upper band's outer face becomes 27.250 mm instead of
-        # the nominal 27.200 mm, and that face IS the part's exterior
-        # (435.7 mm^2 of externally-visible area). Accepted as sub-print-
-        # resolution (0.050 mm), not a defect -- but the comment must not
-        # claim it is invisible.
-        overlap = 0.05
-        upper = self._x_slab(
-            x_sign,
-            self.WALL_X_OUTER_UPPER + overlap,
-            self.WALL_THICKNESS + overlap,
-            self.WALL_STEP_Z - overlap,
-            self.DECK_Z,
+        thickened = self._x_slab(
+            x_sign, self.WALL_X_OUTER_LOWER,
+            self.WALL_X_OUTER_LOWER - inner_upper,        # 1.600
+            self.WALL_INNER_STEP_Z, self.DECK_Z,
         )
-        return lower.union(upper)
+        return lower.union(thickened).cut(self._build_wall_socket(x_sign))
+
+    def _build_wall_socket(self, x_sign: int) -> cq.Workplane:
+        """The trapezoidal recess in one side wall's outer face.
+
+        Geometry and provenance: :attr:`SOCKET_Z_LO`. Cut from
+        :attr:`WALL_X_OUTER_UPPER` outward, so the surviving 0.800 mm of
+        wall inboard of it is a normal section and the socket floor lands
+        on the same plane the reference measures.
+
+        The profile is extended vertically above ``DECK_Z`` rather than by
+        continuing the 45-degree flanks, so the overcut cannot widen the
+        socket's mouth beyond its measured ``SOCKET_Y_HALF_HI``.
+        """
+        oc = 1.0
+        y_lo, y_hi = self.SOCKET_Y_HALF_LO, self.SOCKET_Y_HALF_HI
+        z_lo, z_hi = self.SOCKET_Z_LO, self.DECK_Z
+
+        profile = (
+            cq.Workplane("YZ")
+            .transformed(offset=cq.Vector(0.0, 0.0, x_sign * self.WALL_X_OUTER_UPPER))
+            .moveTo(-y_lo, z_lo)
+            .lineTo(y_lo, z_lo)
+            .lineTo(y_hi, z_hi)
+            .lineTo(y_hi, z_hi + oc)
+            .lineTo(-y_hi, z_hi + oc)
+            .lineTo(-y_hi, z_hi)
+            .close()
+        )
+        # The YZ workplane's normal is +X whatever the sign, so the extrusion
+        # must be signed or the -X socket is cut out of thin air inboard.
+        depth = self.WALL_X_OUTER_LOWER - self.WALL_X_OUTER_UPPER + oc
+        return profile.extrude(x_sign * depth)
 
     def _x_slab(
         self, x_sign: int, x_outer: float, thickness: float, z_lo: float, z_hi: float
@@ -576,6 +770,100 @@ class PoweredUpHubHousing:
             height=z_hi - z_lo,
             corner_r=0.0,
             center=((x_lo + x_hi) / 2.0, 0.0, z_lo),
+        )
+
+    def _build_plate_edge_relief(self) -> cq.Workplane:
+        """Running clearance for the Cover's plate edge against both side
+        walls -- see :attr:`PLATE_EDGE_RELIEF_Z_HI` for why it lives on
+        this part and why it is local.
+
+        One cutter per side, taking ``profile.free.radial`` off the wall's
+        inner face over the Z band the plate edge occupies. The same knob
+        every other Cover/Housing interface routes its fit through, so the
+        plate slides on the same allowance as the tongue back wall and the
+        round-46 tongue ribs rather than on a number invented here.
+
+        **Bounded in Y to the plate's own span, which is not optional.**
+        The first version ran the full Y envelope with a 1.0 mm inboard
+        overcut, on the assumption that everything inboard of the wall is
+        interior void. It is not: :meth:`_build_tongue_ribs` stands in
+        exactly that space from ``PLATE_Y_HI + clearance`` onward, and the
+        overcut ate 1.0 mm of the outer rib pair, leaving a 0.05 mm sliver
+        of what should be a 1.850 mm rib. The Cover's plate spans only
+        ``[PLATE_Y_LO, PLATE_Y_HI]``, so that is the only Y range with an
+        edge to relieve, and stopping there clears the ribs by the same
+        0.150 mm they are clearanced by.
+
+        Overcuts elsewhere are deliberate and each is bounded by something
+        known: inboard in X by ``_RELIEF_X_OVERCUT`` (well short of the
+        ribs' own inboard reach), downward in Z past the bottom face, and
+        0.200 mm into the latch wall at -Y so the cutter's end face is not
+        coincident with that wall's inner face at ``PLATE_Y_LO``.
+        Coincident faces are unreliable in the OCCT boolean kernel
+        (CLAUDE.md, *Chord-vs-arc ring*). The +Y end stops exactly on
+        ``PLATE_Y_HI``, where the only housing face is the tongue wall's
+        upper band -- which starts above this cut's own Z, so the two share
+        an edge and not a face.
+        """
+        clr = self._profile.free.radial
+        wall_inner = self.WALL_X_OUTER_LOWER - self.WALL_THICKNESS
+        z_hi = self.PLATE_EDGE_RELIEF_Z_HI + clr
+        y_lo = PoweredUpHubCover.PLATE_Y_LO - 0.200
+        y_hi = PoweredUpHubCover.PLATE_Y_HI
+
+        relief = None
+        for x_sign in (-1, +1):
+            near, far = wall_inner - self._RELIEF_X_OVERCUT, wall_inner + clr
+            x_lo = min(x_sign * near, x_sign * far)
+            x_hi = max(x_sign * near, x_sign * far)
+            cut = rounded_box(
+                width=x_hi - x_lo,
+                depth=y_hi - y_lo,
+                height=z_hi + self._RELIEF_X_OVERCUT,
+                corner_r=0.0,
+                center=((x_lo + x_hi) / 2.0, (y_lo + y_hi) / 2.0,
+                        -self._RELIEF_X_OVERCUT),
+            )
+            relief = cut if relief is None else relief.union(cut)
+        return relief
+
+    def _build_cord_port(self) -> cq.Workplane:
+        """The deck opening the battery lead passes through -- see
+        :attr:`CORD_PORT_WIDTH` for the sizing and why the orientation is
+        forced by the pack rather than chosen.
+
+        Positioned from its outboard edge (flush with the stepped side
+        wall) and its -Y edge (the Cover's own ``LATCH_BAND_Y_HI``, which
+        is what clears that part's latch structures below), extending
+        inboard and +Y from there into open deck.
+
+        Cut with a Z overcut on both ends: the deck is a slab and this
+        breaks fully through it, so neither cutter face should be
+        coincident with the deck's own top or underside (CLAUDE.md,
+        *Chord-vs-arc ring*). The overcut runs into free space above the
+        part and into the battery bay below, neither of which holds
+        anything -- unlike the round-48 relief, whose inboard overcut
+        reached into the tongue ribs. Verified by
+        ``test_cord_port_is_a_clear_opening_into_the_battery_bay``.
+        """
+        oc = 1.0
+        m = self.CORD_PORT_MARGIN
+
+        x_hi = self.WALL_X_OUTER_UPPER - self.WALL_THICKNESS      # 26.400
+        x_lo = x_hi - self.CORD_PORT_WIDTH
+        y_lo = PoweredUpHubCover.LATCH_BAND_Y_HI                  # -30.000
+        y_hi = y_lo + self.CORD_PORT_LENGTH
+
+        return rounded_box(
+            width=(x_hi - x_lo) + 2 * m,
+            depth=(y_hi - y_lo) + 2 * m,
+            height=self.DECK_THICKNESS + 2 * oc,
+            corner_r=self.CORD_PORT_CORNER_R,
+            center=(
+                (x_lo + x_hi) / 2.0,
+                (y_lo + y_hi) / 2.0,
+                self.DECK_Z - self.DECK_THICKNESS - oc,
+            ),
         )
 
     def _build_side_window(self, x_sign: int) -> cq.Workplane:
@@ -1201,7 +1489,9 @@ class PoweredUpHubHousing:
     # ------------------------------------------------------------------
 
     def _build_tongue_wall(self) -> cq.Workplane:
-        """Three Z bands (round 22 adds the third).
+        """Three Z bands (round 22 adds the third), plus the round-46
+        locating ribs (:meth:`_build_tongue_ribs`) that stand in the
+        cavity in front of them.
 
         1. ``[0, TONGUE_STEP_Z]`` -- the rebate, inner face at
            :attr:`TONGUE_INNER_Y_LOWER`. This is the lap the cover's
@@ -1218,6 +1508,11 @@ class PoweredUpHubHousing:
            and it needs no clearance channel, because the tongue is a
            low feature (it tops out at ``RISER_Z_HI``) rather than a
            full-height one like the latch U.
+
+        Round 46 adds the three mirrored rib pairs that enter the Cover's
+        own tongue slots -- see :meth:`_build_tongue_ribs`. They stand
+        inboard of band 1, in the cavity the two skins bound in the
+        reference, and tie bands 1 and 3 together in Z.
         """
         lower = self._y_slab(
             self.TONGUE_Y,
@@ -1243,7 +1538,85 @@ class PoweredUpHubHousing:
             self.END_WALL_Z_HI,
             inward=False,
         )
-        return lower.union(middle).union(upper)
+        return lower.union(middle).union(upper).union(self._build_tongue_ribs())
+
+    def _build_tongue_ribs(self) -> cq.Workplane:
+        """The three mirrored rib pairs that enter the Cover's tongue slots.
+
+        Geometry and provenance: see :attr:`TONGUE_RIB_X_BANDS`.  This
+        method owns only the *fit* -- where the nominal reference bands
+        get their clearance, and how the ribs tie into the wall bands
+        built by :meth:`_build_tongue_wall`.
+
+        **X -- clearance on every flank that faces a Cover blade.**  The
+        Cover's slots are cut at the nominal reference walls
+        (|X| = 0.800 / 15.600 / 17.200 / 26.000), so a rib built to the
+        same nominal is a zero-clearance literal-to-literal butt on both
+        flanks and will not enter the slot on FDM.  Each such flank is
+        pulled back by ``profile.free.radial`` -- the same running-fit
+        knob the tongue's own back wall already routes its insertion
+        datum through (see :attr:`TONGUE_INNER_Y_UPPER`).  The outer
+        band's ``28.000`` flank is the shell's own outer face with no
+        Cover material outboard of it, so it takes no clearance.
+
+        **Y -- each rib starts where its own slot actually opens.**  Out
+        to ``TONGUE_INNER_Y_LOWER``, where the rib merges into the rebate
+        band; but the -Y end is per-band, because the Cover's slots are
+        not all open to the same depth.  Outboard of
+        ``PoweredUpHubCover.LEDGE_X_HALF`` the slot runs back to the plate
+        edge (``PLATE_Y_HI``).  Inboard of it -- which is the centre rib
+        -- the Cover's castellated ledge closes the slot off at
+        ``LEDGE_Y_LO``: its notch floor (``NOTCH_FLOOR_Z``) is a
+        continuous full-ledge-width band over ``[TEETH_Y_LO, TEETH_Y_HI]``
+        and crosses the centre, so a centre rib run back to the plate edge
+        collides with it (measured: 0.130 mm^3 of interference).  Both
+        starts then take the same running clearance -- the +Y insertion
+        stop is the tongue tip against the back wall at
+        ``TONGUE_INNER_Y_UPPER``, so a rib butting a Cover face in -Y
+        would be a competing stop.
+
+        **Z.**  From the bottom face up to the same ``tongue_clear_z_hi``
+        the wall's upper band starts at, so each rib is continuous with
+        the rebate band below (in Y) and the thickened upper band above
+        (in Z) rather than floating.  Both joins carry a small overlap:
+        coincident union faces are unreliable in the OCCT boolean kernel
+        (see CLAUDE.md, *Chord-vs-arc ring*), and the overlap lands
+        strictly inside material this method does not own, so it adds no
+        volume.
+        """
+        clr = self._profile.free.radial
+        overlap = 0.050
+
+        y_hi = self.TONGUE_INNER_Y_LOWER + overlap
+        z_hi = PoweredUpHubCover.RISER_Z_HI + clr + overlap
+
+        # (x_lo, x_hi) after clearance, one entry per rib, both signs.
+        bands: list[tuple[float, float]] = [
+            (-self.TONGUE_RIB_CENTRE_X_HALF + clr, self.TONGUE_RIB_CENTRE_X_HALF - clr)
+        ]
+        for nom_lo, nom_hi in self.TONGUE_RIB_X_BANDS:
+            lo = nom_lo + clr
+            # Only the shell's own outer face has nothing to clear.
+            hi = nom_hi if nom_hi >= self.WALL_X_OUTER_LOWER else nom_hi - clr
+            for sign in (-1.0, 1.0):
+                bands.append(tuple(sorted((sign * lo, sign * hi))))
+
+        ribs = None
+        for x_lo, x_hi in bands:
+            under_ledge = max(abs(x_lo), abs(x_hi)) <= PoweredUpHubCover.LEDGE_X_HALF
+            y_lo = (
+                PoweredUpHubCover.LEDGE_Y_LO if under_ledge
+                else PoweredUpHubCover.PLATE_Y_HI
+            ) + clr
+            rib = rounded_box(
+                width=x_hi - x_lo,
+                depth=y_hi - y_lo,
+                height=z_hi,
+                corner_r=0.0,
+                center=((x_lo + x_hi) / 2.0, (y_lo + y_hi) / 2.0, 0.0),
+            )
+            ribs = rib if ribs is None else ribs.union(rib)
+        return ribs
 
     def _y_slab(
         self, y_outer: float, thickness: float, z_lo: float, z_hi: float, *, inward: bool

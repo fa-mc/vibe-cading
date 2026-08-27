@@ -54,6 +54,157 @@ section to the new version and date.
   deleted tray's bottom rim, so it now registers nothing.
 
 ### Changed
+- **`PoweredUpHubHousing` gives the Cover's plate edge a running clearance**
+  (round 48). `PoweredUpHubCover.PLATE_WIDTH/2` and this class's own
+  `WALL_X_OUTER_LOWER − WALL_THICKNESS` are both `27.200 mm` — both
+  reference-measured, and the same number — so the lid had to pass through a
+  slot exactly its own width over the full `62.8 mm` length. Seated
+  interference could never catch it (faces that touch without overlapping
+  measure `0.000 mm³`); a `0.050 mm` sideways displacement already produced
+  `2.366 mm³`, which is what made the round-46 tongue ribs' own `0.150 mm`
+  clearance moot. New `_build_plate_edge_relief` takes `profile.free.radial`
+  off the wall's *inner* face over the Z band the plate edge occupies
+  (`PLATE_EDGE_RELIEF_Z_HI`, derived as the max of the Cover's own
+  `PLATE_THICKNESS` / `GROOVE_THICKNESS` / `LATCH_BAND_THICKNESS` = `2.000`).
+  The clearance goes on the housing because shrinking the plate would leave
+  the side tabs — which root at the independent literal `HANDLE_ROOT_X =
+  27.200` — floating clear of it, breaking the Cover into two solids. Local
+  because the plate edge is short: the wall keeps its full `0.800 mm` section
+  above the band and thins to `0.650 mm` only in a 2 mm strip at the bottom
+  rim, which carries no load (the Cover *is* the floor). The relief is bounded
+  in Y to the plate's own `[PLATE_Y_LO, PLATE_Y_HI]` span — a first version ran
+  the full envelope with a 1.0 mm inboard overcut on the assumption that
+  everything inboard of the wall is void, and ate most of the round-46 outer
+  rib pair (1.850 mm rib reduced to a 0.050 mm sliver) before
+  `test_tongue_ribs_interleave_with_the_cover_tongue_slots` caught it. The lid
+  is now free sideways to exactly `±0.150 mm` and locates beyond it, under both
+  the shipped `fdm_standard` and the local `bambu_p1s` profile.
+
+### Added
+- **The trapezoid mating socket in each side wall's outer face** (user
+  direction, round 50) — the intended register for a future cap. Measured off
+  `25560.dat`: an isosceles trapezoid at `X = 27.200`, narrow edge down,
+  `18.400 mm` wide at `Z = 22.000` opening to `22.400 mm` at `Z = 24.000`,
+  45° flanks, area `40.800 mm²` = `(18.4+22.4)/2 × 2` exactly. New constants
+  `SOCKET_Z_LO`, `SOCKET_Y_HALF_LO`, `SOCKET_Y_HALF_HI`, `WALL_INNER_STEP_Z`.
+- **Corrected: the side wall's outer step was never a full-length feature.**
+  Rounds 16–49 read the design doc's §4 line *"side-wall step at 22.0"* as
+  running the whole wall and recessed the outer face to `27.200` above
+  `Z = 22` everywhere — which is the socket's own depth applied along the
+  entire length, so the part had no socket because it was *all* socket. §4
+  does record that step's extent (`z ±23` = `Y ±9.200`) but never says it is
+  local. Ray-cast against the reference the outer face steps back at
+  `Z = 22.000` inside the trapezoid and `Z = 24.000` outside it. The wall now
+  runs `28.000` outer for its full height, doubling to `1.600 mm` at
+  `WALL_INNER_STEP_Z = 21.200` (the reference's own `X = 26.400` panel starts
+  there) so the socket is a pocket and not a hole. Verified by ray-section at
+  four stations against Philo's own geometry, and the wall immediately below
+  the socket band measures **100.0% agreement, mean 0.000 mm** against the
+  reference. Battery fit is unaffected — interior height is unchanged and the
+  pack is `±16.0` against a wall that thickens to `26.400`. Guarded by
+  `test_side_wall_carries_the_trapezoid_mating_socket`, whose falsifier is
+  locality: the pre-round-50 geometry reads `27.200` at both stations.
+- **A cord pass-through in `PoweredUpHubHousing`'s deck** (user direction,
+  round 49) — `CORD_PORT_WIDTH` × `CORD_PORT_LENGTH` = `10.0 × 20.0 mm` clear,
+  sized so an EC3-class connector passes, not just the IC2 the pack ships with.
+  **The orientation is forced, not chosen**: the pack fills the box (`20.9` of
+  `21.2 mm` in Z, `58.0` of `62.8` in Y), so the only route is the side channel
+  beside it — and at deck level that channel is `10.4 mm` wide, not the `11.2`
+  it is lower down, because the wall steps inward at `WALL_STEP_Z`. So the 20
+  runs along Y. The outboard edge is flush with the stepped wall's inner face
+  (`26.400`); a slot stopping short would leave a 20 mm long, one-extrusion-wide
+  ligament of deck. The `−Y` edge derives from `PoweredUpHubCover.LATCH_BAND_Y_HI`
+  rather than the latch end wall: flush with the wall cut a perfectly good
+  opening that a connector could **not descend through**, because the Cover's
+  latch U reaches `Y = −30.700`, `Z = 12.160` into that channel — a hole is not
+  a route. `CORD_PORT_MARGIN` keeps the clear opening at the full `20 × 10`
+  despite the `1.000 mm` corner radius (a sharp box needs `m ≥ r(1−1/√2)`).
+  Guarded by `test_cord_port_is_a_clear_opening_into_the_battery_bay`, which
+  pushes a solid block down the real descent path against housing, cover and a
+  seated pack, and cross-checks the opening's position against the built solid
+  so its duplicated arithmetic cannot silently drift.
+- **A reference-conformance contract for the housing's tongue end.** The
+  LDraw reference for the housing (`parts/25560.dat` → `24851` → subparts,
+  Philippe Hurbain [Philo], CC BY 4.0) is now dumped to an STL by
+  `tmp/ldraw/dump_housing_stl.py`, so the round-46 tongue ribs finally have a
+  measured `surface_diff` number instead of only interleave and kinematic
+  evidence. Registered in `reference_contracts.toml` as
+  `poweredup-hub-housing-tongue-end` at a `78.0%` floor (measured `78.6%`),
+  with the single-wall departure declared **without** a region so it keeps
+  counting rather than being defined away. The frame is established rather
+  than assumed — the dump re-datums to our bottom-face-at-`Z=0` convention and
+  three independent figures confirm it (`Y ±35.600` = `HALF_Y`, `X` envelope
+  `72.000` = `test_envelope_is_exactly_72mm_in_x`, height `33.800` = the
+  design doc's own measured value). Like the lid row, the reference is not
+  committed, so this SKIPS WITH NOTICE in CI and is a contributor-local check.
+- **`PoweredUpHubHousing`'s deck thins `2.000 → 1.600 mm` so the target battery
+  actually fits** (round 47). The box exists to hold a Spektrum SPMX812SH2.
+  Every vendor lists it as `58 × 32 × 20 mm`, which is what rounds 22–46
+  designed against; caliper-measured on the real part it is **`20.900 mm`**
+  tall. Interior height is `DECK_Z − DECK_THICKNESS − PLATE_THICKNESS` =
+  `24.0 − 2.0 − 1.2` = `20.800 mm`, so the real pack interfered by `0.100 mm`
+  and held the Cover proud of its own latch — a functional miss, not a
+  cosmetic one. At `1.600` the interior is `21.200 mm` and the measured pack
+  clears by `0.300 mm`. The external 3-stud / `24.000 mm` height is
+  deliberately unchanged (the round-22 decision stands); what is given up is
+  the deck landing exactly on `WALL_STEP_Z`, which was the reason `2.000` was
+  picked and costs nothing structural. `1.600 mm` is still four perimeters at
+  a 0.4 mm nozzle. Guarded by `test_interior_clears_the_target_battery`, which
+  measures the built solids against the pack — until now every test in this
+  family checked the two printed parts against each other and none checked
+  them against their payload; verified to fail at the old `2.000`.
+- **`PoweredUpHubCover`'s side tabs get their raised border** (user direction,
+  round 47). SS2.3 recorded the `X = ±28.400` level as a straight "finger ledge"
+  over `Y ±8.400`, `z 7.200…8.400`, and rounds 22–46 built exactly that. Read
+  back off `24849`'s own triangles, that plane spans the tab's whole envelope
+  (`Y ±12.000`, `z 0…8.400`) at only `42.702 mm²` — ~21% of its own bounding
+  box, which no solid band can be. It is a **uniform `1.200 mm` border**
+  tracing the tab outline round three edges, enclosing the recessed pad face at
+  `X = 28.000`; SS2.3's separately-listed "R2.400 quarter-round recess at each
+  corner" is that interior's own corner, not another feature. One new constant,
+  `HANDLE_FRAME_WIDTH`, because the interior profile is the outer profile inset
+  by that single number and all three measured pairs confirm it exactly
+  (`12.000−1.200=10.800`, `3.600−1.200=2.400`, `8.400−1.200=7.200`, shared
+  round-over centre). The old straight band is dropped — the border's top
+  segment spans the same two planes and is wider, so it was a strict subset.
+  `HANDLE_LEDGE_X/_Y_HALF/_Z_LO/_Z_HI` keep their values and meanings, so
+  `PoweredUpHubHousing._build_side_window` is untouched and the seated
+  interference stays `0.000 mm³`.
+- **`PoweredUpHubCover`'s tongue is segmented into the reference's four
+  blades** (user direction, round 45). Rounds 18–44 built it as one continuous
+  slab; the reference is four separate blades — `|X|` in `[0.800, 15.600]`
+  (Tongue A, either side of the centreline) and `[17.200, 26.000]` (Tongue B) —
+  with `1.600 mm` gaps between them that receive the housing's own locating
+  ribs. Two new constants, `TONGUE_GAP_X_INNER` and `TONGUE_RIB_X_HI`;
+  `TONGUE_X_HALF` and `RISER_X_HALF` keep their meaning as the tongue's outer
+  bounds, so the gaps are *cut* rather than the blades being built separately.
+  Measured over the tongue region against the reference, worst-direction
+  surface agreement goes `91.2% → 98.8%` — the residual the slab carried sat
+  exactly on the four blade boundaries, which is what earlier rounds read as
+  "reinforcements at both edges" (a consequence of the segmentation, not ribs
+  added to a solid blade). Retention is unchanged: the blade bears on the
+  housing ledge in Z, and the centre gap costs `1.600 mm` of a `31.200 mm`
+  blade. Mirrored on the housing in the entry below.
+- **`PoweredUpHubHousing`'s tongue wall now carries the locating ribs that
+  enter those slots** (round 46). The wall was full width, so the Cover's new
+  slots opened onto nothing and the reference's ±X location at this end
+  (§12.2, "Sideways → located") existed on neither part. `_build_tongue_ribs`
+  builds the three mirrored rib pairs the reference measures — centre
+  `|X| ≤ 0.800`, inner `|X| 15.600…17.200`, outer `|X| 26.000…28.000` (T1/T2/T3)
+  — via two new constants, `TONGUE_RIB_CENTRE_X_HALF` and
+  `TONGUE_RIB_X_BANDS`. Every flank that faces a Cover blade is pulled back by
+  `profile.free.radial`; the outer band's `28.000` flank is the shell's own
+  outer face and takes none. Each rib starts where its own slot actually opens
+  — the centre one at `LEDGE_Y_LO`, not the plate edge, because the Cover's
+  castellated notch floor crosses the centreline and a full-depth centre rib
+  collided with it by `0.130 mm³`. Measured against a rib-free baseline so the
+  numbers are the ribs' own: seated interference stays `0.000 mm³`, the ribs
+  contribute nothing to a sideways displacement within their `0.150 mm` flank
+  clearance and a monotonically growing amount beyond it, and nothing at any
+  distance to withdrawal along `−Y` (the tongue end is a lap, not a snap).
+  These ribs are the reference's *optional* X-location — the shell's own side
+  walls at `|X| 27.200` already locate the lid at zero clearance and remain the
+  primary locator; retention is still the rebate bearing in Z.
 - **`PoweredUpHubHousing` height is now a design decision, not a copy of the
   reference**: `DECK_Z` drops `29.600 → 24.000 mm`, expressed as
   `DECK_STUDS * STUD_PITCH` (3 × 8.0) so the stud count is the single source of

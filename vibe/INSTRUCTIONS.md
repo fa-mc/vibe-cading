@@ -426,6 +426,41 @@ Z values at their shared boundary, preventing coincident faces.
 1. **Cutter Overcuts:** Apply an outward overcut securely on the *entry* bounds. The *terminal* bounds (bottom of the blind hole) must end precisely at the target dimension.
 2. **Mandatory Slicing:** Never rely on external previews to validate holes with internal structures (like snap rings or internal counterbores). The Designer **must** instruct the Developer to use `section_slicer.py` through the hole axis (`--axis X` or `Y`) and read the report to statically verify the internal Z-steps and widths.
 
+### Overcuts on the non-waste side (a cutter reaching into occupied space)
+
+**Symptom:** A cutter sized correctly for its intended face silently destroys an
+*unrelated* feature somewhere along its overcut direction. The part still passes
+the single-solid check, still seats with zero interference, and the damaged
+feature is usually buried inside the assembly where no external view shows it.
+
+**Root cause:** The *Infinite Cutter Overcuts* convention above, and the
+"never use precise bounds for the **waste** side of a cutter" rule, are both
+correct — and both carry a qualifier that is easy to drop: they apply to the
+side of the cutter that opens into **waste or void**. An overcut aimed at a
+direction you have not checked is not a safety margin, it is an unbounded
+subtraction. "Inboard of the wall is interior void" is exactly the kind of
+assumption that is true when written and false two rounds later, once
+something has been built in that space.
+
+**Fix:**
+1. **Every overcut direction must be bounded by something you have verified**,
+   not by an assumption about what is there. Bound the cutter by the mating
+   feature's own extent (the Cover's plate spans `[PLATE_Y_LO, PLATE_Y_HI]`, so
+   a relief for its edge stops there) rather than by the part envelope.
+2. **Name the overcut constant** when it is not obviously in free space, so the
+   next reader sees a decision rather than a literal.
+3. **Assert feature WIDTH, not just presence**, in whatever guards the feature
+   the cutter passes near. A presence-only check passes a feature that has been
+   reduced to a sliver.
+
+*(Triggering incident: round 48's plate-edge relief used a 1.0 mm inboard
+overcut on the assumption that the space inboard of the side wall was interior
+void. Round 46 had built the tongue locating ribs there two hours earlier. The
+overcut reduced a 1.850 mm rib to a 0.050 mm sliver; the housing was still one
+solid, still seated at 0.000 mm³ interference, and the reference-conformance
+score moved only 78.6% → 76.3% — small enough to read as noise. What caught it
+was a lump-count assertion in an unrelated test.)*
+
 ### Topological Validation (Floating Bodies)
 
 

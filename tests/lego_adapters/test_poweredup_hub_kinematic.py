@@ -57,8 +57,10 @@ from __future__ import annotations
 
 import cadquery as cq
 
+from vibe_cading.cq_utils import rounded_box
 from vibe_cading.lego_adapters.poweredup_hub.cover import PoweredUpHubCover
 from vibe_cading.lego_adapters.poweredup_hub.housing import PoweredUpHubHousing
+from vibe_cading.print_settings import get_profile
 
 
 def _intersect_volume(a: cq.Workplane, b: cq.Workplane) -> float:
@@ -307,3 +309,73 @@ def test_latch_releases_when_the_pad_is_pressed():
     assert released < 1e-6, (
         f"a 0.10 mm inboard deflection leaves {released:.4f} mm^3 engaged; "
         "the bead must clear within a plausible thumb press")
+
+
+class _RiblessHousing(PoweredUpHubHousing):
+    """The same Housing with :meth:`_build_tongue_ribs` neutralised.
+
+    Not a shipped variant -- it exists so the test below can attribute an
+    interference number to the ribs *alone*. The override returns a
+    0.1 mm cube buried inside the rebate band rather than nothing, so the
+    union in ``_build_tongue_wall`` still runs against a real shape and
+    the baseline differs from the real part in exactly one respect.
+    """
+
+    def _build_tongue_ribs(self) -> cq.Workplane:
+        return rounded_box(
+            width=0.1, depth=0.1, height=0.1, corner_r=0.0,
+            center=(0.0, self.TONGUE_Y - 0.5, 0.5),
+        )
+
+
+def test_tongue_ribs_locate_sideways_without_obstructing_withdrawal():
+    """Round 46 -- the falsifier for "the tongue ribs locate the lid".
+
+    Seated interference cannot fail this claim on its own: a rib built
+    entirely outside its slot reports 0.000 mm^3 seated exactly as a
+    working one does (see ``vibe/INSTRUCTIONS.md``, *A Check That Cannot
+    Fail Is Not A Check*). The claim's falsifier is motion along the two
+    axes that matter, measured as a *delta* against a rib-free baseline
+    so the rest of the part's own contacts cannot supply the signal:
+
+    * **Sideways (+/-X)** -- the ribs must contribute nothing within their
+      designed per-flank clearance and a growing amount past it. A rib
+      that engaged nothing would read 0.000 at every displacement.
+    * **Withdrawal (-Y)** -- the ribs must contribute *nothing at any
+      distance*. The tongue end is a lap, not a snap; retention there is
+      the rebate bearing in Z and the latch at the far end. A rib that
+      resisted withdrawal would be jamming the lid, not locating it.
+    """
+    clr = get_profile("fdm_standard").free.radial
+    cover = PoweredUpHubCover(profile="fdm_standard").solid
+    with_ribs = PoweredUpHubHousing(profile="fdm_standard").solid
+    without = _RiblessHousing(profile="fdm_standard").solid
+
+    def rib_contribution(dx: float = 0.0, dy: float = 0.0) -> float:
+        moved = cover.translate((dx, dy, 0.0))
+        return _intersect_volume(with_ribs, moved) - _intersect_volume(without, moved)
+
+    # Seated, and anywhere within the clearance: the ribs are clear.
+    for dx in (0.0, clr / 2.0, clr):
+        assert rib_contribution(dx=dx) < 1e-6, (
+            f"ribs bind at dX={dx:.3f}, inside their own {clr} mm flank clearance"
+        )
+
+    # Past the clearance they engage, and engage harder the further it goes.
+    engaged = [rib_contribution(dx=dx) for dx in (clr + 0.05, clr + 0.15, clr + 0.35)]
+    assert engaged[0] > 0.0, (
+        "the tongue ribs never engage the Cover's slots -- they locate nothing"
+    )
+    assert engaged[0] < engaged[1] < engaged[2], (
+        f"rib engagement is not monotonic in sideways travel: {engaged}"
+    )
+
+    # Symmetric: the mirrored ribs work the same in -X.
+    assert abs(rib_contribution(dx=-(clr + 0.15)) - engaged[1]) < 1e-6
+
+    # And they never resist the lid sliding out.
+    for dy in (-0.25, -0.5, -1.0, -2.0, -4.0):
+        assert abs(rib_contribution(dy=dy)) < 1e-6, (
+            f"tongue ribs obstruct withdrawal at dY={dy} -- they should be "
+            "open in -Y so the lid can slide out"
+        )
