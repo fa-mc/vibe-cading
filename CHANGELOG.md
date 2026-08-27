@@ -15,6 +15,20 @@ section to the new version and date.
 
 ## [Unreleased]
 
+### Added
+- `vibe_cading/mechanical/bearings.py`: `Bearing.blind_pocket_dims()` (static
+  method — diameter/depth for a blind bearing pocket, given just an OD and
+  width) and `Bearing.mr85()` (the MR85-2RS preset, matching the existing
+  `b608()`/`b623()`/etc. classmethods). Consolidates bearing-pocket-sizing
+  math and the `MR85_ID`/`MR85_OD`/`MR85_W` constants that
+  `FreespinHexHub`, `HexHubNut`, and `BearingHexHousing` each previously
+  duplicated independently — `FreespinHexHub` and `HexHubNut` now delegate
+  their pocket-dimension properties to the shared formula (verified
+  behavior-identical by a regression test comparing each class's output
+  against the shared formula directly). Pure refactor — no consumer's
+  printed geometry changes. See `TODO.md`'s "Consolidate blind bearing-pocket
+  sizing" entry (flagged in PR #88's review cycle).
+
 ### Changed
 - **(minor bump — breaking geometry change to `BearingHexHousing`'s existing
   bearing pocket, see below)** `vibe_cading/rc/hex_hub_bearing/`: `HexHubNut`

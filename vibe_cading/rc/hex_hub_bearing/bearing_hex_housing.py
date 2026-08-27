@@ -45,13 +45,8 @@ from __future__ import annotations
 
 import cadquery as cq
 
-from vibe_cading.mechanical.bearings import Bearing
+from vibe_cading.mechanical.bearings import MR85_ID, MR85_OD, MR85_W, Bearing
 from vibe_cading.print_settings import get_profile
-
-# ── MR85-2RS standard dimensions ───────────────────────────────────────────
-MR85_ID = 5.0  # mm - inner (shaft) diameter
-MR85_OD = 8.0  # mm - outer diameter
-MR85_W = 2.5   # mm - axial width
 
 
 class BearingHexHousing:
