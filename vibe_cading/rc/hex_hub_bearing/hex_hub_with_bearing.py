@@ -42,12 +42,17 @@ shrink/growth.
 
 A single continuous through passage runs the length of the fused body: a
 6 mm-nominal (6.30 mm printed on ``fdm_standard``) free-running-clearance
-bore through the nut region, and an 8 mm-nominal (8.08 mm printed) bearing
-pocket through the housing region.  Per design brief D8 (Round 4) these
-serve a single uniform 5 mm-nominal stub axle throughout -- the printed
-diameters differ because the two regions serve different features (an
-axle-clearance hole vs. a bearing-OD pocket), not because the axle itself
-steps in diameter.
+bore through the nut region, and an 8 mm-nominal (8.30 mm printed, ``free``
+fit) bearing pocket through the housing region.  Per design brief D8
+(Round 4) these serve a single uniform 5 mm-nominal stub axle throughout --
+the printed diameters differ because the two regions serve different
+features (an axle-clearance hole vs. a bearing-OD pocket), not because the
+axle itself steps in diameter.
+
+The nut region also carries its own blind bearing pocket, sunk into its
+outward (top, wheel-facing) face, sized for the identical MR85-2RS bearing
+seated on the shaft side -- both bearings use ``free`` fit grade, so the
+fused body seats two user-replaceable bearings the same way at each end.
 """
 
 from __future__ import annotations
@@ -76,12 +81,19 @@ class HexHubWithBearing:
         Forwarded to :class:`~vibe_cading.rc.hex_hub_bearing.bearing_hex_housing.BearingHexHousing`.
         Default 12.0 mm.
     bearing_id : float
-        Forwarded to the housing. Default 5.0 mm (MR85-2RS).
+        Forwarded to the housing. Default 5.0 mm (MR85-2RS).  Not forwarded
+        to the nut's own hex-side pocket, which (like the housing's own
+        pocket) only cuts the bearing's OD envelope.
     bearing_od : float
-        Forwarded to the housing. Default 8.0 mm (MR85-2RS).
+        Forwarded to *both* the housing and the nut's hex-side bearing
+        pocket, so both ends of the fused body seat the identical bearing.
+        Default 8.0 mm (MR85-2RS).
     bearing_width : float
         Forwarded to the housing as its own total height, and used here to
-        compute the flush-join translation. Default 2.5 mm (MR85-2RS).
+        compute the flush-join translation. Also forwarded to the nut's
+        hex-side pocket, which is blind and uses this only to size the
+        pocket's depth (it does not affect the nut's own thickness).
+        Default 2.5 mm (MR85-2RS).
     overlap_eps : float
         Fixed boolean-robustness overlap (mm) applied at the flush join
         between the two components (design brief D2a). Default 0.02 mm --
@@ -118,6 +130,8 @@ class HexHubWithBearing:
             hex_across_flats=hex_across_flats,
             thickness=thickness,
             bore_diameter=bore_diameter,
+            bearing_od=bearing_od,
+            bearing_width=bearing_width,
             hex_chamfer=hex_chamfer,
             profile=profile,
         )

@@ -83,6 +83,62 @@ def test_hex_hub_nut_wall_thickness_not_thin() -> None:
     assert wall > 1.5
 
 
+# ── HexHubNut hex-side bearing pocket (same MR85-2RS bearing as the shaft
+# side, added alongside the existing through-bore) ─────────────────────────
+
+def test_hex_hub_nut_bearing_pocket_admits_nominal_bearing() -> None:
+    """A real 8.000 mm nominal-OD bearing cylinder, seated at the pocket's
+    achievable depth, must NOT interfere with the printed pocket cavity --
+    proving the printed pocket is larger than nominal, not merely equal."""
+    nut = HexHubNut()
+    probe = (
+        cq.Workplane("XY")
+        .workplane(offset=nut.thickness - nut._pocket_depth)
+        .circle(8.000 / 2.0)
+        .extrude(nut._pocket_depth)
+    )
+    inter = nut.solid.intersect(probe)
+    vol = sum(s.Volume() for s in inter.solids().vals()) if inter.solids().vals() else 0.0
+    assert vol == pytest.approx(0.0, abs=1e-6)
+
+
+def test_hex_hub_nut_bearing_pocket_rejects_oversized_probe() -> None:
+    """Positive control for the above: an oversized (8.40 mm) cylinder MUST
+    show interference, proving the probe can actually detect a collision."""
+    nut = HexHubNut()
+    probe = (
+        cq.Workplane("XY")
+        .workplane(offset=nut.thickness - nut._pocket_depth)
+        .circle(8.40 / 2.0)
+        .extrude(nut._pocket_depth)
+    )
+    inter = nut.solid.intersect(probe)
+    vol = sum(s.Volume() for s in inter.solids().vals()) if inter.solids().vals() else 0.0
+    assert vol > 0.0
+
+
+def test_hex_hub_nut_bearing_pocket_wall_thickness_not_thin() -> None:
+    """Mirrors Test 13's bore wall-thickness floor, for the wider bearing
+    pocket -- the bearing OD (not the narrower bore) governs the thinnest
+    wall in the hub, since the pocket sits closer to the hex flats."""
+    prof = get_profile()
+    nut = HexHubNut()
+    hex_inradius = nut.hex_across_flats / 2.0
+    wall = hex_inradius - nut._pocket_dia / 2.0
+    expected_wall = 12.0 / 2.0 - (8.0 + 2.0 * prof.free.radial) / 2.0
+    assert wall == pytest.approx(expected_wall, abs=1e-9)
+    # Comfortably clear of a typical multi-perimeter FDM thin-wall minimum.
+    assert wall > 1.5
+
+
+def test_hex_hub_nut_bearing_pocket_depth_clears_union_seam() -> None:
+    """The blind pocket must not reach the bottom (union-seam) face -- if it
+    did, the fused body's `.union()` with BearingHexHousing could produce a
+    void or non-manifold seam instead of a clean flush join."""
+    nut = HexHubNut()
+    assert nut._pocket_depth < nut.thickness
+
+
 # ── Test 4 — BearingHexHousing single-solid topology ──────────────────────
 
 def test_bearing_hex_housing_single_solid() -> None:
@@ -104,10 +160,13 @@ def test_bearing_hex_housing_pocket_admits_nominal_bearing() -> None:
 
 
 def test_bearing_hex_housing_pocket_rejects_oversized_probe() -> None:
-    """Positive control for the above: an oversized (8.10 mm) cylinder MUST
-    show interference, proving the probe can actually detect a collision."""
+    """Positive control for the above: an oversized (8.40 mm) cylinder MUST
+    show interference, proving the probe can actually detect a collision.
+    (The pocket now uses ``free`` fit -- 8.30 mm nominal on ``fdm_standard``,
+    looser than the prior ``press`` grade's 8.08 mm -- so the oversized probe
+    must clear that wider printed diameter too.)"""
     housing = BearingHexHousing().solid
-    oversized = cq.Workplane("XY").circle(8.10 / 2.0).extrude(2.5)
+    oversized = cq.Workplane("XY").circle(8.40 / 2.0).extrude(2.5)
     inter = housing.intersect(oversized)
     vol = sum(s.Volume() for s in inter.solids().vals()) if inter.solids().vals() else 0.0
     assert vol > 0.0
