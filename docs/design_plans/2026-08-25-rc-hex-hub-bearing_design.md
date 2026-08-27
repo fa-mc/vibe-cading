@@ -1035,9 +1035,10 @@ SVGs (`_iso_ne.svg`, `_top.svg`) — the only two contracts affected.
 ### Round 5 PR Review Findings Addressed (PR #88)
 
 Multi-role isolated review (`tl` + `designer` + `admin`) surfaced two blockers and several
-non-blocking nits, all addressed in the same PR (no second review cycle needed after these
-fixes — verify against the reviewers' comments directly, this section is a pointer, not a
-restatement):
+non-blocking nits in the first review cycle, all addressed in the same PR — but the fix
+itself introduced a new anchor-drift defect, caught in cycles 2 and 3 (see the Iteration 2/3
+notes below; three review cycles total, not one, correcting the record here). Verify against
+the reviewers' comments directly; this section is a pointer, not a restatement:
 
 - **Blocker (admin):** `BearingHexHousing`'s class-docstring summary line still read
   "press-fit-house" after the module docstring and `profile` param doc were updated to
@@ -1084,6 +1085,19 @@ matching comment anchor in `bearing_hex_housing.py` was also stale and fixed. Al
 `fit` grade names (`typing.get_args` instead of a second literal tuple), the `TODO.md` row
 above, and a correction to the live PR body's stale `0.1.7` mention. Full method/detail:
 PR #88 review-comment history.
+
+**Iteration 3 (third review cycle):** the same anchor-correction commit had itself made one
+more edit to `bearings.py` (the `typing.get_args` import + `_FitGradeName` module alias)
+*after* computing the "fixed" anchors, shifting every subsequent line by 4 more -- the same
+failure mode recurring a third time from re-deriving line numbers mid-edit instead of after
+all edits landed. Fixed by verifying via `grep -n` against the file with zero pending edits,
+immediately before this cycle's re-review, rather than trusting a hand recount. All three
+reviewers (`tl`, `designer`, `admin`) independently re-verified the final anchors against the
+diff's own hunk arithmetic this round and returned unanimous `approve` with nits only (no
+blockers) -- ending the review cycle within the workflow's 2-rewrite loop cap (2
+review-triggered rewrites: cycle 1 -> cycle 2's fix, cycle 2 -> cycle 3's fix; this cycle's
+own anchor correction was self-caught before review, not review-triggered, so it does not
+count as a third rewrite).
 
 ## Acceptance Contract
 
