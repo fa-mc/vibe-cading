@@ -112,7 +112,7 @@ class BearingHexHousing:
 
         # ── 2. Bearing pocket, free-fit clearance, through-cut ───────────
         # Bearing.outer_pocket() extrudes one-sided from Z = 0 to
-        # Z = thickness + free.axial (bearings.py:99-105).  Applied
+        # Z = thickness + free.axial (bearings.py:103-109).  Applied
         # directly to a housing also built from Z = 0, the cutter's
         # *bottom* face would be exactly coincident with the housing's
         # bottom face -- the "coincident planar face" pitfall (see project
