@@ -28,9 +28,9 @@ Read [`_FALLBACK_PROFILES["fdm_standard"]`](../vibe_cading/print_settings.py#L57
 | Grade   | Consumer call site                                       | Formula                                                       | M3 nominal | Printed diameter (`fdm_standard`) |
 |---------|----------------------------------------------------------|---------------------------------------------------------------|------------|------------------------------------|
 | `free`  | [`ClearanceHole.to_cutter`](../vibe_cading/mechanical/holes.py#L92) | `r = D/2 + profile.free.radial`                               | D = 3.2 mm | 3.20 + 2·0.15 = **3.50 mm**        |
-| `slip`  | [`Bearing.shaft_cutter`](../vibe_cading/mechanical/bearings.py#L109) | `r = D_inner/2 + profile.slip.radial`                         | D = 5.0 mm | 5.00 + 2·0.05 = **5.10 mm**        |
+| `slip`  | [`Bearing.shaft_cutter`](../vibe_cading/mechanical/bearings.py#L118) | `r = D_inner/2 + profile.slip.radial`                         | D = 5.0 mm | 5.00 + 2·0.05 = **5.10 mm**        |
 | `slip`  | [`TechnicPinHole.standard`](../vibe_cading/lego/cutters/technic_pin_hole.py) (default) | `bore = PIN_HOLE_DIAMETER + 2 * profile.slip.radial`         | D = 4.8 mm | 4.80 + 2·0.05 = **4.90 mm**        |
-| `press` | [`Bearing.outer_pocket`](../vibe_cading/mechanical/bearings.py#L90) (default `fit=`) | `r = D_outer/2 + profile.press.radial`                        | D = 10.0 mm | 10.00 + 2·0.04 = **10.08 mm**     |
+| `press` | [`Bearing.outer_pocket`](../vibe_cading/mechanical/bearings.py#L99) (default `fit=`) | `r = D_outer/2 + profile.press.radial`                        | D = 10.0 mm | 10.00 + 2·0.04 = **10.08 mm**     |
 
 (`+0.04` on a press pocket sounds like it *loosens* the joint — it does, by exactly enough that an OD-`10.00 mm` bearing presses into a `10.08 mm` printed hole rather than failing to insert at all. Recalibrate against your own printer with [`vibe_cading/tools/calibrate.py press`](../vibe_cading/tools/calibrate.py).)
 
@@ -64,8 +64,8 @@ Each `FitGrade` carries three orthogonal numeric fields (see [`FitGrade`](../vib
 | `MetricHexNut.to_cutter(fit="press")` (synthesises `prof.press` onto `effective.free`)         | `press` | [`nuts/metric.py:119`](../vibe_cading/mechanical/nuts/metric.py#L119)                            |
 | `MetricSquareNut.to_cutter`                                                                    | `free`  | [`nuts/metric.py:225`](../vibe_cading/mechanical/nuts/metric.py#L225)                            |
 | `TNut.to_cutter` (pocket + slot)                                                               | `free`  | [`nuts/tnut.py:78`](../vibe_cading/mechanical/nuts/tnut.py#L78), [`nuts/tnut.py:96`](../vibe_cading/mechanical/nuts/tnut.py#L96) |
-| `Bearing.outer_pocket` (chooses grade by `fit=` kwarg, default `"press"`)                      | `press`*| [`bearings.py:90`](../vibe_cading/mechanical/bearings.py#L90)                                    |
-| `Bearing.shaft_cutter`                                                                         | `slip`  | [`bearings.py:109`](../vibe_cading/mechanical/bearings.py#L109)                                  |
+| `Bearing.outer_pocket` (chooses grade by `fit=` kwarg, default `"press"`)                      | `press`*| [`bearings.py:99`](../vibe_cading/mechanical/bearings.py#L99)                                    |
+| `Bearing.shaft_cutter`                                                                         | `slip`  | [`bearings.py:118`](../vibe_cading/mechanical/bearings.py#L118)                                  |
 | `DiscMagnet.pocket`                                                                            | `slip`  | [`magnets.py:43`](../vibe_cading/mechanical/magnets.py#L43)                                      |
 | `BarMagnet.pocket`                                                                             | `slip`  | [`magnets.py:115`](../vibe_cading/mechanical/magnets.py#L115)                                    |
 | `HexStandoff.to_cutter`                                                                        | `free`  | [`standoffs.py:87`](../vibe_cading/mechanical/standoffs.py#L87)                                  |
@@ -95,7 +95,7 @@ Each `FitGrade` carries three orthogonal numeric fields (see [`FitGrade`](../vib
 | `MetricHexNut.to_cutter` (pocket depth inflation)                                              | `free`  | [`nuts/metric.py:133`](../vibe_cading/mechanical/nuts/metric.py#L133)                            |
 | `MetricSquareNut.to_cutter`                                                                    | `free`  | [`nuts/metric.py:226`](../vibe_cading/mechanical/nuts/metric.py#L226)                            |
 | `TNut.to_cutter` (depth inflation per side)                                                    | `free`  | [`nuts/tnut.py:79`](../vibe_cading/mechanical/nuts/tnut.py#L79), [`nuts/tnut.py:97`](../vibe_cading/mechanical/nuts/tnut.py#L97) |
-| `Bearing.outer_pocket` (depth clearance; chooses grade by `fit=` kwarg, default `"press"`)     | `press`*| [`bearings.py:91`](../vibe_cading/mechanical/bearings.py#L91)                                    |
+| `Bearing.outer_pocket` (depth clearance; chooses grade by `fit=` kwarg, default `"press"`)     | `press`*| [`bearings.py:100`](../vibe_cading/mechanical/bearings.py#L100)                                    |
 | `DiscMagnet.pocket` (depth clearance)                                                          | `slip`  | [`magnets.py:44`](../vibe_cading/mechanical/magnets.py#L44)                                      |
 | `BarMagnet.pocket` (Z clearance)                                                               | `slip`  | [`magnets.py:116`](../vibe_cading/mechanical/magnets.py#L116)                                    |
 | `HexStandoff.to_cutter` (depth allowance)                                                      | `free`  | [`standoffs.py:88`](../vibe_cading/mechanical/standoffs.py#L88)                                  |

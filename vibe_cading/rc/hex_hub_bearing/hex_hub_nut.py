@@ -169,12 +169,13 @@ class HexHubNut:
     # ── Build ───────────────────────────────────────────────────────────
 
     def _build(self) -> cq.Workplane:
-        assert self._pocket_depth < self.thickness, (
-            "HexHubNut: bearing pocket depth "
-            f"({self._pocket_depth:.3f} mm) must be less than the part "
-            f"thickness ({self.thickness:.3f} mm), or the pocket would "
-            "break through the bottom (union-seam) face."
-        )
+        if self._pocket_depth >= self.thickness:
+            raise ValueError(
+                "HexHubNut: bearing pocket depth "
+                f"({self._pocket_depth:.3f} mm) must be less than the part "
+                f"thickness ({self.thickness:.3f} mm), or the pocket would "
+                "break through the bottom (union-seam) face."
+            )
 
         # ── 1. Hexagonal prism (Z = 0 -> thickness) ────────────────────
         part = (

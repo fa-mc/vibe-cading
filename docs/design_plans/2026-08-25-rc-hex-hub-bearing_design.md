@@ -1068,12 +1068,22 @@ restatement):
 - **Not applied (nit, tl):** consolidating `FreespinHexHub` / `HexHubNut` / `Bearing` into a
   single shared blind-pocket helper — deferred as a follow-up refactor rather than folded
   into this PR (architectural, out of scope for an addendum whose scope is the two decisions
-  in R1-R3).
+  in R1-R3). Tracked as a `TODO.md` row per the second review cycle's request (see below).
 - **Not applied (question, tl):** whether the `+0.5 mm` proud-margin docstring wording is
   physically accurate (pocket is deeper than the bearing, so a fully-seated bearing is
   recessed, not proud) — the phrasing is inherited verbatim from `FreespinHexHub`'s
   pre-existing, out-of-diff docstring; not corrected here to avoid scope creep into an
   unrelated file's prose, but flagged for a future doc pass.
+
+**Iteration 2 (second review cycle):** the first fix commit's own re-derived line anchors in
+`docs/print-tolerances.md` were themselves wrong (off by 9 and 13 lines respectively) --
+caught independently by both `tl` and `admin`. Corrected against the actual post-edit file
+(verified by `grep -n` against `bearings.py`, not recomputed by hand a second time); the
+matching comment anchor in `bearing_hex_housing.py` was also stale and fixed. Also applied:
+`ValueError` (not `assert`) for the pocket-depth guard, a single source of truth for the
+`fit` grade names (`typing.get_args` instead of a second literal tuple), the `TODO.md` row
+above, and a correction to the live PR body's stale `0.1.7` mention. Full method/detail:
+PR #88 review-comment history.
 
 ## Acceptance Contract
 

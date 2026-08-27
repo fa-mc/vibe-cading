@@ -17,9 +17,14 @@
 
 from __future__ import annotations
 
-from typing import Literal
+from typing import Literal, get_args
 
 import cadquery as cq
+
+# Single source of truth for outer_pocket()'s `fit` param -- reused for both
+# the type annotation and runtime validation so the two can't drift apart.
+_FitGradeName = Literal["press", "free", "slip"]
+
 
 class Bearing:
     """Parametric radial ball bearing.
@@ -79,7 +84,7 @@ class Bearing:
         return self._solid
 
     def outer_pocket(
-        self, profile=None, fit: Literal["press", "free", "slip"] = "press"
+        self, profile=None, fit: _FitGradeName = "press"
     ) -> cq.Workplane:
         """Generates a cutter for burying the outer race into a printed housing.
 
@@ -91,10 +96,9 @@ class Bearing:
         """
         from vibe_cading.print_settings import get_profile
         prof = profile or get_profile()
-        if fit not in ("press", "free", "slip"):
-            raise ValueError(
-                f"unknown fit {fit!r}; expected 'press', 'free', or 'slip'"
-            )
+        allowed_fits = get_args(_FitGradeName)
+        if fit not in allowed_fits:
+            raise ValueError(f"unknown fit {fit!r}; expected one of {allowed_fits}")
         grade = getattr(prof, fit)
         radial_clearance = grade.radial
         depth_clearance = grade.axial
