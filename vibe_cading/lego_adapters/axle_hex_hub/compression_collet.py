@@ -240,6 +240,13 @@ class AxleCompressionCollet:
         collet diameter plus a generous overcut so it unambiguously clears
         the OD on both sides regardless of rotation, then rotated into
         place (Known Modelling Pitfalls: infinite-cutter-overcut pattern).
+
+        The cutter's open (``Z = 0``) end also carries a small axial
+        entry overcut -- its bottom face would otherwise be exactly
+        coincident with the collet's own open face (Known Modelling
+        Pitfalls: coincident-face boolean risk), the same case
+        :meth:`BearingHexHousing._build` guards against for its pocket
+        cutter's entry face.
         """
         overcut = 1.0
         half_len = self._od_printed / 2.0 + overcut
@@ -249,9 +256,11 @@ class AxleCompressionCollet:
         cap_radius = min(self.slot_fillet, self.slot_width / 2.0)
         flat_h = max(self.slot_depth - cap_radius, 0.0)
 
+        entry_overcut = 0.1
         box = cq.Workplane("XY").box(
-            2 * half_len, self.slot_width, flat_h, centered=(True, True, False)
-        )
+            2 * half_len, self.slot_width, flat_h + entry_overcut,
+            centered=(True, True, False),
+        ).translate((0, 0, -entry_overcut))
         if cap_radius > 0:
             # Half-cylinder cap swept along local X, tangent to the slot's
             # two side walls -- reproduces the round-end-mill profile a real

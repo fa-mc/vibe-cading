@@ -126,7 +126,72 @@ def test_hex_hub_with_bearing_single_solid() -> None:
 def test_hex_hub_with_bearing_bounding_box_height() -> None:
     fused = HexHubWithBearing()
     bb = fused.solid.val().BoundingBox()
-    expected_height = fused.thickness + fused.bearing_width - fused.overlap_eps
+    expected_height = (
+        fused.hex_nut.thickness + fused.housing.bearing_width - fused.overlap_eps
+    )
     assert bb.zlen == pytest.approx(expected_height, abs=1e-6)
-    assert bb.zmin == pytest.approx(-(fused.bearing_width - fused.overlap_eps), abs=1e-6)
-    assert bb.zmax == pytest.approx(fused.thickness, abs=1e-6)
+    assert bb.zmin == pytest.approx(
+        -(fused.housing.bearing_width - fused.overlap_eps), abs=1e-6
+    )
+    assert bb.zmax == pytest.approx(fused.hex_nut.thickness, abs=1e-6)
+
+
+# ── Fused-body bearing-seat clearance (TL review follow-up) ───────────────
+#
+# Test 7 above only probes the *standalone* BearingHexHousing, where the
+# pocket is a plain through-cut and the nominal-OD check is trivially
+# satisfied. The actual printed deliverable is the *fused* HexHubWithBearing,
+# where HexHubNut's own solid caps the pocket at global Z = 0 rather than at
+# the housing's own (translated) nominal top plane at Z = overlap_eps -- so
+# the real, usable seating depth is `bearing_width - overlap_eps`, not
+# `bearing_width`. Below print resolution (0.02mm on fdm_standard) and an
+# inherent consequence of the overlap-epsilon boolean-robustness technique
+# (see module docstring / BearingHexHousing docstring), not a defect -- but
+# it must be *characterized*, not silently assumed away by only testing the
+# standalone part.
+
+def test_hex_hub_with_bearing_fused_pocket_admits_bearing_at_achievable_depth() -> None:
+    """A nominal 8.000mm-OD bearing, seated flush against the fused body's
+    *actual* open face and sized to the *achievable* depth
+    (`bearing_width - overlap_eps`), must show zero interference -- this is
+    the true usable seating depth of the printed part."""
+    fused = HexHubWithBearing()
+    achievable_depth = fused.housing.bearing_width - fused.overlap_eps
+    z0 = -achievable_depth
+    probe = cq.Workplane("XY").workplane(offset=z0).circle(8.000 / 2.0).extrude(achievable_depth)
+    inter = fused.solid.intersect(probe)
+    vol = sum(s.Volume() for s in inter.solids().vals()) if inter.solids().vals() else 0.0
+    assert vol == pytest.approx(0.0, abs=1e-6)
+
+
+def test_hex_hub_with_bearing_fused_pocket_nominal_width_bearing_is_bounded_proud() -> None:
+    """Positive control + regression guard for the above: a nominal
+    8.000mm x 2.500mm bearing (the bearing's own true dimensions, not the
+    achievable depth) seated flush against the open face MUST show
+    interference -- it does NOT sit fully flush in the fused body, per the
+    module docstring's overlap-epsilon tradeoff. The interference volume
+    must be bounded near the expected `overlap_eps`-thin proud slice, so a
+    future change that grows this gap unexpectedly larger fails loudly
+    instead of silently."""
+    fused = HexHubWithBearing()
+    bearing_width = fused.housing.bearing_width
+    achievable_depth = bearing_width - fused.overlap_eps
+    z0 = -achievable_depth
+    probe = cq.Workplane("XY").workplane(offset=z0).circle(8.000 / 2.0).extrude(bearing_width)
+    inter = fused.solid.intersect(probe)
+    vol = sum(s.Volume() for s in inter.solids().vals()) if inter.solids().vals() else 0.0
+    assert vol > 0.0, (
+        "expected the nominal-width bearing to sit proud by overlap_eps in "
+        "the fused body -- if this is now 0.0, the known cosmetic gap may "
+        "have been fixed; update this test's docstring/assertions instead "
+        "of leaving a stale positive-control expectation"
+    )
+    # A loose ceiling rather than an exact formula: the true cross-section
+    # at this Z-slice is a thin annulus (bounded by the nut's own bore,
+    # itself widened by its Z=0 edge chamfer) far smaller than a full
+    # bearing-OD disc -- computing that exactly would couple this test to
+    # unrelated chamfer geometry. The full-disc volume is a safe, generous
+    # upper bound: this only fails if the proud gap grows far past a single
+    # `overlap_eps` sliver.
+    full_disc_ceiling = math.pi * (8.000 / 2.0) ** 2 * fused.overlap_eps
+    assert vol < full_disc_ceiling
