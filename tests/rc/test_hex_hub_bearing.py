@@ -139,6 +139,21 @@ def test_hex_hub_nut_bearing_pocket_depth_clears_union_seam() -> None:
     assert nut._pocket_depth < nut.thickness
 
 
+def test_hex_hub_nut_bearing_pocket_depth_matches_freespin_formula() -> None:
+    """Pins the exact depth formula (design brief D9, Round 5) -- the
+    admits-nominal-bearing test above derives its own probe geometry from
+    `_pocket_depth`, so it cannot fail if this formula regresses; this test
+    checks the formula itself against independently-computed inputs."""
+    prof = get_profile()
+    nut = HexHubNut()
+    expected_depth = nut.bearing_width + prof.free.axial + 0.5
+    assert expected_depth != pytest.approx(nut.bearing_width), (
+        "test is not falsifiable if free.axial resolves to 0.0 and the "
+        "+0.5 margin were accidentally dropped"
+    )
+    assert nut._pocket_depth == pytest.approx(expected_depth, abs=1e-9)
+
+
 # ── Test 4 — BearingHexHousing single-solid topology ──────────────────────
 
 def test_bearing_hex_housing_single_solid() -> None:
@@ -193,6 +208,18 @@ def test_hex_hub_with_bearing_bounding_box_height() -> None:
         -(fused.housing.bearing_width - fused.overlap_eps), abs=1e-6
     )
     assert bb.zmax == pytest.approx(fused.hex_nut.thickness, abs=1e-6)
+
+
+def test_hex_hub_with_bearing_forwards_bearing_dims_to_both_parts() -> None:
+    """Regression guard (TL review follow-up, Round 5): both sub-components
+    must seat the *same* bearing -- if `HexHubWithBearing` stopped forwarding
+    `bearing_od`/`bearing_width` to `HexHubNut`, only the visual-contract
+    freshness check would catch it indirectly; this pins the wiring directly."""
+    fused = HexHubWithBearing(bearing_od=9.0, bearing_width=3.0)
+    assert fused.hex_nut.bearing_od == pytest.approx(9.0)
+    assert fused.hex_nut.bearing_width == pytest.approx(3.0)
+    assert fused.housing.bearing_od == pytest.approx(9.0)
+    assert fused.housing.bearing_width == pytest.approx(3.0)
 
 
 # ── Fused-body bearing-seat clearance (TL review follow-up) ───────────────

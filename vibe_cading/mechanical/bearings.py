@@ -13,9 +13,12 @@
 # You should have received a copy of the GNU Affero General Public License
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
-"""Parametric ball bearings with press-fit clearances."""
+"""Parametric ball bearings with configurable fit-grade clearances."""
 
 from __future__ import annotations
+
+from typing import Literal
+
 import cadquery as cq
 
 class Bearing:
@@ -75,7 +78,9 @@ class Bearing:
         """The CadQuery solid representing the exact bearing geometry."""
         return self._solid
 
-    def outer_pocket(self, profile=None, fit: str = "press") -> cq.Workplane:
+    def outer_pocket(
+        self, profile=None, fit: Literal["press", "free", "slip"] = "press"
+    ) -> cq.Workplane:
         """Generates a cutter for burying the outer race into a printed housing.
 
         ``fit`` selects which fit grade of ``profile`` supplies the radial
@@ -86,6 +91,10 @@ class Bearing:
         """
         from vibe_cading.print_settings import get_profile
         prof = profile or get_profile()
+        if fit not in ("press", "free", "slip"):
+            raise ValueError(
+                f"unknown fit {fit!r}; expected 'press', 'free', or 'slip'"
+            )
         grade = getattr(prof, fit)
         radial_clearance = grade.radial
         depth_clearance = grade.axial

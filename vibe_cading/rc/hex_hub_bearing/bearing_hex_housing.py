@@ -55,7 +55,7 @@ MR85_W = 2.5   # mm - axial width
 
 
 class BearingHexHousing:
-    """Cylindrical housing sized to press-fit-house one MR85-2RS bearing.
+    """Cylindrical housing sized to free-fit-house one MR85-2RS bearing.
 
     Parameters
     ----------

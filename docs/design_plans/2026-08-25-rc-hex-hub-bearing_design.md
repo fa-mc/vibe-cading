@@ -1032,6 +1032,49 @@ artifact. All 606 project tests pass; `engine_api.json` regenerated;
 `check_visual_contract_freshness.py --update` refreshed the two `HexHubWithBearing` contract
 SVGs (`_iso_ne.svg`, `_top.svg`) — the only two contracts affected.
 
+### Round 5 PR Review Findings Addressed (PR #88)
+
+Multi-role isolated review (`tl` + `designer` + `admin`) surfaced two blockers and several
+non-blocking nits, all addressed in the same PR (no second review cycle needed after these
+fixes — verify against the reviewers' comments directly, this section is a pointer, not a
+restatement):
+
+- **Blocker (admin):** `BearingHexHousing`'s class-docstring summary line still read
+  "press-fit-house" after the module docstring and `profile` param doc were updated to
+  `free` — corrected; the stale string had shipped verbatim into `engine_api.json`.
+- **Blocker (admin):** the Reference-Doc Freshness sweep was missed for
+  `docs/print-tolerances.md`, which documents `Bearing.outer_pocket`'s fit-grade consumers
+  with pinned line anchors — the anchors had drifted (`outer_pocket` gained a leading
+  docstring + validation block) and the doc didn't record that `outer_pocket` is now
+  parametrized or that `BearingHexHousing`/`HexHubNut` are new `free`-grade consumers.
+  Anchors corrected; new consumer rows and a footnote added, mirroring the existing
+  `TechnicAxleHole`/`TechnicPinHole` `fit=` convention.
+- **Question → correction (tl + designer, independently):** `Bearing.outer_pocket`'s new
+  `fit` parameter resolved via bare `getattr(prof, fit)` — a typo fails late with an opaque
+  `AttributeError`. Fixed to raise `ValueError` on an unrecognized grade, matching
+  `MetricHexNut.to_cutter`'s existing convention; typed as
+  `Literal["press", "free", "slip"]` matching `TechnicAxleHole`'s convention.
+  `Bearing`'s module docstring ("with press-fit clearances") was also stale — corrected.
+- **Question → correction (tl + admin, independently):** the version bump was originally
+  0.1.6 -> 0.1.7 (patch). Per `docs/releasing.md`'s explicit policy, a *behavior* change to
+  an already-shipped class's printed geometry (not merely an additive parameter) is
+  **breaking** in the 0.x scheme — corrected to a minor bump, 0.1.6 -> 0.2.0.
+- **Nit (tl):** the depth-formula test derived its own probe geometry from `_pocket_depth`,
+  so it couldn't fail if the formula itself regressed — added a direct assertion pinning
+  `_pocket_depth == bearing_width + free.axial + 0.5` against independently-computed inputs.
+  Also added a regression test asserting `HexHubWithBearing` forwards `bearing_od` /
+  `bearing_width` to *both* sub-components (previously only checked indirectly via visual
+  contract freshness).
+- **Not applied (nit, tl):** consolidating `FreespinHexHub` / `HexHubNut` / `Bearing` into a
+  single shared blind-pocket helper — deferred as a follow-up refactor rather than folded
+  into this PR (architectural, out of scope for an addendum whose scope is the two decisions
+  in R1-R3).
+- **Not applied (question, tl):** whether the `+0.5 mm` proud-margin docstring wording is
+  physically accurate (pocket is deeper than the bearing, so a fully-seated bearing is
+  recessed, not proud) — the phrasing is inherited verbatim from `FreespinHexHub`'s
+  pre-existing, out-of-diff docstring; not corrected here to avoid scope creep into an
+  unrelated file's prose, but flagged for a future doc pass.
+
 ## Acceptance Contract
 
 ### Success criteria

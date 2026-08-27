@@ -16,17 +16,22 @@ section to the new version and date.
 ## [Unreleased]
 
 ### Changed
-- `vibe_cading/rc/hex_hub_bearing/`: `HexHubNut` now carries its own blind
-  bearing pocket sunk into its outward (top, wheel-facing) face, sized for
-  the identical MR85-2RS bearing seated on the shaft side by
-  `BearingHexHousing` (new `bearing_od` / `bearing_width` constructor
-  params, default 8.0 mm / 2.5 mm) — both ends of the fused
+- **(minor bump — breaking geometry change to `BearingHexHousing`'s existing
+  bearing pocket, see below)** `vibe_cading/rc/hex_hub_bearing/`: `HexHubNut`
+  now carries its own blind bearing pocket sunk into its outward (top,
+  wheel-facing) face, sized for the identical MR85-2RS bearing seated on the
+  shaft side by `BearingHexHousing` (new `bearing_od` / `bearing_width`
+  constructor params, default 8.0 mm / 2.5 mm) — both ends of the fused
   `HexHubWithBearing` deliverable now seat a bearing, not just the shaft
   side. Both the new hex-side pocket and the pre-existing shaft-side pocket
   now use `free` fit grade (drop-in/pop-out by hand) rather than the prior
-  `press` grade, so the bearing is user-replaceable at both ends.
-  `Bearing.outer_pocket()` gained a `fit: str = "press"` parameter to
-  support this (defaults to the prior behavior for every other caller).
+  `press` grade — a behavior change to `BearingHexHousing`'s already-shipped
+  printed geometry (pocket diameter 8.08 mm -> 8.30 mm on `fdm_standard`),
+  not merely additive, hence the minor version bump — so the bearing is
+  user-replaceable at both ends.
+  `Bearing.outer_pocket()` gained a `fit: Literal["press", "free", "slip"] =
+  "press"` parameter to support this (defaults to the prior behavior for
+  every other caller; raises `ValueError` on an unrecognized grade name).
 
 ### Fixed
 - `vibe_cading/tools/view.py`: no longer reports a false success when no OCP CAD
