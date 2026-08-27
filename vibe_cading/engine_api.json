@@ -2080,6 +2080,12 @@
           "name": "b6702",
           "doc": "Thin-section 15x21x4mm",
           "params": []
+        },
+        {
+          "kind": "classmethod",
+          "name": "mr85",
+          "doc": "MR85-2RS: 5x8x2.5mm -- the vibe_cading.rc.* hex-hub family's bearing.",
+          "params": []
         }
       ],
       "result_accessor": ".solid"

@@ -15,7 +15,33 @@ section to the new version and date.
 
 ## [Unreleased]
 
+### Added
+- `vibe_cading/mechanical/bearings.py`: `Bearing.blind_pocket_dims()` (static
+  method — diameter/depth for a blind bearing pocket, given just an OD and
+  width — not registered in `engine_api.json`'s wire contract, which
+  catalogs only `__init__` and public classmethod factories, by design) and
+  `Bearing.mr85()` (the MR85-2RS preset, matching the existing
+  `b608()`/`b623()`/etc. classmethods). Consolidates bearing-pocket-sizing
+  math that `FreespinHexHub`, `HexHubNut`, and `BearingHexHousing` each
+  previously duplicated independently — `FreespinHexHub` and `HexHubNut`
+  now delegate their pocket-dimension properties to the shared formula
+  (verified behavior-identical by a regression test that computes each
+  consumer's expected diameter/depth independently, from the original
+  inline formula against an explicit fit-grade profile — not by
+  re-deriving "expected" via the same shared call under test, which
+  couldn't catch a drift in the shared formula's own defaults). Pure
+  refactor — no consumer's printed geometry changes. See `TODO.md`'s
+  "Consolidate blind bearing-pocket sizing" entry (flagged in PR #88's
+  review cycle).
+
 ### Changed
+- `vibe_cading/mechanical/bearings.py`: `MR85_ID`/`MR85_OD`/`MR85_W` now
+  live once here (the single source of truth for the `vibe_cading.rc.*`
+  hex-hub family) instead of being duplicated in `freespin_hex_hub.py`,
+  `hex_hub_bearing/hex_hub_nut.py`, and `hex_hub_bearing/bearing_hex_housing.py`.
+  `MR85_ID` was previously importable from `vibe_cading.rc.freespin_hex_hub`
+  (unused there) and is no longer — import it from
+  `vibe_cading.mechanical.bearings` instead.
 - **(minor bump — breaking geometry change to `BearingHexHousing`'s existing
   bearing pocket, see below)** `vibe_cading/rc/hex_hub_bearing/`: `HexHubNut`
   now carries its own blind bearing pocket sunk into its outward (top,

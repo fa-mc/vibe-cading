@@ -49,11 +49,8 @@ import math
 
 import cadquery as cq
 
+from vibe_cading.mechanical.bearings import MR85_OD, MR85_W, Bearing
 from vibe_cading.print_settings import get_profile
-
-# ── MR85-2RS standard dimensions (hex-side bearing pocket) ────────────────
-MR85_OD = 8.0  # mm - outer diameter
-MR85_W = 2.5   # mm - axial width
 
 
 class HexHubNut:
@@ -145,26 +142,30 @@ class HexHubNut:
         return self.bore_diameter + 2.0 * self._prof.free.radial
 
     @property
-    def _pocket_dia(self) -> float:
-        """Hex-side bearing pocket diameter after ``free`` radial clearance (mm).
+    def _pocket_dims(self) -> tuple[float, float]:
+        """(diameter, depth) for the hex-side bearing pocket, in mm.
 
-        Mirrors :attr:`~vibe_cading.rc.freespin_hex_hub.FreespinHexHub._pocket_dia`
-        — ``free.radial`` gives ~0.3 mm total diameter play on ``fdm_standard``
-        so the bearing drops in and pops out by hand.
+        Delegates to :meth:`~vibe_cading.mechanical.bearings.Bearing.blind_pocket_dims`
+        (``free`` fit, default 0.5 mm proud margin) — the shared formula
+        also used by :class:`~vibe_cading.rc.freespin_hex_hub.FreespinHexHub`.
+        ``free.radial`` gives ~0.3 mm total diameter play on ``fdm_standard``
+        so the bearing drops in and pops out by hand; ``free.axial`` plus
+        the proud margin prevent the bearing face from binding against the
+        pocket floor.
         """
-        return self.bearing_od + 2.0 * self._prof.free.radial
+        return Bearing.blind_pocket_dims(
+            self.bearing_od, self.bearing_width, profile=self._prof
+        )
+
+    @property
+    def _pocket_dia(self) -> float:
+        """Hex-side bearing pocket diameter after ``free`` radial clearance (mm)."""
+        return self._pocket_dims[0]
 
     @property
     def _pocket_depth(self) -> float:
-        """Hex-side bearing pocket axial depth (mm).
-
-        Mirrors :attr:`~vibe_cading.rc.freespin_hex_hub.FreespinHexHub._pocket_depth`
-        exactly: ``free.axial`` prevents the bearing face from binding
-        against the pocket floor, and the extra flat 0.5 mm margin (not a
-        fit-grade value) lets the bearing sit proud of the hex face so it
-        can be pressed flush by hand.
-        """
-        return self.bearing_width + self._prof.free.axial + 0.5
+        """Hex-side bearing pocket axial depth (mm)."""
+        return self._pocket_dims[1]
 
     # ── Build ───────────────────────────────────────────────────────────
 
