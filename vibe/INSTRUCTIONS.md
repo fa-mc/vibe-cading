@@ -637,6 +637,41 @@ A volume delta under 1 % indicates a good dimensional match.  Remaining
 difference is usually fillets, chamfers, or small features intentionally
 simplified in the parametric model.
 
+### References that must not be committed ([`reference_sources.toml`](../reference_sources.toml))
+
+Some reference geometry is derived from third-party sources whose *dimensions*
+we may read freely as facts, but whose *converted geometry* this repository
+does not redistribute — the LDraw parts library (CC BY 4.0) is the standing
+example; see the PoweredUp hub design brief's §Licensing.
+
+Do not solve this with a throwaway download script under `tmp/`. That is how
+the acquisition steps become unreproducible, and how a check built on such a
+reference ends up running only on the one machine that happens to hold the
+file. Register the **source** instead, in `reference_sources.toml`, and fetch
+it with:
+
+    python3 vibe_cading/tools/fetch_reference.py            # fetch + convert all
+    python3 vibe_cading/tools/fetch_reference.py --list     # manifest only, no network
+    python3 vibe_cading/tools/fetch_reference.py --verify   # check the cache, never download
+
+Rules:
+
+- **Pin every source by `sha256`.** Upstream libraries ship revisions to the
+  same URL. Any tolerance a comparison is judged against is calibrated against
+  one specific revision, so an unpinned fetch lets upstream silently move the
+  thing that tolerance measures against — drift that reads as a model
+  regression, or worse, as an improvement. A mismatch is a hard failure
+  (exit 1) requiring a human to re-review the affected tolerances *before* the
+  pin is bumped, never an auto-accept.
+- **A network failure must never look like a pass.** The tool exits `3` for
+  infrastructure errors, distinct from both `0` (verified) and `1` (integrity).
+  A caller that folds `3` into either one has reintroduced the hole this exists
+  to close.
+- **Fetched artifacts stay git-ignored.** The manifest is the tracked artifact;
+  the geometry never is.
+- **Attribution belongs in the manifest**, alongside the licence, so it travels
+  with the pin rather than living in someone's memory.
+
 
 
 ## Parameter Sweeps and Test Fits
