@@ -62,22 +62,55 @@ external 3-stud / 24.000 mm height is deliberately unchanged. Guarded by
 ``test_interior_clears_the_target_battery``, which measures the built
 solids against the pack rather than re-deriving the constants -- until
 round 47 every test here checked the two printed parts against each other
-and none checked them against their payload. Per the user's round-22 direction the tray was
-deleted outright and its side extraction tabs re-homed onto
-:class:`PoweredUpHubCover` (which already spans the same |X| = 27.200 mm
-edge), so the pack now sits directly on the cover with the handles still
-reachable through the housing's own side windows.
+and none checked them against their payload. Per the user's round-22
+direction the tray was deleted outright and its side extraction tabs
+re-homed onto :class:`PoweredUpHubCover` (which already spans the same
+``|X| = 27.200`` mm edge), so the pack sat directly on the cover with the
+handles reachable through the housing's own side windows.
+
+**Round 51 -- the tray is back, reshaped, and the tab moves with it.**
+:class:`~vibe_cading.lego_adapters.poweredup_hub.battery_tray.PoweredUpHubBatteryTray`
+is a U-channel (no end walls -- see its own module docstring) carrying the
+side extraction tabs (moved back off :class:`PoweredUpHubCover`, a return
+to the real reference's own division of labour). **This is explicitly a
+partial fit**: inserting the Tray between the Cover and the pack consumes
+headroom the housing did not budget for at its current 3-stud height (the
+interior was already only 0.300 mm proud of the bare pack with no tray at
+all), so the pack no longer fits above this Tray until the housing's own
+height is revisited -- the user's own explicit next step, deferred
+deliberately rather than guessed at here. This module still places all
+parts as they will seat once that revisit lands.
+
+**Round 55 -- the Tray is one piece again, plus a small strap cap.**
+Round 54 split the Tray's WHOLE floor out into a separately-printed plate
+(``PoweredUpHubBatteryTrayFloor``); per user direction that class is
+deleted and the floor is integral to the Tray once more. What remains
+separate is only
+:class:`~vibe_cading.lego_adapters.poweredup_hub.battery_tray_cap.PoweredUpHubBatteryTrayCap`,
+a flat plate that drops into a rebate in the TOP face of the Tray floor
+and glues down flush with it, roofing the strap corridor. The channel
+therefore runs UNDER that plate -- floored by the Cover's own face,
+roofed by the cap. It takes the Tray's seat translate plus its own
+``SEAT_Z`` (the channel's clear height).
 
 Placement: :class:`~vibe_cading.lego_adapters.poweredup_hub.housing.PoweredUpHubHousing`
 and :class:`PoweredUpHubCover` share one ``Z = 0`` datum (the lid *is* the
 housing's floor -- see ``PoweredUpHubHousing``'s own docstring), so neither
-part needs a transform.
+part needs a transform. :class:`PoweredUpHubBatteryTray`'s own ``Z = 0`` is
+its bottom rim, seated on the Cover's inner (top) face --
+``PoweredUpHubCover.PLATE_THICKNESS`` above world ``Z = 0``.
 """
 
 from __future__ import annotations
 
 import cadquery as cq
 
+from vibe_cading.lego_adapters.poweredup_hub.battery_tray import (
+    PoweredUpHubBatteryTray,
+)
+from vibe_cading.lego_adapters.poweredup_hub.battery_tray_cap import (
+    PoweredUpHubBatteryTrayCap,
+)
 from vibe_cading.lego_adapters.poweredup_hub.cover import PoweredUpHubCover
 from vibe_cading.lego_adapters.poweredup_hub.housing import PoweredUpHubHousing
 from vibe_cading.print_settings import ToleranceProfile
@@ -86,9 +119,9 @@ from vibe_cading.print_settings import ToleranceProfile
 def assemble(
     profile: ToleranceProfile | str | None = None,
 ) -> list[tuple[cq.Workplane, str, str]]:
-    """Housing + Cover, seated as they seat when the lid is closed.
+    """Housing + Cover + Tray + strap Cap, seated as they seat when closed.
 
-    ``profile`` forwards to both parts' own ``profile`` constructor
+    ``profile`` forwards to all four parts' own ``profile`` constructor
     argument (each resolves ``None`` to the process-global default via
     :func:`vibe_cading.print_settings.get_profile`), so a caller can render
     the seated assembly under a non-default tolerance profile. This is the
@@ -102,8 +135,19 @@ def assemble(
     """
     housing = PoweredUpHubHousing(profile=profile)
     cover = PoweredUpHubCover(profile=profile)
+    tray = PoweredUpHubBatteryTray(profile=profile)
+    cap = PoweredUpHubBatteryTrayCap(profile=profile)
+    seat = (0.0, 0.0, PoweredUpHubCover.PLATE_THICKNESS)
 
     return [
         (housing.solid, "Housing", "lightgray"),
         (cover.solid, "Cover", "gold"),
+        (tray.solid.translate(seat), "Tray", "royalblue"),
+        (
+            cap.solid.translate(
+                (seat[0], seat[1], seat[2] + PoweredUpHubBatteryTrayCap.SEAT_Z)
+            ),
+            "StrapCap",
+            "seagreen",
+        ),
     ]

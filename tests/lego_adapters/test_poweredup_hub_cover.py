@@ -20,6 +20,8 @@ docs/design_plans/2026-08-19-poweredup-hub-battery-box_design.md,
 
 import cadquery as cq
 
+from vibe_cading.cq_utils import rounded_box
+
 from vibe_cading.lego_adapters.poweredup_hub.cover import PoweredUpHubCover
 from vibe_cading.lego_adapters.poweredup_hub.latch_geometry import get_latch_geometry
 from vibe_cading.print_settings import get_profile
@@ -35,33 +37,49 @@ def test_plate_envelope():
     """Overall X/Z envelope matches the measured lid, per SS1.1/SS1.4 of
     docs/design_plans/2026-08-19-poweredup-hub-battery-box_ldraw-parts-geometry.md: 54.4 mm wide, 13.0 mm deep (hook tip).
 
-    **Round 22**: the overall X envelope is now set by the side handles
-    (re-homed from the deleted BatteryTray), which stand proud of the
-    plate by design so they can be reached through the housing's own side
-    windows. The plate's own 54.4 mm width is still asserted -- measured
-    at a Z above the handles rather than off the overall bounding box, so
-    this stays a real check on the plate rather than being relaxed away.
+    **Round 51**: the side handles that widened this envelope (round 22,
+    re-homed from the deleted BatteryTray) moved back onto
+    :class:`~vibe_cading.lego_adapters.poweredup_hub.battery_tray.PoweredUpHubBatteryTray`,
+    so the plate's own width was the whole envelope again.
+
+    **Round 55**: the window sill (``_build_window_sill``) puts material
+    back outboard of the plate edge -- deliberately, to fill the bottom of
+    the housing's side window. So X is measured against the sill's own
+    reach now, and the plate's width is asserted separately at a Z above
+    the sill, where nothing else contributes. Asserting only the outer
+    number would let the sill silently swallow a plate-width regression.
     """
     c = PoweredUpHubCover()
     bbox = c.solid.val().BoundingBox()
-    assert abs(bbox.xlen - 2 * PoweredUpHubCover.HANDLE_LEDGE_X) < 1e-6
     assert abs(bbox.zmin - 0.0) < 1e-9
     prof = get_profile()
     lg = get_latch_geometry(prof)
     assert abs(bbox.zmax - lg.hook_depth) < 1e-6
 
-    # The plate proper. Sampled at a Y band the handles do not span
-    # (they reach only |Y| <= HANDLE_PAD_Y_HALF) rather than at a Z above
-    # them -- the plate is just PLATE_THICKNESS tall, so no Z clears the
-    # handles, but plenty of Y does.
-    y_lo = PoweredUpHubCover.HANDLE_PAD_Y_HALF + 5.0
-    slab = (
-        cq.Workplane("XY")
-        .box(200.0, 4.0, 200.0, centered=(True, False, False))
-        .translate((0.0, y_lo, -50.0))
+    # The sill reaches one running clearance short of the housing wall's
+    # own outer face (28.000) -- see _build_window_sill.
+    assert abs(bbox.xlen - 2 * (28.000 - prof.free.radial)) < 1e-6
+
+    # The plate itself, sampled above the sill's own Z extent.
+    above_sill = c.solid.intersect(
+        rounded_box(
+            width=4 * PoweredUpHubCover.PLATE_WIDTH, depth=2.0, height=0.2,
+            corner_r=0.0,
+            center=(0.0, 0.0, PoweredUpHubCover.PLATE_THICKNESS + 0.1),
+        )
     )
-    plate_bb = c.solid.intersect(slab).val().BoundingBox()
-    assert abs(plate_bb.xlen - PoweredUpHubCover.PLATE_WIDTH) < 1e-6
+    assert not above_sill.solids().vals(), (
+        "positive control failed: expected nothing but the sill out here, "
+        "so this probe cannot distinguish plate from sill"
+    )
+    plate_only = c.solid.intersect(
+        rounded_box(
+            width=4 * PoweredUpHubCover.PLATE_WIDTH, depth=2.0, height=0.2,
+            corner_r=0.0, center=(0.0, 20.0, PoweredUpHubCover.PLATE_THICKNESS / 2.0),
+        )
+    )
+    bb_p = plate_only.val().BoundingBox()
+    assert abs(bb_p.xlen - PoweredUpHubCover.PLATE_WIDTH) < 1e-6
 
 
 def test_outer_face_is_z_zero():
@@ -208,72 +226,118 @@ def test_default_preserving_profile_kwarg():
     assert abs(a.solid.val().Volume() - b.solid.val().Volume()) < 1e-9
 
 
-def _proud_spans(shape: cq.Workplane, x_face: float, z: float,
-                 step: float = 0.02) -> list[tuple[float, float]]:
-    """Y intervals where ``shape`` reaches out to ``x_face`` at height ``z``.
 
-    Probes just inboard of the plane, so the result is "is the part proud
-    to here", which is what distinguishes a border from a solid pad.
+
+def test_window_sill_fills_the_bottom_of_the_side_window():
+    """Round 55. Until round 51 the extraction tab lived on the Cover and
+    was rooted at the plate, filling the housing's side window from
+    ``Z = 0``. Moving the tab to the Tray raised its root to
+    ``PLATE_THICKNESS``, leaving a 1.200 mm slot straight through the side
+    wall, open to daylight.
+
+    Assert the whole ``Z`` extent of the window is occupied by SOMETHING:
+    the sill below, the tab above. Falsifier: remove
+    ``_build_window_sill`` and the band from 0 to 1.200 goes empty. That
+    is exactly the state this repo shipped for four rounds, undetected --
+    the window is cut to the tab's outline and the tab fits it perfectly,
+    so no single-part test could see it.
     """
-    probe = cq.Workplane("XY").box(step, step, step)
-    hits, out, start = [], [], None
-    ys = [round(-12.6 + i * step, 3) for i in range(int(25.2 / step) + 1)]
-    for y in ys:
-        b = probe.translate((x_face - step / 2.0, y, z))
-        try:
-            hits.append(bool(shape.intersect(b).solids().vals()))
-        except Exception:
-            hits.append(False)
-    for i, h in enumerate(hits):
-        if h and start is None:
-            start = ys[i]
-        elif not h and start is not None:
-            out.append((start, ys[i - 1]))
-            start = None
-    if start is not None:
-        out.append((start, ys[-1]))
-    return out
-
-
-def test_side_tab_carries_a_border_round_three_edges():
-    """Round 47. Philo's tab (24849) is proud to X = 28.400 not as a
-    straight top ledge but as a uniform 1.200 mm border tracing the tab
-    outline round three edges, enclosing a recessed interior.
-
-    The falsifier is the LOW stations: rounds 22-46 built only the top band
-    (z 7.200..8.400), so at z = 2.000 they were proud to 28.400 *nowhere*
-    and this test reads an empty list. A pad built solid out to 28.400
-    instead of bordered fails the opposite way -- one span, not two.
-    """
-    c = PoweredUpHubCover
-    cover = PoweredUpHubCover().solid
-    w = c.HANDLE_FRAME_WIDTH
-
-    # Down the straight sides: two separate legs, one per edge, each the
-    # border's own width, seated on the tab's outer profile.
-    for z in (0.5, 2.0, 4.0):
-        legs = _proud_spans(cover, c.HANDLE_LEDGE_X, z)
-        assert len(legs) == 2, (
-            f"expected two border legs at z={z}, got {legs} -- a straight "
-            "top ledge alone reads as [] here"
-        )
-        (lo_a, hi_a), (lo_b, hi_b) = legs
-        assert abs(hi_b - c.HANDLE_PAD_Y_HALF) < 0.05
-        assert abs(lo_a + c.HANDLE_PAD_Y_HALF) < 0.05
-        assert abs(lo_b - (c.HANDLE_PAD_Y_HALF - w)) < 0.05
-        assert abs((hi_a + c.HANDLE_PAD_Y_HALF - w)) < 0.05
-
-    # Over the top the two legs have merged into one continuous run: the
-    # border closes across the third edge.
-    for z in (7.6, 8.2):
-        top = _proud_spans(cover, c.HANDLE_LEDGE_X, z)
-        assert len(top) == 1, f"expected a closed top segment at z={z}, got {top}"
-
-    # And the interior it encloses is recessed -- not proud to the border.
-    assert _proud_spans(cover, c.HANDLE_LEDGE_X, 6.0) != [], "border vanished at z=6"
-    interior = _proud_spans(cover, c.HANDLE_LEDGE_X, 3.0)
-    assert all(abs(abs(lo) - (c.HANDLE_PAD_Y_HALF - w)) < 0.05
-               or abs(abs(hi) - (c.HANDLE_PAD_Y_HALF - w)) < 0.05
-               for lo, hi in interior), (
-        f"interior is not recessed behind the border: {interior}"
+    from vibe_cading.lego_adapters.poweredup_hub.battery_tray import (
+        PoweredUpHubBatteryTray,
     )
+    from vibe_cading.lego_adapters.poweredup_hub.housing import PoweredUpHubHousing
+
+    housing = PoweredUpHubHousing(profile="fdm_standard").solid
+    cover = PoweredUpHubCover(profile="fdm_standard").solid
+    seat = PoweredUpHubCover.PLATE_THICKNESS
+    tray = PoweredUpHubBatteryTray(profile="fdm_standard").solid.translate(
+        (0.0, 0.0, seat)
+    )
+
+    # A column inside the wall's own X band, on the window's centreline.
+    x_mid = 28.000 - PoweredUpHubHousing.WALL_THICKNESS / 2.0
+    for z in (0.1, 0.4, 0.8, 1.1, 1.6, 3.0, 6.0):
+        probe = rounded_box(
+            width=0.4, depth=1.0, height=0.1, corner_r=0.0,
+            center=(x_mid, 0.0, z),
+        )
+        filled = any(
+            part.intersect(probe).solids().vals()
+            for part in (housing, cover, tray)
+        )
+        assert filled, (
+            f"the side window is open to daylight at z={z} -- nothing "
+            "(housing, cover sill, or tray tab) occupies the wall there"
+        )
+
+
+def test_window_sill_clears_the_window_and_its_neighbours():
+    """The sill has to fill the opening without binding in it.
+
+    Y: the sill matches the TAB's half-width while the window is that
+    outline offset outward by the running clearance, so there must be a
+    positive gap on both sides -- checked by finding the sill's edge and
+    the housing's edge and asserting daylight between them.
+
+    Zero interference against every part it sits next to, with the
+    single-solid check on the Cover itself as the positive control that
+    the sill actually fused to the plate rather than floating beside it.
+    """
+    from vibe_cading.lego_adapters.poweredup_hub.battery_tray import (
+        PoweredUpHubBatteryTray,
+    )
+    from vibe_cading.lego_adapters.poweredup_hub.battery_tray_cap import (
+        PoweredUpHubBatteryTrayCap,
+    )
+    from vibe_cading.lego_adapters.poweredup_hub.housing import PoweredUpHubHousing
+
+    cover = PoweredUpHubCover(profile="fdm_standard").solid
+    assert len(cover.solids().vals()) == 1, (
+        "the sill did not fuse to the plate -- it is a separate body"
+    )
+
+    seat = PoweredUpHubCover.PLATE_THICKNESS
+    neighbours = {
+        "Housing": PoweredUpHubHousing(profile="fdm_standard").solid,
+        "Tray": PoweredUpHubBatteryTray(profile="fdm_standard").solid.translate(
+            (0.0, 0.0, seat)
+        ),
+        "Cap": PoweredUpHubBatteryTrayCap(profile="fdm_standard").solid.translate(
+            (0.0, 0.0, seat + PoweredUpHubBatteryTrayCap.SEAT_Z)
+        ),
+    }
+    for name, other in neighbours.items():
+        vol = sum(s.Volume() for s in cover.intersect(other).solids().vals())
+        assert vol < 1e-6, f"Cover interferes with {name} by {vol:.4f} mm^3"
+
+    # Daylight in Y between the sill's edge and the window's edge.
+    x_mid = 28.000 - PoweredUpHubHousing.WALL_THICKNESS / 2.0
+    z_mid = PoweredUpHubCover.PLATE_THICKNESS / 2.0
+    gap = rounded_box(
+        width=0.4, depth=0.05, height=0.4, corner_r=0.0,
+        center=(x_mid, PoweredUpHubCover.WINDOW_SILL_Y_HALF + 0.05, z_mid),
+    )
+    assert not cover.intersect(gap).solids().vals()
+    assert not neighbours["Housing"].intersect(gap).solids().vals(), (
+        "no clearance between the sill's edge and the window's -- it binds"
+    )
+
+
+def test_window_sill_tracks_the_tab_width():
+    """``WINDOW_SILL_Y_HALF`` is a hardcoded copy of the Tray's own
+    ``TAB_PAD_Y_HALF`` (the two classes cannot import each other -- see the
+    constant's comment). Measure the built Tray rather than trusting that
+    comment: a sill narrower than the tab leaves a visible notch at the
+    step, a wider one binds in the window.
+    """
+    from vibe_cading.lego_adapters.poweredup_hub.battery_tray import (
+        PoweredUpHubBatteryTray,
+    )
+
+    assert (
+        abs(
+            PoweredUpHubCover.WINDOW_SILL_Y_HALF
+            - PoweredUpHubBatteryTray.TAB_PAD_Y_HALF
+        )
+        < 1e-9
+    ), "the Cover's sill and the Tray's tab have drifted apart in Y"

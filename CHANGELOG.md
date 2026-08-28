@@ -81,6 +81,331 @@ section to the new version and date.
   the shipped `fdm_standard` and the local `bambu_p1s` profile.
 
 ### Added
+- **`PoweredUpHubBatteryTray` is one piece again, and the strap now runs
+  in a channel cut INTO its floor** (round 55, user direction + marked-up
+  sketch). Round 54's split of the whole floor into a separately-printed
+  `PoweredUpHubBatteryTrayFloor` is reverted and that class deleted. The
+  floor is integral again, but on new geometry rather than the rounds
+  52–53 shape:
+  - **No standoff.** The floor's underside is flush with the tray's own
+    `Z = 0` bottom rim (`FLOOR_THICKNESS = 3.400 mm`), so the part prints
+    flat on the bed with nothing bridged — which is the printability
+    problem round 54 was trying to solve, solved without splitting the
+    part.
+  - **One through-corridor** replaces the two separate strap slots,
+    joining them into a continuous opening `STRAP_WIDTH = 20.500 mm` wide
+    in Y and spanning `|X| ≤ 23.150`. Entry/exit positions are unchanged
+    and still outboard of the pack's own `16.000 mm` half-width. The
+    corridor is deliberately open at the top — the pack bridges it, which
+    is what lets the strap loop over the battery.
+  - **`STRAP_CAP_THICKNESS = 1.200 mm` rebate** in the floor's **top**
+    face flanking the corridor (blind pocket — asserted in both
+    directions, not just "material gone above"). Top rather than
+    underside: a top-face pocket opens upward so the floor beneath it
+    prints straight off the bed, whereas an underside rebate would leave
+    the flanks bridging 1.200 mm in the air — the exact printability fault
+    this redesign removes. Guarded by
+    `test_the_rebate_opens_upward_so_nothing_bridges`, which fails if the
+    rebate is flipped back.
+  - `STRAP_CHANNEL_HEIGHT = 1.500 mm` and `STRAP_THICKNESS_TARGET = 1.500`
+    — both user-measured on the real strap ("less than 1.5mm", "channel
+    just need 1.5mm"). The channel height is an outright constant, NOT
+    `strap + margin`: the user sized it from the part, so an added margin
+    would only spend headroom the housing has to pay for.
+  - Net stack under the pack: `2.700 mm` vs. rounds 52–53's
+    `2.700 + 1.500 = 4.200 mm` — **1.500 mm of headroom recovered**.
+  - `FLOOR_STANDOFF` and `_STRAP_CRAWLSPACE_MARGIN` are **gone**;
+    `STRAP_CHANNEL_HEIGHT` (2.200), `STRAP_CAP_THICKNESS` (1.200),
+    `STRAP_CAP_MARGIN_Y`, `STRAP_CAP_Y_HALF` and the classmethod
+    `cap_rebate_half_extents(profile)` are new.
+- **`PoweredUpHubBatteryTrayCap`** (new class, round 55) — the flat plate
+  that drops into that rebate from above and glues down flush with the
+  floor's top face, roofing the corridor. **The strap channel runs UNDER
+  the plate**: floored by `PoweredUpHubCover`'s own face, roofed by the
+  cap. Prints flat on the bed with no supports, which is the entire reason
+  it is a separate part — printed in place it would be a bridge over the
+  corridor. Its print datum is its own bottom face at `Z = 0` per the
+  zero-datum convention, so placing it adds `SEAT_Z = 2.200` on top of the
+  Tray's seat translate. Its thickness is *derived* from
+  `PoweredUpHubBatteryTray.STRAP_CAP_THICKNESS` and its footprint from
+  `cap_rebate_half_extents(...)`, so the two halves of the joint cannot
+  drift apart — a mating pair that each re-derive the same dimension is one
+  edit away from silently not fitting. Verified: zero interference with the
+  Tray (a real glue gap, with a Z-overlap positive control so "no
+  interference" isn't two parts that never met), the corridor genuinely
+  roofed above and genuinely open below, the seated cap flush with the
+  floor's top face so the pack lands on one continuous surface, and the
+  clear channel height measured **on the built solids** at 1.500 mm.
+  `assembly.py` places four parts.
+- **`PoweredUpHubHousing.DECK_Z` 24.000 → 29.600** (round 55, user
+  direction: *"just use 29.6 for now. I don't need the top cover (yet)"*).
+  The tray floor plus the caliper-measured 20.900 mm pack need 24.800 mm of
+  interior and a 3-stud shell gave 21.200; the pack now clears by
+  **3.200 mm**, and `test_interior_clears_the_battery_above_the_tray_floor`
+  asserts it on the built solids (rounds 51–54 deliberately did not, because
+  it was known false).
+  - Round 22's 3-stud cap was *not* an approximation of the reference — it
+    landed on the reference's own step exactly. Ray-cast of `25560.dat`
+    bisects that step at Z = 24.000 (`|X|max` is 35.600 at 24.000 and
+    27.200 at 24.010).
+- **`PoweredUpHubHousing` steps in above Z = 24.000, like the reference**
+  (`_build_upper_step_in`, round 55b, user direction: *"we do need to adjust
+  the wall inwards like the reference model, otherwise the trapezoid looks
+  weird"*). Raising `DECK_Z` alone extruded the full 72 × 71.2 lower
+  footprint the whole way, carrying ~13,000 mm³ the reference lacks — and,
+  as the user spotted from the rendered part, leaving the trapezoid socket
+  reading as a slot in a flat face rather than the recess it is. The socket
+  only reads as a socket because its top edge meets the step.
+  - Upper footprint, ray-cast from the reference and positive-controlled at
+    Z = 15.000 against the lower walls this class already models:
+    X ±27.200 outer / ±26.400 inner, Y −32.000 outer / −30.800 inner at the
+    latch end and +32.000 inner at the tongue end, ceiling 28.000, top face
+    29.600. **The 28.000 ceiling and 1.600 skin are already this class's own
+    `DECK_Z − DECK_THICKNESS` and `DECK_THICKNESS`** — round 47 arrived at
+    1.600 by thinning the deck to clear the pack and landed on the
+    reference's own figure.
+  - Verified face-by-face against the reference: X matches **exactly** on
+    both faces, Y on three of four. The fourth is a declared simplification
+    — the reference's tongue-end outer face is *drafted* (33.316 at Z 24.1
+    to 33.234 at Z 28.0, −0.021 mm/mm) and is modelled vertical at the
+    mid-height 33.276, so the error is ≤ ±0.042 mm and changes sign at
+    mid-height.
+  - Implemented as a **subtraction**, not by re-shaping the wall builders:
+    every feature below the step — stepped side walls, both end walls, the
+    arms, both trapezoid sockets, the pin bores — is already correct and one
+    cut above the step cannot disturb it. The cutter has **no downward
+    overcut**; that is the whole correctness condition, since 1 mm here
+    would shave the sockets, the wall step, and the arms (which end at
+    exactly 24.000 — verified, not assumed).
+  - `reference_contracts.toml` gains a scored
+    `poweredup-hub-housing-upper-side-wall` row (51.3%, floor set to the
+    measurement) plus two documented deviations: the drafted tongue face
+    above, and the reference's internal posts/ribs in the upper cavity,
+    which are not modelled under the same *internal structure is simplified*
+    scope as the lower shell. The row is **scoped to the wall**: the whole
+    upper section scores 4.2%, dominated entirely by those omitted posts, so
+    a floor on it would be decorative rather than a check.
+  - `DECK_STUDS` is **retired**; `DECK_Z` now derives from the new
+    `REF_SHELL_Z = 29.600`. The kinematic test's stud-multiple assertion is
+    retired with it (29.600 / 8 = 3.7 states nothing) and replaced by one
+    tying `DECK_Z` to the measured reference figure.
+  - **`SOCKET_Z_HI = 24.000` (new)** — both trapezoid sockets took their top
+    from `DECK_Z`, which was the same number for rounds 50–54. Left wired
+    that way they would have stretched a trapezoid measured over
+    Z 22.1…23.9 across 7.600 mm instead of 2.000, extrapolating the mouth
+    5.600 mm past the sampled band. Guarded by
+    `test_wall_sockets_stop_at_the_reference_step_not_at_the_deck`.
+  - **Both sockets' vertical overcut removed.** It ran 1.000 mm above the
+    socket top, which was free air while the part ended at 24.000 and became
+    1.000 mm of real side/end wall once it did not — the *overcuts on the
+    non-waste side* pitfall, where the overcut never moved and the thing it
+    pointed at changed underneath it.
+  - **The cord port's Z bound is now stated, not inherited.** Its cutter
+    spanned `DECK_THICKNESS` + 1.000 mm of overcut, which while the deck sat
+    at 22.400 happened to reach Z 21.400 and sweep the descent clear — in
+    particular removing the liftarms' 0.050 mm union seam, which pokes
+    inboard past the wall's 26.400 inner face over Z 22.000…24.000, squarely
+    in the port's X band. Raising the deck moved the cutter up and left that
+    seam behind: deck opening clear, descent pinched. The cutter now spans
+    from `WALL_INNER_STEP_Z` (where anything can first intrude into the
+    port's X band) to the deck top. Caught by the existing *"a hole is not a
+    route"* assertion, which is the reason that test exists.
+- **The upper section's two short ends run out to the end trapezoids'
+  floor** (round 55d, user direction: *"extend both shorter ends to sit
+  inline with the trapezoid (similar to what we currently have for the long
+  edges)"*). `UPPER_Y_HI` is now `HALF_Y − END_SOCKET_DEPTH` = **34.400**
+  (and `UPPER_Y_LO` its negation), *derived* rather than typed — "inline with
+  the trapezoid" is the requirement, so it is the same arithmetic the end
+  socket's own floor uses and the two cannot drift apart.
+  - The long edges already worked this way, which is what makes a socket read
+    as a socket: the side trapezoid's floor is at `|X| = 27.200` and the
+    upper section's outer face is the same 27.200, one continuous plane. The
+    reference does *not* do this at the ends — it stops at −32.000 / +33.3,
+    inboard of its own end-trapezoid floor, leaving those sockets a lip the
+    side ones lack.
+  - **A departure from the reference**, recorded in
+    `reference_contracts.toml`: above the step the Y faces are now ours at
+    both ends. X is untouched and stays reference-exact. It also retires the
+    previous "tongue-end draft modelled vertical" deviation — that ±0.042 mm
+    simplification is moot now the face isn't where the reference puts it.
+  - The `poweredup-hub-housing-upper-side-wall` floor moved 51.0 → 48.0
+    against a measured 48.7%. **This is a lowered floor**, which this repo
+    otherwise forbids, so the reason is written out in full in the contract:
+    the region's geometry is provably unchanged (its faces are still asserted
+    at exactly 26.400 / 27.200 by a passing unit test), and the metric moved
+    because `surface_diff` keeps whole triangles intersecting the region and
+    clips only the sampled points — so lengthening the wall's triangles in Y
+    redistributes samples at fixed density. Deterministic at 48.7% on
+    repeated runs. Re-established, not relaxed.
+- **The cover budget is now an input, and the upper section is derived from
+  it** (round 55e, user direction: *"Can we use 1mm for all the cover walls?
+  I feel 0.65 is too thin. Then adjust the housing top accordingly"*). New
+  `COVER_WALL = 1.000`, `COVER_FIT_CLEARANCE = 0.150` (nominal, not the live
+  profile — this class's visual contracts are byte-compared, and the cover
+  will apply its own clearance when built), `UPPER_INSET = 1.150`.
+  - `UPPER_X_OUTER` 27.200 → **26.850**, side socket depth 0.800 → **1.150**,
+    and the doubled band's inner face `inner_upper` 26.400 → **26.050**, all
+    derived from `UPPER_INSET`. That makes *inline with the trapezoid*
+    structural: the socket's depth **is** the upper section's inset, so floor
+    and wall are one plane by construction rather than by two constants
+    agreeing.
+  - **Deepening the socket without moving the wall behind it left 0.450 mm**
+    instead of 0.800 — caught mid-round. `inner_upper` is now derived from
+    the socket floor ("floor minus one wall") so the next depth change can't
+    repeat it. A side effect worth having: Housing's inner face is now
+    *uniform* from `WALL_INNER_STEP_Z` to `DECK_Z`.
+  - **The roof's cord port moved with the wall** (user: *"you probably also
+    want to move the housing roof's wire pass cut to avoid super thin
+    edge"*). `x_hi` is now `UPPER_X_INNER` (26.050), not the lower band's
+    26.400 — which would have left a 0.450 mm ligament of roof outboard of
+    the slot *and* notched the upper wall. Flush, the roof still ends where
+    the wall begins, which is the reasoning the original figure was picked
+    for, re-derived against geometry that moved under it.
+  - **Short ends left alone**: the reference's own 1.200 end-socket depth
+    already gives a 1.050 mm cover wall. Moving it to 1.150 buys 0.050 mm —
+    below print resolution — at the cost of departing from a measured figure.
+  - **`PoweredUpHubBatteryTray`'s upper band moved 26.400 → 26.050** to match
+    (inner 25.600 → 25.250, same section). The tray's own tests would not
+    have caught the 0.200 mm interference; the cross-part seating check did.
+  - **Two honesty repairs.** `test_upper_section_x_faces_match_the_reference`
+    asserted against `UPPER_X_OUTER` rather than literals, so it kept passing
+    while its *name* claimed a reference agreement that had lapsed — renamed
+    to `..._are_the_cover_budget_not_the_reference` and given an assertion
+    that fails if the inset reverts. The R55d contract note claiming "X is
+    untouched and remains reference-exact" was likewise corrected in place.
+  - Conformance: `upper-side-wall` 48.7% → **40.0%**, floor 48.0 → 39.0. This
+    lowering is a **real** departure (the wall moved 0.350 mm inboard), unlike
+    R55d's, which was a sampling artifact — both are now written out in the
+    contract with that distinction explicit, since two lowerings in one round
+    is the exact pattern this repo has shipped a broken part behind before.
+- **The shell's bottom edge is rounded into both end planes** (round 55f,
+  user request). `BOTTOM_ROUND_R = 3.600`, arc centre at `|Y| = 32.000`.
+  - **Measured off the reference's own vertices, not off slices.** Slicing
+    samples wherever the cutting plane crosses a facet, which made this look
+    like two different radii (≈3.2 at one end, ≈3.7 at the other) that
+    drifted depending on which Z was fitted. The vertices are the curve's
+    control points: both ends fit **one** arc, R = 3.600, rms **0.0005 mm** at
+    the latch end. The tongue end is the *same* arc with its centre 0.274 mm
+    lower (`BOTTOM_ROUND_CZ_LATCH = 3.600`, `..._TONGUE = 3.326`) — its bottom
+    face cuts the arc above the tangent point rather than at it.
+  - **The two ends round different segments**, also measured
+    (`tmp/ldraw/curve_span.py`): the latch end only `|X|` 19.200–28.000, with
+    square vertices surviving at `Y = −35.600` out at `X = ±5.600` — the
+    user's *"on the end with the thumb tabs, only the outer segments have the
+    curve"*. The tongue end rounds the rib bands and only those: `|X| ≤
+    0.800`, 15.600–17.200, 26.000–28.000 — exactly SS12.2's T1/T2/T3.
+  - Cut as a true arc (a cylinder along X), not a chamfer. **The X bands take
+    no overcut** — the one bounded direction in that builder, because
+    bleeding sideways would round segments the reference leaves sharp.
+  - Verified against the reference's own stations rather than re-derived from
+    the constant: max deviation **0.046 mm**, and that residual is the probe
+    sitting 0.02 mm above each station.
+  - `test_bottom_face_is_z_zero_and_open` moved from `bbox.zmin == 0.0` to a
+    1e-9 tolerance: the cylinder cut leaves ~4e-14 mm of OCCT float noise, and
+    an exact compare tests the boolean kernel's rounding rather than the
+    datum — the same reasoning the Cover's own datum test already carried.
+- **The tongue end's side wall gets the full arc** (round 55g, user
+  direction: *"the tongue side wall should have the curve all the way"*).
+  The reference truncates the tongue end's arc 0.274 mm up, which beside its
+  own neighbours reads as an unfinished curve; the tongue's side-wall bands
+  (`|X|` 26.000–28.000) now use the full arc tangent to `Z = 0`, matching the
+  latch end. The tongue's **rib** bands keep the reference's truncated one.
+  `BOTTOM_ROUND_CZ_LATCH` / `..._TONGUE` are renamed `..._CZ_FULL` /
+  `..._CZ_TRUNCATED`, since the choice is now per-band rather than per-end.
+  - The conformance cost was **isolated before the floor moved**, not
+    inferred: rebuilding with each variant scores 78.61% for the
+    reference-faithful rounds (unchanged) and 68.79% as shipped, so the whole
+    9.8-point drop is this one deviation. Floor 78.0 → 68.0 on that evidence.
+    Rescoping the row to exclude the side wall was tried first and rejected —
+    it scores 64.9%, i.e. worse, and the outer rib band overlaps the side wall
+    so there is no clean split.
+- **`PoweredUpHubCover` gains a window sill** (`_build_window_sill`, round
+  55, user direction: *"I'd just add a stripe to the cover"*). Round 51 moved
+  the extraction tab from the Cover to the Tray, which seats
+  `PLATE_THICKNESS` higher — so the tab now starts at Z = 1.200 while the
+  housing's side window it passes through still starts at Z = 0, leaving a
+  1.200 mm slot straight through the side wall, open to daylight, for four
+  rounds. Nothing detected it: the window is cut to the *tab's* outline and
+  the tab still fits it perfectly, so no single-part test could see it — only
+  where two parts meet. The sill carries the plate's edge out through that
+  slot, at the tab's own `Y` half-width (12.000, so the window's running
+  clearance survives on both sides) and stopping 0.150 mm short of the wall's
+  outer face (the Cover has ±0.150 of deliberate sideways play from the
+  round-48 relief, so a flush stripe would stand proud off-centre).
+  `PoweredUpHubCover.solid`'s bounding box therefore grows in X from
+  `PLATE_WIDTH` to 2 × 27.850; `test_plate_envelope` now asserts the plate's
+  own width separately, at a Z above the sill.
+- **Rejected and recorded, not silently dropped**: routing the strap
+  through slots in the tray's lower side walls (the user's own alternative,
+  which would need no second part). The tray's lower-band outer face is at
+  `|X| = 27.200` and `PoweredUpHubHousing`'s lower-band inner face is
+  *also* `27.200` — a strap leaving sideways has exactly zero mm to run in.
+- **`PoweredUpHubBatteryTray`'s strap holders run alongside the two
+  extraction tabs** (user correction, round 53), not across them. Round 52's
+  first attempt put both slots at `X = 0` with two `Y` offsets (`±18.0`,
+  each wide in X) — a pair of local loops beside the pack, not a strap
+  crossing over it. Now both slots share one `Y` (the tabs' own centreline)
+  at two `X` positions, `STRAP_HOLDER_X = ±22.000`, transposed to be wide in
+  Y (`STRAP_WIDTH`) and narrow in X (`STRAP_THICKNESS_TARGET` + clearance).
+  **Verified against the target battery, not just built**:
+  `test_strap_span_crosses_the_target_battery_footprint` confirms
+  `STRAP_HOLDER_X` clears the Spektrum SPMX812SH2's own half-width
+  (`16.000 mm`) — a holder placed inboard of the pack would pass every other
+  strap test while silently retaining nothing. `STRAP_HOLDER_Y` is gone;
+  `STRAP_HOLDER_X` replaces it. Zero interference against seated
+  Housing/Cover re-verified unchanged.
+- **`PoweredUpHubBatteryTray` is back** (user direction, round 52) — a
+  U-channel, not a copy of the box round 22 deleted: both end walls are
+  gone outright, leaving the two long side walls (each carrying the real
+  extraction tab from LDraw tray `24849`) and a raised floor with two
+  strap-holder slots (`STRAP_WIDTH = 20.500 mm`, sized for a `20 mm` strap;
+  `STRAP_THICKNESS_TARGET = 2.000 mm`, user-directed this session, fallback
+  `12 × 1.5 mm` noted if a print shows it's too tight). Removing the end
+  walls is not a cosmetic simplification — every collision the retired
+  class fought from round 13 to round 22 (the tongue riser, the latch-end
+  release leg, the raised locating land) was a collision between a
+  flat-bottomed END wall and one of `PoweredUpHubCover`'s own raised,
+  low-Z features; deleting the end wall deletes the collision class with
+  it, and this class needs no relief cut. Instead, the side walls' own Y
+  reach (`WALL_Y_LO`/`WALL_Y_HI`) stops a `0.100 mm` safety margin short
+  of Cover's `LATCH_BAND` and locating groove so their footprints never
+  overlap by construction. Zero interference confirmed against both
+  seated `PoweredUpHubHousing` and `PoweredUpHubCover`.
+  **Deliberately not asserted**: whether the pack still fits above this
+  Tray's floor inside the current 3-stud housing — it does not, at
+  `21.200 mm` of interior against a floor that alone consumes down to
+  `Z = 5.200 mm` above the cover, and the user explicitly asked to design
+  the tray first and revisit the housing's height in a follow-up round.
+- **The extraction tab moves from `PoweredUpHubCover` back to
+  `PoweredUpHubBatteryTray`** (round 52) — round 22 re-homed it onto Cover
+  as a stand-in once the tray was deleted; this is a return to the real
+  reference's own division of labour (`24849` carries the tab, `24853`
+  never did). **Breaking**: `PoweredUpHubCover.HANDLE_*` (11 constants) and
+  `_build_side_handle` are gone; the equivalent `PoweredUpHubBatteryTray
+  .TAB_*` constants and `_build_extraction_tab` take their place, in the
+  Tray's own local Z frame (its bottom rim, not world `Z = 0`).
+  `PoweredUpHubHousing._build_side_window` now derives its cut from the
+  Tray's tab instead of Cover's, converting the Z-valued constants through
+  the fixed `PLATE_THICKNESS` seating offset — the window's own geometry
+  is unchanged, only its source class. `PoweredUpHubCover`'s overall X
+  envelope shrinks back to its plain `PLATE_WIDTH` (`54.4 mm`), since
+  nothing on it stands proud past the plate edge anymore.
+- **The trapezoid mating socket in each END wall's outer face** (user
+  direction, round 51) — the other half of the cap register. Measured off
+  `25560.dat` along ±Y rather than assumed to transfer from the side walls,
+  and it does not transfer: identically on both ends the recess extends to
+  `|X| = Z − 8.000`, i.e. an isosceles trapezoid `28.000 mm` wide at
+  `Z = 22.000` opening to `32.000 mm` at `Z = 24.000`. Only the Z band and the
+  45° flank angle are shared with the side sockets; the half-widths
+  (`14.000 → 16.000` vs `9.200 → 11.200`) and the depth are not. Depth is
+  `1.200 mm` — the outer skin the reference removes outright — with the floor
+  at `|Y| = 34.400`; it stays a blind pocket here because our end walls are
+  thicker than the reference's skin there (`4.800 mm` at the latch end, the
+  solid deck above the bay at both ends). New constants `END_SOCKET_Z_LO`,
+  `END_SOCKET_X_HALF_LO`, `END_SOCKET_X_HALF_HI`, `END_SOCKET_DEPTH`. The cut
+  runs after the deck union, since above the bay the socket's floor *is* deck
+  material. Both overcut directions verified to lie outside the part's
+  bounding box before use.
 - **The trapezoid mating socket in each side wall's outer face** (user
   direction, round 50) — the intended register for a future cap. Measured off
   `25560.dat`: an isosceles trapezoid at `X = 27.200`, narrow edge down,

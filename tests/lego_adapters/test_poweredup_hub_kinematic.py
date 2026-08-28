@@ -58,6 +58,9 @@ from __future__ import annotations
 import cadquery as cq
 
 from vibe_cading.cq_utils import rounded_box
+from vibe_cading.lego_adapters.poweredup_hub.battery_tray import (
+    PoweredUpHubBatteryTray,
+)
 from vibe_cading.lego_adapters.poweredup_hub.cover import PoweredUpHubCover
 from vibe_cading.lego_adapters.poweredup_hub.housing import PoweredUpHubHousing
 from vibe_cading.print_settings import get_profile
@@ -196,22 +199,34 @@ def test_envelope_and_single_solid_guards_hold():
     remain single solids -- the final cross-part sign-off checks from the
     round-18 acceptance gate.
 
-    **Round 22**: the Z assertion now reads DECK_Z (24.000 mm = 3 studs,
-    the user's bottom-layer cap) rather than the reference shell's own
-    29.600 mm. Asserted against the constant, not a re-typed literal, so
-    the stud count is the single source of truth. The BatteryTray is gone
-    (it no longer fits under a 3-stud deck), so this is a two-part check.
+    **Round 22** capped Z at DECK_Z = 24.000 (3 studs, the user's
+    bottom-layer decision) rather than the reference shell's 29.600, and
+    this test pinned the stud count.
+
+    **Round 55** raises DECK_Z back to the reference shell's own 29.600 --
+    the tray floor plus the caliper-measured pack need 24.800 mm of
+    interior and 3 studs give 21.200. The stud-multiple assertion is
+    therefore RETIRED rather than re-typed to 3.7: the height is no longer
+    a stud count at all, it is the reference's measured top face, and an
+    assertion that 29.600 / 8.000 = 3.7 would state nothing. What is
+    asserted instead is that the constant equals the measured reference
+    figure it now derives from -- so a silent drift back to an arbitrary
+    height still fails here.
+
+    The BatteryTray is back (round 51) and now genuinely fits, so it joins
+    the single-solid sweep.
     """
     housing = PoweredUpHubHousing()
     cover = PoweredUpHubCover()
+    tray = PoweredUpHubBatteryTray()
 
     bb = housing.solid.val().BoundingBox()
     assert abs(bb.xlen - 72.000) < 1e-6
     assert abs(bb.ylen - 71.200) < 1e-6
     assert abs(bb.zlen - PoweredUpHubHousing.DECK_Z) < 1e-6
-    assert abs(PoweredUpHubHousing.DECK_Z - 3 * 8.000) < 1e-9
+    assert abs(PoweredUpHubHousing.DECK_Z - PoweredUpHubHousing.REF_SHELL_Z) < 1e-9
 
-    for part in (housing, cover):
+    for part in (housing, cover, tray):
         assert len(part.solid.solids().vals()) == 1
 
 

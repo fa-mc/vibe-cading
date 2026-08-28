@@ -191,6 +191,13 @@ class PoweredUpHubCover:
           [30.0, 31.2]) matching the old BatteryTray's own bottom-rim
           thickness. With the tray deleted the land registers nothing, so
           it was removed rather than left as a bump with no mate.
+        - **Side handle -- gone (round 51).** Round 22 re-homed the tray's
+          own extraction tab onto this class as a stand-in, once the tray
+          was deleted. Round 51 resurrects
+          :class:`~vibe_cading.lego_adapters.poweredup_hub.battery_tray.PoweredUpHubBatteryTray`
+          and moves the tab back onto it -- a return to the real reference's
+          own division of labour (24849 carries the tab, 24853 never did).
+          This class no longer builds one.
 
     Parameters
     ----------
@@ -210,6 +217,18 @@ class PoweredUpHubCover:
     PLATE_Y_LO = -30.800  # latch-end plate edge
     PLATE_Y_HI = 32.000   # tongue-end plate edge
     PLATE_THICKNESS = 1.200
+
+    # --- Side-window sill (round 55) -- see _build_window_sill. ---
+    # The extraction tab's own half-width, in the frame this class and the
+    # window share. Hardcoded, not imported from
+    # PoweredUpHubBatteryTray.TAB_PAD_Y_HALF, because that class imports
+    # THIS one and the reverse import would cycle -- the same reason
+    # PoweredUpHubHousing carries its own reference-measured WINDOW_Y_HALF.
+    # Housing asserts that its window and the tray's tab still describe one
+    # feature (_build_side_window); this constant must track the same
+    # number, and test_window_sill_matches_the_tab_width holds it to that
+    # by measuring the built Tray rather than trusting this comment.
+    WINDOW_SILL_Y_HALF = 12.000
 
     # --- Latch-end local thickening band (SS1.4) ---
     LATCH_BAND_Y_LO = -30.800
@@ -389,65 +408,6 @@ class PoweredUpHubCover:
     PAD_END_WALL_Y = -35.400
     PAD_END_WALL_Z_HI = 2.791
 
-    # --- Side handles (round 22) -- Philo's TRAY extraction tab, SS2.3 ---
-    # These are the real tab from LDraw tray 24849 (SS2.3), re-homed onto
-    # this part when the tray was deleted. The first port of them was wrong
-    # in every Z figure: it copied the deleted BatteryTray class's own
-    # constants, which were expressed in the TRAY's datum (its bottom rim,
-    # PLATE_THICKNESS above the lid face) and had additionally been shrunk
-    # by that class's round-20 window-collision fix. Result: 1.6 mm too low,
-    # 2 mm too narrow, and square where the real tab has a large radius.
-    #
-    # This class's own Z = 0 IS the lid outer face -- exactly the datum
-    # SS2.3 quotes -- so the reference figures now transfer with no
-    # rebasing at all.
-    HANDLE_ROOT_X = 27.200        # side-wall face the tab stands on
-    HANDLE_PAD_X = 28.000         # 0.800 mm proud
-    HANDLE_PAD_Y_HALF = 12.000    # 24.000 long
-    HANDLE_PAD_Z_HI = 8.400
-    HANDLE_LEDGE_X = 28.400       # 1.200 mm proud -- the border's own face
-    HANDLE_LEDGE_Y_HALF = 8.400   # the corner round-over's centre |Y|
-    # The border's TOP segment -- still exactly these two planes, and still
-    # the fingernail undercut. Rounds 22-46 built this segment alone, as a
-    # straight band; round 47 keeps it and adds the two side legs and the
-    # corners that carry it round. See HANDLE_FRAME_WIDTH.
-    HANDLE_LEDGE_Z_LO = 7.200
-    HANDLE_LEDGE_Z_HI = 8.400
-    HANDLE_RIB_X = 28.320         # 0.320 mm proud of the pad
-    HANDLE_RIB_Y_HALF = 8.800
-    HANDLE_RIB_1_Z = (1.920, 2.880)
-    HANDLE_RIB_2_Z = (3.920, 4.880)
-    # The corner round-over -- the feature whose absence made the first port
-    # read as the wrong shape. R3.600, axis parallel to X, centred at
-    # (Z = HANDLE_ROUND_CZ, Y = +-HANDLE_LEDGE_Y_HALF), sweeping from
-    # Y = +-HANDLE_PAD_Y_HALF at that Z up to Z = HANDLE_PAD_Z_HI.
-    HANDLE_ROUND_R = 3.600
-    HANDLE_ROUND_CZ = 4.800
-    # --- The tab's raised border (round 47) ---
-    # SS2.3 describes X = +-28.400 as a straight "finger ledge" over
-    # Y +-8.400, z 7.200..8.400. Read off 24849's own triangles, that plane
-    # spans the tab's WHOLE envelope (Y +-12.000, z 0..8.400) at only
-    # 42.702 mm^2 -- about 21% of its own bounding box, which no solid band
-    # can be. It is a BORDER following the tab outline round three edges
-    # (up one side, over the top through both corner rounds, back down the
-    # other), open at the plate; the pad face at X = 28.000 is the recessed
-    # interior it encloses, and SS2.3's "R 2.400 quarter-round recess at
-    # each corner" is that interior's own corner, not a separate feature.
-    #
-    # The border is a UNIFORM 1.200 mm wide, which is what makes it cheap to
-    # express: the interior profile is the outer profile offset inward by
-    # that one number, and all three measured pairs agree exactly --
-    #   side     12.000 - 1.200 = 10.800   (measured 10.800)
-    #   corner    3.600 - 1.200 =  2.400   (measured 2.400, same centre)
-    #   top       8.400 - 1.200 =  7.200   (measured 7.200)
-    # so no second set of literals is introduced for a shape that is one
-    # offset of the first. The round-over centre (HANDLE_ROUND_CZ,
-    # HANDLE_LEDGE_Y_HALF) is shared by both profiles, which is why the
-    # offset is exact rather than approximate -- the same property
-    # PoweredUpHubHousing._build_side_window relies on for its own outward
-    # offset of this outline.
-    HANDLE_FRAME_WIDTH = 1.200
-
     def __init__(self, profile: ToleranceProfile | str | None = None) -> None:
         if profile is None or isinstance(profile, str):
             prof = get_profile(profile) if isinstance(profile, str) else get_profile()
@@ -468,13 +428,71 @@ class PoweredUpHubCover:
         part = part.union(self._build_thumb_pad(+1))
         part = part.union(self._build_thumb_pad(-1))
         part = part.union(self._build_tongue())
-        part = part.union(self._build_side_handle(+1))
-        part = part.union(self._build_side_handle(-1))
         part = part.union(self._build_locating_groove())
         part = part.union(self._build_ledge_teeth())
+        part = part.union(self._build_window_sill(+1))
+        part = part.union(self._build_window_sill(-1))
 
         assert len(part.solids().vals()) == 1, "Expected single solid, got multiple pieces"
         return part
+
+    def _build_window_sill(self, x_sign: int) -> cq.Workplane:
+        """Fill the bottom ``PLATE_THICKNESS`` of the housing's side window
+        (round 55) -- the user's "stripe".
+
+        **Why the gap exists.** Until round 51 the extraction tab lived on
+        THIS class and was rooted at the plate, so it started at world
+        ``Z = 0`` and filled the window from the very bottom. Round 51 moved
+        the tab to
+        :class:`~vibe_cading.lego_adapters.poweredup_hub.battery_tray.PoweredUpHubBatteryTray`,
+        which seats :attr:`PLATE_THICKNESS` above world zero -- so the tab
+        now starts at ``Z = 1.200`` while the window it passes through still
+        starts at ``Z = 0``. That left a 1.200 mm slot right through the
+        side wall, open to daylight, spanning the window's full width.
+        Nothing detected it: the window is cut to the TAB's outline and the
+        tab still fits it perfectly; the fault is only visible where the two
+        parts meet.
+
+        This strip is the plate's own edge carried outward through that
+        slot, ``PLATE_THICKNESS`` tall, so the wall reads as continuous
+        below the tab.
+
+        Bounds, and why each is where it is:
+
+        * **Y** -- the TAB's own half-width, not the window's. The window is
+          the tab's outline offset outward by the running clearance, so
+          matching the tab leaves exactly that clearance on both sides and
+          the strip cannot bind in the opening.
+        * **+X** -- stops one running clearance SHORT of the housing wall's
+          outer face rather than flush with it. The Cover has +-0.150 mm of
+          deliberate sideways play (the round-48 plate-edge relief), so a
+          flush strip would stand proud of the wall whenever the lid sits
+          off-centre; recessed, the worst case is flush.
+        * **-X** -- overlaps back into the plate for a real fused volume,
+          not a coincident face.
+
+        ``WALL_X_OUTER_LOWER`` (28.000) is hardcoded rather than imported:
+        :class:`~vibe_cading.lego_adapters.poweredup_hub.housing.PoweredUpHubHousing`
+        imports this class, so importing it back would cycle. It has been
+        the reference's own outer face since the envelope was first
+        measured; re-derive by hand if it ever moves.
+        """
+        housing_wall_x_outer = 28.000
+        c = self._profile.free.radial
+        seam_overlap = 0.050
+
+        x_inner = self.PLATE_WIDTH / 2.0 - seam_overlap
+        x_outer = housing_wall_x_outer - c
+        x_lo = min(x_sign * x_inner, x_sign * x_outer)
+        x_hi = max(x_sign * x_inner, x_sign * x_outer)
+
+        return rounded_box(
+            width=x_hi - x_lo,
+            depth=2 * self.WINDOW_SILL_Y_HALF,
+            height=self.PLATE_THICKNESS,
+            corner_r=0.0,
+            center=((x_lo + x_hi) / 2.0, 0.0, 0.0),
+        )
 
     def _build_plate(self) -> cq.Workplane:
         y_span = self.PLATE_Y_HI - self.PLATE_Y_LO
@@ -799,99 +817,6 @@ class PoweredUpHubCover:
                 )
                 part = part.union(tooth)
         return part
-
-    def _build_side_handle(self, side: int) -> cq.Workplane:
-        """One side handle -- the tray's own extraction tab (SS2.3),
-        mirrored by ``side`` (+1 / -1) about ``X = 0``.
-
-        The pad is a swept YZ profile, not a box: its top corners carry the
-        reference's ``HANDLE_ROUND_R`` round-over, which is large relative
-        to the tab and is what gives the real tab its shape. The ledge and
-        the two grip ribs are plain bands stacked outboard of it.
-
-        Round 41 -- **built at nominal reference size.** Rounds 22-40 shrank
-        the whole tab by the running clearance plus a 0.320 mm chord
-        allowance, because
-        :meth:`~vibe_cading.lego_adapters.poweredup_hub.housing.PoweredUpHubHousing._build_side_window`
-        approximated its arc with straight chords and so cut a hole narrower
-        than this tab at every intermediate Z. That window now cuts the same
-        arc, offset outward by the clearance, so the clearance lives on the
-        hole rather than the shaft and this part keeps the reference's own
-        dimensions.
-        """
-        cz, ly = self.HANDLE_ROUND_CZ, self.HANDLE_LEDGE_Y_HALF
-
-        def _outline(x_at: float, inset: float) -> cq.Workplane:
-            """The tab's YZ outline at ``x_at``, shrunk by ``inset``.
-
-            Up one side, round over, across the top, round back down. Both
-            the tab's own profile (``inset = 0``) and the border's interior
-            (``inset = HANDLE_FRAME_WIDTH``) are this one curve -- the
-            round-over centre is shared, so an inset moves the sides, the
-            top and the arc radius by the same amount and nothing needs
-            re-deriving. See :attr:`HANDLE_FRAME_WIDTH`.
-            """
-            yh = self.HANDLE_PAD_Y_HALF - inset
-            r = self.HANDLE_ROUND_R - inset
-            zhi = self.HANDLE_PAD_Z_HI - inset
-            d = r * 0.7071                      # 45 deg point on the round
-            return (
-                cq.Workplane("YZ")
-                .transformed(offset=cq.Vector(0.0, 0.0, side * x_at))
-                .moveTo(-yh, 0.0)
-                .lineTo(-yh, cz)
-                .threePointArc((-ly - d, cz + d), (-ly, zhi))
-                .lineTo(ly, zhi)
-                .threePointArc((ly + d, cz + d), (yh, cz))
-                .lineTo(yh, 0.0)
-                .close()
-            )
-
-        # The YZ workplane's normal is +X regardless of `side`, so every
-        # extrusion must be signed or the -X handle grows inboard, detaches
-        # from its own ledge and the part stops being a single solid.
-        pad = _outline(self.HANDLE_ROOT_X, 0.0).extrude(
-            side * (self.HANDLE_PAD_X - self.HANDLE_ROOT_X)
-        )
-
-        # Round 47 -- the raised border round three edges (SS2.3 re-read from
-        # 24849's triangles; see HANDLE_FRAME_WIDTH). Built as the tab's own
-        # outline minus its inset copy, so the border cannot drift from the
-        # profile it is supposed to trace. The cutter carries an X overcut on
-        # both ends: its side faces would otherwise be coincident with the
-        # ring's own bounding faces, which the OCCT boolean kernel handles
-        # unreliably (CLAUDE.md, *Chord-vs-arc ring*).
-        oc = 1.0
-        frame_depth = self.HANDLE_LEDGE_X - self.HANDLE_PAD_X
-        frame = _outline(self.HANDLE_PAD_X, 0.0).extrude(side * frame_depth)
-        frame = frame.cut(
-            _outline(self.HANDLE_PAD_X - oc, self.HANDLE_FRAME_WIDTH)
-            .extrude(side * (frame_depth + 2 * oc))
-        )
-        pad = pad.union(frame)
-
-        def _band(x_face, y_half, z_lo, z_hi):
-            x_lo = min(side * self.HANDLE_PAD_X, side * x_face)
-            x_hi = max(side * self.HANDLE_PAD_X, side * x_face)
-            return rounded_box(
-                width=x_hi - x_lo,
-                depth=2 * y_half,
-                height=z_hi - z_lo,
-                corner_r=0.0,
-                center=((x_lo + x_hi) / 2.0, 0.0, z_lo),
-            )
-
-        # No separate ledge band: rounds 22-46 unioned one here over
-        # Y +-HANDLE_LEDGE_Y_HALF, z [HANDLE_LEDGE_Z_LO, HANDLE_LEDGE_Z_HI].
-        # The border's top segment spans exactly those two planes and is
-        # wider, so that band is now a strict subset of it and its union a
-        # no-op. Dropped rather than left as dead geometry.
-        handle = pad
-        for z_lo, z_hi in (self.HANDLE_RIB_1_Z, self.HANDLE_RIB_2_Z):
-            handle = handle.union(
-                _band(self.HANDLE_RIB_X, self.HANDLE_RIB_Y_HALF, z_lo, z_hi)
-            )
-        return handle
 
     @property
     def solid(self) -> cq.Workplane:

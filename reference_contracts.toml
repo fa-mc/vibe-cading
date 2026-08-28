@@ -133,7 +133,7 @@ name = "poweredup-hub-housing-tongue-end"
 model = "vibe_cading.lego_adapters.poweredup_hub.housing.PoweredUpHubHousing"
 reference = "tmp/ldraw/ref_housing.stl"
 region = [-28.0, 28.0, 32.0, 33.4, 0.0, 3.0]
-min_agreement = 78.0
+min_agreement = 68.0
 tolerance = 0.2
 notes = """
 The tongue-end slot/rib band -- the mating structure the Cover's four tongue
@@ -154,6 +154,41 @@ Z=0 convention. Three independent figures confirm the result -- Y half-extent
 35.600 (== HALF_Y), X envelope 72.000 (== test_envelope_is_exactly_72mm_in_x),
 and overall height 33.800 (== the design doc's own measured figure).
 """
+
+  [[component.accepted_deviation]]
+  what = "The tongue end's side-wall bottom round runs the full arc; the reference truncates it"
+  why = """
+  DECLARED, WITHOUT A REGION -- it keeps counting against the score, and it is
+  where this row's floor went from 78.0 to 68.0.
+
+  Round 55f added the reference's own bottom-edge rounds, measured off its
+  vertices: one arc, R = 3.600, centre at |Y| = 32.000, with the tongue end's
+  copy truncated 0.274 mm up (centre Z 3.326 rather than 3.600). Round 55g
+  then gave the tongue end's SIDE-WALL bands (|X| 26.000..28.000) the full
+  arc instead, on user direction -- "the tongue side wall should have the
+  curve all the way" -- because beside its neighbours the truncated version
+  reads as an unfinished curve. The tongue's RIB bands keep the reference's
+  truncated arc.
+
+  The cost was ISOLATED before the floor was touched, rather than inferred
+  (tmp/tongue_cause.py rebuilds the part with each variant and scores this
+  exact region):
+
+      pre-55f, no tongue rounds        -- (build error, bands empty)
+      55f only, all bands truncated    78.61%   <- unchanged from before 55f
+      55g as shipped, side wall full   68.79%
+
+  So the reference-faithful rounds cost NOTHING, and the entire 9.8-point
+  drop is the one band the user asked to deviate. That is the whole
+  justification for lowering this floor, and it is a measurement rather than
+  an argument.
+
+  Rescoping was tried first and rejected: narrowing the region to |X| < 26.0
+  to exclude the side wall scores 64.9%, i.e. worse, so the row cannot keep
+  its floor by looking somewhere else. The outer rib band (26.000..28.000)
+  overlaps the side wall, so there is no clean cut between "ribs" and "side
+  wall" here anyway.
+  """
 
   [[component.accepted_deviation]]
   what = "The tongue end is single-walled, not the reference's two skins"
@@ -179,6 +214,136 @@ and overall height 33.800 (== the design doc's own measured figure).
   outer rib pair. Repairing the ribs moved it to 78.6% (mean deviation
   0.113 -> 0.090). The floor was RAISED to match, which is the only direction
   --update permits and the right one here.
+  """
+
+  [[component.accepted_deviation]]
+  what = "The upper section runs to the end trapezoids' floor (+-34.400), not the reference's -32.000 / +33.3"
+  why = """
+  DECLARED, WITHOUT A REGION -- it keeps counting against the score.
+
+  User direction round 55d: "extend both shorter ends to sit inline with the
+  trapezoid (similar to what we currently have for the long edges)", with the
+  purpose stated in the same breath -- the trapezoids are kept as the register
+  for a future cover, whose legs mate into them and whose outer wall sits
+  flush with this part's own side walls.
+
+  The long edges already work that way, which is what makes a socket read as a
+  socket rather than as a slot milled in a flat face: the side trapezoid's
+  floor is at |X| = 27.200 and the upper section's outer face is the same
+  27.200, so floor and wall are one continuous plane. The reference does NOT
+  do this at the ends -- its upper section stops at Y = -32.000 / +33.3, i.e.
+  2.400 and 1.124 mm inboard of its own end-trapezoid floor at 34.400, leaving
+  those sockets with a lip the side ones do not have. This class carries the
+  upper section out to 34.400 at both ends instead, derived from
+  HALF_Y - END_SOCKET_DEPTH rather than retyped, so "inline with the
+  trapezoid" is arithmetic and cannot drift.
+
+  Scope of the departure, stated precisely: above REF_STEP_Z the Y faces are
+  ours, not the reference's, at both ends.
+
+  X WAS still reference-exact when this deviation was written, and R55e ended
+  that -- see the separate cover-budget deviation below. Left uncorrected this
+  paragraph would have gone on asserting a fidelity that had lapsed, which is
+  the same failure mode as a test that keeps passing under a name that has
+  stopped being true.
+
+  This also retires an earlier deviation recorded here -- that the reference's
+  tongue-end outer face is drafted (33.316 at Z 24.1 to 33.234 at Z 28.0) and
+  was modelled vertical at the mid-height 33.276. That +-0.042 mm
+  simplification is moot: the face is no longer where the reference puts it at
+  all.
+  """
+
+  [[component.accepted_deviation]]
+  what = "RETIRED ROW: poweredup-hub-housing-upper-side-wall, and why it was retired rather than re-floored"
+  why = """
+  A scored row for the upper side wall existed briefly during round 55 and is
+  gone. It is recorded here because deleting a check quietly is worse than
+  never adding one, and because HOW it failed is the useful part.
+
+  Its floor had to move three times in a single round:
+
+    51.3%  created (R55b)
+    48.7%  R55d -- sampling artifact (geometry provably unchanged; extending
+           the wall in Y lengthened its triangles, and surface_diff clips
+           sampled POINTS but keeps whole triangles, so the point set moved)
+    40.0%  R55e -- real: the wall moved 0.350 mm inboard for the cover budget
+    25.0%  R55e cord-port fix -- and this one dropped because the part got
+           MORE correct: the port had been notching 0.300 mm out of the wall's
+           inner face, so that material was absent from the sample; restoring
+           it put more of our (deliberately offset) wall into the comparison.
+
+  That is the ratchet vibe/INSTRUCTIONS.md names explicitly -- "when a
+  tolerance bound is widened, or an accepted residual is re-justified at
+  greater length each round, treat that as a signal to question the premise."
+  So the premise: this row compared a wall we had DELIBERATELY moved 0.350 mm
+  off the reference against the reference, at a 0.2 mm tolerance. Its score
+  was therefore dominated by an intended departure, and moved with anything
+  that changed sampling -- it was noise wearing a metric's clothes, and no
+  achievable value of it would have told anyone anything.
+
+  What actually guards this wall, and guards it far harder: the geometry
+  tests assert both faces to 1e-6 mm
+  (test_upper_section_x_faces_are_the_cover_budget_not_the_reference), its
+  section to 1e-6, the socket floor's inline relationship, and the full-wall
+  section behind the recess. A 1e-6 assertion is six orders of magnitude
+  tighter than a 0.2 mm surface tolerance.
+
+  If the upper section is ever brought back onto the reference's own figures,
+  a scored row here becomes meaningful again and should be restored.
+  """
+
+  [[component.accepted_deviation]]
+  what = "The upper section sits 0.350 mm inboard of the reference, to give a future cover a 1.000 mm wall"
+  why = """
+  DECLARED, WITHOUT A REGION -- it keeps counting against the score, and the
+  upper-side-wall row above is where it shows up (51.3% -> 40.0%).
+
+  The trapezoid sockets are the register for a future cover whose legs mate
+  into them and whose outer wall sits FLUSH with this part's own side walls.
+  That makes the cover's wall thickness this class's decision, not the
+  cover's: it is the gap between our outer face and our upper section, less
+  the fit clearance. At the reference's own 0.800 inset that gap is
+  28.000 - (27.200 + 0.150) = 0.650 mm, about 1.6 extrusion widths at a
+  0.4 mm nozzle. User direction: "Can we use 1mm for all the cover walls? I
+  feel 0.65 is too thin. Then adjust the housing top accordingly."
+
+  So UPPER_INSET = COVER_WALL + COVER_FIT_CLEARANCE = 1.150, and the side
+  socket's depth, the upper section's outer face (26.850), and the doubled
+  band's inner face (26.050) are all derived from it -- the socket floor and
+  the upper wall are one plane by construction, which is what makes the recess
+  read as a socket.
+
+  Not applied at the SHORT ends: the reference's own end-socket depth is
+  1.200, which already yields a 1.050 mm cover wall. Moving it to 1.150 would
+  buy 0.050 mm -- below print resolution -- at the cost of departing from a
+  measured figure, so the ends stay reference-exact.
+
+  Knock-on, recorded because it is not obvious from this file: Housing's inner
+  face above WALL_INNER_STEP_Z moved with the socket floor, so
+  PoweredUpHubBatteryTray's upper band moved 26.400 -> 26.050 to match. The
+  tray's own tests would not have caught the interference; the cross-part
+  seating check did.
+  """
+
+  [[component.accepted_deviation]]
+  what = "The upper cavity's internal posts and ribs are not modelled"
+  why = """
+  DECLARED, WITHOUT A REGION -- it keeps counting against the score.
+
+  The reference carries internal structure inside the upper section: the
+  ray-cast finds posts at X -5.597..-2.403 and 8.803..11.997 at Z = 25.000,
+  widening with height (X -7.853..-0.147 and 6.547..14.253 at Z = 27.400),
+  plus a boss that drops the ceiling to 27.498 on the axis and one reaching
+  25.004 at (12, 12). These are the real hub's PCB standoffs and second-layer
+  internal structure.
+
+  Not modelled, under the same scope this part applies to the lower shell's
+  own internals -- LDraw 25560's "internal structure is simplified" note, and
+  this class's *Known simplifications*. Nothing here mates with them: the
+  battery bay is below the step, and the pack clears the 28.000 ceiling by
+  3.200 mm. They would matter if this part ever has to accept the real hub's
+  PCB, which is not what it is for.
   """
 
   [[component.accepted_deviation]]

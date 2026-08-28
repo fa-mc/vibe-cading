@@ -60,6 +60,9 @@ import cadquery as cq
 from vibe_cading.cq_utils import cylinder, rounded_box
 from vibe_cading.lego.constants import STUD_PITCH
 from vibe_cading.lego.cutters.technic_pin_hole import TechnicPinHole
+from vibe_cading.lego_adapters.poweredup_hub.battery_tray import (
+    PoweredUpHubBatteryTray,
+)
 from vibe_cading.lego_adapters.poweredup_hub.cover import PoweredUpHubCover
 from vibe_cading.lego_adapters.poweredup_hub.latch_geometry import (
     LatchGeometry,
@@ -292,8 +295,58 @@ class PoweredUpHubHousing:
     # box, reached only by two 26.9 mm^2 connector-port tubes ruled out of
     # scope, not by the shell itself.
     STUD_PITCH = 8.000
-    DECK_STUDS = 3
-    DECK_Z = DECK_STUDS * STUD_PITCH   # 24.000
+    #
+    # **Round 55 -- back to the reference's own shell height, by user
+    # direction ("just use 29.6 for now. I don't need the top cover
+    # (yet)").** Two things forced it: the tray's floor plus the
+    # caliper-measured 20.900 mm pack need 24.800 mm of interior, and a
+    # 3-stud shell gives 21.200. Raising DECK_Z is what buys the room.
+    #
+    # **This is a DECLARED DEPARTURE ABOVE Z = 24.000, and a bigger one
+    # than the number suggests -- read before "improving" it.** The
+    # reference is NOT a constant section up to 29.600. Ray-cast of
+    # 25560.dat (tmp/ldraw/step_z.py, tmp/ldraw/upper_cavity.py) bisects
+    # the step at EXACTLY Z = 24.000 -- |X|max is 35.600 at 24.000 and
+    # 27.200 at 24.010 -- above which the real shell narrows to a separate
+    # upper section: X +-27.200 (cavity +-26.400), Y -32.000..+33.200
+    # (cavity -30.800..+32.000), ceiling at 27.498, top skin to 29.600.
+    #
+    # This class extrudes its FULL 72 x 71.2 footprint to 29.600 instead,
+    # so between 24.000 and 29.600 it carries roughly 13,000 mm^3 the
+    # reference does not have. That is a deliberate simplification while
+    # the top cover is deferred, NOT a fidelity improvement: measured
+    # against the reference this height is *less* faithful above the step
+    # than round 22's truncation was, and reference_contracts.toml records
+    # it as an accepted deviation with that reason. Modelling the real
+    # upper section is the follow-up, and it is what makes this part able
+    # to carry a cap at all.
+    #
+    # The round-22 3-stud cap (DECK_STUDS = 3, retired here) was not an
+    # approximation of the reference -- it landed on the reference's own
+    # step exactly. Restore it, plus the upper section, when the cap lands.
+    #
+    # TOP_Z (33.800 mm) remains RETIRED: it was the LDraw part's bounding
+    # box, reached only by two 26.9 mm^2 connector-port tubes ruled out of
+    # scope, not by the shell itself.
+    REF_SHELL_Z = 29.600      # measured top face of the real 25560 shell
+    REF_STEP_Z = 24.000       # where the reference narrows -- bisected
+    DECK_Z = REF_SHELL_Z
+
+    # --- Upper section footprint (round 55b) ---
+    # Above REF_STEP_Z the reference is a NARROWER box, not a continuation
+    # of the lower shell. Ray-cast of 25560.dat (tmp/ldraw/upper_section.py),
+    # positive-controlled at Z = 15.000 against the walls this class already
+    # models (|X| 27.200/28.000):
+    #
+    #   X   outer +-27.200, inner +-26.400          (0.800 wall, constant)
+    #   Y   outer -32.000 .. +33.3, inner -30.800 .. +32.000
+    #   ceiling 28.000, top face 29.600             (1.600 skin)
+    #
+    # The 28.000 ceiling and 1.600 skin are ALREADY this class's own
+    # DECK_Z - DECK_THICKNESS and DECK_THICKNESS -- round 47 arrived at
+    # 1.600 by thinning the deck to clear the pack and landed on the
+    # reference's own figure. Nothing there needs changing; only the plan
+    # footprint above the step does.
     # Round 22: DECK_THICKNESS is a plain constant again. Round 21's
     # E11-a wired an instance-level running clearance into it so the deck's
     # underside would clear PoweredUpHubBatteryTray's own top face. That
@@ -371,7 +424,13 @@ class PoweredUpHubHousing:
         PoweredUpHubCover.LATCH_BAND_THICKNESS,
     )
     WALL_X_OUTER_LOWER = 28.000   # |X| outer face, Z < WALL_STEP_Z
-    WALL_X_OUTER_UPPER = 27.200   # |X| outer face inside the socket, and above it
+    # NO LONGER the socket floor, nor the face above it -- round 55e moved
+    # both to UPPER_X_OUTER (26.850) when it deepened the socket to widen
+    # the cover's wall. What is left of this constant is the TOP DECK's
+    # own nominal half-width, which _build_upper_step_in then trims to the
+    # upper footprint anyway; it survives as the deck slab's starting
+    # size, not as a face anything mates against.
+    WALL_X_OUTER_UPPER = 27.200   # top deck slab half-width, pre-trim
     # --- Trapezoid mating socket, outer face of each side wall (round 50) ---
     # Measured off 25560.dat. Rounds 16-49 read the design doc's SS4 line
     # "side-wall step at 22.0" as a step running the WHOLE length, and built
@@ -400,13 +459,116 @@ class PoweredUpHubHousing:
     #
     # Intended as the mating point for a future cap (user, round 50). In the
     # reference the socket is a closed recess in a wall that continues up to
-    # 29.600; this part stops at DECK_Z = 24.000, so its top edge IS the top
-    # of the part and the socket reads as a notch open upward -- which is what
-    # makes it usable as a cap register.
+    # 29.600. Rounds 50-54 stopped this part at 24.000, so the socket's top
+    # edge WAS the top of the part and it read as a notch open upward --
+    # which is what made it usable as a cap register. Round 55 raised
+    # DECK_Z to 29.600, so the wall now continues past it and the socket is
+    # a closed recess again, as in the reference. It is therefore no longer
+    # a usable cap register in its own right; the user deferred the top
+    # cover in the same breath, so nothing depends on that today. Restoring
+    # the register means restoring the step (see DECK_Z), not re-cutting
+    # this feature.
     SOCKET_Z_LO = 22.000          # == the old WALL_STEP_Z, now a local datum
     SOCKET_Y_HALF_LO = 9.200      # narrow (lower) edge half-width
-    SOCKET_Y_HALF_HI = 11.200     # wide (upper) edge half-width, at DECK_Z
+    SOCKET_Y_HALF_HI = 11.200     # wide (upper) edge half-width, at SOCKET_Z_HI
+    # Round 55: pinned to the reference's own step, NOT to DECK_Z. The
+    # wide edge above was measured AT Z = 24.000; once DECK_Z rose to
+    # 29.600 a z_hi of DECK_Z would have stretched the same trapezoid
+    # over 7.600 mm instead of 2.000, changing a measured flank angle
+    # into a derived one and widening the mouth by 5.600 mm of pure
+    # extrapolation past the sampled band.
+    SOCKET_Z_HI = REF_STEP_Z      # 24.000
     WALL_INNER_STEP_Z = 21.200    # where the wall doubles to 1.600 mm
+
+    # --- Cover budget (round 55e) ---
+    # The trapezoid sockets are kept as the register for a future cover
+    # (user, rounds 50/55d): its legs mate into them and its outer wall sits
+    # FLUSH with this part's own side walls. So the cover's wall thickness is
+    # not the cover's choice -- it is whatever gap this class leaves between
+    # its own outer face and the upper section, minus the fit clearance.
+    #
+    # Rounds 55b-55d left that gap at the reference's own figure, which made
+    # the cover's long-edge wall 28.000 - (27.200 + 0.150) = 0.650 mm: about
+    # 1.6 extrusion widths, which the user judged too thin ("Can we use 1mm
+    # for all the cover walls? I feel 0.65 is too thin").
+    #
+    # So the budget is now the INPUT and the upper section is derived from
+    # it, rather than the other way round. Deriving it also makes the
+    # "inline with the trapezoid" property structural: the socket's depth IS
+    # the upper section's inset, so the socket floor and the upper wall are
+    # the same plane by construction, not by two constants agreeing.
+    COVER_WALL = 1.000
+    # Nominal, not read from the live profile: this class must not change
+    # shape with the print profile (its visual contracts are byte-compared),
+    # and the cover -- which does not exist yet -- will apply its own
+    # clearance when it is built. 0.150 is fdm_standard's free.radial.
+    COVER_FIT_CLEARANCE = 0.150
+    UPPER_INSET = COVER_WALL + COVER_FIT_CLEARANCE          # 1.150
+    UPPER_X_OUTER = WALL_X_OUTER_LOWER - UPPER_INSET        # 26.850
+    UPPER_X_INNER = UPPER_X_OUTER - WALL_THICKNESS          # 26.050
+
+    # --- End-wall trapezoid mating sockets (round 51) ---
+    # The same molded feature as SOCKET_* above, on the two END walls
+    # (-Y latch end, +Y tongue end). Requested by the user as the second
+    # half of the cap register; round 50 built only the +-X pair.
+    #
+    # MEASURED, not assumed to transfer -- and it does not: only the Z band
+    # and the 45-degree flank angle are shared. Ray-cast of 25560.dat along
+    # +-Y (tmp/ldraw/end_wall_extent.py, bisecting for the X where the outer
+    # skin at |Y| = 35.600 reappears) gives, identically on BOTH ends:
+    #
+    #     Z = 22.10 -> |X| <= 14.100      Z = 23.10 -> |X| <= 15.100
+    #     Z = 22.50 -> |X| <= 14.500      Z = 23.90 -> |X| <= 15.900
+    #
+    # i.e. |X|max = Z - 8.000 exactly: an isosceles trapezoid rising from
+    # half-width 14.000 at Z = 22.000 to 16.000 at Z = 24.000, narrow edge
+    # down. Below Z = 22.000 the skin is continuous; above DECK_Z the whole
+    # shell steps in, which is a different (already-modelled) feature.
+    #
+    # Depth is the reference's outer-skin thickness: in the reference the
+    # recess removes the 35.600 -> 34.400 skin outright (both crossings
+    # vanish together), so the floor sits at |Y| = 34.400. On THIS part that
+    # stays a blind pocket rather than becoming a hole, because our end
+    # walls are thicker than the reference's skin where the recess lands --
+    # 4.800 mm at the latch end (LATCH_WALL_THICKNESS) and, above the bay,
+    # the solid deck at both ends.
+    END_SOCKET_Z_LO = 22.000        # narrow (lower) edge, == SOCKET_Z_LO
+    END_SOCKET_X_HALF_LO = 14.000   # narrow (lower) edge half-width
+    END_SOCKET_X_HALF_HI = 16.000   # wide (upper) edge half-width, at SOCKET_Z_HI
+    #                                 (the same pinning as SOCKET_Z_HI --
+    #                                 |X|max = Z - 8.000 was sampled only
+    #                                 over Z 22.1..23.9; 29.600 is far
+    #                                 outside that band.)
+    END_SOCKET_DEPTH = 1.200        # floor at |Y| = HALF_Y - 1.200 = 34.400
+
+    # --- Upper section, Y:  a DEPARTURE from the reference, by user direction (round 55d) ---
+    # The reference's upper section stops at Y = -32.000 / +33.3, inboard of
+    # the end-wall trapezoids' own floor. This class carries it out to that
+    # floor at BOTH ends instead: "extend both shorter ends to sit inline
+    # with the trapezoid (similar to what we currently have for the long
+    # edges)".
+    #
+    # The long edges already work that way, which is what makes the sockets
+    # read as sockets: the side trapezoid's floor is at |X| = 27.200
+    # (WALL_X_OUTER_UPPER, where _build_wall_socket starts cutting) and the
+    # upper section's outer face is the same 27.200, so the socket floor and
+    # the wall above it are one continuous plane. The end trapezoids' floor
+    # is at |Y| = HALF_Y - END_SOCKET_DEPTH = 34.400 while the reference's
+    # upper section stops 2.400 / 1.124 mm short of it, leaving the end
+    # sockets with a lip over them that the side ones do not have.
+    #
+    # DERIVED, not typed: "inline with the trapezoid" IS the requirement, so
+    # it is expressed as the same arithmetic the end socket's own floor uses
+    # (see _build_end_wall_socket). Retyping 34.400 here would let the two
+    # drift apart silently, which is the failure this whole feature is about.
+    #
+    # Cost, recorded in reference_contracts.toml: above the step this class's
+    # Y faces no longer match the reference at either end, and the reference's
+    # tongue-end draft (33.316 at Z 24.1 -> 33.234 at Z 28.0) is moot since
+    # that face is not where the reference puts it at all. X is unaffected and
+    # remains reference-exact on both faces.
+    UPPER_Y_HI = HALF_Y - END_SOCKET_DEPTH      # 34.400
+    UPPER_Y_LO = -UPPER_Y_HI
 
     # Round 22: the end walls run the shell's full height, which is now
     # the same 24.000 mm they were already capped at by round 21 (RH1) --
@@ -415,6 +577,67 @@ class PoweredUpHubHousing:
     # reaches the deck". Derived from DECK_Z rather than re-typed so the
     # two cannot drift apart.
     END_WALL_Z_HI = DECK_Z
+
+    # --- Bottom end rounds (round 55f) ---
+    # The reference's bottom edge is rounded where the shell meets each end
+    # plane. User request: "for the bottom of the housing the reference model
+    # have curve on both end of the side wall... Note on the end with the
+    # thumb tabs, only the outer segments have the curve."
+    #
+    # MEASURED off 25560.dat's own VERTICES, not off slices
+    # (tmp/ldraw/curve_fit.py). Slicing samples wherever the cutting plane
+    # crosses a facet, which made this look like two different radii that
+    # drifted with whichever Z was fitted; the vertices are the curve's
+    # control points, and they fit one arc almost exactly:
+    #
+    #   -Y  pullback 3.600 / 2.222 / 1.054 / 0.274 / 0.000
+    #       at Z      0.000 / 0.274 / 1.054 / 2.222 / 3.600   -> R 3.600, rms 0.0005
+    #   +Y  pullback 2.222 / 1.054 / 0.274 / 0.000
+    #       at Z      0.000 / 0.780 / 1.948 / 3.326           -> the SAME arc,
+    #                                                            truncated 0.274 up
+    #
+    # So one radius, one centre |Y|, and the ends differ only in how far up
+    # the arc's centre sits -- the tongue end's bottom face cuts the same arc
+    # 0.274 mm above its tangent point.
+    BOTTOM_ROUND_R = 3.600
+    BOTTOM_ROUND_CY = HALF_Y - BOTTOM_ROUND_R      # 32.000, both ends
+    BOTTOM_ROUND_CZ_FULL = 3.600                   # tangent to Z = 0
+    BOTTOM_ROUND_CZ_TRUNCATED = 3.326              # 0.274 lower
+    #
+    # WHICH SEGMENTS carry it -- also measured, and the two ends genuinely
+    # differ (tmp/ldraw/curve_span.py, reading vertices at Z = 0):
+    #
+    #   latch end   |X| 19.200 .. 28.000 only. The middle is square: there
+    #               are square vertices at Y = -35.600 out at X = +-5.600.
+    #               This is the user's "only the outer segments".
+    #   tongue end  the RIB bands, and only those -- |X| <= 0.800 (the centre
+    #               wall), 15.600..17.200 (inner ribs), 26.000..28.000 (outer
+    #               ribs). Those are exactly SS12.2's T1/T2/T3, i.e. the same
+    #               bands _build_tongue_ribs already builds.
+    #
+    # Bands are ``(x_lo, x_hi, centre_z)``, signed rather than mirrored from
+    # absolute values because the tongue end's centre band straddles X = 0
+    # and does not mirror.
+    #
+    # ROUND 55g -- a deliberate deviation at ONE band. The user asked for
+    # "the tongue side wall should have the curve all the way", so the tongue
+    # end's SIDE-WALL bands (|X| 26.000..28.000) get the FULL arc, tangent to
+    # Z = 0, matching the latch end -- instead of the reference's truncated
+    # one, which starts 0.274 mm up and so reads as a shallower curve beside
+    # its own neighbour. The tongue end's rib bands keep the reference's
+    # truncated arc; they are interior features, and nothing about them
+    # reads as an unfinished edge.
+    BOTTOM_ROUND_X_LATCH = (
+        (-28.000, -19.200, BOTTOM_ROUND_CZ_FULL),
+        (19.200, 28.000, BOTTOM_ROUND_CZ_FULL),
+    )
+    BOTTOM_ROUND_X_TONGUE = (
+        (-28.000, -26.000, BOTTOM_ROUND_CZ_FULL),      # side wall, round 55g
+        (-17.200, -15.600, BOTTOM_ROUND_CZ_TRUNCATED),
+        (-0.800, 0.800, BOTTOM_ROUND_CZ_TRUNCATED),
+        (15.600, 17.200, BOTTOM_ROUND_CZ_TRUNCATED),
+        (26.000, 28.000, BOTTOM_ROUND_CZ_FULL),        # side wall, round 55g
+    )
 
     # --- Side windows (SS7.2, round 20 H3, round 21 RH3, round 41) ---
     # The window is the SAME OUTLINE as the cover's side handle, offset
@@ -673,10 +896,20 @@ class PoweredUpHubHousing:
                 body = body.union(arm)
                 body = body.cut(bore)
 
+        body = body.cut(self._build_upper_step_in())
         body = body.cut(self._build_side_window(+1))
         body = body.cut(self._build_side_window(-1))
+        # After the deck union, not before: above the bay the end-wall
+        # socket's floor is deck material, so cutting it earlier would be
+        # undone by the union.
+        body = body.cut(self._build_end_wall_socket(+1))
+        body = body.cut(self._build_end_wall_socket(-1))
         body = body.cut(self._build_plate_edge_relief())
         body = body.cut(self._build_cord_port())
+        # Last: it rounds the end walls and the tongue ribs, so it has
+        # to run after both exist.
+        body = body.cut(self._build_bottom_end_round(-1))
+        body = body.cut(self._build_bottom_end_round(+1))
 
         assert len(body.solids().vals()) == 1, "Expected single solid, got multiple pieces"
         return body
@@ -705,7 +938,19 @@ class PoweredUpHubHousing:
         ``[SOCKET_Z_LO, DECK_Z]`` everywhere the trapezoid is not.
         """
         overlap = 0.050
-        inner_upper = self.WALL_X_OUTER_UPPER - self.WALL_THICKNESS   # 26.400
+        # DERIVED from the socket floor, not typed. This band exists to give
+        # the socket a floor of normal section, so its inner face is
+        # "socket floor minus one wall" by definition -- exactly
+        # UPPER_X_INNER. Round 55e deepened the socket to 1.150 (to widen the
+        # cover's wall) while this constant still read 26.400, which left
+        # only 0.450 mm behind the recess instead of 0.800; deriving it means
+        # the next depth change cannot repeat that.
+        #
+        # It also makes the inner face UNIFORM from WALL_INNER_STEP_Z all the
+        # way to DECK_Z -- the doubled band and the upper section now share
+        # it -- which is what lets the Tray keep a single upper band and the
+        # cord port a single flush edge.
+        inner_upper = self.UPPER_X_INNER                              # 26.050
 
         # Band 1 runs slightly past the step. Its X span is a subset of band
         # 2's, so the extra 0.050 mm is a genuine volume overlap that changes
@@ -715,12 +960,25 @@ class PoweredUpHubHousing:
             x_sign, self.WALL_X_OUTER_LOWER, self.WALL_THICKNESS,
             0.0, self.WALL_INNER_STEP_Z + overlap,
         )
+        # Band 2 stops at REF_STEP_Z, where the shell steps in. Running it
+        # to DECK_Z (as rounds 55-55d did) and letting _build_upper_step_in
+        # trim the outboard side leaves the upper wall only
+        # UPPER_X_OUTER - inner_upper = 0.450 mm thick, because the inner
+        # face never moved with it. Band 3 is the upper section's own
+        # section, at its own two faces.
         thickened = self._x_slab(
             x_sign, self.WALL_X_OUTER_LOWER,
             self.WALL_X_OUTER_LOWER - inner_upper,        # 1.600
-            self.WALL_INNER_STEP_Z, self.DECK_Z,
+            self.WALL_INNER_STEP_Z, self.REF_STEP_Z,
         )
-        return lower.union(thickened).cut(self._build_wall_socket(x_sign))
+        upper = self._x_slab(
+            x_sign, self.UPPER_X_OUTER, self.WALL_THICKNESS,
+            self.REF_STEP_Z - overlap, self.DECK_Z,
+        )
+        return (
+            lower.union(thickened).union(upper)
+            .cut(self._build_wall_socket(x_sign))
+        )
 
     def _build_wall_socket(self, x_sign: int) -> cq.Workplane:
         """The trapezoidal recess in one side wall's outer face.
@@ -730,29 +988,79 @@ class PoweredUpHubHousing:
         wall inboard of it is a normal section and the socket floor lands
         on the same plane the reference measures.
 
-        The profile is extended vertically above ``DECK_Z`` rather than by
-        continuing the 45-degree flanks, so the overcut cannot widen the
-        socket's mouth beyond its measured ``SOCKET_Y_HALF_HI``.
+        The profile stops DEAD at ``SOCKET_Z_HI``: it is a blind recess in
+        both Z directions, as in the reference. See the inline note at the
+        profile for why the round-50 vertical overcut had to go.
         """
         oc = 1.0
         y_lo, y_hi = self.SOCKET_Y_HALF_LO, self.SOCKET_Y_HALF_HI
-        z_lo, z_hi = self.SOCKET_Z_LO, self.DECK_Z
+        z_lo, z_hi = self.SOCKET_Z_LO, self.SOCKET_Z_HI
 
+        # NO vertical overcut above z_hi. Rounds 50-54 ran the mouth up to
+        # z_hi + oc, which was free air then (the part stopped at 24.000).
+        # Round 55 raised DECK_Z to 29.600, so that same overcut would now
+        # cut 1.000 mm of real side wall clean off above the step -- the
+        # *Overcuts on the non-waste side* pitfall in vibe/INSTRUCTIONS.md,
+        # where the overcut direction stayed the same and the thing it
+        # pointed at changed underneath it. The socket is a blind recess in
+        # both Z directions now, which is also what the reference has.
         profile = (
             cq.Workplane("YZ")
-            .transformed(offset=cq.Vector(0.0, 0.0, x_sign * self.WALL_X_OUTER_UPPER))
+            .transformed(offset=cq.Vector(0.0, 0.0, x_sign * self.UPPER_X_OUTER))
             .moveTo(-y_lo, z_lo)
             .lineTo(y_lo, z_lo)
             .lineTo(y_hi, z_hi)
-            .lineTo(y_hi, z_hi + oc)
-            .lineTo(-y_hi, z_hi + oc)
             .lineTo(-y_hi, z_hi)
             .close()
         )
         # The YZ workplane's normal is +X whatever the sign, so the extrusion
         # must be signed or the -X socket is cut out of thin air inboard.
-        depth = self.WALL_X_OUTER_LOWER - self.WALL_X_OUTER_UPPER + oc
+        # Depth IS the upper section's inset, so the socket floor and the
+        # wall above it are one plane by construction -- see UPPER_INSET.
+        depth = self.UPPER_INSET + oc
         return profile.extrude(x_sign * depth)
+
+    def _build_end_wall_socket(self, y_sign: int) -> cq.Workplane:
+        """The trapezoidal recess in one END wall's outer face.
+
+        Geometry and provenance: :attr:`END_SOCKET_Z_LO`. Same construction
+        as :meth:`_build_wall_socket` with X and Y exchanged -- profile
+        drawn at the socket FLOOR and extruded outward, so the cut is
+        bounded inboard by the measured depth and unbounded only towards
+        free air.
+
+        Both overcut directions are checked, not assumed (see the
+        *Overcuts on the non-waste side* pitfall in vibe/INSTRUCTIONS.md):
+        outboard of ``+-HALF_Y`` is outside this part's bounding box (Y
+        ends at 35.600), so the outward overcut is safe. There is NO
+        vertical overcut: rounds 50-54 ran the mouth 1.000 mm above
+        ``z_hi`` because the part stopped at 24.000 and that was free air.
+        Round 55 raised ``DECK_Z`` to 29.600 and the same overcut would
+        have taken 1.000 mm of real end wall off above the step -- the
+        overcut never moved, the thing it pointed at did.
+        ``test_wall_sockets_stop_at_the_reference_step_not_at_the_deck``
+        asserts the wall survives above the socket. The vertical overcut deliberately extends the
+        mouth STRAIGHT up rather than continuing the 45-degree flanks, so
+        it cannot widen the socket past ``END_SOCKET_X_HALF_HI``.
+        """
+        oc = 1.0
+        x_lo, x_hi = self.END_SOCKET_X_HALF_LO, self.END_SOCKET_X_HALF_HI
+        z_lo, z_hi = self.END_SOCKET_Z_LO, self.SOCKET_Z_HI
+        floor = y_sign * (self.HALF_Y - self.END_SOCKET_DEPTH)
+
+        profile = (
+            cq.Workplane("XZ")
+            .transformed(offset=cq.Vector(0.0, 0.0, -floor))
+            .moveTo(-x_lo, z_lo)
+            .lineTo(x_lo, z_lo)
+            .lineTo(x_hi, z_hi)
+            .lineTo(-x_hi, z_hi)
+            .close()
+        )
+        # The XZ workplane's normal is -Y whatever the sign, hence the
+        # negated offset above and the negated extrusion here; without both
+        # the +Y socket is cut out of thin air outside the part.
+        return profile.extrude(-y_sign * (self.END_SOCKET_DEPTH + oc))
 
     def _x_slab(
         self, x_sign: int, x_outer: float, thickness: float, z_lo: float, z_hi: float
@@ -849,48 +1157,214 @@ class PoweredUpHubHousing:
         oc = 1.0
         m = self.CORD_PORT_MARGIN
 
-        x_hi = self.WALL_X_OUTER_UPPER - self.WALL_THICKNESS      # 26.400
+        # Flush with the UPPER section's inner face (round 55e), not the
+        # lower band's. The port lives in the roof, whose outboard edge is
+        # now UPPER_X_OUTER; keeping the old 26.400 would leave a 0.450 mm
+        # ligament of roof outboard of the slot AND notch the upper wall
+        # it passes. Flush, the roof still simply ends where the wall
+        # begins -- which is the reasoning the original figure was chosen
+        # for, re-derived against geometry that moved under it.
+        x_hi = self.UPPER_X_INNER                                 # 26.050
         x_lo = x_hi - self.CORD_PORT_WIDTH
         y_lo = PoweredUpHubCover.LATCH_BAND_Y_HI                  # -30.000
         y_hi = y_lo + self.CORD_PORT_LENGTH
 
+        # Z: the cutter spans the whole ROUTE, not just the deck slab.
+        #
+        # Rounds 49-54 cut only DECK_THICKNESS + 1.000 mm of overcut each
+        # way. With the deck at 22.400..24.000 that overcut happened to
+        # reach down to 21.400 and swept the channel clear by accident --
+        # in particular it removed the liftarms' own 0.050 mm union seam,
+        # which pokes inboard past the side wall's 26.400 inner face over
+        # Z 22.000..24.000 and sits squarely in this port's X band.
+        #
+        # Round 55 raised DECK_Z to 29.600, moving the cutter up with it
+        # and leaving that seam behind: the deck opening was still clear
+        # but the descent was pinched, which is precisely the "a hole is
+        # not a route" failure the test for this feature was written to
+        # catch, and it caught it.
+        #
+        # So the lower bound is now stated rather than inherited from an
+        # overcut: WALL_INNER_STEP_Z is where the side wall steps its inner
+        # face in to 26.400 and therefore where anything can first intrude
+        # into this port's X band at all. Below it the wall's inner face is
+        # at 27.200, outboard of x_hi, so there is nothing to remove.
+        # Bounded, not infinite: the cut stays inside the port's own
+        # footprint, which the test's positive controls already pin to the
+        # channel beside the pack.
+        z_lo = self.WALL_INNER_STEP_Z
+        z_hi = self.DECK_Z + oc
+        # The margin is applied on three sides, NOT four. Round 55e set the
+        # outboard edge flush with the upper wall's inner face so the roof
+        # ends where the wall begins -- and then the symmetric +m pushed the
+        # cut 0.300 mm PAST it, into the wall, leaving 0.500 mm of roof
+        # outboard of the slot instead of the wall's full 0.800 section.
+        #
+        # This is the *Overcuts on the non-waste side* pitfall one layer down
+        # from where it usually bites: not an overcut but a fit margin, and
+        # margins are just as directional. On the three inboard sides it opens
+        # into the battery bay, which is waste; outboard it opens into the
+        # only wall standing between the port and the outside of the part.
+        # The clear opening the connector needs is unchanged -- the margin is
+        # taken entirely on the inboard side instead of being split.
+        x_cut_lo = x_lo - 2 * m
+        x_cut_hi = x_hi
         return rounded_box(
-            width=(x_hi - x_lo) + 2 * m,
+            width=x_cut_hi - x_cut_lo,
             depth=(y_hi - y_lo) + 2 * m,
-            height=self.DECK_THICKNESS + 2 * oc,
+            height=z_hi - z_lo,
             corner_r=self.CORD_PORT_CORNER_R,
+            center=((x_cut_lo + x_cut_hi) / 2.0, (y_lo + y_hi) / 2.0, z_lo),
+        )
+
+    def _build_upper_step_in(self) -> cq.Workplane:
+        """Everything above :attr:`REF_STEP_Z` that lies outside the
+        reference's own upper-section footprint (round 55b).
+
+        Round 55 raised ``DECK_Z`` to the reference's 29.600 by extruding
+        the full 72 x 71.2 lower footprint the whole way, which the user
+        then spotted from the wrong side: with the side wall running
+        straight past it, the trapezoid mating socket reads as a slot in a
+        flat face instead of the recess it is. The reference does not do
+        that -- it steps in at exactly 24.000 (see :attr:`UPPER_X_OUTER`),
+        and the socket's top edge meeting that step is what makes it look
+        like a socket.
+
+        Built as a subtraction rather than by re-shaping the wall builders:
+        every feature below the step -- the stepped side walls, both end
+        walls, the arms, both trapezoid sockets, the pin bores -- is
+        already correct and stays untouched, and one cut above the step
+        cannot disturb any of it.
+
+        Bounds, and why each is safe (the *Overcuts on the non-waste side*
+        pitfall applies with force here, since this removes material by the
+        cubic centimetre):
+
+        * ``-Z`` stops DEAD at ``REF_STEP_Z``. This is the whole
+          correctness condition: 1 mm of overcut here would take a
+          millimetre off the top of both trapezoid sockets, the arms
+          (which end at exactly 24.000 -- verified, not assumed) and the
+          wall step itself. There is no overcut on this face.
+        * ``+Z`` is free air above the part.
+        * X and Y are bounded by the upper footprint on the inside and by a
+          generous envelope on the outside, so the cut is exactly
+          "everything outboard of the upper section".
+        """
+        oc = 1.0
+        z_lo = self.REF_STEP_Z
+        z_hi = self.DECK_Z + oc
+        envelope = 40.0   # comfortably past the arms' own |X| = 36.000
+
+        outer = rounded_box(
+            width=2 * envelope, depth=2 * envelope, height=z_hi - z_lo,
+            corner_r=0.0, center=(0.0, 0.0, z_lo),
+        )
+        keep = rounded_box(
+            width=2 * self.UPPER_X_OUTER,
+            depth=self.UPPER_Y_HI - self.UPPER_Y_LO,
+            height=(z_hi - z_lo) + 2 * oc,
+            corner_r=0.0,
             center=(
-                (x_lo + x_hi) / 2.0,
-                (y_lo + y_hi) / 2.0,
-                self.DECK_Z - self.DECK_THICKNESS - oc,
+                0.0,
+                (self.UPPER_Y_LO + self.UPPER_Y_HI) / 2.0,
+                z_lo - oc,
             ),
         )
+        return outer.cut(keep)
+
+    def _build_bottom_end_round(self, y_sign: int) -> cq.Workplane:
+        """The bottom edge round where the shell meets one end plane
+        (round 55f). Geometry and provenance: :attr:`BOTTOM_ROUND_R`.
+
+        Cuts the corner material that lies OUTSIDE an arc of
+        ``BOTTOM_ROUND_R`` whose axis runs along X -- so the result is the
+        arc itself, not a chamfer approximating it.
+
+        Bounds, and why each is safe:
+
+        * **X** takes NO overcut on either side. The bands are the point of
+          the feature: at the latch end the middle stays square, and at the
+          tongue end only the ribs are rounded, so bleeding 1 mm sideways
+          would round segments the reference leaves sharp. Every other
+          direction is overcut; this one is bounded exactly.
+        * ``-Z`` and the outboard ``Y`` open into free air below and beyond
+          the part -- waste, overcut freely.
+        * The inboard ``Y`` bound is the arc's own centre plane
+          (``BOTTOM_ROUND_CY``), and the ``+Z`` bound is the centre height:
+          past those the cutter would leave the arc's quadrant and start
+          eating wall that should stay.
+        """
+        R = self.BOTTOM_ROUND_R
+        cy = y_sign * self.BOTTOM_ROUND_CY
+        bands = (
+            self.BOTTOM_ROUND_X_LATCH if y_sign < 0
+            else self.BOTTOM_ROUND_X_TONGUE
+        )
+        oc = 1.0
+        y_out = y_sign * (self.HALF_Y + oc)
+
+        cutter = None
+        for x_lo, x_hi, cz in bands:
+            corner = rounded_box(
+                width=x_hi - x_lo,
+                depth=abs(y_out - cy),
+                height=cz + oc,
+                corner_r=0.0,
+                center=((x_lo + x_hi) / 2.0, (cy + y_out) / 2.0, -oc),
+            )
+            # The arc, as a cylinder along X. Its YZ workplane has xDir = +Y
+            # and yDir = +Z, so .center() takes (Y, Z) directly.
+            arc = (
+                cq.Workplane("YZ")
+                .transformed(offset=cq.Vector(0.0, 0.0, x_lo - oc))
+                .center(cy, cz)
+                .circle(R)
+                .extrude((x_hi - x_lo) + 2 * oc)
+            )
+            band = corner.cut(arc)
+            cutter = band if cutter is None else cutter.union(band)
+        assert cutter is not None, (
+            f"no bottom-round bands for y_sign={y_sign} -- an empty band list "
+            "returns None and fails later as 'Cannot cut type NoneType', which "
+            "says nothing about the cause"
+        )
+        return cutter
 
     def _build_side_window(self, x_sign: int) -> cq.Workplane:
         """Tab-access cutout through one side wall (SS7.2).
 
-        Round 41 -- **the window is the cover's own side-handle outline,
-        offset outward by the running clearance.** Same construction as the
-        tab: vertical sides, then the ``HANDLE_ROUND_R`` corner round-over
-        about the same centre, then the flat top. Offsetting that outline
-        uniformly by ``c`` is exact and needs no re-derivation, because the
-        round-over's centre sits at ``(HANDLE_ROUND_CZ, HANDLE_LEDGE_Y_HALF)``
-        and its two tangent points are the side and the top -- so the sides
-        move to ``PAD_Y_HALF + c``, the top to ``PAD_Z_HI + c``, and the arc
-        keeps its centre with radius ``ROUND_R + c``.
+        Round 41 -- **the window is the tab's own outline, offset outward
+        by the running clearance.** Same construction as the tab: vertical
+        sides, then the ``TAB_ROUND_R`` corner round-over about the same
+        centre, then the flat top. Offsetting that outline uniformly by
+        ``c`` is exact and needs no re-derivation, because the round-over's
+        centre sits at ``(TAB_ROUND_CZ, TAB_LEDGE_Y_HALF)`` and its two
+        tangent points are the side and the top -- so the sides move to
+        ``PAD_Y_HALF + c``, the top to ``PAD_Z_HI + c``, and the arc keeps
+        its centre with radius ``ROUND_R + c``.
 
         It used to be a three-point piecewise-linear taper sampled off the
         reference (see :attr:`WINDOW_TAPER_PROFILE`'s retired note). Chords
         lie inside the arc they subtend, so that cut was narrower than the
-        tab at every intermediate Z, and the cover shrank its whole tab by
-        0.320 mm to get through -- deleting reference material from the part
-        to accommodate a mis-modelled hole. Cutting the true arc is what the
-        chord-vs-arc pitfall in ``vibe/INSTRUCTIONS.md`` prescribes, and it
-        lets the tab go back to nominal.
+        tab at every intermediate Z, and the tab-bearing part shrank its
+        whole tab by 0.320 mm to get through -- deleting reference material
+        from the part to accommodate a mis-modelled hole. Cutting the true
+        arc is what the chord-vs-arc pitfall in ``vibe/INSTRUCTIONS.md``
+        prescribes, and it lets the tab go back to nominal.
 
         The clearance now lives HERE rather than on the tab, which is the
-        right side of a hole/shaft pair for it and restores the cover to its
-        reference dimensions.
+        right side of a hole/shaft pair for it and restores the tab-bearing
+        part to its reference dimensions.
+
+        Round 51 -- **the tab moved from Cover to** :class:`PoweredUpHubBatteryTray`
+        (real reference: only tray ``24849`` has this tab, not lid
+        ``24853``). This window still cuts the same physical outline; only
+        its source class changed. ``TAB_ROUND_CZ`` and ``TAB_PAD_Z_HI`` are
+        expressed in the Tray's own LOCAL frame (its bottom face, not
+        world Z=0), so both are converted to world Z here via the fixed
+        ``+PLATE_THICKNESS`` seating offset ``assemble()`` applies -- the
+        Y-valued constants (``TAB_LEDGE_Y_HALF``, ``TAB_PAD_Y_HALF``,
+        ``TAB_ROUND_R``) need no such conversion.
         """
         overcut = 1.0  # break cleanly through the wall's X extent
         x_outer = self.WALL_X_OUTER_LOWER + overcut
@@ -899,12 +1373,13 @@ class PoweredUpHubHousing:
         x_hi = x_sign * max(x_outer, x_inner)
         width = abs(x_hi - x_lo)
 
+        seat = PoweredUpHubCover.PLATE_THICKNESS
         c = self._profile.free.radial
-        cz = PoweredUpHubCover.HANDLE_ROUND_CZ          # round-over centre Z
-        ly = PoweredUpHubCover.HANDLE_LEDGE_Y_HALF      # round-over centre |Y|
-        r = PoweredUpHubCover.HANDLE_ROUND_R + c        # offset arc radius
-        half = PoweredUpHubCover.HANDLE_PAD_Y_HALF + c  # side face
-        zhi = PoweredUpHubCover.HANDLE_PAD_Z_HI + c     # flat top
+        cz = PoweredUpHubBatteryTray.TAB_ROUND_CZ + seat       # round-over centre Z, world
+        ly = PoweredUpHubBatteryTray.TAB_LEDGE_Y_HALF          # round-over centre |Y|
+        r = PoweredUpHubBatteryTray.TAB_ROUND_R + c            # offset arc radius
+        half = PoweredUpHubBatteryTray.TAB_PAD_Y_HALF + c      # side face
+        zhi = PoweredUpHubBatteryTray.TAB_PAD_Z_HI + seat + c  # flat top, world
 
         # The reference measured this window independently of the tab; if
         # the two ever stop describing one feature, say so here rather than
@@ -913,7 +1388,7 @@ class PoweredUpHubHousing:
             abs(half - c - self.WINDOW_Y_HALF) < 1e-9
             and abs(cz - self.WINDOW_SHOULDER_Z) < 1e-9
         ), (
-            "the cover's side handle and this class's own reference-measured "
+            "the tray's extraction tab and this class's own reference-measured "
             "window figures have drifted apart"
         )
 
@@ -957,7 +1432,9 @@ class PoweredUpHubHousing:
 
         **Round 21 correction (finding RH1)**: the deck's own plan
         footprint is narrower than the full housing envelope --
-        ``x`` in ``[-WALL_X_OUTER_UPPER, WALL_X_OUTER_UPPER]`` (unchanged)
+        ``x`` in ``[-WALL_X_OUTER_UPPER, WALL_X_OUTER_UPPER]`` as built,
+        which :meth:`_build_upper_step_in` then trims to
+        ``+-UPPER_X_OUTER``,
         but ``y`` in ``[DECK_Y_LO, DECK_Y_HI]`` (asymmetric, narrower than
         ``+-HALF_Y``), matching the real shell's own narrowing above the
         end walls' height (see :attr:`END_WALL_Z_HI`). The deck no longer
