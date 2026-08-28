@@ -1,0 +1,93 @@
+# Third-party reference sources — fetched on demand, never committed.
+#
+# This file says WHERE a reference comes from and WHICH revision of it our
+# comparisons were calibrated against.
+#
+# Why this file exists
+# --------------------
+# The PoweredUp hub's references are derived from the LDraw parts library.
+# Their dimensions are facts and are quoted freely in the design record, but
+# no converted geometry is committed here (see the design brief's §Licensing:
+# reading measurements carries no licence obligation, redistributing derived
+# geometry does). The consequence was that acquiring a reference meant running
+# throwaway scratch scripts nobody else could reproduce, and any check built
+# on one could never run outside the machine that happened to have the file.
+#
+# Registering the SOURCE, pinned by hash, closes that gap without committing
+# a byte of it.
+#
+# The hash pin is the load-bearing part
+# -------------------------------------
+# LDraw ships periodic part updates to the SAME url. Any tolerance a
+# comparison is judged against — a `surface_diff.py` agreement percentage, a
+# `boolean_diff.py` volume delta — is calibrated against one specific revision.
+# An unpinned fetch would let an upstream revision silently move the thing
+# those numbers are measured against; the drift would read as a model
+# regression, or worse, as an improvement.
+#
+# So a hash mismatch is a HARD FAILURE, not an auto-accept. When it fires:
+#   1. Diff the new revision against the old (the unverified download is kept
+#      at `<cache>.unverified` precisely so you can).
+#   2. Re-review every tolerance calibrated against the old revision — one
+#      changed reference invalidates all of them at once.
+#   3. Only then bump `sha256` here, in a commit that says what moved and why.
+#
+# Fetched by: vibe_cading/tools/fetch_reference.py
+#
+# Attribution
+# -----------
+# LDraw parts are © their authors — for these three, Philippe Hurbain
+# [Philo] — and licensed CC BY 4.0 (https://creativecommons.org/licenses/by/4.0/).
+# The fetch tool downloads them into a git-ignored cache; this repository
+# redistributes none of them.
+
+[archive]
+url = "https://library.ldraw.org/library/updates/complete.zip"
+sha256 = "6009f2e94204c4d3a63a4c812010b5c90bad8c5acb19b882c859fdac63734eae"
+size_bytes = 144722356
+cache = "tmp/ldraw/complete.zip"
+license = "CC BY 4.0 — LDraw Parts Library, © Philippe Hurbain [Philo] et al."
+# Pinned 2026-08-28 against upstream Last-Modified 2026-07-30.
+#
+# The whole archive is pinned rather than ~40 individual .dat files because
+# the per-part recursive resolver this replaces (`tmp/ldraw/fetch.py`) left 15
+# subpart references unresolved and needed rate-limit sleeps between requests.
+# One url and one hash has no resolver gaps and no throttling. The cost is a
+# 145 MB download, which is cached and hash-checked, so it happens once.
+
+# Vertical datum note (`zref_ldu`)
+# --------------------------------
+# LDraw is X / Y(vertical, −Y is up) / Z at 1 LDU = 0.4 mm. The mapping onto
+# this project's Z-up frame is:
+#     cq_x =  ldraw_X             * 0.4
+#     cq_y =  ldraw_Z             * 0.4
+#     cq_z = (zref_ldu − ldraw_Y) * 0.4
+# `zref_ldu` is each part's own vertical datum WITHIN THE SHARED PARENT FRAME
+# — it is not a per-part re-centring. The lid, tray and housing assemble to
+# each other in that one frame; re-centring any of them independently would
+# make them no longer mate, silently. Proof of the mapping:
+# docs/design_plans/2026-08-19-poweredup-hub-battery-box_reference-comparison.md §1.
+
+[[part]]
+name = "24853.dat"
+output = "tmp/ldraw/ref_lid.stl"
+zref_ldu = 0.0
+description = "PoweredUp hub battery cover / lid — reference for PoweredUpHubCover."
+
+[[part]]
+name = "24849.dat"
+output = "tmp/ldraw/ref_tray.stl"
+zref_ldu = 0.0
+description = """\
+PoweredUp hub battery tray — reference for PoweredUpHubBatteryTray. The plain \
+part, not the `24849c01` shortcut, which pulls in electric-contact subparts \
+that are not part of the printed geometry."""
+
+[[part]]
+name = "25560.dat"
+output = "tmp/ldraw/ref_housing.stl"
+zref_ldu = 50.0
+description = """\
+PoweredUp hub housing shell — reference for PoweredUpHubHousing. zref is 50 \
+LDU, not 0: the shell carries its own offset within the parent frame shared \
+with the lid and tray."""

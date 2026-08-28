@@ -16,6 +16,22 @@ section to the new version and date.
 ## [Unreleased]
 
 ### Added
+- `vibe_cading/tools/fetch_reference.py` + `reference_sources.toml`:
+  reproducible acquisition of reference geometry that this repository may
+  compare against but must not redistribute (the LDraw parts library, CC BY
+  4.0, is the standing case — its dimensions are facts we quote freely; its
+  converted geometry is not committed). The source archive is registered in a
+  tracked manifest, pinned by `sha256`, fetched on demand into a git-ignored
+  cache, and converted locally to STL. Replaces per-contributor scratch
+  scripts under `tmp/` that were unreproducible and left 15 LDraw subpart
+  references unresolved. Exit codes are deliberately three-way — `0` verified,
+  `1` hash mismatch (upstream revised the parts; every tolerance calibrated
+  against the old revision must be re-reviewed before the pin moves), `3`
+  network/infra — so an unreachable network can never be mistaken for a
+  passing check. Verified against the previous scratch-script output: the lid
+  and tray meshes are numerically identical (differing only in the sign bit of
+  coordinate zeros) and the housing agrees to 2.3e-5 mm, ~8700x below the
+  0.2 mm comparison tolerance.
 - `vibe_cading/mechanical/bearings.py`: `Bearing.blind_pocket_dims()` (static
   method — diameter/depth for a blind bearing pocket, given just an OD and
   width — not registered in `engine_api.json`'s wire contract, which
