@@ -1,5 +1,10 @@
 # CI runtime dependencies (installed by .github/workflows/ci.yml).
-# Kept unpinned so CI tracks current upstreams; bump explicitly if reproducibility ever bites.
+# cadquery pinned 2026-08-26: an unpinned resolve picked up 2.8.0 (from the
+# 2.7.0 the devcontainer image was built against) mid-PR, producing
+# byte-different SVG tessellation on union-heavy models and failing the
+# visual-contract freshness gate with no code change on our side. Bump this
+# pin explicitly (and refresh contracts in the same PR) when intentionally
+# moving to a newer cadquery.
 flake8
 pytest
-cadquery
+cadquery==2.8.0

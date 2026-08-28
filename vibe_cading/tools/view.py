@@ -19,7 +19,27 @@ OCP CAD Viewer entry point for vibe-cading model classes.
 
 Model class files must never import ``ocp_vscode`` or contain
 ``if __name__ == "__main__":`` viewer blocks.  Run this script instead to
-push any model (or assembly) to the OCP CAD Viewer panel in VS Code.
+push any model (or assembly) to a running OCP CAD Viewer.
+
+Viewer back-ends
+----------------
+This script is a *client*: it needs a viewer already listening (default port
+3939).  Either back-end works — both speak the same websocket protocol:
+
+* **VS Code** — the ``bernhard-42.ocp-cad-viewer`` extension panel.
+* **Plain browser** — the standalone server shipped inside ``ocp_vscode``,
+  which needs no VS Code at all::
+
+      python3 -m ocp_vscode --host 0.0.0.0 --port 3939
+
+  then open ``http://localhost:3939/viewer`` and leave the tab open.
+
+If no viewer is reachable this script aborts with an actionable message
+rather than reporting a success it did not achieve (see ``_viewer_ready``).
+The exception is ``--export``: the STEP file is written first, so a missing
+viewer only warns on stderr and the command still succeeds.
+Set ``OCP_PORT`` to target a viewer on a non-default port.
+See ``docs/viewer.md`` for the full guide.
 
 Single-class usage
 ------------------
@@ -140,6 +160,77 @@ def _prepare_shape(solid):
     return solid
 
 
+# Shown when no viewer answers on any candidate port.  Both back-ends speak the
+# same websocket protocol, so the fix is always "start one, then re-run" — the
+# standalone server needs no VS Code at all.  See docs/viewer.md.
+_NO_VIEWER_MESSAGE = """\
+No OCP CAD Viewer is listening — nothing was displayed.
+
+Start a viewer, then re-run this command:
+
+  Browser (no VS Code required):
+      python3 -m ocp_vscode --host 0.0.0.0 --port 3939
+    then open http://localhost:3939/viewer and leave the tab open.
+
+  VS Code:
+      run the "OCP CAD Viewer: Open viewer" command in the Command Palette.
+
+If your viewer listens on a non-default port, set OCP_PORT=<port>.
+Full guide: docs/viewer.md"""
+
+
+_NO_VIEWER_WARNING = (
+    "Warning: no OCP CAD Viewer is listening, so nothing was displayed. "
+    "The STEP file was still written."
+)
+
+
+def _port_is_open(port: int, host: str = "127.0.0.1",
+                  timeout: float = 1.0) -> bool:
+    """True when *host*:*port* accepts a TCP connection."""
+    import socket  # noqa: PLC0415
+
+    try:
+        with socket.create_connection((host, port), timeout=timeout):
+            return True
+    except OSError:
+        return False
+
+
+def _viewer_ready(exported: bool) -> bool:
+    """Return True when a viewer is reachable; abort or warn when it is not.
+
+    ``ocp_vscode.get_port()`` resolves *which* port to target — ``OCP_PORT``,
+    then the ports recorded in ``~/.ocpvscode``, then a 3939 fallback — but it
+    does **not** prove anything is listening there: ``find_and_set_port()``
+    trusts ``OCP_PORT`` unconditionally and only probes the other two paths.
+    So the resolved port is probed here as well; otherwise ``OCP_PORT=<dead>``
+    silently reopens the very bug this guard exists to close.  ``comms``
+    has an equivalent ``port_check``, but it is absent from ``comms.__all__``,
+    so a stdlib probe is used instead of depending on a private helper.
+
+    Without this guard ``show()`` swallows the connection failure as a
+    *warning*, prints "Showing <Class>", and exits 0 — a false success
+    reporting a model that was never transmitted.
+
+    When *exported* is True a STEP file has already been written, so a missing
+    viewer has not failed the whole command: warn on stderr and skip the
+    display instead of aborting, keeping headless ``--export`` usable from
+    scripts and ``&&`` chains (see docs/print-tolerances.md).
+    """
+    from ocp_vscode import get_port  # noqa: PLC0415
+
+    port = get_port()
+    if port is not None and _port_is_open(int(port)):
+        return True
+
+    if exported:
+        print(_NO_VIEWER_WARNING, file=sys.stderr)
+        return False
+
+    raise SystemExit(_NO_VIEWER_MESSAGE)
+
+
 
 def view_single(model_path: str, params: dict, reset: bool = True,
                export: Path | None = None) -> None:
@@ -154,6 +245,9 @@ def view_single(model_path: str, params: dict, reset: bool = True,
 
     if export:
         _export_step(solid, export)
+
+    if not _viewer_ready(export is not None):
+        return
 
     if reset:
         reset_show()
@@ -202,6 +296,9 @@ def view_multiple(model_paths: list[str], params: dict, reset: bool = True,
         for s in solids[1:]:
             merged = merged.union(s)
         _export_step(merged, export)
+
+    if not _viewer_ready(export is not None):
+        return
 
     if reset:
         reset_show()
@@ -258,6 +355,9 @@ def view_demo(model_path: str, params: dict, reset: bool = True,
             merged = merged.union(s)
         _export_step(merged, export)
 
+    if not _viewer_ready(export is not None):
+        return
+
     if reset:
         reset_show()
 
@@ -304,6 +404,9 @@ def view_assembly(module_path: str, reset: bool = True,
         for s in solids[1:]:
             merged = merged.union(s)
         _export_step(merged, export)
+
+    if not _viewer_ready(export is not None):
+        return
 
     if reset:
         reset_show()

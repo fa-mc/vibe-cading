@@ -1114,6 +1114,104 @@ section to the new version and date.
 - `_HoleMouthSelector`: gained an additive `axis="z"|"y"` discriminator; existing
   `LegoTechnicBeam` / `LegoTechnicLLiftarm` call sites are unchanged.
 
+### Added
+- `vibe_cading/mechanical/bearings.py`: `Bearing.blind_pocket_dims()` (static
+  method — diameter/depth for a blind bearing pocket, given just an OD and
+  width — not registered in `engine_api.json`'s wire contract, which
+  catalogs only `__init__` and public classmethod factories, by design) and
+  `Bearing.mr85()` (the MR85-2RS preset, matching the existing
+  `b608()`/`b623()`/etc. classmethods). Consolidates bearing-pocket-sizing
+  math that `FreespinHexHub`, `HexHubNut`, and `BearingHexHousing` each
+  previously duplicated independently — `FreespinHexHub` and `HexHubNut`
+  now delegate their pocket-dimension properties to the shared formula
+  (verified behavior-identical by a regression test that computes each
+  consumer's expected diameter/depth independently, from the original
+  inline formula against an explicit fit-grade profile — not by
+  re-deriving "expected" via the same shared call under test, which
+  couldn't catch a drift in the shared formula's own defaults). Pure
+  refactor — no consumer's printed geometry changes. See `TODO.md`'s
+  "Consolidate blind bearing-pocket sizing" entry (flagged in PR #88's
+  review cycle).
+
+### Changed
+- `vibe_cading/mechanical/bearings.py`: `MR85_ID`/`MR85_OD`/`MR85_W` now
+  live once here (the single source of truth for the `vibe_cading.rc.*`
+  hex-hub family) instead of being duplicated in `freespin_hex_hub.py`,
+  `hex_hub_bearing/hex_hub_nut.py`, and `hex_hub_bearing/bearing_hex_housing.py`.
+  `MR85_ID` was previously importable from `vibe_cading.rc.freespin_hex_hub`
+  (unused there) and is no longer — import it from
+  `vibe_cading.mechanical.bearings` instead.
+- **(minor bump — breaking geometry change to `BearingHexHousing`'s existing
+  bearing pocket, see below)** `vibe_cading/rc/hex_hub_bearing/`: `HexHubNut`
+  now carries its own blind bearing pocket sunk into its outward (top,
+  wheel-facing) face, sized for the identical MR85-2RS bearing seated on the
+  shaft side by `BearingHexHousing` (new `bearing_od` / `bearing_width`
+  constructor params, default 8.0 mm / 2.5 mm) — both ends of the fused
+  `HexHubWithBearing` deliverable now seat a bearing, not just the shaft
+  side. Both the new hex-side pocket and the pre-existing shaft-side pocket
+  now use `free` fit grade (drop-in/pop-out by hand) rather than the prior
+  `press` grade — a behavior change to `BearingHexHousing`'s already-shipped
+  printed geometry (pocket diameter 8.08 mm -> 8.30 mm on `fdm_standard`),
+  not merely additive, hence the minor version bump — so the bearing is
+  user-replaceable at both ends.
+  `Bearing.outer_pocket()` gained a `fit: Literal["press", "free", "slip"] =
+  "press"` parameter to support this (defaults to the prior behavior for
+  every other caller; raises `ValueError` on an unrecognized grade name).
+
+### Fixed
+- `vibe_cading/tools/view.py`: no longer reports a false success when no OCP CAD
+  Viewer is listening. Previously it printed `Showing <Class>` and exited 0 while
+  the model was never transmitted (the underlying connection failure surfaced only
+  as a warning). It now resolves the target port, probes it, and aborts with exit 1
+  and a message naming both ways to start a viewer. The probe is deliberate:
+  `ocp_vscode.get_port()` trusts `OCP_PORT` without checking it, so resolution alone
+  would let `OCP_PORT=<dead port>` reopen the same false success.
+  `--export` is unaffected — the STEP file is written and the command still exits 0,
+  warning on stderr that nothing was displayed, so headless export keeps working in
+  scripts and `&&` chains.
+
+### Added
+- `docs/viewer.md`: guide to running the OCP CAD Viewer **in a plain browser tab**
+  via the standalone server that ships inside `ocp_vscode`
+  (`python3 -m ocp_vscode --host 0.0.0.0 --port 3939` → `http://localhost:3939/viewer`),
+  with no VS Code required. Covers the client/server split, port forwarding, and
+  the "browser tab must be open before you push" behaviour. Port 3939 was already
+  in the dev container's `forwardPorts`, so no container change was needed.
+- `vibe_cading/rc/hex_hub_bearing/`: RC 12 mm hex-wheel-adapter hub fused with
+  an MR85-2RS bearing housing (`HexHubNut`, `BearingHexHousing`, and the
+  primary deliverable `HexHubWithBearing`, which `.union()`s the two into a
+  single printed body with a 0.02 mm boolean-robustness overlap epsilon at the
+  flush join — no press-fit register). `HexHubNut`'s through-bore is 6.0 mm
+  nominal (`free`-fit-grade), sized as a running-clearance hole around a
+  uniform 5 mm-nominal stub axle — matching `FreespinHexHub`'s established
+  convention. See `docs/design_plans/2026-08-25-rc-hex-hub-bearing_design.md`.
+- `vibe_cading/lego_adapters/axle_hex_hub/`: Lego Technic axle -> 12 mm RC hex
+  hub adapter (`AxleCompressionCollet`, `HexInsertHub`, and the primary
+  deliverable `AxleHexHubAdapter`, which `.union()`s the two into a single
+  printed body with the same 0.02 mm boolean-robustness overlap epsilon
+  convention as `HexHubWithBearing`). `AxleCompressionCollet` is a 10 mm OD,
+  10 mm-tall slotted split-collet cylinder carrying a keyed cross-shaped
+  Technic-axle bore cut to exactly its own height (`free` fit plus a small
+  extra radial clearance bump scoped to the bore only), with 2 axial collet
+  slots (0.6 mm gap) aligned with the bore's arm-tip axis for an
+  off-the-shelf compression collar's grub screws, a raised stop ring 6.5 mm
+  from the shaft end limiting collar insertion depth, and two locating
+  dimples 90 deg off the slots for the collar's set screws. `HexInsertHub`
+  is a 12 mm hex prism carrying a parametrized straight-walled M3-class
+  heat-set-insert pocket (`insert_length` default 5.0 mm) with no axle-bore
+  feature of its own.
+  See `docs/design_plans/2026-08-25-lego-axle-hex-hub-adapter_design.md`.
+
+### Deprecated
+- `vibe_cading.rc.freespin_hex_hub.FreespinHexHub` — superseded by
+  `vibe_cading.rc.hex_hub_bearing.hex_hub_with_bearing.HexHubWithBearing`
+  (same "12 mm hex + MR85-2RS bearing" family, modelled as fused component
+  classes with tolerance-profile-driven fit grades on both the bore and the
+  bearing pocket). `FreespinHexHub` now emits a `DeprecationWarning` on
+  construction; its `build.toml` registration (`rc/hex_wheel_hub_12mm.step`)
+  is unchanged pending a separate human decision on migration. May be removed
+  in a future release.
+
 ## [0.1.4] - 2026-06-26
 
 ### Added

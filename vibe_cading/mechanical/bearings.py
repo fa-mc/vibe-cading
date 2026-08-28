@@ -13,10 +13,25 @@
 # You should have received a copy of the GNU Affero General Public License
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
-"""Parametric ball bearings with press-fit clearances."""
+"""Parametric ball bearings with configurable fit-grade clearances."""
 
 from __future__ import annotations
+
+from typing import Literal, get_args
+
 import cadquery as cq
+
+# Single source of truth for outer_pocket()'s `fit` param -- reused for both
+# the type annotation and runtime validation so the two can't drift apart.
+_FitGradeName = Literal["press", "free", "slip"]
+
+# MR85-2RS standard dimensions -- the single source of truth for the whole
+# vibe_cading.rc.* hex-hub family (FreespinHexHub, HexHubNut,
+# BearingHexHousing), which previously each defined their own copy.
+MR85_ID = 5.0  # mm -- inner (shaft) diameter
+MR85_OD = 8.0  # mm -- outer diameter
+MR85_W = 2.5   # mm -- axial width
+
 
 class Bearing:
     """Parametric radial ball bearing.
@@ -75,16 +90,25 @@ class Bearing:
         """The CadQuery solid representing the exact bearing geometry."""
         return self._solid
 
-    def outer_pocket(self, profile=None) -> cq.Workplane:
-        from vibe_cading.print_settings import get_profile
-        prof = profile or get_profile()
-        radial_clearance = prof.press.radial
-        depth_clearance = prof.press.axial
+    def outer_pocket(
+        self, profile=None, fit: _FitGradeName = "press"
+    ) -> cq.Workplane:
         """Generates a cutter for burying the outer race into a printed housing.
 
-        Use `radial_clearance` ~0.05mm for a tight press fit, or ~0.1mm for a looser
-        slip fit on FDM printers.
+        ``fit`` selects which fit grade of ``profile`` supplies the radial
+        and axial allowance — ``"press"`` (default, permanent/non-serviceable
+        seating) or ``"free"`` (drop-in/pop-out by hand, e.g. a user-
+        replaceable bearing). Defaults to ``"press"`` to preserve every
+        existing caller's behavior unchanged.
         """
+        from vibe_cading.print_settings import get_profile
+        prof = profile or get_profile()
+        allowed_fits = get_args(_FitGradeName)
+        if fit not in allowed_fits:
+            raise ValueError(f"unknown fit {fit!r}; expected one of {allowed_fits}")
+        grade = getattr(prof, fit)
+        radial_clearance = grade.radial
+        depth_clearance = grade.axial
         p = (
             cq.Workplane("XY")
             .circle((self.outer_diameter / 2.0) + radial_clearance)
@@ -98,6 +122,44 @@ class Bearing:
             )
             p = p.union(flange)
         return p
+
+    @staticmethod
+    def blind_pocket_dims(
+        outer_diameter: float,
+        thickness: float,
+        *,
+        profile=None,
+        fit: _FitGradeName = "free",
+        proud_margin: float = 0.5,
+    ) -> tuple[float, float]:
+        """Diameter and depth (mm) for a *blind* bearing pocket -- sunk into
+        one face only, as opposed to :meth:`outer_pocket`'s through-cut
+        convention. Returns ``(diameter, depth)``.
+
+        A static method (not an instance method) because the formula only
+        needs a bearing's OD and width, not its full geometry (inner
+        diameter, flange) -- callers that don't otherwise need a
+        :class:`Bearing` instance (e.g. sizing a pocket from plain
+        constructor floats) can call this without constructing one.
+
+        ``diameter`` is ``outer_diameter`` plus the chosen fit grade's
+        radial allowance (doubled, since ``radial`` is a half-extra
+        allowance on radius). ``depth`` is ``thickness`` plus the fit
+        grade's axial allowance plus a flat ``proud_margin`` -- not itself
+        a fit-grade value -- so the bearing sits proud of the pocket's
+        entry face rather than binding against the pocket floor, and can
+        be pressed flush by hand. Set ``proud_margin=0.0`` for a pocket
+        with no assembly headroom beyond the profile's own axial allowance.
+        """
+        from vibe_cading.print_settings import get_profile
+        prof = profile or get_profile()
+        allowed_fits = get_args(_FitGradeName)
+        if fit not in allowed_fits:
+            raise ValueError(f"unknown fit {fit!r}; expected one of {allowed_fits}")
+        grade = getattr(prof, fit)
+        diameter = outer_diameter + 2.0 * grade.radial
+        depth = thickness + grade.axial + proud_margin
+        return diameter, depth
 
     def shaft_cutter(self, profile=None) -> cq.Workplane:
         from vibe_cading.print_settings import get_profile
@@ -139,6 +201,11 @@ class Bearing:
     def b6702(cls) -> "Bearing":
         """Thin-section 15x21x4mm"""
         return cls(15.0, 21.0, 4.0)
+
+    @classmethod
+    def mr85(cls) -> "Bearing":
+        """MR85-2RS: 5x8x2.5mm -- the vibe_cading.rc.* hex-hub family's bearing."""
+        return cls(MR85_ID, MR85_OD, MR85_W)
 
     @classmethod
     def demo(cls, **kwargs) -> list[tuple[cq.Workplane, str, str]]:

@@ -35,6 +35,19 @@ For non-trivial geometry changes, please open an issue first describing the use 
 
 The repo ships a VS Code Dev Container with everything pre-installed (Python 3.11, CadQuery, OCP CAD Viewer, Claude Code). See [README.md > Quick start](README.md#quick-start) for the click-by-click.
 
+**Not using VS Code?** The image definition lives in [`docker/Dockerfile`](docker/Dockerfile) and is shared with [`docker/compose.yaml`](docker/compose.yaml), so the same *image* runs without VS Code or the devcontainer CLI:
+
+```bash
+docker compose -f docker/compose.yaml up -d --build
+docker compose -f docker/compose.yaml exec dev bash
+```
+
+`.devcontainer/devcontainer.json` is only the VS Code integration layer on top of that image — it owns no image content. Compose also *publishes* port 3939 (a real Docker publish, unlike the devcontainer's `forwardPorts`, which is a localhost-bound VS Code tunnel), so the OCP CAD viewer is reachable from another device on your network — provided the viewer server also binds `--host 0.0.0.0`.
+
+**On native Linux**, if your (non-root) host user is not UID 1000, build with `USER_UID=$(id -u) USER_GID=$(id -g) docker compose -f docker/compose.yaml up -d --build` so bind-mounted files keep the right owner. Don't pass `USER_UID=0` — the image builds a non-root user and that combination fails. `--build` matters: a bare `up -d` reuses the existing image tag and silently ignores changed UID args. On **macOS**, and on **Windows** with the clone on an NTFS drive, leave these alone — Docker Desktop maps ownership for you. On **WSL2 with the clone inside the Linux filesystem**, the bind mount is real ext4, so treat it like native Linux.
+
+The image is the same, but the Compose service is **not** a full devcontainer replacement: it deliberately omits the VS Code integration layer's convenience mounts (SSH keys, agent credentials) and its `postCreateCommand`. So `git` may report `detected dubious ownership` on a UID mismatch — fix with `git config --global --add safe.directory <path>` — and agent hosts or `gh` may need credentials wired up yourself. Note that the container's home directory is **not** persisted: those fixes, plus `gh auth`, live in the container layer and are lost on `down` or on the next `up -d --build`. Only the repo bind mount survives. Running git worktrees inside the container is out of scope here (see [#81](https://github.com/fa-mc/vibe-cading/pull/81)).
+
 **First-clone checklist:**
 
 1. **Reopen in Container** when VS Code prompts.
@@ -115,7 +128,7 @@ Before opening a PR, validate locally:
 | Tool | When to use |
 |---|---|
 | `python3 vibe_cading/tools/preview.py <module.path.ClassName>` | Generate orthographic SVGs (top, front, left, iso_ne) to visually validate orientation and dimensions against drawings. |
-| `python3 vibe_cading/tools/view.py <module.path.ClassName>` | Launch the OCP CAD Viewer (port 3939) for live 3D inspection. Supports `--demo` and `--assembly`. |
+| `python3 vibe_cading/tools/view.py <module.path.ClassName>` | Push to the OCP CAD Viewer (port 3939) for live 3D inspection. Supports `--demo` and `--assembly`. Needs a viewer already running — the VS Code panel, or a browser tab via `python3 -m ocp_vscode --host 0.0.0.0` ([docs/viewer.md](docs/viewer.md)). |
 | `python3 vibe_cading/tools/section_slicer.py` | Slice a part along an axis to verify internal features (blind holes, snap rings, counterbores) that external views can't show. |
 | `python3 vibe_cading/tools/boolean_diff.py <reference.step> <module.path.ClassName> --model` | Quantitative volume comparison against a reference STEP file. |
 | `python3 vibe_cading/tools/calibrate.py [all\|free\|slip\|press]` | Calibrate your `print_profiles_user.json` against a printed gauge (see `--help` for flags). |
