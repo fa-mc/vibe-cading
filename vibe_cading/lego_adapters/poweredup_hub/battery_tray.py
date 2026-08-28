@@ -146,9 +146,12 @@ class PoweredUpHubBatteryTray:
     Parameters
     ----------
     profile:
-        Manufacturing tolerance profile. Used for the upper wall band's
-        running clearance off Housing's own inner face, and the wall's own
-        top clearance under Housing's deck (:attr:`_wall_z_hi`). Accepts a
+        Manufacturing tolerance profile. Since round 57 removed the upper
+        wall band, the only thing it sizes here is the strap corridor's
+        running clearance (``free.radial`` on each side of the strap's own
+        thickness) and, through :meth:`cap_rebate_half_extents`, the cap
+        plate's fit in its rebate. The wall itself is now profile-independent
+        -- it ends at the plain constant :attr:`WALL_Z_HI`. Accepts a
         :class:`~vibe_cading.print_settings.ToleranceProfile` instance, a
         profile name string, or ``None`` for the process-global default.
     """
@@ -161,37 +164,29 @@ class PoweredUpHubBatteryTray:
     WALL_OUTER_X = 27.200
     WALL_INNER_X = 26.400
 
-    # --- Upper X-band: Housing's own wall doubles in thickness above its
-    # own WALL_INNER_STEP_Z, stepping its INNER face in to 26.400 while
-    # keeping the same 27.200/28.000 outer faces below it (see
-    # PoweredUpHubHousing._build_side_wall) -- so this tray's wall must
-    # step its OUTER face in to stay clear of that thickened band, exactly
-    # the escalation the retired file's own round-16 comment describes.
-    # WALL_STEP_Z below is hand-derived from Housing's own constant rather
-    # than imported live: Housing imports THIS class (for the side window
-    # / tab derivation, round 51), so this class importing Housing back
-    # would cycle. Re-derive by hand if PoweredUpHubHousing.WALL_INNER_STEP_Z
-    # (currently 21.200, world) or PoweredUpHubCover.PLATE_THICKNESS (this
-    # class's own seat offset) ever change.
-    WALL_STEP_Z = 20.000   # == 21.200 (Housing.WALL_INNER_STEP_Z, world) - 1.200 (seat)
+    # --- Wall top (round 57): the wall STOPS where Housing's cavity
+    # narrows, instead of following it inboard.
     #
-    # Round 55e: 26.400 -> 26.050. Housing deepened its side trapezoid to
-    # 1.150 mm so a future cover gets a 1.000 mm wall, and derived the
-    # doubled band's inner face from that socket floor -- moving Housing's
-    # own inner face, which THIS band rides against, in by 0.350. Held at
-    # 26.400 the tray's wall would foul it by 0.200 mm everywhere above
-    # world Z = 21.200; nothing in this class would notice, since the
-    # single-solid and seating checks are about this part alone. What
-    # catches it is test_seats_against_housing_and_cover_with_zero_interference.
+    # Housing's own wall doubles in thickness above its WALL_INNER_STEP_Z,
+    # stepping its INNER face in to 26.400. Rounds up to 55 tracked that
+    # with a second, narrower wall band (outer face 26.050 - clearance,
+    # inner 25.250) stacked above this one. That band's X span was
+    # DISJOINT from this one's -- 25.250..25.900 sits entirely inboard of
+    # this band's 26.400 inner face -- so the two were joined only by a
+    # hairline horizontal ledge at the seam. Legal as a solid, and the
+    # single-solid assert passed; but on a printer it is a 0.650 mm wall
+    # standing on a 0.500 mm ledge with nothing under its inboard half.
+    # The user saw it as a floating region and asked for the narrow part to
+    # be removed outright, which is what this constant now expresses: one
+    # wall band, full thickness, ending at the step.
     #
-    # The inner face moves the same 0.350 so the band keeps its section.
-    # Housing's inner face is now UNIFORM from WALL_INNER_STEP_Z to DECK_Z
-    # (its doubled band and its upper section share it), so this band still
-    # needs no further step of its own despite the housing now being 5.6 mm
-    # taller than when it was written.
-    WALL_OUTER_X_UPPER_NOMINAL = 26.050
-    WALL_INNER_X_UPPER = 25.250
-    WALL_THICKNESS = WALL_OUTER_X - WALL_INNER_X   # 0.800, both bands
+    # Hand-derived from Housing's constant rather than imported live:
+    # Housing imports THIS class (for the side window / tab derivation,
+    # round 51), so importing Housing back would cycle. Re-derive by hand
+    # if PoweredUpHubHousing.WALL_INNER_STEP_Z (currently 21.200, world) or
+    # PoweredUpHubCover.PLATE_THICKNESS (this class's seat offset) change.
+    WALL_Z_HI = 20.000   # == 21.200 (Housing.WALL_INNER_STEP_Z, world) - 1.200 (seat)
+    WALL_THICKNESS = WALL_OUTER_X - WALL_INNER_X   # 0.800
 
     # --- Y span (round 51) -- the U's open ends. ---
     # Both raised Cover features that the old END walls used to collide
@@ -301,39 +296,16 @@ class PoweredUpHubBatteryTray:
             prof = profile
         self._profile = prof
 
-        # Upper-band wall step: an explicit, tolerance-aware running-
-        # clearance gap off Housing's own upper-band inner face (this
-        # project's tolerance-profile convention -- never a bare literal).
-        self._wall_outer_x_upper = self.WALL_OUTER_X_UPPER_NOMINAL - prof.free.radial
-
-        # Wall top: Housing's deck underside (DECK_Z - DECK_THICKNESS =
-        # 29.600 - 1.600 = 28.000, world -- hand-derived, not imported, for
-        # the same cycle-avoidance reason as WALL_STEP_Z above) minus this
-        # class's own seat offset, minus a running (axial) clearance so the
-        # tray's wall does not touch Housing's deck.
+        # Round 57 removed the upper wall band, and with it the two fields
+        # that existed only to place it: the clearance-adjusted upper outer
+        # face, and a wall top derived from Housing's deck underside. The
+        # wall's top is now the plain class constant WALL_Z_HI -- Housing's
+        # own step -- so nothing here depends on the deck's height any more.
         #
-        # Round 55 applied the revisit this comment was written for
-        # (22.400 -> 28.000, when DECK_Z went 24.000 -> 29.600). Worth
-        # flagging what that changed BESIDES the number: this formula used
-        # to express a genuine constraint -- the housing was so short that
-        # the wall reached the deck and stopped there. It no longer is. The
-        # pack's top now sits at local Z = FLOOR_THICKNESS + 20.900 =
-        # 23.600 and this puts the wall at 26.600, so the wall stands
-        # 3.000 mm proud of the thing it cradles for no reason other than
-        # "that is where the deck happens to be". It is retained because
-        # more lateral support is not harmful and the housing constrains
-        # the wall anyway -- but if this ever needs a reason rather than an
-        # inheritance, size it off the pack, not the deck.
-        _housing_deck_underside_world = 28.000
-        self._wall_z_hi = (
-            _housing_deck_underside_world
-            - PoweredUpHubCover.PLATE_THICKNESS
-            - prof.free.axial
-        )
-        assert self._wall_z_hi > self.WALL_STEP_Z, (
-            "the housing's current interior is too short for even the "
-            "upper wall band to exist -- re-check _housing_deck_underside_world"
-        )
+        # Consequence worth knowing rather than rediscovering: the wall no
+        # longer reaches the pack's top (local Z = FLOOR_THICKNESS + 20.900
+        # = 23.600, against a 20.000 wall). Above WALL_Z_HI the pack is
+        # confined by Housing's own cavity wall, not by this part.
 
         # Strap corridor width in X at its two ends -- the strap's own
         # nominal thickness plus running clearance both sides, i.e. the
@@ -381,49 +353,27 @@ class PoweredUpHubBatteryTray:
         return part
 
     def _build_side_wall(self, x_sign: int) -> cq.Workplane:
-        """One side wall: two X-stepped slabs, both spanning the tray's
+        """One side wall: a single full-thickness slab spanning the tray's
         full (open-ended) Y reach -- see class docstring's *U shape*.
 
-        The two bands do NOT share any X range: Housing's own cavity
-        genuinely narrows above the step (its inner face moves from
-        27.200 to 26.400, see the class-level comment), so this wall's
-        entire cross-section must sit further inboard above the step than
-        below it -- the lower band's solid material (X in
-        ``[WALL_INNER_X, WALL_OUTER_X]``) and the upper band's
-        (``[WALL_INNER_X_UPPER, _wall_outer_x_upper]``) are disjoint by
-        construction, not by an oversight. A plain Z-overlap between two
-        X-disjoint slabs does not connect them (this failed the first time
-        this method was written: 4 solids, not 1). The fix is a small
-        bridge slab AT the seam, wide enough in X to be a superset of both
-        bands' footprints, so it genuinely overlaps solid material on both
-        sides of the step.
+        One band, not two. It stops AT :attr:`WALL_Z_HI` and never goes
+        past it: above that height Housing's cavity narrows to an inner
+        face of 26.400, so this wall's wide (``WALL_OUTER_X``) section is
+        only legal below the step. Following the narrowing upward is what
+        round 55 did, and it produced a wall whose upper band shared no X
+        range with its lower one -- see the class-level comment on
+        :attr:`WALL_Z_HI` for why that is gone.
+
+        Overshooting the step is the other failure mode this bound
+        prevents: a version that let the slab run `overlap` past it for
+        seam safety drove the wall 0.05 mm into Housing's thickened band
+        (4.784 mm^3 -- caught by Tray x Housing interference, not by the
+        single-solid assert, which knows nothing about Housing).
         """
-        # `lower` and `bridge` both stop AT WALL_STEP_Z, never past it: at
-        # this wide (WALL_OUTER_X) cross-section, Housing's own cavity is
-        # only legal below the step (Housing's inner face steps from
-        # 27.200 to 26.400 there) -- a first version let `lower` and
-        # `bridge` overshoot the step by `overlap` for seam safety, which
-        # is exactly backwards here: it drove this wall 0.05 mm into
-        # Housing's own thickened wall material (4.784 mm^3, caught by
-        # Tray x Housing interference, not by the single-solid assert,
-        # which does not know about Housing at all). The overlap that
-        # keeps the three pieces connected lives entirely on `bridge`'s Z
-        # range and on staying at-or-below WALL_STEP_Z, never past it.
-        overlap = 0.050
-        lower = self._x_slab(
+        return self._x_slab(
             x_sign, self.WALL_OUTER_X, self.WALL_THICKNESS,
-            0.0, self.WALL_STEP_Z,
+            0.0, self.WALL_Z_HI,
         )
-        upper = self._x_slab(
-            x_sign, self._wall_outer_x_upper,
-            self._wall_outer_x_upper - self.WALL_INNER_X_UPPER,
-            self.WALL_STEP_Z - overlap, self._wall_z_hi,
-        )
-        bridge = self._x_slab(
-            x_sign, self.WALL_OUTER_X, self.WALL_OUTER_X - self.WALL_INNER_X_UPPER,
-            self.WALL_STEP_Z - overlap, self.WALL_STEP_Z,
-        )
-        return lower.union(upper).union(bridge)
 
     def _x_slab(
         self, x_sign: int, x_outer: float, thickness: float, z_lo: float, z_hi: float

@@ -1382,19 +1382,18 @@ def test_bottom_end_round_follows_the_reference_arc():
 
     # (z, |Y| reached) from tmp/ldraw/curve_fit.py.
     #
-    # The +Y probe sits on a RIB band (X = 16.4), not on the side wall.
-    # Round 55g gave the tongue end's side wall the FULL arc by user
-    # direction, so it no longer follows the reference's truncated profile
-    # there -- that deliberate deviation is asserted separately, in
-    # test_tongue_side_wall_carries_the_full_arc. The ribs still carry the
-    # reference's own curve, so they are where reference agreement is
-    # checked.
+    # LATCH END ONLY. Round 56 made the whole tongue end a full-depth arc by
+    # user direction, so the tongue end no longer follows the reference's
+    # truncated profile ANYWHERE -- not on the side wall (round 55g) and no
+    # longer on the ribs either. Asserting reference agreement there would be
+    # asserting something the part deliberately is not; the tongue end's own
+    # shape is pinned by test_the_tongue_end_is_rounded_all_the_way_across
+    # and declared as an accepted deviation in reference_contracts.toml.
     stations = {
         -1: ((0.274, -33.378), (1.054, -34.546), (2.222, -35.326)),
-        +1: ((0.780, 34.546), (1.948, 35.326)),
     }
-    x_probe = {-1: 24.0, +1: 16.4}
-    for sign in (-1, +1):
+    x_probe = {-1: 24.0}
+    for sign in (-1,):
         above = _end_reach(housing, x_probe[sign], 6.0, sign)
         assert above is not None and abs(abs(above) - H.HALF_Y) < 1e-3, (
             f"positive control failed: at Z=6 the wall reads {above}, not the "
@@ -1437,39 +1436,60 @@ def test_bottom_round_leaves_the_latch_end_middle_square():
     )
 
 
-def test_tongue_side_wall_carries_the_full_arc():
-    """Round 55g, a deliberate deviation from the reference at one band.
+def test_the_tongue_end_is_rounded_all_the_way_across():
+    """Round 56. User direction, twice: "the tongue side wall should have the
+    curve all the way", then "I'm still seeing squares."
 
-    The reference truncates the tongue end's arc 0.274 mm up, so beside its
-    own neighbours that segment reads as an unfinished curve. User
-    direction: "the tongue side wall should have the curve all the way." So
-    the tongue end's side-wall bands take the FULL arc, tangent to Z = 0,
-    matching the latch end -- while the tongue's RIB bands keep the
-    reference's truncated one.
+    Round 55g read "all the way" as arc DEPTH and gave the two outer rib
+    bands the full-depth arc while keeping the reference's band structure.
+    That left 47.200 mm of square bottom edge in the four gaps between
+    bands. "All the way" is about EXTENT along X: the whole tongue end
+    carries one arc now.
 
-    Asserted as the contrast, not as a single number: the side wall and the
-    latch end must agree, AND the side wall and the neighbouring rib must
-    differ. Either half alone passes for a part where every band was changed
-    together, which is exactly what this round did not do.
+    Swept, not sampled at hand-picked stations -- the failure this replaces
+    was invisible to a three-station probe precisely because all three
+    stations sat on bands that HAD been rounded. The gaps between them were
+    what the user could see.
+
+    Positive control: the same sweep is run against the latch end, whose
+    middle is square by user direction and by the reference. It must report
+    squares -- otherwise a probe that cannot detect a square edge at all
+    would "prove" the tongue end rounded.
     """
     H = PoweredUpHubHousing
     housing = PoweredUpHubHousing(profile="fdm_standard").solid.val()
     z = 0.02
 
-    tongue_wall = _end_reach(housing, 27.0, z, +1)
-    latch_wall = _end_reach(housing, 24.0, z, -1)
-    tongue_rib = _end_reach(housing, 16.4, z, +1)
-    for name, v in (("tongue side wall", tongue_wall),
-                    ("latch side wall", latch_wall),
-                    ("tongue rib", tongue_rib)):
-        assert v is not None, f"no material found for the {name}"
+    def square_stations(y_sign):
+        """X stations where the wall still runs square down to the bed.
 
-    assert abs(abs(tongue_wall) - abs(latch_wall)) < 1e-3, (
-        f"the tongue side wall reaches {abs(tongue_wall):.3f} where the latch "
-        f"end reaches {abs(latch_wall):.3f} -- its arc is not the full one"
+        One point per station: material present at the bed AND hard
+        against the outer face means the arc never touched this X. That
+        is the whole property, and it costs one ``isInside`` rather than
+        the ~1800-step march ``_end_reach`` needs to find a reach.
+        """
+        out = []
+        for i in range(141):                      # -28.0 .. +28.0, 0.4 mm
+            x = -28.0 + i * 0.4
+            y = y_sign * (H.HALF_Y - 0.01)
+            if housing.isInside(cq.Vector(x, y, z), tolerance=1e-9):
+                out.append(round(x, 3))
+        return out
+
+    latch_square = square_stations(-1)
+    assert latch_square, (
+        "positive control failed: the sweep found NO square station at the "
+        "latch end, whose middle is square by user direction -- the probe "
+        "cannot tell a square edge from a rounded one, so its verdict on "
+        "the tongue end means nothing"
     )
-    assert abs(tongue_rib) - abs(tongue_wall) > 0.5, (
-        f"the tongue's rib ({abs(tongue_rib):.3f}) and side wall "
-        f"({abs(tongue_wall):.3f}) carry the same arc -- the ribs should have "
-        "kept the reference's truncated curve"
+    assert max(abs(x) for x in latch_square) < 6.0, (
+        f"the latch end is square out to X={max(abs(x) for x in latch_square)}"
+        " -- its outer segments have lost their curve"
+    )
+
+    tongue_square = square_stations(+1)
+    assert not tongue_square, (
+        f"the tongue end still runs square to the bed at X={tongue_square} "
+        "-- the arc does not span the full wall"
     )

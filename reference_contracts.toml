@@ -129,19 +129,30 @@ this component, because it is dominated by side handles we added by design.
 # 0.217 and the component's agreement 84.1% -> 89.0%. No open gaps remain.
 
 [[component]]
-name = "poweredup-hub-housing-tongue-end"
+name = "poweredup-hub-housing-latch-end-arc"
 model = "vibe_cading.lego_adapters.poweredup_hub.housing.PoweredUpHubHousing"
 reference = "tmp/ldraw/ref_housing.stl"
-region = [-28.0, 28.0, 32.0, 33.4, 0.0, 3.0]
-min_agreement = 68.0
+region = [-28.0, 28.0, -33.4, -32.0, 0.0, 3.6]
+min_agreement = 99.0
 tolerance = 0.2
 notes = """
-The tongue-end slot/rib band -- the mating structure the Cover's four tongue
-blades slide into (round 46, ldraw-housing-geometry.md SS12.2 T1/T2/T3).
+The LATCH end's bottom-edge arc (round 56) -- the one bottom round this part
+still copies from the reference rather than deviating from by user direction:
+outer segments |X| 19.200..28.000 rounded on R = 3.600, middle left square,
+with the reference's own square vertices at X = +-5.600.
 
-Scoped to the rib band rather than the whole tongue end: the surrounding
-structure is dominated by the two-skin/single-wall departure below, which says
-nothing about whether the ribs themselves are in the right places.
+This row REPLACES `poweredup-hub-housing-tongue-end`, whose region became a
+wholly deliberate deviation in round 56 -- see the retirement entry below for
+the measurements and why it was not simply re-floored.
+
+The Z span reaches 3.600 (the arc's full height) rather than the retired row's
+3.000, so the region is the arc's own band exactly.
+
+The floor is 99.0 against a measured 100.0, and it is a floor that can FAIL:
+rebuilding with the rounded span shrunk from |X| 19.200 to 24.000 -- 4.8 mm
+per side left square that the reference curves -- scores 96.7%
+(`tmp/ldraw/tongue_rescope.py`, which runs that variant as its own falsifier).
+A 100%-reading region with no demonstrated failing case would be decoration.
 
 The reference STL is produced by `tmp/ldraw/dump_housing_stl.py` (beside
 the lid's own `dump_stl.py`; both are contributor-local scratch, as is the
@@ -156,38 +167,58 @@ and overall height 33.800 (== the design doc's own measured figure).
 """
 
   [[component.accepted_deviation]]
-  what = "The tongue end's side-wall bottom round runs the full arc; the reference truncates it"
+  what = "RETIRED ROW: poweredup-hub-housing-tongue-end -- the whole tongue end is now a user-directed shape"
   why = """
-  DECLARED, WITHOUT A REGION -- it keeps counting against the score, and it is
-  where this row's floor went from 78.0 to 68.0.
+  DECLARED, WITHOUT A REGION -- the tongue end's departure from the reference
+  keeps counting anywhere it is sampled. What is retired is the SCORED ROW,
+  not the disclosure.
 
-  Round 55f added the reference's own bottom-edge rounds, measured off its
-  vertices: one arc, R = 3.600, centre at |Y| = 32.000, with the tongue end's
-  copy truncated 0.274 mm up (centre Z 3.326 rather than 3.600). Round 55g
-  then gave the tongue end's SIDE-WALL bands (|X| 26.000..28.000) the full
-  arc instead, on user direction -- "the tongue side wall should have the
-  curve all the way" -- because beside its neighbours the truncated version
-  reads as an unfinished curve. The tongue's RIB bands keep the reference's
-  truncated arc.
+  History, because how it failed is the useful part. Round 55f added the
+  reference's own bottom-edge rounds, measured off its vertices: one arc,
+  R = 3.600, centre at |Y| = 32.000, the tongue end's copy truncated 0.274 mm
+  up. Round 55g gave the tongue end's outer rib bands (|X| 26.000..28.000)
+  the full-depth arc on user direction -- "the tongue side wall should have
+  the curve all the way" -- and the floor went 78.0 -> 68.0, a cost isolated
+  by measurement (tmp/tongue_cause.py) rather than inferred.
 
-  The cost was ISOLATED before the floor was touched, rather than inferred
-  (tmp/tongue_cause.py rebuilds the part with each variant and scores this
-  exact region):
+  That reading was WRONG, and the user said so: "I'm still seeing squares."
+  55g had changed arc DEPTH on two bands while keeping the reference's band
+  structure, which left 47.200 mm of the tongue end's bottom edge running
+  square to the bed in the four gaps between bands
+  (tmp/ldraw/tongue_bottom_scan.py). "All the way" meant EXTENT along X.
+  Round 56 made the tongue end one continuous full-depth arc spanning the
+  whole wall, and this row fell to 47.4%.
 
-      pre-55f, no tongue rounds        -- (build error, bands empty)
-      55f only, all bands truncated    78.61%   <- unchanged from before 55f
-      55g as shipped, side wall full   68.79%
+  It was NOT re-floored, for the reason vibe/INSTRUCTIONS.md gives directly:
+  "when a tolerance bound is widened ... treat that as a signal to question
+  the premise that made the residual necessary." A third lowering (78 -> 68
+  -> ~47) is that signal. The premise, questioned: this row's region
+  (Y 32.000..33.400) was drawn around the REFERENCE's tongue-end wall face.
+  Our wall face is at 35.600 -- a separately declared deviation -- so above
+  the arc our part has no surface in that region at all, and the checker
+  correctly refuses to score it (InconclusiveRegion, verified in
+  tmp/ldraw/tongue_rescope.py). Below the arc the only surface it can sample
+  is the arc itself, which the user chose. So every achievable value of this
+  row measured a deliberate departure. Like the upper-side-wall row below, it
+  was noise wearing a metric's clothes.
 
-  So the reference-faithful rounds cost NOTHING, and the entire 9.8-point
-  drop is the one band the user asked to deviate. That is the whole
-  justification for lowering this floor, and it is a measurement rather than
-  an argument.
+  Rescoping was tried before retiring, in both axes, and both were rejected
+  by measurement rather than by argument:
+    - in X, narrowing to |X| < 26.0 to exclude the side wall scored 64.9%,
+      i.e. worse (recorded at round 55g);
+    - in Z, lifting above the arc to 3.600..6.600 / 3.600..9.000 /
+      3.600..12.000 returns InconclusiveRegion -- our part is not there.
 
-  Rescoping was tried first and rejected: narrowing the region to |X| < 26.0
-  to exclude the side wall scores 64.9%, i.e. worse, so the row cannot keep
-  its floor by looking somewhere else. The outer rib band (26.000..28.000)
-  overlaps the side wall, so there is no clean cut between "ribs" and "side
-  wall" here anyway.
+  Coverage was replaced, not dropped: this component is now the LATCH end's
+  arc, which IS reference-faithful, scores 100.0%, and carries a floor with a
+  demonstrated failing case. What guards the tongue end instead is geometry
+  assertion, which is far tighter than a 0.2 mm surface tolerance --
+  test_the_tongue_end_is_rounded_all_the_way_across sweeps all 141 X stations
+  and fails on a single square one, with the latch end's own square middle as
+  its positive control.
+
+  If the tongue end is ever brought back onto the reference's own figures, a
+  scored row here becomes meaningful again and should be restored.
   """
 
   [[component.accepted_deviation]]
@@ -323,7 +354,10 @@ and overall height 33.800 (== the design doc's own measured figure).
   face above WALL_INNER_STEP_Z moved with the socket floor, so
   PoweredUpHubBatteryTray's upper band moved 26.400 -> 26.050 to match. The
   tray's own tests would not have caught the interference; the cross-part
-  seating check did.
+  seating check did. That coupling is GONE as of round 57 -- the tray's upper
+  band was removed outright (it was a wall standing on a hairline ledge, with
+  no material under its inboard half), so the tray now stops at Housing's step
+  instead of tracking its inner face above it.
   """
 
   [[component.accepted_deviation]]

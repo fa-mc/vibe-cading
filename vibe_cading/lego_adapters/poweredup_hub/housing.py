@@ -619,24 +619,29 @@ class PoweredUpHubHousing:
     # absolute values because the tongue end's centre band straddles X = 0
     # and does not mirror.
     #
-    # ROUND 55g -- a deliberate deviation at ONE band. The user asked for
-    # "the tongue side wall should have the curve all the way", so the tongue
-    # end's SIDE-WALL bands (|X| 26.000..28.000) get the FULL arc, tangent to
-    # Z = 0, matching the latch end -- instead of the reference's truncated
-    # one, which starts 0.274 mm up and so reads as a shallower curve beside
-    # its own neighbour. The tongue end's rib bands keep the reference's
-    # truncated arc; they are interior features, and nothing about them
-    # reads as an unfinished edge.
+    # ROUND 56 -- the tongue end is ONE CONTINUOUS ARC, a deliberate whole-end
+    # deviation from the reference. Round 55g read "the tongue side wall should
+    # have the curve all the way" as "give the outer rib bands the full-depth
+    # arc" and kept the reference's band structure; that left 47.200 mm of
+    # square bottom edge in the four gaps between bands
+    # (tmp/ldraw/tongue_bottom_scan.py), which is what the user was still
+    # seeing. "All the way" is about EXTENT along X, not about arc depth: the
+    # tongue end now carries a single band spanning the full wall, at the same
+    # full-depth arc as the latch end.
+    #
+    # The truncated arc (BOTTOM_ROUND_CZ_TRUNCATED) is consequently unused by
+    # the built part. It is kept as the recorded reference measurement, which
+    # test_bottom_end_round_follows_the_reference_arc still checks against.
+    #
+    # The latch end is UNCHANGED and stays segmented -- the user asked for its
+    # middle to remain square ("only the outer segments have the curve"), and
+    # the reference agrees, with square vertices at X = +-5.600.
     BOTTOM_ROUND_X_LATCH = (
         (-28.000, -19.200, BOTTOM_ROUND_CZ_FULL),
         (19.200, 28.000, BOTTOM_ROUND_CZ_FULL),
     )
     BOTTOM_ROUND_X_TONGUE = (
-        (-28.000, -26.000, BOTTOM_ROUND_CZ_FULL),      # side wall, round 55g
-        (-17.200, -15.600, BOTTOM_ROUND_CZ_TRUNCATED),
-        (-0.800, 0.800, BOTTOM_ROUND_CZ_TRUNCATED),
-        (15.600, 17.200, BOTTOM_ROUND_CZ_TRUNCATED),
-        (26.000, 28.000, BOTTOM_ROUND_CZ_FULL),        # side wall, round 55g
+        (-28.000, 28.000, BOTTOM_ROUND_CZ_FULL),       # round 56, full span
     )
 
     # --- Side windows (SS7.2, round 20 H3, round 21 RH3, round 41) ---

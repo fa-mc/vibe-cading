@@ -1,0 +1,33 @@
+<?xml version="1.0" encoding="UTF-8" standalone="no"?>
+<svg viewBox="190.0 10.0 236.4 320.0"
+   xmlns:svg="http://www.w3.org/2000/svg"
+   xmlns="http://www.w3.org/2000/svg"
+   width="236"
+   height="320"
+
+>
+    <g transform="scale(7.099970268936747, -7.099970268936747)   translate(43.83154724528859,-23.69881326142725)" stroke-width="0.25"  fill="none">
+       <!-- hidden lines -->
+       <g  stroke="rgb(160,160,160)" fill="none" stroke-dasharray="0.25,0.25" >
+			<path d="M14.814,3.776 L13.965,3.286 " />
+			<path d="M-15.662,20.392 L13.965,3.286 " />
+			<path d="M13.965,3.286 L13.965,-21.372 " />
+
+       </g>
+
+       <!-- solid lines -->
+       <g  stroke="rgb(0,0,0)" fill="none">
+			<path d="M14.814,-20.882 L13.965,-21.372 " />
+			<path d="M-14.814,-3.776 L-15.662,-4.266 " />
+			<path d="M14.814,-20.882 L-14.814,-3.776 " />
+			<path d="M13.965,-21.372 L-15.662,-4.266 " />
+			<path d="M-14.814,20.882 L-15.662,20.392 " />
+			<path d="M-14.814,-3.776 L-14.814,20.882 " />
+			<path d="M-15.662,-4.266 L-15.662,20.392 " />
+			<path d="M-14.814,20.882 L14.814,3.776 " />
+			<path d="M14.814,3.776 L14.814,-20.882 " />
+
+       </g>
+    </g>
+    
+</svg>

@@ -264,6 +264,30 @@ model = "vibe_cading.lego_adapters.poweredup_hub.housing.PoweredUpHubHousing"
 view  = "top"
 [contract.params]
 
+# PoweredUpHubBatteryTray + its glued strap cap, added in the same
+# implementation sequence. The tray's front view is registered as well as its
+# iso: round 57 removed an upper wall band that was standing on a hairline
+# ledge, and a wall-height/section change is exactly the class of edit a
+# front elevation catches and an iso can hide.
+
+[[contract]]
+svg   = "visual_contracts/2026-08-19-poweredup-hub-battery-box_design_tray_iso_ne.svg"
+model = "vibe_cading.lego_adapters.poweredup_hub.battery_tray.PoweredUpHubBatteryTray"
+view  = "iso_ne"
+[contract.params]
+
+[[contract]]
+svg   = "visual_contracts/2026-08-19-poweredup-hub-battery-box_design_tray_front.svg"
+model = "vibe_cading.lego_adapters.poweredup_hub.battery_tray.PoweredUpHubBatteryTray"
+view  = "front"
+[contract.params]
+
+[[contract]]
+svg   = "visual_contracts/2026-08-19-poweredup-hub-battery-box_design_strap_cap_iso_ne.svg"
+model = "vibe_cading.lego_adapters.poweredup_hub.battery_tray_cap.PoweredUpHubBatteryTrayCap"
+view  = "iso_ne"
+[contract.params]
+
 # ── HexHubWithBearing (fused RC 12mm hex hub + MR85 bearing housing) ──────────
 # Design brief: docs/design_plans/2026-08-25-rc-hex-hub-bearing_design.md
 # Human design gate approved 2026-08-25 (Round 3 — wrapper class renamed

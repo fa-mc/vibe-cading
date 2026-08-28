@@ -1554,6 +1554,13 @@ that is safe in one direction (below the step) is not safe in the other
 (above it), and "add a bit of overlap for seam safety" is not a
 direction-agnostic default.
 
+> **Superseded by R57.** The two-band wall and its bridge slab no longer
+> exist. The bridge made the part *connected*, which is what the single-solid
+> assert measures, but it never made the upper band *supported*: two
+> X-disjoint slabs joined at a hairline ledge is a wall standing on nothing
+> over its inboard half. The user saw it directly — "this creates a floating
+> region" — and directed that the narrow part be removed. See R57 below.
+
 **Deliberately not asserted: the pack fits.** Inserting the Tray's floor
 (standoff `2.700 mm` + thickness `1.500 mm`, sized for the `2.000 mm` target
 strap) between the Cover and the pack consumes headroom the current housing
@@ -2345,3 +2352,108 @@ tolerance, with the same reasoning the Cover's own datum test already carried:
 an exact compare on a boolean's bounding box tests the kernel's rounding, not
 the datum, and 1e-9 still catches a real datum error by six orders of
 magnitude.
+
+### R55g → R56 — "All the way" meant extent, not depth
+
+User direction after R55f: *"for the curve, the tongue side wall should have
+the curve all the way."* R55g read that as arc **depth** and gave the tongue
+end's two outer rib bands (`|X| 26.000..28.000`) the full-depth arc, tangent
+to `Z = 0`, while keeping the reference's segmented band structure. The user's
+next message was *"Did you fix the curve on the tongue side wall? I'm still
+seeing squares."*
+
+They were right, and the amount was not marginal. Sweeping the tongue end's
+outer face at the bed (`tmp/ldraw/tongue_bottom_scan.py`) found **47.200 mm**
+of bottom edge still running square, in the four gaps between the rounded
+bands:
+
+| X band | state |
+|---|---|
+| `-28.000 .. -26.400` | round |
+| `-26.000 .. -17.200` | **SQUARE** |
+| `-16.800 .. -16.000` | round |
+| `-15.600 .. -0.800` | **SQUARE** |
+| `-0.400 .. +0.400` | round |
+| `+0.800 .. +15.600` | **SQUARE** |
+| `+16.000 .. +16.800` | round |
+| `+17.200 .. +26.000` | **SQUARE** |
+| `+26.400 .. +28.000` | round |
+
+`BOTTOM_ROUND_X_TONGUE` is now a single band spanning `-28.000..+28.000` at
+`BOTTOM_ROUND_CZ_FULL`. The latch end is untouched: its middle stays square,
+by user direction and in agreement with the reference's own square vertices at
+`X = ±5.600`.
+
+**The probe lied twice before it was worth trusting**, and both failures are
+the ones `vibe/INSTRUCTIONS.md` names. First it reported `hit == False` as
+"rounded", so a region with *no wall at all* was indistinguishable from a
+rounded one — fixed by sampling a second point above the arc's reach, which
+separates *rounded* from *absent*. Then, with that fixed, the latch end read
+as uniformly ABSENT: the probe stepped inboard by a fixed `−Y` offset, which
+at the `−Y` end put it **outside** the part. Only after the sign fix did the
+latch end report its known-square middle, and that is the positive control
+that makes the tongue-end reading mean anything.
+
+**The test changed shape, not just its expected value.** The old
+`test_bottom_end_round_follows_the_reference_arc` sampled three hand-picked
+stations — all of which sat on bands R55g had rounded, which is exactly why it
+stayed green through a defect the user could see across half the wall. The
+replacement sweeps all 141 X stations at `0.4 mm` and fails on a single square
+one. Per *Verification Samples Must Be Chosen By The Data*: the stations were
+picked by the agent, and the bias was invisible in the result.
+
+**Contract fallout.** `poweredup-hub-housing-tongue-end` fell to `47.4%`
+against a floor already lowered twice (`78.0 → 68.0`). It was retired rather
+than lowered a third time — the ratchet. Questioning the premise: that row's
+region (`Y 32.000..33.400`) was drawn around the *reference's* tongue-end wall
+face; ours is at `35.600` by a separately declared deviation, so above the arc
+our part has no surface there at all (`InconclusiveRegion`, verified) and
+below it the only sampled surface is the arc the user chose. Rescoping was
+tried in both axes and rejected by measurement
+(`tmp/ldraw/tongue_rescope.py`). Coverage moved to
+`poweredup-hub-housing-latch-end-arc` — the arc we did **not** deviate —
+which scores `100.0%` with a `99.0%` floor and a demonstrated failing case
+(`96.7%` when the rounded span is shrunk to `|X| 24.000`).
+
+### R57 — The tray's upper wall band was connected, not supported
+
+User direction: *"There is some issue with the tray. The wall becomes narrower
+due to the housing gets narrower on top, this creates a floating region. For
+the tray we can just remove the narrower part."*
+
+This is the two-band wall from R51 (see *A genuine construction bug* above),
+and the interesting part is that R51's fix was real and still insufficient.
+The bands are X-disjoint — lower `[26.400, 27.200]`, upper `[25.250, 25.900]`
+— because the tray was tracking Housing's cavity inboard above its step. R51
+noticed they were four solids, added a bridge slab at the seam, and got one
+solid. That fixed **connectivity**. It did nothing about **support**: the
+upper band is a `0.650 mm` wall standing on a `0.500 mm` ledge with open air
+under its inboard half, which is what the user saw.
+
+`test_single_solid` passed for six rounds across this defect, and it was never
+wrong — connectivity and printability are different properties, and only the
+first one was being checked. The new
+`test_no_wall_material_floats_above_a_void` checks the second directly: it
+walks columns of the part and requires each to be vertically contiguous **and**
+to start at the bed, sampled on a `Y` line clear of the strap channel, the cap
+rebate and the extraction tabs.
+
+Its positive control needed two attempts, and the first failure was
+instructive rather than incidental. Rebuilding the defect as *wall + floating
+band* produced **one** run at the floating band's `X`, not two — because
+without the floor there was nothing below it, and a band floating over nothing
+is a single run exactly like a wall standing on the bed. That is a hole in the
+criterion, not just in the fixture: "how many runs" cannot distinguish
+supported from unsupported. The helper now returns run *positions*, and the
+test asserts both properties.
+
+The fix itself is the user's: one full-thickness band ending at `WALL_Z_HI`
+(the old `WALL_STEP_Z`, renamed because it is now the wall's top and not a
+step). `WALL_OUTER_X_UPPER_NOMINAL`, `WALL_INNER_X_UPPER`,
+`_wall_outer_x_upper` and `_wall_z_hi` are gone; the wall is now
+profile-independent. Consequence recorded rather than left to be
+rediscovered: the wall no longer reaches the pack's top (local `Z = 23.600`
+against a `20.000` wall), so above `WALL_Z_HI` the pack is confined by
+Housing's cavity rather than by this part. The `__init__` comment that used to
+observe the wall "stands 3.000 mm proud of the thing it cradles for no reason
+other than that is where the deck happens to be" is resolved by deletion.

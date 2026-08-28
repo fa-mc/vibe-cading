@@ -16,6 +16,26 @@ section to the new version and date.
 ## [Unreleased]
 
 ### Removed
+- **Breaking** — **`PoweredUpHubBatteryTray`'s upper wall band is gone**
+  (round 57, user direction: *"the wall becomes narrower due to the housing
+  gets narrower on top, this creates a floating region… for the tray we can
+  just remove the narrower part"*). The tray used to follow the housing's
+  cavity inboard above its step with a second, narrower band (outer face
+  `26.050 − clearance`, inner `25.250`) stacked on the main one. Those two
+  bands shared **no X range** — `25.250…25.900` sits entirely inboard of the
+  lower band's `26.400` inner face — so they were joined only by a hairline
+  horizontal ledge at the seam. That is legal as a solid, and
+  `test_single_solid` passed the whole time: connectivity and printability are
+  different properties and only the first was ever checked. On a printer it is
+  a `0.650 mm` wall standing on a `0.500 mm` ledge with nothing under its
+  inboard half. The wall is now one full-thickness band ending at the step.
+  Removed with it: `WALL_OUTER_X_UPPER_NOMINAL`, `WALL_INNER_X_UPPER`, and the
+  `_wall_outer_x_upper` / `_wall_z_hi` instance fields; `WALL_STEP_Z` is
+  renamed **`WALL_Z_HI`**, since it is the wall's top and no longer a step.
+  Consequence worth stating: the wall no longer reaches the pack's top (local
+  `Z = 23.600` against a `20.000` wall) — above `WALL_Z_HI` the pack is
+  confined by the housing's own cavity, not by the tray. The wall is also now
+  profile-independent.
 - **`PoweredUpHubHousing`'s arm face-dishing is deleted** (user direction) —
   `_dish_arm_faces` cut the real liftarm's recessed pockets into both faces of
   each arm, leaving a `2.756 mm` web. It matched the reference, and it is the
@@ -54,6 +74,40 @@ section to the new version and date.
   deleted tray's bottom rim, so it now registers nothing.
 
 ### Changed
+- **`PoweredUpHubHousing`'s tongue end is rounded all the way across**
+  (round 56, user direction). Round 55g read *"the tongue side wall should
+  have the curve all the way"* as arc **depth** and gave the two outer rib
+  bands the full-depth arc while keeping the reference's segmented band
+  structure. The user's follow-up — *"I'm still seeing squares"* — was
+  correct: that left **`47.200 mm` of the tongue end's bottom edge running
+  square to the bed** in the four gaps between bands
+  (`tmp/ldraw/tongue_bottom_scan.py`). *"All the way"* is about **extent
+  along X**. `BOTTOM_ROUND_X_TONGUE` is now a single band spanning the full
+  wall at `BOTTOM_ROUND_CZ_FULL`; `BOTTOM_ROUND_CZ_TRUNCATED` is retained as
+  the recorded reference measurement but is no longer used by the built part.
+  The **latch end is unchanged** and stays segmented — its middle is square by
+  user direction and in the reference (square vertices at `X = ±5.600`).
+  `test_the_tongue_end_is_rounded_all_the_way_across` replaces the old
+  three-station probe with a sweep over all 141 X stations, because the
+  defect was invisible to a hand-picked sample: all three stations sat on
+  bands that *had* been rounded, and the gaps between them were what the user
+  could see. The latch end's own square middle is its positive control.
+- **`reference_contracts.toml`: the `poweredup-hub-housing-tongue-end` row is
+  retired and replaced by `poweredup-hub-housing-latch-end-arc`.** After round
+  56 the tongue-end row scored `47.4%` against a `68.0%` floor that had
+  already been lowered twice (`78.0 → 68.0`). It was **not** lowered a third
+  time — that is the ratchet `vibe/INSTRUCTIONS.md` names explicitly. The
+  premise, questioned: the row's region (`Y 32.000…33.400`) was drawn around
+  the *reference's* tongue-end wall face, and ours is at `35.600` by a
+  separately declared deviation — so above the arc our part has no surface in
+  that region at all (the checker returns `InconclusiveRegion`), and below it
+  the only surface sampled is the arc the user chose. Every achievable value
+  measured a deliberate departure. Rescoping was tried in both axes and
+  rejected by measurement (`tmp/ldraw/tongue_rescope.py`). Coverage is
+  replaced rather than dropped: the new row scores the **latch** end's arc,
+  which *is* reference-faithful at `100.0%`, with a `99.0%` floor and a
+  demonstrated failing case (shrinking the rounded span to `|X| 24.000` scores
+  `96.7%`) — a floor from a check that cannot fail would be decoration.
 - **`PoweredUpHubHousing` gives the Cover's plate edge a running clearance**
   (round 48). `PoweredUpHubCover.PLATE_WIDTH/2` and this class's own
   `WALL_X_OUTER_LOWER − WALL_THICKNESS` are both `27.200 mm` — both
@@ -81,6 +135,12 @@ section to the new version and date.
   the shipped `fdm_standard` and the local `bambu_p1s` profile.
 
 ### Added
+- Visual contracts for `PoweredUpHubBatteryTray` (`iso_ne`, `front`) and
+  `PoweredUpHubBatteryTrayCap` (`iso_ne`), registered in
+  `visual_contracts.toml`. Both classes are new in this cycle and shipped
+  without one. The tray's `front` elevation is registered as well as its iso
+  because a wall-height / section change — exactly what round 57 made — is the
+  class of edit a front view catches and an iso can hide.
 - **`PoweredUpHubBatteryTray` is one piece again, and the strap now runs
   in a channel cut INTO its floor** (round 55, user direction + marked-up
   sketch). Round 54's split of the whole floor into a separately-printed

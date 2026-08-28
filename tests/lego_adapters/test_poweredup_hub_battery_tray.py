@@ -263,12 +263,11 @@ def test_open_at_both_ends():
 def test_side_walls_span_the_open_length_and_carry_the_tab():
     """Each side wall reaches the tray's full (open-ended) Y span, per
     :attr:`PoweredUpHubBatteryTray.WALL_Y_LO`/``WALL_Y_HI`` -- checked at a
-    Z low enough to be in the wall's own lower band (below the tab and
-    below the wall's own upward step), away from either.
+    Z below the extraction tab, away from either.
     """
     T = PoweredUpHubBatteryTray
     tray = PoweredUpHubBatteryTray().solid
-    z = T.WALL_STEP_Z / 2.0
+    z = T.WALL_Z_HI / 2.0
     for x_sign in (1, -1):
         slab = cq.Workplane("XY").box(0.4, 0.4, 0.4).translate(
             (x_sign * (T.WALL_OUTER_X - 0.4), T.WALL_Y_LO + 0.5, z)
@@ -406,3 +405,109 @@ def test_default_preserving_profile_kwarg():
     a = PoweredUpHubBatteryTray(profile=prof)
     b = PoweredUpHubBatteryTray(profile="fdm_standard")
     assert abs(a.solid.val().Volume() - b.solid.val().Volume()) < 1e-9
+
+
+def _z_runs(shape, x, y, z_hi, step=0.1):
+    """Vertically separated runs of material on the line (x, y), as a list
+    of ``(z_first_hit, z_last_hit)``.
+
+    Returns positions, not just a count, because "how many runs" alone
+    does not distinguish a supported column from one that starts in
+    mid-air: a band floating over nothing is a single run, same as a wall
+    standing on the bed. The caller needs the first run's START to tell
+    them apart.
+    """
+    runs = []
+    z = step / 2.0
+    while z < z_hi:
+        if shape.isInside(cq.Vector(x, y, z), tolerance=1e-9):
+            if runs and abs(runs[-1][1] - (z - step)) < step / 2.0:
+                runs[-1][1] = z
+            else:
+                runs.append([z, z])
+        z += step
+    return [tuple(r) for r in runs]
+
+
+def test_no_wall_material_floats_above_a_void():
+    """Round 57. The wall must be vertically contiguous at every X -- no
+    band of material sitting above empty space with nothing under it.
+
+    This is the defect the user reported ("this creates a floating
+    region"). Until round 57 the wall followed Housing's cavity inboard
+    with a second, narrower band whose X span (25.250..25.900) was
+    DISJOINT from the lower band's (26.400..27.200); the two touched only
+    at a hairline ledge. The part was still ONE SOLID, so
+    ``test_single_solid`` passed throughout -- connectivity and
+    printability are different properties, and only the first was checked.
+
+    Sampled on a Y line clear of the strap channel (|Y| <= 10.250), the
+    cap rebate (|Y| <= 15.250) and the extraction tabs (|Y| <= 12.000), so
+    a second run means an unsupported wall band and not one of those
+    features.
+    """
+    T = PoweredUpHubBatteryTray
+    tray = PoweredUpHubBatteryTray().solid.val()
+    y = T.WALL_Y_LO + 2.0
+    z_hi = T.WALL_Z_HI + 8.0          # well past the removed band's top
+
+    floating, midair = [], []
+    for i in range(35):
+        x = 24.0 + i * 0.1
+        for x_sign in (1, -1):
+            runs = _z_runs(tray, x_sign * x, y, z_hi)
+            if not runs:
+                continue
+            if len(runs) > 1:
+                floating.append((round(x_sign * x, 3), runs))
+            if runs[0][0] > 0.2:
+                midair.append((round(x_sign * x, 3), runs[0][0]))
+
+    assert not floating, (
+        f"material sits above a void at (X, runs)={floating} -- a wall band "
+        "is unsupported from below"
+    )
+    assert not midair, (
+        f"a column starts in mid-air at (X, Z)={midair} -- nothing reaches "
+        "the bed under it"
+    )
+
+
+def test_the_floating_region_check_can_actually_see_one():
+    """Positive control for :func:`test_no_wall_material_floats_above_a_void`.
+
+    That test passes when it finds nothing, so on its own it is also
+    passed by a broken probe. Here the round-55 defect is rebuilt
+    deliberately -- floor, wall slab, and the narrower band floating above
+    the floor with the wall's inner face outboard of it -- and the helper
+    must see the break. If this fails, the other test proves nothing.
+    """
+    T = PoweredUpHubBatteryTray
+    floor = rounded_box(
+        width=2 * T.WALL_INNER_X, depth=10.0, height=T.FLOOR_THICKNESS,
+        corner_r=0.0, center=(0.0, 0.0, 0.0),
+    )
+    wall = rounded_box(
+        width=T.WALL_THICKNESS, depth=10.0, height=T.WALL_Z_HI, corner_r=0.0,
+        center=(T.WALL_OUTER_X - T.WALL_THICKNESS / 2.0, 0.0, 0.0),
+    )
+    band = rounded_box(                           # round 55's upper band
+        width=0.650, depth=10.0, height=6.0, corner_r=0.0,
+        center=(25.575, 0.0, T.WALL_Z_HI),
+    )
+    defect = floor.union(wall).union(band).val()
+    z_hi = T.WALL_Z_HI + 8.0
+
+    broken = _z_runs(defect, 25.575, 0.0, z_hi)
+    assert len(broken) == 2, (
+        f"the helper sees {len(broken)} run(s) where the defect has two -- "
+        "it cannot see a floating band built on purpose, so it is not a check"
+    )
+    whole = _z_runs(defect, 26.8, 0.0, z_hi)
+    assert len(whole) == 1 and whole[0][0] < 0.1 and (
+        abs(whole[0][1] - T.WALL_Z_HI) < 0.1
+    ), (
+        f"the helper reports {whole} for the supported wall, not one run "
+        "from the bed to its top -- it cannot distinguish supported from "
+        "floating"
+    )
