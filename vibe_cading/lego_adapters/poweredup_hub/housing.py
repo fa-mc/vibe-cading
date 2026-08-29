@@ -2072,14 +2072,31 @@ class PoweredUpHubHousing:
         y_hi = self.TONGUE_INNER_Y_LOWER + overlap
         z_hi = PoweredUpHubCover.RISER_Z_HI + clr + overlap
 
+        # Round 59 moved the Cover's slot walls: its blades narrow and its
+        # gaps widen by the lid's own fit clearance, so the slots are no
+        # longer AT the nominal reference walls this method's docstring was
+        # written against. Pulling back from the nominal would therefore
+        # clear the real slot by clr + cover_fit -- the ribs would still fit,
+        # but they would locate the lid to twice the intended slop, silently,
+        # because nothing here would collide. Track the lid's actual walls
+        # instead, so the interleave stays the ONE designed clearance.
+        cover_fit = PoweredUpHubCover.fit_clearance(self._profile)
+
         # (x_lo, x_hi) after clearance, one entry per rib, both signs.
+        # The centre band is a GAP in the lid, so its walls move outward by
+        # the lid's fit; the rib may grow with them.
         bands: list[tuple[float, float]] = [
-            (-self.TONGUE_RIB_CENTRE_X_HALF + clr, self.TONGUE_RIB_CENTRE_X_HALF - clr)
+            (-self.TONGUE_RIB_CENTRE_X_HALF - cover_fit + clr,
+             self.TONGUE_RIB_CENTRE_X_HALF + cover_fit - clr)
         ]
         for nom_lo, nom_hi in self.TONGUE_RIB_X_BANDS:
-            lo = nom_lo + clr
+            # These bands are gaps BETWEEN blades: the blade edge at nom_lo
+            # retreats to nom_lo - cover_fit and the one at nom_hi advances
+            # to nom_hi + cover_fit, so both walls move outward.
+            lo = (nom_lo - cover_fit) + clr
             # Only the shell's own outer face has nothing to clear.
-            hi = nom_hi if nom_hi >= self.WALL_X_OUTER_LOWER else nom_hi - clr
+            hi = (nom_hi if nom_hi >= self.WALL_X_OUTER_LOWER
+                  else (nom_hi + cover_fit) - clr)
             for sign in (-1.0, 1.0):
                 bands.append(tuple(sorted((sign * lo, sign * hi))))
 

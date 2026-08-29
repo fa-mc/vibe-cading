@@ -211,7 +211,10 @@ def test_tongue_is_segmented_into_the_reference_four_blades():
     fit = get_profile().free.radial
     inner = PoweredUpHubCover.TONGUE_GAP_X_INNER + fit
     x_half = PoweredUpHubCover.TONGUE_X_HALF - fit
-    rib = PoweredUpHubCover.TONGUE_RIB_X_HI
+    # Both walls of the rib gap move outward, not just the inner one: a
+    # version that widened only the TONGUE_X_HALF side left the housing's
+    # locating rib butting this face at zero clearance.
+    rib = PoweredUpHubCover.TONGUE_RIB_X_HI + fit
     riser_half = PoweredUpHubCover.RISER_X_HALF - fit
 
     # Riser: all four blades (Tongue A inner pair + Tongue B outer pair).

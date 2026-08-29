@@ -589,7 +589,13 @@ def test_tongue_ribs_interleave_with_the_cover_tongue_slots():
     # reads the plate itself -- half-width PLATE_WIDTH/2 = 27.200. An
     # earlier version sampled Y 10..12 and expected 28.000, which was not
     # the plate at all but the tab pad standing proud of it.
-    half = PoweredUpHubCover.PLATE_WIDTH / 2.0
+    # Round 59: the printed plate is one running clearance per side narrower
+    # than the reference's PLATE_WIDTH, so the control derives from what the
+    # Cover actually builds rather than from the reference constant. Hard-
+    # coding PLATE_WIDTH/2 here made this control fail the moment the cover
+    # gained its clearance -- correctly, since it was asserting a width the
+    # part no longer has.
+    half = PoweredUpHubCover.PLATE_WIDTH / 2.0 - clr
     control = _x_bands(cover, 14.0, 16.0, 0.2, 1.0)
     assert control == [(-half, half)], (
         f"probe is mis-built -- the Cover's own full-width plate read as {control}"
@@ -616,12 +622,21 @@ def test_tongue_ribs_interleave_with_the_cover_tongue_slots():
     # shell face. Width is asserted, not just presence: round 48's first
     # plate-edge relief cut a slot straight through this band and left a
     # 0.050 mm sliver of it, which a presence-only check would have passed.
+    # Round 59: the lid's outer blade retreated by its own fit clearance, so
+    # the rib correctly starts one running clearance outboard of where the
+    # blade now ends -- not of the nominal 26.000. Derived from the lid's
+    # actual edge so this keeps asserting the DESIGNED interleave rather than
+    # a stale literal; it still fails if the band is cut into.
+    cover_fit = PoweredUpHubCover.fit_clearance(get_profile("fdm_standard"))
+    blade_edge = PoweredUpHubCover.RISER_X_HALF - cover_fit
+    expected_w = hcls.WALL_X_OUTER_LOWER - blade_edge - clr
     outer = [r for r in ribs if max(abs(r[0]), abs(r[1])) > 27.0]
     assert len(outer) == 2, f"expected the two shell-side lumps, got {outer}"
     for lo, hi in outer:
-        assert abs((hi - lo) - (hcls.WALL_X_OUTER_LOWER - 26.0 - clr)) < 0.05, (
+        assert abs((hi - lo) - expected_w) < 0.05, (
             f"shell-side lump {(lo, hi)} is {hi - lo:.3f} mm wide -- expected "
-            f"the outer rib fused to the wall, so something has cut into it"
+            f"{expected_w:.3f}, the outer rib fused to the wall, so something "
+            "has cut into it"
         )
 
     for (slot_lo, slot_hi), (rib_lo, rib_hi) in zip(slots, sorted(inner_ribs)):
@@ -705,6 +720,21 @@ class _NoPlateEdgeRelief(PoweredUpHubHousing):
         )
 
 
+class _ZeroClearanceCover(PoweredUpHubCover):
+    """The lid as it was before round 59 -- mating faces on the nominal.
+
+    Its sibling above neutralises the HOUSING's relief; this neutralises the
+    LID's own running clearance. Since round 59 both would have to be absent
+    for the plate edge to bind, so the falsifier needs both -- with only one
+    removed the pair is still clear, and the test would pass while proving
+    nothing.
+    """
+
+    @classmethod
+    def fit_clearance(cls, profile) -> float:
+        return 0.0
+
+
 def test_plate_edge_has_running_clearance_against_the_side_walls():
     """Round 48. ``PLATE_WIDTH/2`` and
     ``WALL_X_OUTER_LOWER - WALL_THICKNESS`` are both 27.200 mm, so before
@@ -721,8 +751,8 @@ def test_plate_edge_has_running_clearance_against_the_side_walls():
     fixed = PoweredUpHubHousing(profile="fdm_standard").solid
     before = _NoPlateEdgeRelief(profile="fdm_standard").solid
 
-    def bind(housing, dx):
-        moved = cover.translate((dx, 0.0, 0.0))
+    def bind(housing, dx, lid=None):
+        moved = (lid if lid is not None else cover).translate((dx, 0.0, 0.0))
         try:
             return sum(s.Volume() for s in housing.intersect(moved).solids().vals())
         except Exception:
@@ -731,9 +761,18 @@ def test_plate_edge_has_running_clearance_against_the_side_walls():
     # Both seat cleanly -- which is exactly why this needed a motion test.
     assert bind(before, 0.0) == 0.0 and bind(fixed, 0.0) == 0.0
 
-    # The falsifier: without the relief, half the clearance already binds.
-    assert bind(before, clr / 2.0) > 0.0, (
-        "the relief-free baseline shows no interference at half the "
+    # The falsifier needs BOTH clearances removed as of round 59. The lid now
+    # carries its own running clearance, so a relief-free housing alone no
+    # longer binds -- the pair is clear because the COVER got narrower, not
+    # because the housing was relieved. Stripping the housing's relief and the
+    # lid's clearance together restores the original zero-clearance pair and
+    # shows the probe can still detect a bind at all.
+    #
+    # This is also the standing evidence that the housing's round-48 relief is
+    # now REDUNDANT: it is no longer what keeps the plate edge free.
+    old_lid = _ZeroClearanceCover(profile="fdm_standard").solid
+    assert bind(before, clr / 2.0, lid=old_lid) > 0.0, (
+        "the zero-clearance pair shows no interference at half the "
         "clearance -- this test can no longer detect the bug it guards"
     )
 

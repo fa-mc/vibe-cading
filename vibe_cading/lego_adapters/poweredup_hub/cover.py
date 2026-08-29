@@ -468,9 +468,23 @@ class PoweredUpHubCover:
         #
         # Male faces shrink, female gaps grow -- the sign differs per feature,
         # which is why this cannot be a single scale factor.
-        self._fit = prof.free.radial
+        self._fit = self.fit_clearance(prof)
         self._plate_width = self.PLATE_WIDTH - 2 * self._fit
-        self._plate_y_lo = self.PLATE_Y_LO + self._fit
+        # NOT clearance-adjusted, and the exception is load-bearing. Moving
+        # this edge inboard is coupled to the latch: the U's finger inner face
+        # sits at -30.750 and must reach INBOARD PAST the plate edge to fuse
+        # with it (0.050 mm of overlap at the reference -30.800). A round-59
+        # version applied the clearance here and opened a 0.100 mm GAP
+        # instead -- the lid survived only because the latch band happens to
+        # bridge it, and the assertion below was written with its inequality
+        # reversed, so it certified the broken state instead of catching it.
+        #
+        # The latch end's own length clearance therefore has to come from
+        # translating the whole latch assembly, not from retreating the plate
+        # edge out from under it. Deferred to the physical re-datum, which
+        # moves these constants anyway; see
+        # docs/design_plans/2026-08-28-poweredup-hub_physical-measurements.md.
+        self._plate_y_lo = self.PLATE_Y_LO
         self._tongue_step_y = self.TONGUE_STEP_Y - self._fit
         self._tongue_y_hi = self.TONGUE_Y_HI - self._fit
         self._tongue_x_half = self.TONGUE_X_HALF - self._fit
@@ -479,19 +493,43 @@ class PoweredUpHubCover:
         # The centre gap and the rib gaps are VOIDS the housing's ribs stand
         # in, so they open outward by the clearance instead of closing.
         self._tongue_gap_x_inner = self.TONGUE_GAP_X_INNER + self._fit
+        # Both walls of the rib gap must move, not just the inner one. A
+        # first version widened only the TONGUE_X_HALF side and left this at
+        # nominal, so the gap grew asymmetrically -- and the housing rib that
+        # enters it, sized from the lid's own walls, then butted this face at
+        # zero clearance. Caught by the kinematic sideways-travel test, not by
+        # any seated check: touching faces measure 0.000 mm^3.
+        self._tongue_rib_x_hi = self.TONGUE_RIB_X_HI + self._fit
 
         # The U's finger must still OVERLAP the plate edge rather than touch
         # it (see the U geometry constraints above); moving PLATE_Y_LO inboard
         # eats into that overlap, so it is checked rather than assumed.
+        # OVERLAP means the finger reaches inboard PAST the plate edge, i.e.
+        # finger_inner is at a GREATER Y than the edge. The first version of
+        # this compared the other way round, which is satisfied precisely by
+        # the gap it was meant to forbid.
         finger_inner = self.U_FINGER_CL_Y + self.U_WALL / 2.0
-        assert finger_inner < self._plate_y_lo - 1e-9, (
-            f"the latch finger's inner face ({finger_inner:.3f}) no longer "
-            f"overlaps the clearance-adjusted plate edge "
-            f"({self._plate_y_lo:.3f}) -- the U would come off as a separate "
-            "solid, or fuse on a coincident face"
+        assert finger_inner > self._plate_y_lo + 1e-9, (
+            f"the latch finger's inner face ({finger_inner:.3f}) does not "
+            f"reach inboard past the plate edge ({self._plate_y_lo:.3f}) -- "
+            f"they meet on a coincident face or leave a "
+            f"{self._plate_y_lo - finger_inner:.3f} mm gap, so the U is not "
+            "fused to the plate"
         )
 
         self._solid = self._build()
+
+    @classmethod
+    def fit_clearance(cls, profile: ToleranceProfile) -> float:
+        """Per-face running clearance taken off the lid's mating surfaces.
+
+        A seam, not decoration: a subclass returning ``0.0`` reproduces the
+        pre-round-59 zero-clearance lid, which is what the plate-edge relief
+        test needs in order to *demonstrate* binding rather than assert it.
+        Without something to falsify against, that test can only claim the
+        pair is clear -- and a check that cannot fail is not a check.
+        """
+        return profile.free.radial
 
     def _hook_span(self, side: int) -> tuple[float, float]:
         """``(x_center, half_width)`` for the male latch features.
@@ -841,7 +879,8 @@ class PoweredUpHubCover:
         gap_y_hi = self._tongue_y_hi + oc
         gap_bands = [(-self._tongue_gap_x_inner, self._tongue_gap_x_inner)]
         for sign in (-1.0, 1.0):
-            lo, hi = sorted((sign * self._tongue_x_half, sign * self.TONGUE_RIB_X_HI))
+            lo, hi = sorted((sign * self._tongue_x_half,
+                             sign * self._tongue_rib_x_hi))
             gap_bands.append((lo, hi))
         for x_lo, x_hi in gap_bands:
             tongue = tongue.cut(
@@ -901,7 +940,16 @@ class PoweredUpHubCover:
             corner_r=0.0,
             center=(0.0, (self.TEETH_Y_LO + self.TEETH_Y_HI) / 2.0, self.PLATE_THICKNESS),
         )
-        for x_lo, x_hi in self.TOOTH_X_BANDS:
+        # Round 59: the teeth ride on the ledge, so they scale with it. The
+        # outermost band ends at the nominal LEDGE_X_HALF (15.600); left
+        # unscaled it stood proud of the clearance-adjusted ledge under it
+        # and butted the housing's locating rib, which had been sized from
+        # the lid's retreated walls. Interference was 0.0225 mm^3 at half the
+        # flank clearance -- invisible seated, and found only by the
+        # sideways-travel test.
+        k = self._ledge_x_half / self.LEDGE_X_HALF
+        for nom_lo, nom_hi in self.TOOTH_X_BANDS:
+            x_lo, x_hi = nom_lo * k, nom_hi * k
             for side in (+1, -1):
                 tooth = rounded_box(
                     width=x_hi - x_lo,

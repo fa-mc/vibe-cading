@@ -199,6 +199,16 @@ section to the new version and date.
   the shipped `fdm_standard` and the local `bambu_p1s` profile.
 
 ### Added
+- `PoweredUpHubCover.fit_clearance(profile)` — public classmethod returning the
+  per-face running clearance taken off the lid's mating surfaces. A seam, not
+  decoration: a subclass returning `0.0` reproduces the pre-round-59
+  zero-clearance lid, which is what
+  `test_plate_edge_has_running_clearance_against_the_side_walls` needs in order
+  to *demonstrate* binding rather than assert it — once the lid carried its own
+  clearance, a relief-free housing alone no longer bound, so the falsifier
+  required both clearances removed. `PoweredUpHubHousing._build_tongue_ribs`
+  also reads it, so the locating ribs track the lid's real slot walls instead
+  of the nominal reference ones. Appears in `engine_api.json`.
 - Visual contracts for `PoweredUpHubBatteryTray` (`iso_ne`, `front`) and
   `PoweredUpHubBatteryTrayCap` (`iso_ne`), registered in
   `visual_contracts.toml`. Both classes are new in this cycle and shipped
