@@ -39,8 +39,26 @@ REPO_ROOT = Path(__file__).resolve().parents[2]
 
 
 def test_shipped_manifest_parses_and_validates():
+    """The shipped manifest loads, and whatever it registers is well-formed.
+
+    As of 2026-08-28 it registers NOTHING: every row scored against LDraw,
+    and calipers on the real parts showed that reference is wrong about the
+    hardware, so a higher score against it meant a worse part. An empty
+    manifest is therefore a legitimate state here -- but only when it
+    carries a written reason, which is asserted below so that "nothing is
+    gated" can never be reached silently by a mis-edit.
+    """
     comps = load_manifest()
-    assert comps, "manifest registers no components"
+    if not comps:
+        reason = str(
+            tomllib.loads(MANIFEST.read_text())
+            .get("all_rows_retired_reason", "")
+        ).strip()
+        assert reason, (
+            "the manifest registers no components AND states no reason -- "
+            "that is indistinguishable from a truncated or mis-renamed file"
+        )
+        return
     for c in comps:
         assert len(c["region"]) == 6
         assert 0.0 <= float(c["min_agreement"]) <= 100.0
@@ -65,6 +83,29 @@ def test_deviation_without_a_reason_is_rejected(tmp_path):
     )
     with pytest.raises(ManifestError, match="why"):
         load_manifest(bad)
+
+
+def test_empty_manifest_without_a_reason_is_rejected(tmp_path):
+    """An empty manifest gates nothing, so reaching that state by accident
+    must be impossible.
+
+    A truncated file, or a table renamed one character wrong, both produce
+    "no components" -- identical to a deliberate retirement. The written
+    reason is what separates them, and this is the falsifier proving the
+    guard fires without one. Its sibling below shows the reason makes it
+    pass, so neither test is satisfiable alone.
+    """
+    bad = tmp_path / "empty.toml"
+    bad.write_text("# nothing registered, nothing explained\n")
+    with pytest.raises(ManifestError, match="no components"):
+        load_manifest(bad)
+
+
+def test_empty_manifest_with_a_written_reason_is_accepted(tmp_path):
+    ok = tmp_path / "retired.toml"
+    ok.write_text('all_rows_retired_reason = "the reference is wrong about '
+                  'the hardware; see the measurement record"\n')
+    assert load_manifest(ok) == []
 
 
 def test_malformed_region_is_rejected(tmp_path):

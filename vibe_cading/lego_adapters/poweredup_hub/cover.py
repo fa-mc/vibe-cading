@@ -415,7 +415,98 @@ class PoweredUpHubCover:
             prof = profile
         self._profile = prof
         self._latch = get_latch_geometry(prof)
+
+        # --- Lateral (X) running clearance on the male latch features
+        # (round 58, user report: "the U hook ... currently it gets stuck").
+        #
+        # The REFERENCE gives none. Measured off both reference meshes
+        # (tmp/ldraw/ref_latch_fit.py), 24853's hook and 25560's slot both
+        # span X 5.600..19.200 -- 13.600 against 13.600, zero clearance per
+        # side. That is not an oversight in the reference: LDraw models
+        # NOMINAL geometry, and a moulded LEGO part takes its working fit
+        # from mould tolerance and material. Printed on an FDM machine the
+        # same pair is a press fit.
+        #
+        # PoweredUpHubHousing already opens its channel by free.radial per
+        # side (round 40, which fixed a literal 0.000 mm case). Measured on
+        # the built parts, that gives a uniform 0.150 mm on all four gaps
+        # over the full leg height -- no taper, no local pinch
+        # (tmp/ldraw/latch_x_gap.py). So the bind is not a defect to repair;
+        # 0.150 mm per side is simply too tight for this feature in print.
+        # The housing is held reference-faithful by user direction, so the
+        # second half of the clearance comes off THIS part, taking the pair
+        # to 2 x free.radial per side.
+        self._hook_lateral_clearance = prof.free.radial
+        self._hook_width_printed = (
+            self._latch.hook_width - 2 * self._hook_lateral_clearance
+        )
+
+        # --- Whole-lid running clearance (round 59, user direction: "the
+        # cover width, length and the gaps on the tongue side all need
+        # clearance").
+        #
+        # Same root cause as the hook: the reference is a zero-clearance
+        # model throughout, so every face this lid slides past was built to
+        # the housing's own nominal figure. Measured on the built pair
+        # (tmp/ldraw/cover_fit_gaps.py) before changing anything:
+        #
+        #     width, X plate edge      0.150 per side  (housing's round-48 relief)
+        #     tongue blade, outboard   0.150
+        #     LENGTH, latch end        0.000
+        #     LENGTH, tongue step      0.000
+        #
+        # The two length figures are the interesting ones: the lid is exactly
+        # as long as the cavity, face to face, at BOTH ends. No amount of
+        # width clearance helps that.
+        #
+        # Applied here as derived build dimensions rather than by editing the
+        # constants, deliberately. PLATE_WIDTH, TONGUE_STEP_Y and the rest are
+        # REFERENCE MEASUREMENTS and are cited as such throughout this file and
+        # in reference_contracts.toml; rewriting them would destroy that
+        # provenance and leave no record of what the real part measures. The
+        # constants stay the reference; these are what we print.
+        #
+        # Male faces shrink, female gaps grow -- the sign differs per feature,
+        # which is why this cannot be a single scale factor.
+        self._fit = prof.free.radial
+        self._plate_width = self.PLATE_WIDTH - 2 * self._fit
+        self._plate_y_lo = self.PLATE_Y_LO + self._fit
+        self._tongue_step_y = self.TONGUE_STEP_Y - self._fit
+        self._tongue_y_hi = self.TONGUE_Y_HI - self._fit
+        self._tongue_x_half = self.TONGUE_X_HALF - self._fit
+        self._riser_x_half = self.RISER_X_HALF - self._fit
+        self._ledge_x_half = self.LEDGE_X_HALF - self._fit
+        # The centre gap and the rib gaps are VOIDS the housing's ribs stand
+        # in, so they open outward by the clearance instead of closing.
+        self._tongue_gap_x_inner = self.TONGUE_GAP_X_INNER + self._fit
+
+        # The U's finger must still OVERLAP the plate edge rather than touch
+        # it (see the U geometry constraints above); moving PLATE_Y_LO inboard
+        # eats into that overlap, so it is checked rather than assumed.
+        finger_inner = self.U_FINGER_CL_Y + self.U_WALL / 2.0
+        assert finger_inner < self._plate_y_lo - 1e-9, (
+            f"the latch finger's inner face ({finger_inner:.3f}) no longer "
+            f"overlaps the clearance-adjusted plate edge "
+            f"({self._plate_y_lo:.3f}) -- the U would come off as a separate "
+            "solid, or fuse on a coincident face"
+        )
+
         self._solid = self._build()
+
+    def _hook_span(self, side: int) -> tuple[float, float]:
+        """``(x_center, half_width)`` for the male latch features.
+
+        ``x_center`` stays on the **nominal** footprint centre while only
+        the half-width shrinks, so the clearance splits evenly between the
+        two channel walls. Deriving the centre from the narrowed width
+        instead would slide the whole hook inboard by the clearance and
+        park it hard against one wall -- same total width, none of the
+        clearance, and an asymmetry no seated interference check would
+        report (touching faces measure 0.000 mm^3).
+        """
+        lg: LatchGeometry = self._latch
+        x_center = side * (lg.hook_pitch / 2.0 + lg.hook_width / 2.0)
+        return x_center, self._hook_width_printed / 2.0
 
     def _build(self) -> cq.Workplane:
         part = self._build_plate()
@@ -481,7 +572,7 @@ class PoweredUpHubCover:
         c = self._profile.free.radial
         seam_overlap = 0.050
 
-        x_inner = self.PLATE_WIDTH / 2.0 - seam_overlap
+        x_inner = self._plate_width / 2.0 - seam_overlap
         x_outer = housing_wall_x_outer - c
         x_lo = min(x_sign * x_inner, x_sign * x_outer)
         x_hi = max(x_sign * x_inner, x_sign * x_outer)
@@ -495,17 +586,17 @@ class PoweredUpHubCover:
         )
 
     def _build_plate(self) -> cq.Workplane:
-        y_span = self.PLATE_Y_HI - self.PLATE_Y_LO
+        y_span = self.PLATE_Y_HI - self._plate_y_lo
         plate = rounded_box(
-            width=self.PLATE_WIDTH,
+            width=self._plate_width,
             depth=y_span,
             height=self.PLATE_THICKNESS,
             corner_r=0.0,  # sharp corners, measured (SS1.1)
-            center=(0.0, (self.PLATE_Y_LO + self.PLATE_Y_HI) / 2.0, 0.0),
+            center=(0.0, (self._plate_y_lo + self.PLATE_Y_HI) / 2.0, 0.0),
         )
         band_span = self.LATCH_BAND_Y_HI - self.LATCH_BAND_Y_LO
         band = rounded_box(
-            width=self.PLATE_WIDTH,
+            width=self._plate_width,
             depth=band_span,
             height=self.LATCH_BAND_THICKNESS - self.PLATE_THICKNESS,
             corner_r=0.0,
@@ -543,9 +634,22 @@ class PoweredUpHubCover:
         changes nothing; where the reference stands proud of it, this
         supplies the missing material.
         """
-        pts = [(side * x, y) for x, y in self.PAD_SCALLOP]
-        pts += [(side * self.PAD_SCALLOP[-1][0], self.PAD_INNER_Y),
-                (side * self.PAD_SCALLOP[0][0], self.PAD_INNER_Y)]
+        # The scallop's X values are the NOMINAL hook footprint
+        # (5.600..19.200). Scale them about the footprint's own centre by
+        # the printed/nominal ratio so the pad takes the same lateral
+        # clearance as the ribbon it sits on -- scaled rather than shifted,
+        # so the scallop keeps its shape instead of having its two end
+        # segments distorted.
+        lg: LatchGeometry = self._latch
+        nominal_c = lg.hook_pitch / 2.0 + lg.hook_width / 2.0
+        k = self._hook_width_printed / lg.hook_width
+
+        def sx(x: float) -> float:
+            return side * (nominal_c + (x - nominal_c) * k)
+
+        pts = [(sx(x), y) for x, y in self.PAD_SCALLOP]
+        pts += [(sx(self.PAD_SCALLOP[-1][0]), self.PAD_INNER_Y),
+                (sx(self.PAD_SCALLOP[0][0]), self.PAD_INNER_Y)]
         wp = cq.Workplane("XY").moveTo(*pts[0])
         for q in pts[1:]:
             wp = wp.lineTo(*q)
@@ -558,9 +662,7 @@ class PoweredUpHubCover:
         which sits marginally outboard of the leg's own face over this Z band,
         so the union is a volume overlap rather than the coincident-faces case.
         """
-        lg: LatchGeometry = self._latch
-        half_w = lg.hook_width / 2.0
-        x_center = side * (lg.hook_pitch / 2.0 + half_w)
+        x_center, half_w = self._hook_span(side)
         depth = self.PAD_INNER_Y - self.PAD_END_WALL_Y
         y_mid = (self.PAD_END_WALL_Y + self.PAD_INNER_Y) / 2.0
 
@@ -597,8 +699,7 @@ class PoweredUpHubCover:
         threshold: 1.05x), well clear of that regime.
         """
         lg: LatchGeometry = self._latch
-        half_w = lg.hook_width / 2.0
-        x_center = side * (lg.hook_pitch / 2.0 + half_w)
+        x_center, half_w = self._hook_span(side)
 
         d = self.U_WALL / 2.0
         finger_cl = self.U_FINGER_CL_Y
@@ -635,7 +736,7 @@ class PoweredUpHubCover:
             .threePointArc((y_c, z_bend + r_in), (leg_in, z_bend))
             .lineTo(leg_in, 0.0)
         )
-        return wp.close().extrude(lg.hook_width)
+        return wp.close().extrude(self._hook_width_printed)
 
 
     def _build_leg_bead(self, side: int) -> cq.Workplane:
@@ -645,9 +746,7 @@ class PoweredUpHubCover:
         leg's own wall (thickness 0.70 -> 1.028 at z = 5.0), which is why
         modelling it as a separate body kept looking wrong.
         """
-        lg: LatchGeometry = self._latch
-        half_w = lg.hook_width / 2.0
-        x_center = side * (lg.hook_pitch / 2.0 + half_w)
+        x_center, half_w = self._hook_span(side)
         leg_outer = self.U_FINGER_CL_Y - self.U_CENTRELINE_SEP - self.U_WALL / 2.0
         z_c = (self.BEAD_Z_LO + self.BEAD_Z_HI) / 2.0
         r_b = (self.BEAD_Z_HI - self.BEAD_Z_LO) / 2.0
@@ -660,7 +759,7 @@ class PoweredUpHubCover:
             .transformed(offset=cq.Vector(0.0, 0.0, x_center - half_w))
             .center(axis_y, z_c)
             .circle(r_b)
-            .extrude(lg.hook_width)
+            .extrude(self._hook_width_printed)
         )
         keep = cq.Workplane("XY").box(120.0, 40.0, 40.0).translate(
             (0.0, leg_outer + seam - 20.0, z_c))
@@ -688,35 +787,35 @@ class PoweredUpHubCover:
         in question) -- it lands on the tongue's *mating* face, so it is
         functional, not cosmetic.
         """
-        riser_depth = self.TONGUE_STEP_Y - self.PLATE_Y_HI
-        riser_y_center = (self.PLATE_Y_HI + self.TONGUE_STEP_Y) / 2.0
+        riser_depth = self._tongue_step_y - self.PLATE_Y_HI
+        riser_y_center = (self.PLATE_Y_HI + self._tongue_step_y) / 2.0
         # Round 22: the full-height riser starts at LEDGE_Y_LO, not at the
         # plate edge -- see that constant. The 0.400 mm strip in between is
         # plain plate, and the teeth built by _build_ledge_teeth carry the
         # ledge height forward from there.
-        ledge_depth = self.TONGUE_STEP_Y - self.LEDGE_Y_LO
+        ledge_depth = self._tongue_step_y - self.LEDGE_Y_LO
         riser_inner = rounded_box(
-            width=2 * self.TONGUE_X_HALF,
+            width=2 * self._tongue_x_half,
             depth=ledge_depth,
             height=self.RISER_Z_HI,
             corner_r=0.0,
-            center=(0.0, (self.LEDGE_Y_LO + self.TONGUE_STEP_Y) / 2.0, 0.0),
+            center=(0.0, (self.LEDGE_Y_LO + self._tongue_step_y) / 2.0, 0.0),
         )
         riser_outer = rounded_box(
-            width=2 * self.RISER_X_HALF,
+            width=2 * self._riser_x_half,
             depth=riser_depth,
             height=self.PLATE_THICKNESS,
             corner_r=0.0,
             center=(0.0, riser_y_center, 0.0),
         )
         tip = rounded_box(
-            width=2 * self.TONGUE_X_HALF,
-            depth=self.TONGUE_Y_HI - self.TONGUE_STEP_Y,
+            width=2 * self._tongue_x_half,
+            depth=self._tongue_y_hi - self._tongue_step_y,
             height=self.RISER_Z_HI - self.TIP_Z_LO,
             corner_r=0.0,
             center=(
                 0.0,
-                (self.TONGUE_STEP_Y + self.TONGUE_Y_HI) / 2.0,
+                (self._tongue_step_y + self._tongue_y_hi) / 2.0,
                 self.TIP_Z_LO,
             ),
         )
@@ -739,10 +838,10 @@ class PoweredUpHubCover:
         # touching the full-width plate or the ledge teeth that straddle it.
         oc = 1.0
         gap_y_lo = self.PLATE_Y_HI - oc
-        gap_y_hi = self.TONGUE_Y_HI + oc
-        gap_bands = [(-self.TONGUE_GAP_X_INNER, self.TONGUE_GAP_X_INNER)]
+        gap_y_hi = self._tongue_y_hi + oc
+        gap_bands = [(-self._tongue_gap_x_inner, self._tongue_gap_x_inner)]
         for sign in (-1.0, 1.0):
-            lo, hi = sorted((sign * self.TONGUE_X_HALF, sign * self.TONGUE_RIB_X_HI))
+            lo, hi = sorted((sign * self._tongue_x_half, sign * self.TONGUE_RIB_X_HI))
             gap_bands.append((lo, hi))
         for x_lo, x_hi in gap_bands:
             tongue = tongue.cut(
@@ -771,7 +870,7 @@ class PoweredUpHubCover:
         which still holds.
         """
         return rounded_box(
-            width=self.PLATE_WIDTH,
+            width=self._plate_width,
             depth=self.GROOVE_Y_HI - self.GROOVE_Y_LO,
             height=self.GROOVE_THICKNESS - self.PLATE_THICKNESS,
             corner_r=0.0,
@@ -796,7 +895,7 @@ class PoweredUpHubCover:
         """
         y_span = self.TEETH_Y_HI - self.TEETH_Y_LO
         part = rounded_box(
-            width=2 * self.LEDGE_X_HALF,
+            width=2 * self._ledge_x_half,
             depth=y_span,
             height=self.NOTCH_FLOOR_Z - self.PLATE_THICKNESS,
             corner_r=0.0,

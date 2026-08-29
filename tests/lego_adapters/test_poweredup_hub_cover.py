@@ -79,7 +79,19 @@ def test_plate_envelope():
         )
     )
     bb_p = plate_only.val().BoundingBox()
-    assert abs(bb_p.xlen - PoweredUpHubCover.PLATE_WIDTH) < 1e-6
+    # Round 59: the plate is one running clearance per side NARROWER than
+    # the reference's own PLATE_WIDTH, so the lid can slide in its cavity --
+    # the reference is a zero-clearance model and the measured width gap was
+    # 0.150 mm total against a housing that also sits on its own nominal.
+    # Asserted against the clearance-adjusted figure, NOT loosened to a wide
+    # tolerance: this must still fail if the clearance silently disappears,
+    # doubles, or stops tracking the profile.
+    expected_plate = PoweredUpHubCover.PLATE_WIDTH - 2 * prof.free.radial
+    assert abs(bb_p.xlen - expected_plate) < 1e-6, (
+        f"plate width {bb_p.xlen:.3f} is not the reference "
+        f"{PoweredUpHubCover.PLATE_WIDTH} less one running clearance per "
+        f"side ({expected_plate:.3f})"
+    )
 
 
 def test_outer_face_is_z_zero():
@@ -192,8 +204,15 @@ def test_tongue_is_segmented_into_the_reference_four_blades():
         f"positive control failed: plate band {plate[0]} is not full width"
     )
 
-    inner, x_half = PoweredUpHubCover.TONGUE_GAP_X_INNER, PoweredUpHubCover.TONGUE_X_HALF
-    rib, riser_half = PoweredUpHubCover.TONGUE_RIB_X_HI, PoweredUpHubCover.RISER_X_HALF
+    # Round 59: the blades are one running clearance narrower and the centre
+    # gap one clearance wider than the reference's own figures -- male faces
+    # shrink, female voids grow, which is why the sign differs per edge here.
+    # The reference constants stay the reference; these are what is printed.
+    fit = get_profile().free.radial
+    inner = PoweredUpHubCover.TONGUE_GAP_X_INNER + fit
+    x_half = PoweredUpHubCover.TONGUE_X_HALF - fit
+    rib = PoweredUpHubCover.TONGUE_RIB_X_HI
+    riser_half = PoweredUpHubCover.RISER_X_HALF - fit
 
     # Riser: all four blades (Tongue A inner pair + Tongue B outer pair).
     for y, z in ((32.200, 0.600), (33.000, 0.600)):

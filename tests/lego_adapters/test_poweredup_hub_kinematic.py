@@ -394,3 +394,88 @@ def test_tongue_ribs_locate_sideways_without_obstructing_withdrawal():
             f"tongue ribs obstruct withdrawal at dY={dy} -- they should be "
             "open in -Y so the lid can slide out"
         )
+
+
+def _x_edge_and_gap(cover, housing, xc, direction, y, z, step=0.005):
+    """Walk outward from the channel centre; return (cover_edge, gap).
+
+    The cover's edge is FOUND, never assumed from ``hook_width``. A first
+    version of this probe measured from the nominal footprint and so
+    reported the housing's own allowance unchanged no matter what the cover
+    did -- it was reading a constant, not the built part.
+    """
+    d = 0.0
+    edge = None
+    # Must exceed half the hook width (6.800) plus the gap, or the walk never
+    # reaches the edge and the station looks like solid material.
+    while d < 9.0:
+        d += step
+        x = xc + direction * d
+        if edge is None:
+            if not cover.isInside(cq.Vector(x, y, z), 1e-9):
+                edge = x
+        elif housing.isInside(cq.Vector(x, y, z), 1e-9):
+            return edge, abs(x - edge)
+    return edge, None
+
+
+def test_latch_hook_has_lateral_running_clearance_in_its_channel():
+    """Round 58, from a printed part: "the U hook ... currently it gets
+    stuck."
+
+    The reference gives this pair NO lateral clearance -- 24853's hook and
+    25560's slot both span X 5.600..19.200, 13.600 against 13.600 -- because
+    LDraw models nominal geometry and a moulded part gets its fit from mould
+    tolerance. Printed, that is a press fit. The housing is held
+    reference-faithful by user direction, so the cover's male features carry
+    the clearance: they narrow by ``free.radial`` per side, on top of the
+    housing channel's own ``free.radial``.
+
+    Measured as a GAP between the two built parts, not asserted off the
+    constants -- a constants check would pass on a hook that had been
+    narrowed and then re-centred against one wall, which is the same total
+    width with none of the clearance and is invisible to a seated
+    interference test (touching faces measure 0.000 mm^3). Both walls of
+    both legs are read, so that asymmetry fails here.
+    """
+    prof = get_profile("fdm_standard")
+    cover = PoweredUpHubCover(profile=prof).solid.val()
+    housing = PoweredUpHubHousing(profile=prof).solid.val()
+
+    expected = 2 * prof.free.radial          # housing's half + the cover's
+    tol = 0.02                               # the probe's own step, rounded up
+
+    # The ribbon is a hairpin: material sits on the leg and finger
+    # centrelines, NOT between them. Probing the space between finds the
+    # void and would read as enormous clearance.
+    finger_y = PoweredUpHubCover.U_FINGER_CL_Y
+    leg_y = finger_y - PoweredUpHubCover.U_CENTRELINE_SEP
+
+    checked = 0
+    for y in (leg_y, finger_y):
+        for z in (3.0, 7.0, 11.0):
+            for side in (+1, -1):
+                xc = side * 12.4        # hook_pitch/2 + hook_width/2
+                assert cover.isInside(cq.Vector(xc, y, z), 1e-9), (
+                    f"no cover material at the channel centre (side={side}, "
+                    f"Y={y}, Z={z}) -- the probe is not on the ribbon, so any "
+                    "gap it reports is the void, not clearance"
+                )
+                for direction, wall in ((-1.0, "-X"), (+1.0, "+X")):
+                    edge, gap = _x_edge_and_gap(cover, housing, xc, direction, y, z)
+                    assert edge is not None and gap is not None, (
+                        f"could not find both the cover edge and the housing "
+                        f"wall on {wall} (side={side}, Y={y}, Z={z})"
+                    )
+                    assert gap >= expected - tol, (
+                        f"lateral clearance on {wall} is {gap:.3f} mm at "
+                        f"side={side}, Y={y}, Z={z} -- below the "
+                        f"{expected:.3f} mm the hook is sized for. The latch "
+                        "binds in its channel."
+                    )
+                    checked += 1
+
+    assert checked == 24, (
+        f"only {checked} of 24 gaps were measured -- the sweep silently "
+        "skipped stations, so a bind could hide in the ones it missed"
+    )

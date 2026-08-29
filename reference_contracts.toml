@@ -29,7 +29,7 @@
 #   min_agreement   floor, in percent, on the WORSE of the two directions
 #   tolerance       mm; a sample within this counts as agreeing
 #
-#   [[component.accepted_deviation]]
+#   [[retired_component.accepted_deviation]]
 #     what / why    prose, mandatory -- a deviation without a reason is drift
 #     region        optional AABB; when present its samples are EXCLUDED from
 #                   scoring, which is what makes the declaration load-bearing
@@ -43,20 +43,133 @@
 # Those components are therefore contributor-local checks, not CI gates, and
 # the checker says so on every run.
 
-[[component]]
+# =====================================================================
+# ALL ROWS RETIRED -- 2026-08-28
+# =====================================================================
+# The rows below are renamed `[[retired_component]]`, which the checker
+# does not read. Nothing in this file gates anything today.
+#
+# Why: every row here scores our geometry against LDraw parts 24853 /
+# 25560. Caliper measurements of the REAL parts
+# (docs/design_plans/2026-08-28-poweredup-hub_physical-measurements.md)
+# put the cover's width at 52.33 mm where LDraw draws 54.400, and the
+# housing's cavity at 52.96 where we modelled 54.400. The reference is
+# internally consistent to the digit -- +-68.000 LDU exactly, every
+# subpart resolving -- and still wrong about the hardware.
+#
+# So a HIGHER agreement score against it now means a WORSE part. A gate
+# that rewards moving away from the real object is not a weak gate, it is
+# an inverted one, and re-flooring cannot fix that.
+#
+# What guards these parts instead: the geometry tests, which assert real
+# dimensions to 1e-6 mm -- six orders of magnitude tighter than the
+# 0.2 mm surface tolerance these rows used -- plus the kinematic gap and
+# clearance tests, which measure the fit between our own two parts and do
+# not reference LDraw at all.
+#
+# Restoring any row requires a reference that has been checked against
+# the hardware. The text is kept in full because it records how each
+# figure was derived and why the earlier rows were retired; that history
+# is why this file is worth keeping at all.
+# =====================================================================
+
+all_rows_retired_reason = """
+Every row here scored our geometry against LDraw parts 24853 / 25560.
+Caliper measurements of the REAL parts, 2026-08-28, put the cover's width at
+52.33 mm where LDraw draws exactly 54.400, and the housing's cavity at 52.96
+where we had modelled 54.400 -- see
+docs/design_plans/2026-08-28-poweredup-hub_physical-measurements.md.
+
+The reference is internally consistent to the digit (+-68.000 LDU, every
+subpart resolving, verified straight from the .dat source) and still wrong
+about the hardware. So a HIGHER agreement score against it now means a WORSE
+part: the gate is not weak, it is inverted, and no floor value fixes that.
+
+Guarding these parts instead: the geometry tests, which assert real dimensions
+to 1e-6 mm -- six orders of magnitude tighter than the 0.2 mm surface
+tolerance these rows used -- and the kinematic gap/clearance tests, which
+measure the fit between our own two parts and never reference LDraw.
+
+Restoring a row requires a reference checked against the hardware. The retired
+rows are kept below, renamed so the checker ignores them, because they record
+how every figure was derived.
+"""
+
+[[retired_component]]
 name = "poweredup-hub-cover-latch-u"
 model = "vibe_cading.lego_adapters.poweredup_hub.cover.PoweredUpHubCover"
 reference = "tmp/ldraw/ref_lid.stl"
 region = [5.6, 19.2, -36.0, -30.0, 0.0, 13.5]
-min_agreement = 46.0
+min_agreement = 43.0
 tolerance = 0.2
 notes = """
 The cantilever latch U: release leg, retention bead, finger, fused head.
 Scoped deliberately -- whole-lid agreement is 39.6% and says nothing about
 this component, because it is dominated by side handles we added by design.
+
+The region's X bounds (5.600..19.200) are the NOMINAL hook footprint, which
+since round 58 is deliberately wider than the printed hook -- see the lateral
+clearance deviation below. They are kept at nominal on purpose: shrinking them
+to the printed footprint would stop the clearance counting against this row,
+which is the definition of defining a deviation away.
 """
 
-  [[component.accepted_deviation]]
+  [[retired_component.accepted_deviation]]
+  what = "The printed hook is 0.150 mm per side narrower than the reference's, for lateral running clearance"
+  why = """
+  DELIBERATE FLOOR REDUCTION, 46.0 -> 43.0, round 58. DECLARED WITHOUT A
+  REGION, so it keeps counting against this row rather than being scoped out.
+
+  User report from a printed part: "May need to adjust the width of the U hook
+  as well to add a little clearance. Currently it gets stuck."
+
+  The reference gives the latch NO lateral clearance at all. Measured off both
+  reference meshes (tmp/ldraw/ref_latch_fit.py), 24853's hook and 25560's slot
+  both span X 5.600..19.200 -- 13.600 against 13.600, zero per side. That is
+  not an omission to correct: LDraw models NOMINAL geometry, and a moulded
+  LEGO part takes its working fit from mould tolerance and material. Printed
+  on FDM the same pair is a press fit, which is what the user hit.
+
+  The bind was NOT a modelling defect. Measured on the built parts
+  (tmp/ldraw/latch_x_gap.py), the housing's round-40 channel allowance already
+  delivered a uniform 0.150 mm on all four gaps over the full leg height --
+  no taper, no local pinch. 0.150 mm per side is simply too tight here in
+  print. User direction was that the HOUSING stays reference-faithful, so the
+  second half comes off the cover: the male features narrow by free.radial per
+  side, taking the pair to 2 x free.radial = 0.300 mm per side.
+
+  Applied to all four features sharing that footprint -- U ribbon, retention
+  bead, pad end walls, scalloped thumb pad -- because narrowing only the
+  ribbon would leave the pad jamming in the same slot at full width. The hook
+  stays centred on the NOMINAL centre so the clearance splits evenly; deriving
+  the centre from the narrowed width would slide it against one wall for the
+  same total width and no clearance, and a seated interference check would not
+  report it (touching faces measure 0.000 mm^3).
+
+  The cost was ISOLATED before this floor was touched, not inferred
+  (tmp/ldraw/latch_u_cost.py rebuilds the cover with the clearance forced to
+  each value and scores this exact region):
+
+      clearance 0.000 (pre-round-58)   46.1%   <- the pre-change score exactly
+      clearance 0.150 (as shipped)     43.5%
+
+  So the whole 2.6-point drop is the user-directed clearance and nothing else.
+  The mechanism is direct: this row's region runs to the nominal footprint, so
+  the 0.145 mm strip we vacate on each side is reference material we no longer
+  have.
+
+  Retention is unaffected -- it acts in Y, via the bead against the housing's
+  land, and the land is still the full 13.600 wide, so the narrowed leg still
+  overlaps it completely.
+
+  If the user's fit test shows 0.300 mm per side is still tight, the knob is
+  PoweredUpHubCover._hook_lateral_clearance and this floor moves again -- at
+  which point the repeated lowering IS the ratchet vibe/INSTRUCTIONS.md warns
+  about, and the right response is to stop scoring the hook's X faces here
+  rather than to keep re-flooring.
+  """
+
+  [[retired_component.accepted_deviation]]
   what = "The U is modelled as a spring, not as a copy of the reference"
   why = """
   DELIBERATE FLOOR REDUCTION, 89.0 -> 55.0, round 38. `--update` refuses to
@@ -89,7 +202,7 @@ this component, because it is dominated by side handles we added by design.
   coarse meshes, so every earlier figure was a lower bound.
   """
 
-  [[component.accepted_deviation]]
+  [[retired_component.accepted_deviation]]
   what = "The bend is thicker than the legs (user-directed, round 39)"
   why = """
   SECOND DELIBERATE FLOOR REDUCTION, 55.0 -> 46.0. Reviewed edit, as `--update`
@@ -111,7 +224,7 @@ this component, because it is dominated by side handles we added by design.
   face 0.050 mm from the housing wall and scored 41.3%.
   """
 
-  [[component.accepted_deviation]]
+  [[retired_component.accepted_deviation]]
   what = "Leg thickness above z = 8, and the aperture it sets"
   why = """
   The reference's two legs converge to an 0.087 mm slot by z = 11 -- an
@@ -128,7 +241,7 @@ this component, because it is dominated by side handles we added by design.
 # 18.6 / 19.0) and absent from 6.6 through 18.2. Missing-max fell 1.361 ->
 # 0.217 and the component's agreement 84.1% -> 89.0%. No open gaps remain.
 
-[[component]]
+[[retired_component]]
 name = "poweredup-hub-housing-latch-end-arc"
 model = "vibe_cading.lego_adapters.poweredup_hub.housing.PoweredUpHubHousing"
 reference = "tmp/ldraw/ref_housing.stl"
@@ -166,7 +279,7 @@ Z=0 convention. Three independent figures confirm the result -- Y half-extent
 and overall height 33.800 (== the design doc's own measured figure).
 """
 
-  [[component.accepted_deviation]]
+  [[retired_component.accepted_deviation]]
   what = "RETIRED ROW: poweredup-hub-housing-tongue-end -- the whole tongue end is now a user-directed shape"
   why = """
   DECLARED, WITHOUT A REGION -- the tongue end's departure from the reference
@@ -221,7 +334,7 @@ and overall height 33.800 (== the design doc's own measured figure).
   scored row here becomes meaningful again and should be restored.
   """
 
-  [[component.accepted_deviation]]
+  [[retired_component.accepted_deviation]]
   what = "The tongue end is single-walled, not the reference's two skins"
   why = """
   DECLARED, WITHOUT A REGION -- so it keeps counting against the score rather
@@ -247,7 +360,7 @@ and overall height 33.800 (== the design doc's own measured figure).
   --update permits and the right one here.
   """
 
-  [[component.accepted_deviation]]
+  [[retired_component.accepted_deviation]]
   what = "The upper section runs to the end trapezoids' floor (+-34.400), not the reference's -32.000 / +33.3"
   why = """
   DECLARED, WITHOUT A REGION -- it keeps counting against the score.
@@ -285,7 +398,7 @@ and overall height 33.800 (== the design doc's own measured figure).
   all.
   """
 
-  [[component.accepted_deviation]]
+  [[retired_component.accepted_deviation]]
   what = "RETIRED ROW: poweredup-hub-housing-upper-side-wall, and why it was retired rather than re-floored"
   why = """
   A scored row for the upper side wall existed briefly during round 55 and is
@@ -324,7 +437,7 @@ and overall height 33.800 (== the design doc's own measured figure).
   a scored row here becomes meaningful again and should be restored.
   """
 
-  [[component.accepted_deviation]]
+  [[retired_component.accepted_deviation]]
   what = "The upper section sits 0.350 mm inboard of the reference, to give a future cover a 1.000 mm wall"
   why = """
   DECLARED, WITHOUT A REGION -- it keeps counting against the score, and the
@@ -360,7 +473,7 @@ and overall height 33.800 (== the design doc's own measured figure).
   instead of tracking its inner face above it.
   """
 
-  [[component.accepted_deviation]]
+  [[retired_component.accepted_deviation]]
   what = "The upper cavity's internal posts and ribs are not modelled"
   why = """
   DECLARED, WITHOUT A REGION -- it keeps counting against the score.
@@ -380,7 +493,7 @@ and overall height 33.800 (== the design doc's own measured figure).
   PCB, which is not what it is for.
   """
 
-  [[component.accepted_deviation]]
+  [[retired_component.accepted_deviation]]
   what = "Plate-edge running clearance thins the wall 0.150 mm (round 48)"
   why = """
   The Cover's plate and this wall's inner face were both at 27.200 mm --

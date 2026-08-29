@@ -80,7 +80,20 @@ def load_manifest(path: Path = MANIFEST) -> list[dict]:
     data = tomllib.loads(path.read_text())
     comps = data.get("component", [])
     if not comps:
-        raise ManifestError(f"{path} registers no components")
+        # An empty manifest is normally a mis-edit -- a renamed table, a
+        # truncated file -- and failing loudly is right. But "every row was
+        # deliberately retired" is a real state this project has now reached,
+        # and it must not be expressible by accident. So it requires an
+        # explicit top-level declaration carrying a written reason, exactly
+        # like an accepted_deviation does: silence is still an error.
+        reason = str(data.get("all_rows_retired_reason", "")).strip()
+        if reason:
+            return []
+        raise ManifestError(
+            f"{path} registers no components. If that is deliberate, declare "
+            "it with a top-level `all_rows_retired_reason = \"...\"` stating "
+            "why; an empty manifest with no reason is indistinguishable from "
+            "a mis-edited one.")
     for c in comps:
         name = c.get("name", "<unnamed>")
         for key in ("name", "model", "reference", "region", "min_agreement"):
@@ -169,6 +182,14 @@ def main() -> None:
     except ManifestError as exc:
         print(f"manifest error: {exc}")
         sys.exit(2)
+
+    if not comps:
+        # Reported loudly rather than as a quiet "0/0 passed": a suite that
+        # checks nothing must not read like a suite that passed.
+        print("  NO ROWS — this manifest gates nothing.")
+        print("  reason: " + str(tomllib.loads(MANIFEST.read_text())
+                                 .get("all_rows_retired_reason", "")).strip())
+        sys.exit(0)
 
     failed = skipped = 0
     raises: list[tuple[str, float, float]] = []

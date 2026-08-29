@@ -74,6 +74,70 @@ section to the new version and date.
   deleted tray's bottom rim, so it now registers nothing.
 
 ### Changed
+- **`PoweredUpHubCover` gains a whole-lid running clearance — width, length
+  and the tongue-side gaps** (round 59, user direction). Same root cause as
+  the hook one round earlier: the reference is a **zero-clearance model
+  throughout**, so every face this lid slides past had been built to the
+  housing's own nominal figure. Measured on the built pair *before* changing
+  anything:
+
+  | interface | before | after |
+  |---|---|---|
+  | width, X plate edge | 0.150 | **0.295** |
+  | length, latch end | **0.005** | 0.145 |
+  | length, tongue step | **0.005** | 0.150 |
+  | tongue blade, outboard | 0.150 | **0.295** |
+
+  The two length figures are the ones that mattered — 0.005 is the probe's own
+  step, so the lid was a hard face-to-face fit against the cavity at **both**
+  ends, which no amount of width clearance can relieve. Applied as **derived
+  build dimensions, not by editing the constants**: `PLATE_WIDTH`,
+  `TONGUE_STEP_Y`, `TONGUE_X_HALF` and the rest are reference *measurements*
+  cited as such throughout the class and in `reference_contracts.toml`, so
+  rewriting them would destroy that provenance and leave no record of what the
+  real part measures. Male faces shrink and female voids grow — the centre
+  tongue gap **opens** by the clearance while the blades narrow — so this is
+  not a single scale factor. New knob: `PoweredUpHubCover._fit`. A new
+  assertion guards the one coupling this could have broken silently: moving
+  the plate edge inboard eats the overlap the latch finger needs to fuse to
+  the plate, so that overlap is now checked at construction rather than
+  assumed.
+- **`PoweredUpHubCover`'s latch hook gains lateral running clearance**
+  (round 58, from a printed part: *"May need to adjust the width of the U hook
+  as well to add a little clearance. Currently it gets stuck."*). The
+  **reference gives this pair none** — measured off both reference meshes,
+  24853's hook and 25560's slot both span X `5.600…19.200`, `13.600` against
+  `13.600`, zero per side. That is not an omission to correct: LDraw models
+  *nominal* geometry and a moulded LEGO part takes its working fit from mould
+  tolerance and material. Printed on FDM the same pair is a press fit.
+  The bind was **not a modelling defect** — measured on the built parts, the
+  housing's round-40 channel allowance already delivered a uniform `0.150 mm`
+  on all four gaps over the full leg height, with no taper and no local pinch.
+  `0.150 mm` per side is simply too tight here in print. Per user direction the
+  **housing stays reference-faithful**, so the cover's male features narrow by
+  `free.radial` per side, taking the pair to `2 × free.radial` = **`0.300 mm`
+  per side** (measured 0.295, the balance being the probe's step). Applied to
+  all four features sharing that footprint — U ribbon, retention bead, pad end
+  walls and scalloped thumb pad — since narrowing only the ribbon would leave
+  the pad jamming at full width; the scallop is *scaled* about the footprint
+  centre so it keeps its shape. The hook stays centred on the **nominal**
+  centre so the clearance splits evenly: deriving the centre from the narrowed
+  width would slide it against one wall for the same total width and no
+  clearance, which no seated interference check would report (touching faces
+  measure `0.000 mm³`). Retention is unaffected — it acts in Y via the bead
+  against the housing's land, which is still the full `13.600` wide. New knob:
+  `PoweredUpHubCover._hook_lateral_clearance`.
+- **`reference_contracts.toml`: `poweredup-hub-cover-latch-u`'s floor drops
+  `46.0 → 43.0`.** The cost was isolated before the floor was touched, not
+  inferred: rebuilding the cover with the clearance forced to each value and
+  scoring the identical region gives `46.1%` at `0.000` (the pre-change score
+  exactly) and `43.5%` at `0.150`, so the whole 2.6-point drop is the
+  user-directed clearance and nothing else. The row's region keeps its
+  **nominal** X bounds on purpose — shrinking them to the printed footprint
+  would stop the clearance counting, which is what defining a deviation away
+  looks like. Recorded with it: if a further loosening is ever needed, the
+  repeated re-flooring *is* the ratchet, and the answer is to stop scoring the
+  hook's X faces rather than to lower this again.
 - **`PoweredUpHubHousing`'s tongue end is rounded all the way across**
   (round 56, user direction). Round 55g read *"the tongue side wall should
   have the curve all the way"* as arc **depth** and gave the two outer rib
