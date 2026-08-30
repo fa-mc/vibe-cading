@@ -139,7 +139,13 @@ def get_latch_geometry(profile: ToleranceProfile | str | None = None) -> LatchGe
     # real part's continued taper -- see the design brief's Round 18 -> B1).
     # barb_protrusion = crest_Y - HOOK_FACE_Y1 = -31.200 - (-32.240) = 1.040.
     barb_protrusion = 1.040
-    hook_width = 13.600
+    # Round 60: 13.600 -> 12.200, measured on the real cover. Changed HERE,
+    # in the shared contract, rather than in the cover alone -- that is what
+    # this module exists for. The housing's latch channel is derived from the
+    # same figure, so both halves of the interface move together and cannot
+    # drift apart; a cover-only override would have left the housing cutting
+    # a channel for a hook that no longer exists.
+    hook_width = 12.200
 
     return LatchGeometry(
         barb_diameter=2.000,

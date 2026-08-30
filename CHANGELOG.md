@@ -15,6 +15,60 @@ section to the new version and date.
 
 ## [Unreleased]
 
+### Changed
+- **Breaking** — **`PoweredUpHubCover` re-datumed from the printed part**
+  (round 61). The owner printed the round-60 cover and measured four faults on
+  the physical object; all four are now corrected, and each was re-verified
+  against the *built solid* rather than against the constants that produced it:
+  - **Body length `62.800 → 59.800`** (tongues excluded). Round 60's `61.900`
+    came from subtracting two whole-part readings, so both readings' errors
+    landed in it — and it never reconciled with the `61.660` cavity it has to
+    sit inside. The directly-measured figure does (`0.930 mm` per end).
+  - **Tongue protrusion `1.700 → 4.000`**, measured on the feature itself
+    rather than derived as a difference. It also closes the length books:
+    `59.800 + 4.000 = 63.800` against the `63.600` whole-part reading.
+  - **Latch finger `0.800 → 1.600` thick** (new `FINGER_WALL`). The finger and
+    the leg no longer share a thickness: the leg stays thin because it is the
+    compliant member, and stiffness scales with the **cube** of thickness, so
+    the single-ribbon model that forced them equal would have thrown away a
+    spring the owner had already confirmed works.
+  - **Retention bead reach `3.420 → 5.000`** outboard of the body edge (new
+    `BARB_TIP_OUT`). Corroborated independently by the round-60 session's
+    `6.240 mm` latch-depth reading: two measurements of different features, a
+    round apart, asking for the same `~1.5 mm` of deepening. The bead is driven
+    off the first and the thumb pad off the second, so neither reading is
+    discarded; they land `6.250` apart.
+  - **Crown is a slope, not a bend.** The outer faces now converge over the
+    hook's top `2 mm` (`4.840 → 3.320 mm`), replacing the semicircular hairpin.
+    Confirmed on the LDraw reference independently, which tapers `2.153 →
+    1.286 mm` over the same band. The aperture's **inner** arc is deliberately
+    untouched — a sharp corner there is the round-37 defect already fixed once.
+- **`PoweredUpHubCover.PLATE_Y_LO` no longer pins the latch.** New
+  `LATCH_DATUM_Y` records the plate edge the latch constants were *measured*
+  against; the latch sub-assembly is built in that frame and translated onto
+  wherever `PLATE_Y_LO` now sits. Rounds 59 and 60 both refused to re-datum the
+  lid's length because doing so meant hand-editing ~10 reference-measured `Y`
+  constants (and destroying what they record) — this removes that obstacle
+  permanently. All five latch features route through one method, so a future
+  length change cannot move four of them and leave the fifth behind — a failure
+  no seated interference check can see, because a detached pad still measures
+  `0.000 mm³`.
+- **Two stale X-footprint literals fixed**, both left behind when round 60 took
+  `hook_width` from `13.600` to `12.200`: `PoweredUpHubHousing`'s
+  `LATCH_WINDOW_X_HI` (`19.200 → 17.800`) and `PoweredUpHubCover`'s
+  `PAD_SCALLOP` X column. The housing's own assertion caught the first; the
+  second was **silent**, because the thumb pad is union-only, so a scallop
+  `1.400 mm` wider than both the hook it sits on and the window it passes
+  through simply widened the part. This is not a housing re-datum — the housing
+  stays reference-faithful; it is the window tracking the hook that goes
+  through it.
+- **`BEAD_BASELINE_Y` now records our leg's own outer face**, not the
+  reference's. It previously sat `0.050 mm` outboard of the face it was used
+  with, quietly costing that much bead reach — invisible while the constant was
+  only ever read as a protrusion *difference*. `__init__` now asserts the built
+  bead reaches `BARB_TIP_OUT` exactly, so the five constants that position it
+  cannot drift apart again.
+
 ### Removed
 - **Breaking** — **`PoweredUpHubBatteryTray`'s upper wall band is gone**
   (round 57, user direction: *"the wall becomes narrower due to the housing

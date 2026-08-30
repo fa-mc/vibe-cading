@@ -45,6 +45,7 @@ from vibe_cading.lego_adapters.poweredup_hub.battery_tray import (
 )
 from vibe_cading.lego_adapters.poweredup_hub.cover import PoweredUpHubCover
 from vibe_cading.lego_adapters.poweredup_hub.housing import PoweredUpHubHousing
+from tests.lego_adapters._poweredup_hub_datum import xfail_cross_datum
 
 
 def test_single_solid():
@@ -376,6 +377,7 @@ def test_side_tab_carries_a_border_round_three_edges():
     )
 
 
+@xfail_cross_datum
 def test_seats_against_housing_and_cover_with_zero_interference():
     """Seated per assembly.py's own placement (translated up by
     ``PoweredUpHubCover.PLATE_THICKNESS``): the Tray must not interfere

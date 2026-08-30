@@ -113,15 +113,53 @@ already inside them: `52.33` in `52.96` is `0.315 mm` per side. Applying
 `_fit` again would double it. Notably, round 59 reached `0.295 mm` per side
 empirically from the *wrong* datum — within `0.02 mm` of the real assembly.
 
-## Still unreconciled — do not model around it silently
+## RESOLVED 2026-08-30 (round 61) — the length conflict, and how
 
-Cover plate length `61.90` against housing cavity length `61.66` puts the
-plate **`0.24 mm` LONGER than the cavity it sits in**, which cannot be right
-for a part that assembles. One of the two is measured to a different datum
-(a drafted wall, a rim, or a ledge the plate rests on). The width pair
-reconciles cleanly, so this is specific to the length. Until it is resolved,
-derive the cover's plate length from the **cavity** minus clearance, and treat
-`61.90` as unconfirmed.
+The `61.90` reading above is **superseded**. It was recorded here as
+unconfirmed because it put the cover plate `0.24 mm` LONGER than the `61.66`
+cavity it sits inside — impossible for a part that assembles. That doubt was
+correct, and it was the *unconfirmed* figure that turned out to be wrong.
+
+After printing the round-60 cover, the owner measured the body directly at
+**`59.800`** (tongues excluded) and the tongue protrusion directly at
+**`4.000`**. Both reconcile where the old pair did not:
+
+- `59.800` in a `61.660` cavity → `0.930 mm` per end. Assembles.
+- `59.800 + 4.000 = 63.800` against the `63.600` whole-part reading → `0.200`.
+
+**The lesson is about method, not about these two numbers.** `61.90` and
+`1.700` were both *differences of two whole-part readings*
+(`63.600 − 61.900 = 1.700`), so each carried the sum of two measurement
+errors, and the arithmetic gave no hint which end the error was at. The
+round-61 figures measure each feature directly. Where a derived figure and a
+direct one disagree, prefer the direct one — and treat a derived figure that
+fails a physical sanity check as evidence about *itself*, not as an anomaly to
+be caveated and worked around.
+
+### Round-61 measurements (printed part, supersede the table above)
+
+| Constant | Round 60 | **Round 61** | From |
+|---|---|---|---|
+| Cover body length (excl. tongues) | 61.900 | **59.800** | measured directly |
+| Cover tongue protrusion | 1.700 | **4.000** | measured from body end |
+| Latch finger wall thickness | 0.800 | **1.600** | measured |
+| Bead reach, outboard of body edge | 3.420 | **5.000** | measured |
+
+The `5.000` and the earlier `6.240` U-base depth are **independent
+corroboration of each other**: taken on different features a round apart, they
+ask for the same `~1.5 mm` of latch deepening. The cover drives the bead off
+the first and the thumb pad off the second, so neither is discarded; they land
+`6.250` apart, `0.010` from the reading.
+
+The latch crown is a **slope**, not the semicircular bend we built. Verified
+independently on the LDraw reference (`tmp/ldraw/latch_shape_r61.py`), whose
+outer profile converges `2.153 → 1.286 mm` over `z = 11.25…12.75`.
+
+> **Where the reference still disagrees with the hardware.** The same probe
+> shows the reference latch is a genuine hairpin `4.4 mm` deep in Y, against
+> the `6.24 mm` measured. So LDraw is wrong about this feature too, in the same
+> direction as the width. The reference can confirm the crown's *shape*; it
+> cannot arbitrate the latch's *dimensions*.
 
 ## Consequence applied
 

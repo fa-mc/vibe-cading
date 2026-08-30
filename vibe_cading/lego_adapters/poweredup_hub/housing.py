@@ -809,8 +809,15 @@ class PoweredUpHubHousing:
     LATCH_WALL_THICKNESS = 4.800   # -35.600 -> -30.800
     LATCH_SKIN_THICKNESS = 1.200   # what survives in the latch-U band
 
+    # The cover's nominal hook footprint, which _build_finger_windows asserts
+    # these still equal. Round 61: HI 19.200 -> 17.800, following round 60's
+    # hook_width 13.600 -> 12.200 in the shared LatchGeometry. LO is unchanged
+    # because it is hook_pitch/2 and does not depend on the width.
+    # This is NOT a re-datum of the housing (which stays reference-faithful by
+    # direction) -- it is the window tracking the hook that passes through it,
+    # which is the one thing it is not allowed to stop doing.
     LATCH_WINDOW_X_LO = 5.600
-    LATCH_WINDOW_X_HI = 19.200
+    LATCH_WINDOW_X_HI = 17.800
     LATCH_WINDOW_Z_HI = 3.600
     # Retention land (round 30) -- see _build_latch_land. Proud to within
     # 0.050 mm of the leg's -34.000 baseline, spanning Z strictly below

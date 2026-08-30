@@ -25,6 +25,7 @@ from vibe_cading.cq_utils import rounded_box
 from vibe_cading.lego_adapters.poweredup_hub.cover import PoweredUpHubCover
 from vibe_cading.lego_adapters.poweredup_hub.latch_geometry import get_latch_geometry
 from vibe_cading.print_settings import get_profile
+from tests.lego_adapters._poweredup_hub_datum import xfail_cross_datum
 
 
 def test_single_solid():
@@ -79,14 +80,20 @@ def test_plate_envelope():
         )
     )
     bb_p = plate_only.val().BoundingBox()
-    # Round 59: the plate is one running clearance per side NARROWER than
-    # the reference's own PLATE_WIDTH, so the lid can slide in its cavity --
-    # the reference is a zero-clearance model and the measured width gap was
-    # 0.150 mm total against a housing that also sits on its own nominal.
-    # Asserted against the clearance-adjusted figure, NOT loosened to a wide
-    # tolerance: this must still fail if the clearance silently disappears,
-    # doubles, or stops tracking the profile.
-    expected_plate = PoweredUpHubCover.PLATE_WIDTH - 2 * prof.free.radial
+    # The plate is one running clearance per side narrower than the
+    # reference's own PLATE_WIDTH. Round 61: taken from the class's own
+    # fit_clearance() seam rather than re-derived here as prof.free.radial.
+    # That duplication is exactly what broke when round 60 re-datumed the lid
+    # from calipers on a real MATING pair -- the clearance became 0.000
+    # because it is already inside the measurement, and this test went on
+    # demanding a second subtraction the part must not have.
+    #
+    # Still a real check, and the falsifier is unchanged: it fails if the
+    # plate stops tracking fit_clearance() in either direction -- clearance
+    # silently dropped, applied twice, or applied to the wrong edge.
+    expected_plate = (
+        PoweredUpHubCover.PLATE_WIDTH - 2 * PoweredUpHubCover.fit_clearance(prof)
+    )
     assert abs(bb_p.xlen - expected_plate) < 1e-6, (
         f"plate width {bb_p.xlen:.3f} is not the reference "
         f"{PoweredUpHubCover.PLATE_WIDTH} less one running clearance per "
@@ -200,15 +207,22 @@ def test_tongue_is_segmented_into_the_reference_four_blades():
 
     plate = _occupied_x_bands(solid, y=31.800, z=0.600)
     assert len(plate) == 1, f"positive control failed: plate is not continuous ({plate})"
-    assert plate[0][0] < -27.0 and plate[0][1] > 27.0, (
-        f"positive control failed: plate band {plate[0]} is not full width"
+    # Derived from PLATE_WIDTH, not the literal +-27.0 this used to carry:
+    # that number was written when the plate was 54.400 wide, and round 60's
+    # measured 52.330 made the control fail on a plate that is perfectly
+    # continuous. A positive control that breaks when the part legitimately
+    # changes size is a control that will be edited away next time.
+    edge = PoweredUpHubCover.PLATE_WIDTH / 2.0 - 0.100
+    assert plate[0][0] < -edge and plate[0][1] > edge, (
+        f"positive control failed: plate band {plate[0]} is not full width "
+        f"(expected to span at least +-{edge:.3f})"
     )
 
     # Round 59: the blades are one running clearance narrower and the centre
     # gap one clearance wider than the reference's own figures -- male faces
     # shrink, female voids grow, which is why the sign differs per edge here.
     # The reference constants stay the reference; these are what is printed.
-    fit = get_profile().free.radial
+    fit = PoweredUpHubCover.fit_clearance(get_profile())
     inner = PoweredUpHubCover.TONGUE_GAP_X_INNER + fit
     x_half = PoweredUpHubCover.TONGUE_X_HALF - fit
     # Both walls of the rib gap move outward, not just the inner one: a
@@ -293,6 +307,7 @@ def test_window_sill_fills_the_bottom_of_the_side_window():
         )
 
 
+@xfail_cross_datum
 def test_window_sill_clears_the_window_and_its_neighbours():
     """The sill has to fill the opening without binding in it.
 

@@ -1393,7 +1393,7 @@
         {
           "kind": "classmethod",
           "name": "fit_clearance",
-          "doc": "Per-face running clearance taken off the lid's mating surfaces.\n\nA seam, not decoration: a subclass returning ``0.0`` reproduces the\npre-round-59 zero-clearance lid, which is what the plate-edge relief\ntest needs in order to *demonstrate* binding rather than assert it.\nWithout something to falsify against, that test can only claim the\npair is clear -- and a check that cannot fail is not a check.",
+          "doc": "Per-face running clearance taken off the lid's mating surfaces.\n\nA seam, not decoration: a subclass returning ``0.0`` reproduces the\npre-round-59 zero-clearance lid, which is what the plate-edge relief\ntest needs in order to *demonstrate* binding rather than assert it.\nWithout something to falsify against, that test can only claim the\npair is clear -- and a check that cannot fail is not a check.\n\n**Returns 0.000 as of round 60, and that is not a disabling.** Rounds\n58-59 derived this clearance empirically because the LDraw datum gave\na zero-clearance pair. Round 60 replaced that datum with calipers on\nthe real parts, and those readings were taken on a real MATING pair --\n52.33 in a 52.96 cavity -- so the working fit is already inside the\nnumbers. Subtracting more here would double it. The empirical value is\nnot wasted: 0.295 mm/side landed within 0.02 mm of the real\nassembly's own 0.315, which is the corroboration that the clearance\nwork was right and only its datum was wrong.",
           "params": [
             {
               "name": "profile",

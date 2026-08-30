@@ -212,10 +212,53 @@ class PoweredUpHubCover:
         profile name string, or ``None`` for the process-global default.
     """
 
-    # --- Plate (design brief K3, SS1.1) ---
-    PLATE_WIDTH = 54.400
-    PLATE_Y_LO = -30.800  # latch-end plate edge
-    PLATE_Y_HI = 32.000   # tongue-end plate edge
+    # --- Plate -- RE-DATUMED round 60 to the REAL part ---------------------
+    # Source is no longer LDraw 24853. Calipers on the physical cover
+    # (docs/design_plans/2026-08-28-poweredup-hub_physical-measurements.md)
+    # give a plate 52.33 wide where LDraw draws exactly 54.400 -- a 2.07 mm
+    # error, far outside anything tolerance explains. The LDraw figures were
+    # verified three independent ways (raw .dat in LDU, converted mesh, STEP)
+    # and agree with each other while disagreeing with the hardware, so the
+    # pipeline was never the problem; the reference is simply wrong here.
+    #
+    # These values carry NO added clearance and must not have any applied on
+    # top. They were measured on a real mating pair, so the working fit is
+    # already inside them: 52.33 in a 52.96 cavity is 0.315 mm per side.
+    PLATE_WIDTH = 52.330
+    # Length 61.900 measured excluding tongues. Taken off the LATCH end,
+    # holding PLATE_Y_HI, because the tongue end's own protrusion is pinned
+    # by the 63.600 "including tongues" reading (63.600 - 61.900 = 1.700).
+    #
+    # CAUTION, recorded rather than smoothed over: 61.900 is 0.240 mm LONGER
+    # than the measured housing cavity (61.660) it sits in, which cannot be
+    # right for a part that assembles. The width pair reconciles cleanly, so
+    # this is specific to the length -- most likely a different datum (draft,
+    # rim, or a ledge the plate rests on). Using the measured figure for this
+    # print test; re-measure before treating it as settled.
+    # ROUND 61 -- re-datumed from the printed part. The owner printed round 60
+    # and measured the body (tongues excluded) at 59.800, against the 62.800
+    # built here. The earlier 61.900 reading is superseded: it never
+    # reconciled with the 61.660 cavity it has to sit inside, and 59.800 does
+    # (0.930 mm per end). That the unconfirmed figure was the one that would
+    # not close is the corroboration.
+    #
+    # Taken off the LATCH end, holding PLATE_Y_HI, because the tongue end is
+    # pinned twice over: it is the class's stated Y datum, and the tongue's
+    # own protrusion is measured FROM this edge (see TONGUE_Y_HI).
+    #
+    # Rounds 59-60 refused to move this edge because it translates the ENTIRE
+    # latch assembly -- U, bead, thumb pad, end walls, all written against the
+    # old edge -- and moving the edge alone left the finger short of the plate.
+    # That coupling is now handled properly by LATCH_DATUM_Y below instead of
+    # being a reason not to move: the latch constants keep their reference
+    # provenance and the assembly rides along.
+    PLATE_Y_LO = -27.800  # = PLATE_Y_HI - 59.800 (measured, round 61)
+    PLATE_Y_HI = 32.000   # tongue-end plate edge, held as the datum
+    # The plate edge every latch constant below was MEASURED against. The
+    # latch sub-assembly is built in that frame and translated to wherever
+    # PLATE_Y_LO now sits, so re-datuming the lid's length never again means
+    # editing a column of reference measurements (and losing what they record).
+    LATCH_DATUM_Y = -30.800
     PLATE_THICKNESS = 1.200
 
     # --- Side-window sill (round 55) -- see _build_window_sill. ---
@@ -242,10 +285,32 @@ class PoweredUpHubCover:
     # touching edge. The thin distal tip then continues from TONGUE_STEP_Y
     # to TONGUE_Y_HI at the recessed TIP_Z_LO..RISER_Z_HI band only -- this
     # is the 0.926 mm-thick blade the design's Housing rebate must receive.
-    TONGUE_X_HALF = 15.600   # tip half-width (Tongue A only, retention-critical, unchanged)
-    RISER_X_HALF = 26.000    # riser half-width (round 20, C4 -- restores Tongue B's plan outline)
-    TONGUE_STEP_Y = 33.378
-    TONGUE_Y_HI = 34.400
+    # Round 60, from the measured part: tongue 13.800 wide with three
+    # 2.300 gaps ("between tongues and the edge"). Two tongues and three
+    # gaps is the only arrangement those words fit, giving
+    # 2*13.800 + 3*2.300 = 34.500 total, centred -- so gap | tongue | gap |
+    # tongue | gap, and the tongue's outer edge lands at 14.950.
+    # Corroboration: that total is 34.500 against the 34.400 we had modelled
+    # from LDraw, i.e. the same overall feature, redistributed internally.
+    TONGUE_X_HALF = 14.950   # tongue outer edge (was 15.600)
+    # NOT measured -- scaled with the plate (26.000 * 52.330 / 54.400) so the
+    # riser keeps its proportion of the width. Flagged as inferred: if the
+    # riser matters for the fit, measure it.
+    RISER_X_HALF = 25.010
+    # ROUND 61: the tongue protrudes 4.000 beyond the body edge, measured on
+    # the real part ("the tongue length to be 4mm from the end of the body").
+    # Round 60 built 1.700, derived as 63.600 - 61.900 from two whole-part
+    # readings -- an arithmetic difference of two large numbers, so both
+    # errors landed in it. This is the feature measured directly, and it also
+    # closes the length books: 59.800 + 4.000 = 63.800 against the 63.600
+    # "including tongues" reading.
+    #
+    # The riser/tip split is still NOT measured; the LDraw proportion (1.378
+    # riser to 1.022 tip, 2.400 total) is scaled by 4.000/2.400 so the tip
+    # stays a blade rather than guessing a new split. Inferred -- if the
+    # rebate fit is wrong at this end, this is the number to measure next.
+    TONGUE_STEP_Y = 34.297   # PLATE_Y_HI + 1.378 * (4.000 / 2.400)
+    TONGUE_Y_HI = 36.000     # PLATE_Y_HI + 4.000
     RISER_Z_HI = 2.800
     TIP_Z_LO = 1.874
 
@@ -265,8 +330,9 @@ class PoweredUpHubCover:
     # not ribs added to a blade). Cut here as gaps rather than built as
     # four bodies, so TONGUE_X_HALF / RISER_X_HALF keep their meaning as
     # the tongue's outer bounds.
-    TONGUE_GAP_X_INNER = 0.800   # centre gap is |X| <= this (half-width)
-    TONGUE_RIB_X_HI = 17.200     # rib gap spans TONGUE_X_HALF .. this
+    # Round 60, from the same measured layout as TONGUE_X_HALF above.
+    TONGUE_GAP_X_INNER = 1.150   # centre gap half-width (was 0.800)
+    TONGUE_RIB_X_HI = 17.250     # outer gap ends here (was 17.200)
 
     # --- Locating groove / land (SS1.5) -- RESTORED round 22 ---
     # The inner face steps 1.200 -> 1.600 mm deep over Y in [30.0, 31.2],
@@ -292,10 +358,13 @@ class PoweredUpHubCover:
     # reference, so the housing carries a plain mating lip and no ridges.
     TEETH_Y_LO = 31.200
     TEETH_Y_HI = 32.400
+    # Scaled with the ledge in _build_ledge_teeth (round 59) -- these stay
+    # the LDraw pattern because the teeth themselves were not measured; only
+    # their outer extent is pinned, by riding on LEDGE_X_HALF.
     TOOTH_X_BANDS = ((0.800, 2.000), (7.600, 8.800), (14.400, 15.600))
     NOTCH_FLOOR_Z = 1.600
     LEDGE_Z_HI = 2.800         # == RISER_Z_HI; the teeth rise to the ledge top
-    LEDGE_X_HALF = 15.600      # == TONGUE_X_HALF
+    LEDGE_X_HALF = 14.950      # == TONGUE_X_HALF (round 60, measured)
     # The ledge proper starts where the teeth end. Rounds 18-21 ran the
     # riser from the plate edge (32.000), which is 0.400 mm too far
     # forward: SS1.5 puts the raised ledge over Y in [32.400, 34.400] and
@@ -352,9 +421,48 @@ class PoweredUpHubCover:
     #   * finger inner face must OVERLAP PLATE_Y_LO (-30.800), not touch it
     #   * inner bend radius >= 1.0 x wall (Ticona 0.5 x t is the sourced
     #     floor; 1.0 x t is preferred for a load-bearing feature)
-    U_WALL = 0.800                # 2 x 0.4 mm extrusion width
-    U_CENTRELINE_SEP = 2.400      # -> bend radius 1.200, inner radius 0.800
-    U_FINGER_CL_Y = -31.150       # finger spans -31.550..-30.750
+    #
+    # --- ROUND 61: the latch is deepened, the finger thickened, the crown
+    # --- sloped. Three separate findings off the printed part.
+    #
+    # (a) REACH. The owner measured the engaging tongue's tip at 5.000 mm
+    #     outboard of the body's end face; the bead peaked at 3.420, i.e.
+    #     1.580 short. That is the "too short" report, and it is the whole of
+    #     it -- the bead's Z position and profile both stay.
+    #     Independent corroboration: the round-60 measurement session put the
+    #     latch's full depth (thumb-tab face to the hook's root) at 6.240
+    #     against our 4.850. Two readings taken on different features, a round
+    #     apart, asking for the same ~1.5 mm of deepening.
+    # (b) FINGER THICKNESS 1.600, up from 0.800. The finger is the member
+    #     rooted in the body -- the owner's "straight line shot out vertically
+    #     from the body". The reference has it at 1.100, so the printed part,
+    #     the reference and this class all disagreed; the printed part wins.
+    #     The LEG deliberately stays at U_WALL: it is the thin, pressable,
+    #     compliant member, and the owner confirmed last round that "the
+    #     spring was OK". Thickening both -- which a single-ribbon model would
+    #     force -- would raise stiffness with the CUBE of thickness and throw
+    #     away a spring that already works. This is why the two walls are now
+    #     separate constants.
+    # (c) CROWN. "Joined by a slope", not our semicircular hairpin bend.
+    #     Confirmed on the reference independently (tmp/ldraw/latch_shape_r61.py):
+    #     its outer profile converges from 2.153 mm wide at z = 11.25 to
+    #     1.286 at z = 12.75 before ending at 13.000 -- a taper, not an arc.
+    U_WALL = 0.800                # LEG wall: 2 x 0.4 mm extrusion width
+    FINGER_WALL = 1.600           # (b) measured on the printed part
+    # Sized so the BEAD peaks BARB_TIP_OUT outboard of the plate edge; see
+    # the derivation in __init__, which is where the arithmetic lives so it
+    # cannot drift from the bead constants it depends on.
+    U_CENTRELINE_SEP = 3.630
+    U_FINGER_CL_Y = -31.550       # finger spans -32.350..-30.750 (1.600 wall)
+    # (a) The engaging tongue's tip, measured OUTBOARD from the plate edge
+    # (LATCH_DATUM_Y). Everything else at this end is derived from it.
+    BARB_TIP_OUT = 5.000
+    # (c) Crown taper: the outer faces converge over this Z run below the
+    # hook's tip, replacing the round bend. The aperture's inner arc is NOT
+    # replaced -- it is the spring's most cyclically loaded section and a
+    # sharp corner there is the round-37 defect this file already fixed once.
+    CROWN_SLOPE_H = 2.000
+    CROWN_TOP_CLEAR = 0.400       # crown flat half-width, beyond the inner arc
     # Round 39: the BEND is thicker than the legs. It is the most highly and
     # most cyclically loaded section of the spring, so it carries more
     # material -- but NOT by shrinking the inner radius, which would raise the
@@ -370,20 +478,45 @@ class PoweredUpHubCover:
     U_BEND_WALL = 1.050
     U_FLARE_Z = 8.000
 
+    # Round 61: Z band and the 0.220 mm protrusion are UNCHANGED -- they are
+    # the reference's own resolved profile and nothing measured contradicts
+    # them. Only the Y datum moves, carrying the bead out with the leg so its
+    # peak lands at BARB_TIP_OUT from the plate edge (-30.800 - 5.000).
     BEAD_Z_LO = 4.750
     BEAD_Z_HI = 5.750
-    BEAD_PEAK_Y = -34.220
-    BEAD_BASELINE_Y = -34.000
+    BEAD_PEAK_Y = -35.800     # == LATCH_DATUM_Y - BARB_TIP_OUT (was -34.220)
+    # Now exactly the leg's own outer face, so the bead's BUILT outermost
+    # point is peak, not peak + slop. Pre-round-61 this sat 0.050 outboard of
+    # our leg face (it recorded the REFERENCE's face, -34.000, against our
+    # -33.950), which quietly cost 0.050 mm of reach -- invisible while the
+    # constant was only ever read as a protrusion difference.
+    BEAD_BASELINE_Y = -35.580
     # Round 38: -34.000 -> -33.900. The U ribbon's leg outer face is at
     # -33.950, so the old value left a 0.050 mm gap and the pad (and the
     # end walls, which share this bound) came off as separate solids.
     # Now overlaps the leg by 0.050 -- volume overlap, not a touching face.
     # Thumb-pad plan outline: scalloped in Y across the hook width.
+    # Round 61: the pad rides out with the leg. Its OUTER face is set by the
+    # second measurement rather than by the same one that sets the bead --
+    # 6.240 from the hook's root (finger inner face, -30.750) puts it at
+    # -36.990, and the 0.400 scallop step is kept as measured. Driving the
+    # bead off the 5.000 reading and the pad off the 6.240 reading means both
+    # measurements are honoured; had a single figure driven both, one of them
+    # would have been silently discarded.
     PAD_SCALLOP = (
-        (5.600, -35.600), (8.320, -35.600), (11.040, -35.200),
-        (13.760, -35.200), (16.480, -35.600), (19.200, -35.600),
+        # X: the NOMINAL hook footprint, 5.600..17.800, in six evenly-spaced
+        # steps. Round 61 correction -- these were still on the OLD footprint
+        # (5.600..19.200, from hook_width 13.600), which round 60 changed to
+        # 12.200 without following through here. The scallop was therefore
+        # 1.400 mm wider than the hook it sits on and 1.400 mm wider than the
+        # housing window it passes through. Nothing caught it: the pad is
+        # union-only, so the excess simply widened the part.
+        (5.600, -36.990), (8.040, -36.990), (10.480, -36.590),
+        (12.920, -36.590), (15.360, -36.990), (17.800, -36.990),
     )
-    PAD_INNER_Y = -33.900
+    # Overlaps the leg's outer face (-35.530) by 0.050 -- a real fused volume,
+    # not a coincident face. Tracks the leg; see the round-38 note above.
+    PAD_INNER_Y = -35.530
     # Round 33: the reference's pad is a LIP, not a tall block. Ray-probing
     # 24853.dat's own outer face gives -35.120 at z = 1.0 and -35.104 at
     # z = 1.2, then -34.112 at z = 1.4 -- so it ends between 1.2 and 1.4. The
@@ -405,7 +538,7 @@ class PoweredUpHubCover:
     # cutting the walls off entirely: 1.361 mm missing at x = 6.400 / 18.400,
     # y = -35.377, z = 2.791.
     PAD_END_WALL_X = 0.800
-    PAD_END_WALL_Y = -35.400
+    PAD_END_WALL_Y = -36.790   # round 61: rides with the pad (was -35.400)
     PAD_END_WALL_Z_HI = 2.791
 
     def __init__(self, profile: ToleranceProfile | str | None = None) -> None:
@@ -479,12 +612,19 @@ class PoweredUpHubCover:
         # bridge it, and the assertion below was written with its inequality
         # reversed, so it certified the broken state instead of catching it.
         #
-        # The latch end's own length clearance therefore has to come from
-        # translating the whole latch assembly, not from retreating the plate
-        # edge out from under it. Deferred to the physical re-datum, which
-        # moves these constants anyway; see
-        # docs/design_plans/2026-08-28-poweredup-hub_physical-measurements.md.
+        # The latch end's own length clearance therefore comes from
+        # translating the whole latch assembly (self._latch_dy below), never
+        # from retreating the plate edge out from under it.
         self._plate_y_lo = self.PLATE_Y_LO
+
+        # Round 61: how far the latch sub-assembly rides from the frame its
+        # constants were measured in to wherever the plate edge now is. Every
+        # latch feature -- U ribbon, bead, thumb pad, pad end walls, and the
+        # plate's own latch thickening band -- is built at LATCH_DATUM_Y and
+        # translated by this. The alternative, editing ~10 measured Y
+        # constants by hand, would silently destroy the provenance this file
+        # spends most of its comments recording.
+        self._latch_dy = self._plate_y_lo - self.LATCH_DATUM_Y
         self._tongue_step_y = self.TONGUE_STEP_Y - self._fit
         self._tongue_y_hi = self.TONGUE_Y_HI - self._fit
         self._tongue_x_half = self.TONGUE_X_HALF - self._fit
@@ -501,20 +641,50 @@ class PoweredUpHubCover:
         # any seated check: touching faces measure 0.000 mm^3.
         self._tongue_rib_x_hi = self.TONGUE_RIB_X_HI + self._fit
 
-        # The U's finger must still OVERLAP the plate edge rather than touch
-        # it (see the U geometry constraints above); moving PLATE_Y_LO inboard
-        # eats into that overlap, so it is checked rather than assumed.
-        # OVERLAP means the finger reaches inboard PAST the plate edge, i.e.
-        # finger_inner is at a GREATER Y than the edge. The first version of
-        # this compared the other way round, which is satisfied precisely by
-        # the gap it was meant to forbid.
-        finger_inner = self.U_FINGER_CL_Y + self.U_WALL / 2.0
-        assert finger_inner > self._plate_y_lo + 1e-9, (
+        # The U's finger must OVERLAP the plate edge rather than touch it (see
+        # the U geometry constraints above), so it is checked rather than
+        # assumed. OVERLAP means the finger reaches inboard PAST the edge,
+        # i.e. finger_inner is at a GREATER Y. An earlier version compared the
+        # other way round, which is satisfied precisely by the gap it was
+        # meant to forbid.
+        #
+        # What can still falsify this after round 61: the latch rides with the
+        # plate edge, so a length re-datum alone can no longer break the fuse
+        # -- but editing U_FINGER_CL_Y, U_WALL or LATCH_DATUM_Y independently
+        # can, and that is exactly the drift this now guards. Both sides are
+        # therefore stated in the latch's OWN frame, not the built one, where
+        # the comparison would reduce to an identity and assert nothing.
+        finger_inner = self.U_FINGER_CL_Y + self.FINGER_WALL / 2.0
+        assert finger_inner > self.LATCH_DATUM_Y + 1e-9, (
             f"the latch finger's inner face ({finger_inner:.3f}) does not "
-            f"reach inboard past the plate edge ({self._plate_y_lo:.3f}) -- "
-            f"they meet on a coincident face or leave a "
-            f"{self._plate_y_lo - finger_inner:.3f} mm gap, so the U is not "
-            "fused to the plate"
+            f"reach inboard past the plate edge it is measured against "
+            f"({self.LATCH_DATUM_Y:.3f}) -- they meet on a coincident face or "
+            f"leave a {self.LATCH_DATUM_Y - finger_inner:.3f} mm gap, so the "
+            "U is not fused to the plate"
+        )
+
+        # Round 61 (a): the engaging tongue's REACH, which is the defect the
+        # owner reported. U_CENTRELINE_SEP is what actually positions the leg
+        # the bead rides on, and it is three constants away from BARB_TIP_OUT
+        # -- so the relationship is asserted rather than left to a comment
+        # that says "sized so".
+        #
+        # Falsifier, stated up front: any edit to U_FINGER_CL_Y,
+        # U_CENTRELINE_SEP, U_WALL, BEAD_PEAK_Y or BEAD_BASELINE_Y that leaves
+        # the bead's outermost point somewhere other than BARB_TIP_OUT from
+        # the plate edge fails this, at import, before any geometry is built.
+        # The tolerance is 1e-6, not a working tolerance: these are exact
+        # arithmetic, and a loose bound here would re-admit exactly the
+        # 0.050 mm of silent slop BEAD_BASELINE_Y used to carry.
+        leg_outer = self.U_FINGER_CL_Y - self.U_CENTRELINE_SEP - self.U_WALL / 2.0
+        bead_reach = self.LATCH_DATUM_Y - (
+            leg_outer - (self.BEAD_BASELINE_Y - self.BEAD_PEAK_Y)
+        )
+        assert abs(bead_reach - self.BARB_TIP_OUT) < 1e-6, (
+            f"the retention bead reaches {bead_reach:.3f} mm outboard of the "
+            f"plate edge, not the measured {self.BARB_TIP_OUT:.3f} -- the leg "
+            f"(outer face {leg_outer:.3f}) and the bead constants disagree "
+            "about where the tongue that engages the housing ends"
         )
 
         self._solid = self._build()
@@ -528,8 +698,18 @@ class PoweredUpHubCover:
         test needs in order to *demonstrate* binding rather than assert it.
         Without something to falsify against, that test can only claim the
         pair is clear -- and a check that cannot fail is not a check.
+
+        **Returns 0.000 as of round 60, and that is not a disabling.** Rounds
+        58-59 derived this clearance empirically because the LDraw datum gave
+        a zero-clearance pair. Round 60 replaced that datum with calipers on
+        the real parts, and those readings were taken on a real MATING pair --
+        52.33 in a 52.96 cavity -- so the working fit is already inside the
+        numbers. Subtracting more here would double it. The empirical value is
+        not wasted: 0.295 mm/side landed within 0.02 mm of the real
+        assembly's own 0.315, which is the corroboration that the clearance
+        work was right and only its datum was wrong.
         """
-        return profile.free.radial
+        return 0.0
 
     def _hook_span(self, side: int) -> tuple[float, float]:
         """``(x_center, half_width)`` for the male latch features.
@@ -546,16 +726,29 @@ class PoweredUpHubCover:
         x_center = side * (lg.hook_pitch / 2.0 + lg.hook_width / 2.0)
         return x_center, self._hook_width_printed / 2.0
 
+    def _latch_frame(self, wp: cq.Workplane) -> cq.Workplane:
+        """Move a latch-frame solid onto the plate edge as currently datumed.
+
+        Every latch builder works in the frame its reference measurements were
+        taken in (:attr:`LATCH_DATUM_Y`); this is the single place that frame
+        is reconciled with :attr:`PLATE_Y_LO`. Routing them all through one
+        method is what stops a future length change from moving four of the
+        five latch features and leaving the fifth behind -- a failure a seated
+        interference check cannot see, because a detached pad still measures
+        0.000 mm^3 against the housing.
+        """
+        return wp.translate((0.0, self._latch_dy, 0.0))
+
     def _build(self) -> cq.Workplane:
         part = self._build_plate()
-        part = part.union(self._build_latch_u(+1))
-        part = part.union(self._build_latch_u(-1))
-        part = part.union(self._build_leg_bead(+1))
-        part = part.union(self._build_leg_bead(-1))
-        part = part.union(self._build_pad_end_walls(+1))
-        part = part.union(self._build_pad_end_walls(-1))
-        part = part.union(self._build_thumb_pad(+1))
-        part = part.union(self._build_thumb_pad(-1))
+        part = part.union(self._latch_frame(self._build_latch_u(+1)))
+        part = part.union(self._latch_frame(self._build_latch_u(-1)))
+        part = part.union(self._latch_frame(self._build_leg_bead(+1)))
+        part = part.union(self._latch_frame(self._build_leg_bead(-1)))
+        part = part.union(self._latch_frame(self._build_pad_end_walls(+1)))
+        part = part.union(self._latch_frame(self._build_pad_end_walls(-1)))
+        part = part.union(self._latch_frame(self._build_thumb_pad(+1)))
+        part = part.union(self._latch_frame(self._build_thumb_pad(-1)))
         part = part.union(self._build_tongue())
         part = part.union(self._build_locating_groove())
         part = part.union(self._build_ledge_teeth())
@@ -632,6 +825,11 @@ class PoweredUpHubCover:
             corner_r=0.0,  # sharp corners, measured (SS1.1)
             center=(0.0, (self._plate_y_lo + self.PLATE_Y_HI) / 2.0, 0.0),
         )
+        # The band is a LATCH-frame feature (it thickens the plate exactly
+        # where the fingers root), so it rides with the latch rather than
+        # staying at its measured Y. Left behind, it would sit 3 mm inboard of
+        # the fingers it exists to support and the lid would still build,
+        # still be one solid, and still seat at zero interference.
         band_span = self.LATCH_BAND_Y_HI - self.LATCH_BAND_Y_LO
         band = rounded_box(
             width=self._plate_width,
@@ -644,7 +842,7 @@ class PoweredUpHubCover:
                 self.PLATE_THICKNESS,
             ),
         )
-        return plate.union(band)
+        return plate.union(self._latch_frame(band))
 
     @staticmethod
     def _interp(profile: tuple[tuple[float, float], ...], z: float) -> float:
@@ -739,35 +937,60 @@ class PoweredUpHubCover:
         lg: LatchGeometry = self._latch
         x_center, half_w = self._hook_span(side)
 
-        d = self.U_WALL / 2.0
+        # Round 61: the two members no longer share a thickness. The finger is
+        # the stiff, body-rooted wall (FINGER_WALL); the leg stays thin so the
+        # spring keeps the compliance the owner signed off. See the constants'
+        # own note (b) -- this is why the docstring's "one constant-thickness
+        # ribbon" no longer describes the geometry.
+        d_leg = self.U_WALL / 2.0
+        d_fin = self.FINGER_WALL / 2.0
         finger_cl = self.U_FINGER_CL_Y
         leg_cl = finger_cl - self.U_CENTRELINE_SEP
 
-        # Aperture faces -- these set the INNER arc and never move.
-        leg_in = leg_cl + d
-        finger_out = finger_cl - d
+        # Aperture faces -- these set the INNER arc.
+        leg_in = leg_cl + d_leg
+        finger_out = finger_cl - d_fin
         y_c = (leg_in + finger_out) / 2.0
-        r_in = (finger_out - leg_in) / 2.0          # 0.800 = 1.00 x U_WALL
+        r_in = (finger_out - leg_in) / 2.0
 
-        # Outer faces: nominal down the legs, flared at the bend.
-        leg_out = leg_cl - d
-        finger_in = finger_cl + d
-        r_out = r_in + self.U_BEND_WALL
-        z_bend = lg.hook_depth - r_out              # crown lands on hook_depth
-        leg_out_bend = y_c - r_out
-        finger_in_bend = y_c + r_out
+        leg_out = leg_cl - d_leg
+        finger_in = finger_cl + d_fin
 
-        # One closed U profile: up the leg's outer face, over the crown, down
-        # the finger's inner face, across the foot, up the finger's aperture
-        # face, around the inner arc, down the leg's aperture face, close.
+        # (c) Sloped crown, replacing the round outer bend. The outer faces
+        # run straight to z_bend, then converge onto a short flat at the
+        # hook's tip. The INNER arc is untouched -- see the constants' note.
+        z_bend = lg.hook_depth - self.CROWN_SLOPE_H
+        crown_half = r_in + self.CROWN_TOP_CLEAR
+        crown_out = y_c - crown_half
+        crown_in = y_c + crown_half
+
+        # The aperture's arc must terminate BELOW the crown flat, or the
+        # slope would cut into it and the hook would be hollow at its tip.
+        assert z_bend + r_in < lg.hook_depth - 1e-9, (
+            f"the aperture arc tops out at {z_bend + r_in:.3f}, at or above "
+            f"the hook tip ({lg.hook_depth:.3f}) -- CROWN_SLOPE_H "
+            f"({self.CROWN_SLOPE_H}) is too small for an aperture of "
+            f"{2 * r_in:.3f}, so the crown carries no material"
+        )
+        # And the slope must actually converge, or it is not a slope.
+        assert crown_half < (finger_in - leg_out) / 2.0 - 1e-9, (
+            f"the crown flat ({2 * crown_half:.3f} wide) is no narrower than "
+            f"the hook below it ({finger_in - leg_out:.3f}) -- "
+            "CROWN_TOP_CLEAR leaves nothing to taper"
+        )
+
+        # One closed profile: up the leg's outer face, up the crown slope,
+        # across the flat, down the finger's outer slope and inner face,
+        # across the foot, up the finger's aperture face, around the inner
+        # arc, down the leg's aperture face, close.
         wp = (
             cq.Workplane("YZ")
             .transformed(offset=cq.Vector(0.0, 0.0, x_center - half_w))
             .moveTo(leg_out, 0.0)
-            .lineTo(leg_out, self.U_FLARE_Z)
-            .lineTo(leg_out_bend, z_bend)
-            .threePointArc((y_c, lg.hook_depth), (finger_in_bend, z_bend))
-            .lineTo(finger_in, self.U_FLARE_Z)
+            .lineTo(leg_out, z_bend)
+            .lineTo(crown_out, lg.hook_depth)
+            .lineTo(crown_in, lg.hook_depth)
+            .lineTo(finger_in, z_bend)
             .lineTo(finger_in, 0.0)
             .lineTo(finger_out, 0.0)
             .lineTo(finger_out, z_bend)
