@@ -459,8 +459,7 @@ class PoweredUpHubCover:
     #   * The two members CONVERGE. The aperture between them is 1.454 mm
     #     wide at z = 2 and 0.087 at z = 11 -- a V with its vertex UP, not the
     #     parallel-legged U every previous round built.
-    #   * The plate-side member is a STRAIGHT vertical wall. The slope is
-    #     entirely on the outer member.
+    #   * The plate-side member is a STRAIGHT vertical wall.
     #
     # Round 61 read "the leg is further out at the bottom than the top" as
     # "the leg is in the wrong place" and translated the whole assembly
@@ -469,36 +468,71 @@ class PoweredUpHubCover:
     # that error. The leg goes back; the PEG grows instead.
     #
     # Look at the geometry before believing a table about it.
+    #
+    # === ROUND 63 -- the slope was on the wrong face ===
+    #
+    # Round 62 got the convergence right and then put ALL of it on the leg's
+    # OUTER face, which made the hook a wedge -- thick at the plate, thin at
+    # the tip. The owner's sketch shows the opposite: the outer wall runs
+    # VERTICAL off the cover plate and only slopes near the top.
+    #
+    # Re-reading round 62's own reference plot confirms the sketch, and shows
+    # the miss was there to be caught: between z = 3 and z = 11 the
+    # reference's leg outer face moves 0.633 mm (4.5 deg -- essentially
+    # vertical) while its INNER face moves 0.987. The leg THICKENS as it
+    # rises; the aperture closes because its outboard wall climbs inboard,
+    # not because the outside leans in. Round 62 read "the members converge"
+    # off the plot and then chose, unprompted, which face carried it.
+    #
+    # Lesson, one level up from round 62's own: seeing the shape is not the
+    # same as decomposing it. The plot showed convergence; only differencing
+    # the two faces SEPARATELY says which one moves.
     U_WALL = 0.800                # LEG wall: 2 x 0.4 mm extrusion width
     FINGER_WALL = 1.600           # the straight, plate-rooted member
     U_FINGER_CL_Y = -31.550       # finger spans -32.350..-30.750 (1.600 wall)
 
-    # --- The V ---
-    # The leg's OUTER face at the plate (z = 0), its widest point. Chosen so
-    # the aperture's base is 1.454 -- the reference's own base width -- given
-    # the finger's outer face at -32.350. INFERRED from the reference's
-    # proportion, not measured: if the spring's feel is wrong, this is the
-    # constant that sets its free length and lever arm.
-    LEG_BASE_OUT_Y = -34.604
-    # Where the two members meet, as a fraction of hook height. The reference
-    # closes its aperture at z = 11.2 of 13.000, i.e. 0.862.
+    # --- The leg: vertical outer wall, sloped inner wall ---
+    # The outer face is VERTICAL over the whole straight run -- the owner's
+    # "the outer wall runs a straight portion that is vertical to the cover
+    # plate". It carries the peg and the arms, so keeping it a single plane
+    # is also what lets both be simple rectangles.
+    LEG_OUT_Y = -34.604
+    # Where the outer wall stops being vertical and slopes to the tip. From
+    # the owner's sketch, ~79% of the hook's height.
+    LEG_SLOPE_Z_FRAC = 0.786
+    # Where the leg's INNER face reaches the finger and the aperture closes.
+    # The reference closes at z = 11.2 of 13.000, i.e. 0.862.
     APEX_Z_FRAC = 0.862
-    # Crown: above the apex the hook is solid, tapering to a flat tip.
-    CROWN_TOP_HALF = 0.500
+    # The flat tip's width, measured inboard from the finger's inner face --
+    # the finger stays vertical right to the top, so only the OUTER face
+    # slopes in. That is what the sketch shows: one vertical edge full height,
+    # one edge that kinks.
+    CROWN_TIP_WIDTH = 2.400
 
     # --- The peg (the "tongue that joins the housing") ---
-    # Measured: tip 5.000 mm outboard of the plate edge, and ~1 mm tall.
-    # 1 mm tall with a ~1.6 mm protrusion makes it a SHELF, not the reference's
-    # smooth 0.220 bulge -- so it is built as a right triangle in section:
-    #   * ramped underside, which is the lead-in as the hook enters (+Z), and
-    #     also the printable face (a 32 deg overhang rather than a 90 deg one);
-    #   * FLAT horizontal top, which is the retention face -- it takes the
-    #     pull-out load in -Z square-on, and prints as a short bridge.
-    # A symmetric bump would put a 17 deg overhang under the peg and bear the
-    # retention load on a slope that wants to cam itself open.
+    # Measured: tip 5.000 mm outboard of the plate edge, ~1 mm tall, and
+    # ROUND 63 -- rectangular in section. Round 62 built it as a right
+    # triangle (ramped underside as a lead-in, flat top for retention), which
+    # was engineering reasoning, not measurement, and the owner's sketch
+    # overrules it: "the whole peg body needs to be rectangle".
+    #
+    # Consequence worth stating rather than discovering on the bed: the
+    # underside is now a flat 1.196 mm horizontal overhang. It should bridge,
+    # but if it droops this is the feature to look at first -- and the fix is
+    # a chamfer on the UNDERSIDE only, never on the top face, which is what
+    # takes the pull-out load.
     BEAD_Z_LO = 4.750
     BEAD_Z_HI = 5.750             # 1.000 tall, measured
     BARB_TIP_OUT = 5.000          # peg tip, outboard from LATCH_DATUM_Y
+
+    # --- Stiffening arms above the peg (round 63) ---
+    # Two small ribs at the hook's X extremes, sitting directly on top of the
+    # peg -- the same trick as PAD_END_WALL_X does for the thumb tab, and
+    # visible in Philo's own model. They brace the peg's root against the
+    # bending moment that pull-out applies to it.
+    ARM_X = 0.800                 # each arm's width, as the pad's end walls
+    ARM_Z = 2.000                 # how far they rise above the peg
+    ARM_OUT = 1.100               # how far they stand proud of the leg face
     # --- The thumb tab ---
     TAB_TIP_OUT = 6.000           # tab tip, outboard from LATCH_DATUM_Y
     # Thumb-pad plan outline: scalloped in Y across the hook width.
@@ -514,15 +548,16 @@ class PoweredUpHubCover:
         (5.600, -36.800), (8.040, -36.800), (10.480, -36.400),
         (12.920, -36.400), (15.360, -36.800), (17.800, -36.800),
     )
-    # NOT a constant any more -- see self._pad_inner_y, derived in __init__.
-    # The leg SLOPES, so its outer face retreats inboard as Z rises and a
-    # fixed inner bound here loses contact with it partway up the pad. A first
-    # round-62 version used LEG_BASE_OUT_Y + 0.050 (the leg's face at the
-    # PLATE) and the pad parted company with the leg above z = 0.44 -- visible
-    # immediately in the section plot, and invisible to every check we own:
-    # the pad is still fused to the PLATE, so `solids == 1` passes, and a
-    # thumb pad that no longer drives the leg is a dead release mechanism that
-    # measures perfectly.
+    # Derived, not a constant -- see self._pad_inner_y in __init__.
+    #
+    # Round 63 makes the leg's outer face vertical, so this is once again the
+    # same value at every height and the derivation looks redundant. It is
+    # KEPT because of what round 62 cost: with a sloped outer face, a fixed
+    # bound here lost contact with the leg above z = 0.44. The pad stayed
+    # fused to the PLATE, so `solids == 1` and every dimensional check passed,
+    # while a thumb pad that no longer drives the leg is a dead release
+    # mechanism that measures perfectly. Reading the leg's own face keeps that
+    # failure impossible rather than merely absent at today's geometry.
     # Round 33: the reference's pad is a LIP, not a tall block. Ray-probing
     # 24853.dat's own outer face gives -35.120 at z = 1.0 and -35.104 at
     # z = 1.2, then -34.112 at z = 1.4 -- so it ends between 1.2 and 1.4. The
@@ -678,7 +713,7 @@ class PoweredUpHubCover:
         # (it always did) but "does the peg reach 5.000 by PROTRUDING from a
         # leg that is still where the spring's own geometry puts it".
         #
-        # Falsifier: move LEG_BASE_OUT_Y outboard to chase the reach and the
+        # Falsifier: move LEG_OUT_Y outboard to chase the reach and the
         # protrusion collapses toward zero, failing the lower bound. Leave the
         # leg alone and shrink the peg, and it fails too.
         peg_root, _ = self._leg_faces(self.BEAD_Z_HI)
@@ -764,6 +799,8 @@ class PoweredUpHubCover:
         part = part.union(self._latch_frame(self._build_latch_u(-1)))
         part = part.union(self._latch_frame(self._build_leg_bead(+1)))
         part = part.union(self._latch_frame(self._build_leg_bead(-1)))
+        part = part.union(self._latch_frame(self._build_peg_arms(+1)))
+        part = part.union(self._latch_frame(self._build_peg_arms(-1)))
         part = part.union(self._latch_frame(self._build_pad_end_walls(+1)))
         part = part.union(self._latch_frame(self._build_pad_end_walls(-1)))
         part = part.union(self._latch_frame(self._build_thumb_pad(+1)))
@@ -947,22 +984,34 @@ class PoweredUpHubCover:
         return self.U_FINGER_CL_Y - d, self.U_FINGER_CL_Y + d
 
     def _leg_faces(self, z: float) -> tuple[float, float]:
-        """``(outer, inner)`` Y of the SLOPED member at height ``z``.
+        """``(outer, inner)`` Y of the outer member at height ``z``.
 
-        The leg is widest at the plate and converges on the finger as it
-        rises, closing the aperture to a point at ``_apex_z()``. Constant
-        thickness :attr:`U_WALL` throughout -- it is a leaning wall, not a
-        tapering one, so its stiffness does not vary along its length.
+        Round 63: the OUTER face is vertical (:attr:`LEG_OUT_Y`) and only the
+        INNER face climbs inboard, so the leg *thickens* as it rises and the
+        aperture closes from its outboard side. Round 62 had this the other
+        way round -- constant thickness with the outer face leaning in, making
+        a wedge that was thick at the plate and thin at the tip.
+
+        The reference settles it: over ``z = 3..11`` its leg's outer face
+        moves 0.633 mm and its inner face 0.987. The outside is near-vertical;
+        the inside does the work.
+
+        Only valid below :meth:`_slope_z` -- above that the outer face is
+        sloping to the tip and the profile in :meth:`_build_latch_u` is the
+        authority. The peg and arms both live well below it.
         """
         finger_out, _ = self._finger_faces()
-        base_in = self.LEG_BASE_OUT_Y + self.U_WALL
+        base_in = self.LEG_OUT_Y + self.U_WALL
         t = min(max(z / self._apex_z(), 0.0), 1.0)
-        inner = base_in + t * (finger_out - base_in)
-        return inner - self.U_WALL, inner
+        return self.LEG_OUT_Y, base_in + t * (finger_out - base_in)
 
     def _apex_z(self) -> float:
         """Z at which the aperture closes and the two members merge."""
         return self._latch.hook_depth * self.APEX_Z_FRAC
+
+    def _slope_z(self) -> float:
+        """Z at which the leg's vertical outer wall starts sloping to the tip."""
+        return self._latch.hook_depth * self.LEG_SLOPE_Z_FRAC
 
     def _build_latch_u(self, side: int) -> cq.Workplane:
         """The latch: a converging **V**, not the hairpin U of rounds 38-61.
@@ -984,47 +1033,44 @@ class PoweredUpHubCover:
         x_center, half_w = self._hook_span(side)
 
         finger_out, finger_in = self._finger_faces()
-        base_out, base_in = self._leg_faces(0.0)
+        _, base_in = self._leg_faces(0.0)
         z_apex = self._apex_z()
+        z_slope = self._slope_z()
+        crown_out = finger_in - self.CROWN_TIP_WIDTH
 
-        # Above the apex the hook is one solid section spanning the leg's
-        # outer face to the finger's inner face, tapering to a flat tip.
-        apex_out, _ = self._leg_faces(z_apex)
-        mid = (apex_out + finger_in) / 2.0
-        crown_out = mid - self.CROWN_TOP_HALF
-        crown_in = mid + self.CROWN_TOP_HALF
-
-        # The V must actually converge, and must not cross over. A leg that
-        # over-runs the finger would produce a self-intersecting profile,
-        # which OCCT will happily extrude into a single valid-looking solid
-        # -- the silent-failure mode this file has been bitten by before.
+        # The aperture must open at the plate and close going up, and the leg
+        # must not over-run the finger. A crossed profile still extrudes into
+        # one valid-looking solid in OCCT -- the silent failure this file has
+        # been caught by before, so it is checked rather than assumed.
         assert base_in < finger_out - 1e-9, (
             f"the leg's inner face at the plate ({base_in:.3f}) is not "
             f"outboard of the finger's outer face ({finger_out:.3f}) -- "
-            "there is no aperture to open, so this is not a V"
+            "there is no aperture to open"
         )
-        assert z_apex < lg.hook_depth - 1e-9, (
-            f"the aperture closes at {z_apex:.3f}, at or above the hook tip "
-            f"({lg.hook_depth:.3f}) -- APEX_Z_FRAC leaves no crown"
+        assert z_slope < lg.hook_depth - 1e-9, (
+            f"the outer wall's vertical run ({z_slope:.3f}) reaches the hook "
+            f"tip ({lg.hook_depth:.3f}) -- there is no slope to join it"
         )
-        assert crown_out < crown_in and crown_out > apex_out - 1e-9, (
-            f"the crown flat ({crown_out:.3f}..{crown_in:.3f}) does not sit "
-            f"inside the hook's own section at the apex "
-            f"({apex_out:.3f}..{finger_in:.3f})"
+        # The tip must be NARROWER than the section below it, or the "slope"
+        # leans outward and the hook is an undercut that cannot be withdrawn.
+        assert crown_out > self.LEG_OUT_Y + 1e-9, (
+            f"the tip's outer edge ({crown_out:.3f}) is not inboard of the "
+            f"vertical wall ({self.LEG_OUT_Y:.3f}) -- CROWN_TIP_WIDTH "
+            f"({self.CROWN_TIP_WIDTH}) makes the top flare outward"
         )
 
-        # One closed profile, anticlockwise from the leg's outer foot: up the
-        # sloped leg, up the crown taper, across the flat, down the finger's
-        # inner face to the plate, across the foot, up the finger's vertical
-        # aperture face to the apex, then back down the leg's inner face.
+        # One closed profile from the leg's outer foot: straight up the
+        # VERTICAL outer wall, slope in to the flat tip, across it, then down
+        # the finger's inner face -- which stays vertical the whole height --
+        # across the foot, up the finger's aperture face to the apex, and back
+        # down the leg's sloped inner face.
         wp = (
             cq.Workplane("YZ")
             .transformed(offset=cq.Vector(0.0, 0.0, x_center - half_w))
-            .moveTo(base_out, 0.0)
-            .lineTo(apex_out, z_apex)
+            .moveTo(self.LEG_OUT_Y, 0.0)
+            .lineTo(self.LEG_OUT_Y, z_slope)
             .lineTo(crown_out, lg.hook_depth)
-            .lineTo(crown_in, lg.hook_depth)
-            .lineTo(finger_in, z_apex)
+            .lineTo(finger_in, lg.hook_depth)
             .lineTo(finger_in, 0.0)
             .lineTo(finger_out, 0.0)
             .lineTo(finger_out, z_apex)
@@ -1062,23 +1108,66 @@ class PoweredUpHubCover:
         """
         x_center, half_w = self._hook_span(side)
         tip_y = self.LATCH_DATUM_Y - self.BARB_TIP_OUT
-        root_lo, _ = self._leg_faces(self.BEAD_Z_LO)
-        root_hi, _ = self._leg_faces(self.BEAD_Z_HI)
+        root, _ = self._leg_faces(self.BEAD_Z_HI)
         seam = 0.050   # bite back into the leg so this fuses by volume
 
-        assert tip_y < root_hi - 1e-9, (
+        assert tip_y < root - 1e-9, (
             f"the peg's tip ({tip_y:.3f}) is not outboard of the leg face it "
-            f"grows from ({root_hi:.3f}) -- it would be a notch, not a peg"
+            f"grows from ({root:.3f}) -- it would be a notch, not a peg"
         )
 
-        wp = (
-            cq.Workplane("YZ")
-            .transformed(offset=cq.Vector(0.0, 0.0, x_center - half_w))
-            .moveTo(root_lo + seam, self.BEAD_Z_LO)
-            .lineTo(tip_y, self.BEAD_Z_HI)
-            .lineTo(root_hi + seam, self.BEAD_Z_HI)
+        return rounded_box(
+            width=self._hook_width_printed,
+            depth=(root + seam) - tip_y,
+            height=self.BEAD_Z_HI - self.BEAD_Z_LO,
+            corner_r=0.0,
+            center=(
+                x_center,
+                (tip_y + root + seam) / 2.0,
+                self.BEAD_Z_LO,
+            ),
         )
-        return wp.close().extrude(self._hook_width_printed)
+
+    def _build_peg_arms(self, side: int) -> cq.Workplane:
+        """The two stiffening arms sitting on top of the peg (round 63).
+
+        One at each X extreme of the hook, exactly the trick
+        :meth:`_build_pad_end_walls` already plays for the thumb tab, and
+        present in Philo's own model. They brace the peg's root against the
+        bending moment pull-out applies to it: the peg is a cantilever off a
+        0.800 mm wall, and the load acts at its tip.
+
+        Deliberately at the ENDS, not the middle. The peg's root wants support
+        where the section is stiffest in torsion; a single central rib would
+        also sit exactly where the leg needs to flex to release.
+        """
+        x_center, half_w = self._hook_span(side)
+        root, _ = self._leg_faces(self.BEAD_Z_HI)
+        y_outer = root - self.ARM_OUT
+        seam = 0.050
+
+        assert y_outer > self.LATCH_DATUM_Y - self.BARB_TIP_OUT, (
+            f"the arms ({y_outer:.3f}) stand further outboard than the peg "
+            f"({self.LATCH_DATUM_Y - self.BARB_TIP_OUT:.3f}) -- they would "
+            "foul the housing before the peg ever engaged it"
+        )
+
+        arms = None
+        for edge in (-1, +1):
+            x_edge = x_center + edge * half_w
+            block = rounded_box(
+                width=self.ARM_X,
+                depth=(root + seam) - y_outer,
+                height=self.ARM_Z,
+                corner_r=0.0,
+                center=(
+                    x_edge - edge * self.ARM_X / 2.0,
+                    (y_outer + root + seam) / 2.0,
+                    self.BEAD_Z_HI,
+                ),
+            )
+            arms = block if arms is None else arms.union(block)
+        return arms
 
     def _build_tongue(self) -> cq.Workplane:
         """Slide-in tongue + ledge -- a riser (fused to the plate, full

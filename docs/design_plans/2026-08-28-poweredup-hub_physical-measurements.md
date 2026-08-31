@@ -201,6 +201,39 @@ does is on the peg's own **protrusion** (`0.220 → 1.835`).
 
 **Rule to carry forward: plot the section before believing a table about it.**
 
+## Round 63 (2026-08-30) — the slope was on the wrong face
+
+The owner annotated a section of the round-62 print. Three corrections:
+
+1. **Outer wall vertical, sloping only near the top.** Round 62 put the whole
+   convergence on the leg's *outer* face, making a wedge — thick at the plate,
+   thin at the tip. The outer wall now runs vertical off the plate and slopes
+   over its top ~21%; the **inner** face carries the convergence, so the leg
+   *thickens* as it rises. The finger stays vertical to the tip.
+2. **Peg rectangular** — flat top, bottom and outer face. Round 62's right
+   triangle came from engineering reasoning (ramped lead-in), not measurement.
+3. **Two stiffening arms** at the hook's X extremes above the peg, as on the
+   thumb tab and in Philo's own model.
+
+### This was in round 62's own plot
+
+Over `z = 3..11` the reference's leg **outer** face moves `0.633 mm` — 4.5°,
+essentially vertical — while its **inner** face moves `0.987`. The data to
+catch it was on screen a round earlier.
+
+Round 62's lesson was *plot the section before believing a table about it*.
+The round-63 lesson sits one level up: **seeing the shape is not decomposing
+it.** The plot showed the members converging; it did not say which face moved,
+and round 62 chose — unprompted, and without noticing it was choosing.
+Differencing the two faces *separately* is what answers it, and that is a
+different act from looking at the picture.
+
+> **Generalisation worth keeping:** when a probe shows a *relationship*
+> changing (a gap closing, a clearance shrinking, two things converging), the
+> next question is always *which side moved* — and it needs its own
+> measurement. A relationship has at least two degrees of freedom and any
+> single observation of it under-determines them.
+
 ### A defect only the plot could see
 
 With the leg sloping, the thumb pad's fixed inner face lost contact with it

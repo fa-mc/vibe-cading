@@ -16,6 +16,39 @@ section to the new version and date.
 ## [Unreleased]
 
 ### Changed
+- **`PoweredUpHubCover`'s hook: vertical outer wall, rectangular peg,
+  stiffening arms** (round 63, from the owner's annotated section of the
+  round-62 print).
+  - **The slope was on the wrong face.** Round 62 correctly saw that the two
+    members converge, then put all of the convergence on the leg's **outer**
+    face — making the hook a wedge, thick at the plate and thin at the tip.
+    The outer wall now runs **vertical** off the cover plate and slopes only
+    over its top ~21%; the **inner** face carries the convergence, so the leg
+    *thickens* as it rises. The finger stays vertical to the tip, so exactly
+    one edge kinks.
+  - **This was visible in round 62's own reference plot.** Over `z = 3..11`
+    the reference's leg outer face moves `0.633 mm` (4.5°, essentially
+    vertical) while its inner face moves `0.987`. *Lesson one level up from
+    round 62's: seeing the shape is not decomposing it — the plot showed
+    convergence, but only differencing the two faces separately says which
+    one moves.*
+  - **Peg is rectangular** — flat top, bottom and outer face. Round 62 built
+    a right triangle (ramped lead-in, flat retention top) from engineering
+    reasoning rather than measurement. Noted rather than left to be found on
+    the bed: the underside is now a flat `1.196 mm` horizontal overhang; if it
+    droops, chamfer the **underside only**, never the top face, which takes
+    the pull-out load.
+  - **New: two stiffening arms** at the hook's X extremes directly above the
+    peg (`ARM_X`/`ARM_Z`/`ARM_OUT`), the same trick `PAD_END_WALL_X` already
+    plays for the thumb tab and present in Philo's own model. They brace the
+    peg's root against the bending moment pull-out applies to a cantilever off
+    a `0.800 mm` wall. Verified **by contrast** — present at the ends, absent
+    between them; checking only the ends would pass an arm spanning the full
+    width, which is a different part.
+  - Removed `CROWN_TOP_HALF`; `LEG_BASE_OUT_Y` → `LEG_OUT_Y` (it is no longer
+    a base-only value). Added `LEG_SLOPE_Z_FRAC`, `CROWN_TIP_WIDTH`.
+  - `ARM_Z`, `ARM_OUT` and `LEG_SLOPE_Z_FRAC` are scaled from the owner's
+    sketch, not measured — flagged as inferred.
 - **Breaking** — **`PoweredUpHubCover`'s latch is a V, not a U** (round 62,
   after the owner printed round 61 and reported the hook still wrong).
   - **The two members converge.** The reference's aperture is `1.454 mm` wide
