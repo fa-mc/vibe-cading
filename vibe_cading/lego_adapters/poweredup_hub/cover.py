@@ -262,16 +262,31 @@ class PoweredUpHubCover:
     PLATE_THICKNESS = 1.200
 
     # --- Side-window sill (round 55) -- see _build_window_sill. ---
-    # The extraction tab's own half-width, in the frame this class and the
-    # window share. Hardcoded, not imported from
-    # PoweredUpHubBatteryTray.TAB_PAD_Y_HALF, because that class imports
-    # THIS one and the reverse import would cycle -- the same reason
-    # PoweredUpHubHousing carries its own reference-measured WINDOW_Y_HALF.
-    # Housing asserts that its window and the tray's tab still describe one
-    # feature (_build_side_window); this constant must track the same
-    # number, and test_window_sill_matches_the_tab_width holds it to that
-    # by measuring the built Tray rather than trusting this comment.
-    WINDOW_SILL_Y_HALF = 12.000
+    #
+    # ROUND 64: these are now MEASURED against the real housing's window, and
+    # no longer derived from the Tray's extraction tab.
+    #
+    # Rounds 55-63 set the sill from PoweredUpHubBatteryTray.TAB_PAD_Y_HALF
+    # (hardcoded rather than imported, because the Tray imports this class and
+    # the reverse would cycle). That was right while the window was defined as
+    # "the tab's outline plus clearance". The owner has now measured the sill
+    # against the real part, and 23.500 wide offset 2.000 toward the tongue
+    # end is not the tab's 24.000 centred -- so the two features have been
+    # separated deliberately, not by drift.
+    #
+    # CONSEQUENCE, flagged rather than discovered: our Housing still cuts its
+    # window from the tab, so this sill now overhangs that window's +Y edge by
+    # 1.750. Against a REAL housing it should fit; against ours it will not.
+    # test_window_sill_tracks_the_tab_width is xfailed for exactly this.
+    WINDOW_SILL_WIDTH = 23.500     # measured (was 2 x 12.000 from the tab)
+    WINDOW_SILL_Y_CENTER = 2.000   # measured, shifted toward the tongue end
+    #: ``True`` puts the sill's outer face flush with the housing's outer
+    #: wall. Rounds 55-63 held it one running clearance short, so that the
+    #: worst case under the lid's own +-X play was flush rather than proud.
+    #: The owner asked for flush ("inline with the housing outer wall") after
+    #: measuring the printed part; the play argument is recorded here because
+    #: it is the reason to revisit this first if the lid scuffs going in.
+    WINDOW_SILL_FLUSH = True
 
     # --- Latch-end local thickening band (SS1.4) ---
     LATCH_BAND_Y_LO = -30.800
@@ -333,6 +348,14 @@ class PoweredUpHubCover:
     # Round 60, from the same measured layout as TONGUE_X_HALF above.
     TONGUE_GAP_X_INNER = 1.150   # centre gap half-width (was 0.800)
     TONGUE_RIB_X_HI = 17.250     # outer gap ends here (was 17.200)
+    # Round 64: the gaps' FLOOR. Rounds 45-63 cut them the tongue's whole Z
+    # depth (0.000..RISER_Z_HI), so each slot broke clean through the outer
+    # face; the owner measured them 0.800 mm too tall on the printed part.
+    # Raising the floor rather than lowering the ceiling keeps the tongue's
+    # mating surface -- and the rib entry it provides -- exactly as it was;
+    # only material the reference has and we did not is added back.
+    # The X figures are unchanged: the owner confirmed "the width is OK".
+    TONGUE_GAP_Z_LO = 0.800
 
     # --- Locating groove / land (SS1.5) -- RESTORED round 22 ---
     # The inner face steps 1.200 -> 1.600 mm deep over Y in [30.0, 31.2],
@@ -582,12 +605,38 @@ class PoweredUpHubCover:
     PAD_END_WALL_Y = -36.600   # round 62: rides with the pad's new tip
     PAD_END_WALL_Z_HI = 2.791
 
-    def __init__(self, profile: ToleranceProfile | str | None = None) -> None:
+    def __init__(
+        self,
+        profile: ToleranceProfile | str | None = None,
+        window_sill: bool = True,
+    ) -> None:
+        """Build the lid.
+
+        Parameters
+        ----------
+        profile:
+            Tolerance profile, by name or instance; ``None`` takes the
+            environment's default.
+        window_sill:
+            Build the two side-window sills (round 64). ``True`` is the
+            default and the shipped part -- the sills close the 1.200 mm slot
+            that would otherwise run right through the housing's side wall
+            below the tray's extraction tab (see :meth:`_build_window_sill`).
+            Pass ``False`` for a sill-less lid.
+
+            This exists because the sills are the one feature on this part
+            whose fit cannot be checked against our own Housing -- it is still
+            on the LDraw datum while the sills are now measured against the
+            real one. A knob makes "does the lid seat without them?" a
+            separable question from "does the latch work?", so a single failed
+            print does not confound the two.
+        """
         if profile is None or isinstance(profile, str):
             prof = get_profile(profile) if isinstance(profile, str) else get_profile()
         else:
             prof = profile
         self._profile = prof
+        self._window_sill = window_sill
         self._latch = get_latch_geometry(prof)
 
         # --- Lateral (X) running clearance on the male latch features
@@ -808,8 +857,9 @@ class PoweredUpHubCover:
         part = part.union(self._build_tongue())
         part = part.union(self._build_locating_groove())
         part = part.union(self._build_ledge_teeth())
-        part = part.union(self._build_window_sill(+1))
-        part = part.union(self._build_window_sill(-1))
+        if self._window_sill:
+            part = part.union(self._build_window_sill(+1))
+            part = part.union(self._build_window_sill(-1))
 
         assert len(part.solids().vals()) == 1, "Expected single solid, got multiple pieces"
         return part
@@ -860,16 +910,18 @@ class PoweredUpHubCover:
         seam_overlap = 0.050
 
         x_inner = self._plate_width / 2.0 - seam_overlap
-        x_outer = housing_wall_x_outer - c
+        # Round 64: flush with the wall, per the owner's measurement, rather
+        # than one running clearance short. See WINDOW_SILL_FLUSH.
+        x_outer = housing_wall_x_outer - (0.0 if self.WINDOW_SILL_FLUSH else c)
         x_lo = min(x_sign * x_inner, x_sign * x_outer)
         x_hi = max(x_sign * x_inner, x_sign * x_outer)
 
         return rounded_box(
             width=x_hi - x_lo,
-            depth=2 * self.WINDOW_SILL_Y_HALF,
+            depth=self.WINDOW_SILL_WIDTH,
             height=self.PLATE_THICKNESS,
             corner_r=0.0,
-            center=((x_lo + x_hi) / 2.0, 0.0, 0.0),
+            center=((x_lo + x_hi) / 2.0, self.WINDOW_SILL_Y_CENTER, 0.0),
         )
 
     def _build_plate(self) -> cq.Workplane:
@@ -1243,6 +1295,12 @@ class PoweredUpHubCover:
         oc = 1.0
         gap_y_lo = self.PLATE_Y_HI - oc
         gap_y_hi = self._tongue_y_hi + oc
+        # Round 64: the gaps no longer run the tongue's full Z depth. Measured
+        # on the printed part as 0.800 mm too tall, so their FLOOR rises by
+        # that much and the slots stop breaking through the tongue's outer
+        # (Z = 0) face. Taken off the bottom, not the top: the top is the
+        # tongue's own mating surface and the housing rib enters from there.
+        gap_z_lo = self.TONGUE_GAP_Z_LO
         gap_bands = [(-self._tongue_gap_x_inner, self._tongue_gap_x_inner)]
         for sign in (-1.0, 1.0):
             lo, hi = sorted((sign * self._tongue_x_half,
@@ -1253,12 +1311,12 @@ class PoweredUpHubCover:
                 rounded_box(
                     width=x_hi - x_lo,
                     depth=gap_y_hi - gap_y_lo,
-                    height=self.RISER_Z_HI + 2 * oc,
+                    height=(self.RISER_Z_HI + oc) - gap_z_lo,
                     corner_r=0.0,
                     center=(
                         (x_lo + x_hi) / 2.0,
                         (gap_y_lo + gap_y_hi) / 2.0,
-                        -oc,
+                        gap_z_lo,
                     ),
                 )
             )

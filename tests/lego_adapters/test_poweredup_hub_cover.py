@@ -57,9 +57,12 @@ def test_plate_envelope():
     lg = get_latch_geometry(prof)
     assert abs(bbox.zmax - lg.hook_depth) < 1e-6
 
-    # The sill reaches one running clearance short of the housing wall's
-    # own outer face (28.000) -- see _build_window_sill.
-    assert abs(bbox.xlen - 2 * (28.000 - prof.free.radial)) < 1e-6
+    # Round 64: the sill is now FLUSH with the housing wall's outer face
+    # (28.000), per the owner's measurement, where it used to stop one running
+    # clearance short. Read from the class's own knob rather than restated, so
+    # flipping WINDOW_SILL_FLUSH moves the expectation with the part.
+    sill_recess = 0.0 if PoweredUpHubCover.WINDOW_SILL_FLUSH else prof.free.radial
+    assert abs(bbox.xlen - 2 * (28.000 - sill_recess)) < 1e-6
 
     # The plate itself, sampled above the sill's own Z extent.
     above_sill = c.solid.intersect(
@@ -232,7 +235,18 @@ def test_tongue_is_segmented_into_the_reference_four_blades():
     riser_half = PoweredUpHubCover.RISER_X_HALF - fit
 
     # Riser: all four blades (Tongue A inner pair + Tongue B outer pair).
-    for y, z in ((32.200, 0.600), (33.000, 0.600)):
+    #
+    # Round 64: probed ABOVE the gaps' floor. They used to be cut the tongue's
+    # full Z depth, so z = 0.600 sat inside them; the owner's measurement
+    # raised the floor to TONGUE_GAP_Z_LO and below it the tongue is now
+    # continuous by design. Sampling below the floor reports one band and
+    # reads as "the segmentation is gone", which is the opposite of the truth.
+    # Between the gaps' floor and PLATE_THICKNESS, where the ledge-teeth slab
+    # begins: that slab is unioned AFTER the tongue is segmented, so it spans
+    # the centre gap and a probe at its level reports three bands, not four.
+    z_probe = (PoweredUpHubCover.TONGUE_GAP_Z_LO
+               + PoweredUpHubCover.PLATE_THICKNESS) / 2.0
+    for y, z in ((32.200, z_probe), (33.000, z_probe)):
         bands = _occupied_x_bands(solid, y=y, z=z)
         assert len(bands) == 4, f"expected 4 blades at y={y}, z={z}, got {bands}"
         expected = [
@@ -352,7 +366,13 @@ def test_window_sill_clears_the_window_and_its_neighbours():
     z_mid = PoweredUpHubCover.PLATE_THICKNESS / 2.0
     gap = rounded_box(
         width=0.4, depth=0.05, height=0.4, corner_r=0.0,
-        center=(x_mid, PoweredUpHubCover.WINDOW_SILL_Y_HALF + 0.05, z_mid),
+        center=(
+            x_mid,
+            PoweredUpHubCover.WINDOW_SILL_Y_CENTER
+            + PoweredUpHubCover.WINDOW_SILL_WIDTH / 2.0
+            + 0.05,
+            z_mid,
+        ),
     )
     assert not cover.intersect(gap).solids().vals()
     assert not neighbours["Housing"].intersect(gap).solids().vals(), (
@@ -360,12 +380,25 @@ def test_window_sill_clears_the_window_and_its_neighbours():
     )
 
 
+@xfail_cross_datum
 def test_window_sill_tracks_the_tab_width():
-    """``WINDOW_SILL_Y_HALF`` is a hardcoded copy of the Tray's own
-    ``TAB_PAD_Y_HALF`` (the two classes cannot import each other -- see the
-    constant's comment). Measure the built Tray rather than trusting that
-    comment: a sill narrower than the tab leaves a visible notch at the
-    step, a wider one binds in the window.
+    """The sill used to be a hardcoded copy of the Tray's ``TAB_PAD_Y_HALF``
+    (the two classes cannot import each other -- see the constant's comment),
+    measured off the built Tray rather than trusted from the comment.
+
+    **Round 64 separated them deliberately.** The owner measured the sill
+    against the REAL housing's window -- 23.500 wide, offset 2.000 toward the
+    tongue end -- where the tab is 24.000 centred. So the sill is no longer
+    "the tab's outline"; it is its own measured feature, and this equality is
+    now false by direction rather than by drift.
+
+    Kept, and xfailed rather than deleted, because the thing it protects is
+    still real and still unresolved: our Housing cuts its window FROM the tab,
+    so this sill overhangs that window's +Y edge by 1.750. Against a real
+    housing it should fit; against ours it cannot. When the Housing is
+    re-datumed this becomes a genuine check again -- rewritten against the
+    window rather than the tab -- and the strict xfail will demand that
+    rewrite by failing loudly the moment the two happen to agree.
     """
     from vibe_cading.lego_adapters.poweredup_hub.battery_tray import (
         PoweredUpHubBatteryTray,
@@ -373,7 +406,7 @@ def test_window_sill_tracks_the_tab_width():
 
     assert (
         abs(
-            PoweredUpHubCover.WINDOW_SILL_Y_HALF
+            PoweredUpHubCover.WINDOW_SILL_WIDTH / 2.0
             - PoweredUpHubBatteryTray.TAB_PAD_Y_HALF
         )
         < 1e-9
