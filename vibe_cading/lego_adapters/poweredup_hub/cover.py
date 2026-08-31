@@ -361,14 +361,20 @@ class PoweredUpHubCover:
     # Round 60, from the same measured layout as TONGUE_X_HALF above.
     TONGUE_GAP_X_INNER = 1.150   # centre gap half-width (was 0.800)
     TONGUE_RIB_X_HI = 17.250     # outer gap ends here (was 17.200)
-    # Round 64: the gaps' FLOOR. Rounds 45-63 cut them the tongue's whole Z
-    # depth (0.000..RISER_Z_HI), so each slot broke clean through the outer
-    # face; the owner measured them 0.800 mm too tall on the printed part.
-    # Raising the floor rather than lowering the ceiling keeps the tongue's
-    # mating surface -- and the rib entry it provides -- exactly as it was;
-    # only material the reference has and we did not is added back.
-    # The X figures are unchanged: the owner confirmed "the width is OK".
-    TONGUE_GAP_Z_LO = 0.800
+    # Round 66: how far the gaps start OUTBOARD of the plate edge, shortening
+    # them along Y from 4.000 to 3.200 so the blades stay joined at their root.
+    #
+    # Round 64 misread the same instruction ("the gaps are too tall, reduce
+    # them by 0.800") as the gaps' HEIGHT and raised their floor to Z = 0.800.
+    # Over the riser -- where the tongue is only PLATE_THICKNESS deep -- that
+    # left 0.400 mm of slot in 1.200 mm of material, so the gaps read as
+    # REMOVED rather than shortened. The Z extent is back to the full depth;
+    # this is the dimension that was meant.
+    #
+    # Taken off the ROOT end, not the tip: the housing's locating rib enters
+    # from the tip, so closing that end would stop the rib entering at all.
+    # The X figures are unchanged -- "the width is OK".
+    TONGUE_GAP_Y_INSET = 0.800
 
     # --- Locating groove / land (SS1.5) -- RESTORED round 22 ---
     # The inner face steps 1.200 -> 1.600 mm deep over Y in [30.0, 31.2],
@@ -1307,14 +1313,13 @@ class PoweredUpHubCover:
         # buys a clean non-coincident cutter face at the plate seam without
         # touching the full-width plate or the ledge teeth that straddle it.
         oc = 1.0
-        gap_y_lo = self.PLATE_Y_HI - oc
+        # Round 66: the gaps start TONGUE_GAP_Y_INSET outboard of the plate
+        # edge instead of overcutting past it, shortening them by that much
+        # and leaving the blades joined at their root. No overcut on this
+        # face -- it is a real internal face now, not a seam to clear.
+        gap_y_lo = self.PLATE_Y_HI + self.TONGUE_GAP_Y_INSET
         gap_y_hi = self._tongue_y_hi + oc
-        # Round 64: the gaps no longer run the tongue's full Z depth. Measured
-        # on the printed part as 0.800 mm too tall, so their FLOOR rises by
-        # that much and the slots stop breaking through the tongue's outer
-        # (Z = 0) face. Taken off the bottom, not the top: the top is the
-        # tongue's own mating surface and the housing rib enters from there.
-        gap_z_lo = self.TONGUE_GAP_Z_LO
+        gap_z_lo = -oc          # full depth again; see TONGUE_GAP_Y_INSET
         gap_bands = [(-self._tongue_gap_x_inner, self._tongue_gap_x_inner)]
         for sign in (-1.0, 1.0):
             lo, hi = sorted((sign * self._tongue_x_half,

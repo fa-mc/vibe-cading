@@ -239,17 +239,13 @@ def test_tongue_is_segmented_into_the_reference_four_blades():
 
     # Riser: all four blades (Tongue A inner pair + Tongue B outer pair).
     #
-    # Round 64: probed ABOVE the gaps' floor. They used to be cut the tongue's
-    # full Z depth, so z = 0.600 sat inside them; the owner's measurement
-    # raised the floor to TONGUE_GAP_Z_LO and below it the tongue is now
-    # continuous by design. Sampling below the floor reports one band and
-    # reads as "the segmentation is gone", which is the opposite of the truth.
-    # Between the gaps' floor and PLATE_THICKNESS, where the ledge-teeth slab
-    # begins: that slab is unioned AFTER the tongue is segmented, so it spans
-    # the centre gap and a probe at its level reports three bands, not four.
-    z_probe = (PoweredUpHubCover.TONGUE_GAP_Z_LO
-               + PoweredUpHubCover.PLATE_THICKNESS) / 2.0
-    for y, z in ((32.200, z_probe), (33.000, z_probe)):
+    # Round 66: probed OUTBOARD of TONGUE_GAP_Y_INSET. The gaps no longer run
+    # back to the plate edge -- the blades are joined at their root by design
+    # -- so the old y = 32.200 station now sits in solid tongue and would
+    # report one band, reading as "the segmentation is gone" when the opposite
+    # is true. Both stations are past the inset and inside the riser.
+    y_root = PoweredUpHubCover.PLATE_Y_HI + PoweredUpHubCover.TONGUE_GAP_Y_INSET
+    for y, z in ((y_root + 0.400, 0.600), (33.800, 0.600)):
         bands = _occupied_x_bands(solid, y=y, z=z)
         assert len(bands) == 4, f"expected 4 blades at y={y}, z={z}, got {bands}"
         expected = [
