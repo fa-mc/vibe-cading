@@ -58,11 +58,14 @@ def test_plate_envelope():
     assert abs(bbox.zmax - lg.hook_depth) < 1e-6
 
     # Round 64: the sill is now FLUSH with the housing wall's outer face
-    # (28.000), per the owner's measurement, where it used to stop one running
+    # per the owner's measurement, where it used to stop one running
     # clearance short. Read from the class's own knob rather than restated, so
     # flipping WINDOW_SILL_FLUSH moves the expectation with the part.
     sill_recess = 0.0 if PoweredUpHubCover.WINDOW_SILL_FLUSH else prof.free.radial
-    assert abs(bbox.xlen - 2 * (28.000 - sill_recess)) < 1e-6
+    assert abs(
+        bbox.xlen
+        - 2 * (PoweredUpHubCover.HOUSING_WALL_X_OUTER - sill_recess)
+    ) < 1e-6
 
     # The plate itself, sampled above the sill's own Z extent.
     above_sill = c.solid.intersect(

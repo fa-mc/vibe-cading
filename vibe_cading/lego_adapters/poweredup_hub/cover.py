@@ -287,6 +287,19 @@ class PoweredUpHubCover:
     #: measuring the printed part; the play argument is recorded here because
     #: it is the reason to revisit this first if the lid scuffs going in.
     WINDOW_SILL_FLUSH = True
+    #: The housing's outer wall face the sill is made flush with.
+    #:
+    #: ROUND 65: 28.000 -> 27.800, and the change of SOURCE is the point.
+    #: 28.000 was our own Housing's stud-grid envelope; 27.800 is the owner's
+    #: measurement of the real part (outer width 55.600). The sill was
+    #: therefore standing 0.200 mm proud of the wall it is meant to sit flush
+    #: with -- the one thing "inline with the housing outer wall" rules out.
+    #:
+    #: This is the first constant on the Cover to be sourced from the real
+    #: housing rather than from ours, which is the direction of travel: the
+    #: Cover is being frozen against the real part and the Housing brought
+    #: backward to it, not the reverse.
+    HOUSING_WALL_X_OUTER = 27.800
 
     # --- Latch-end local thickening band (SS1.4) ---
     LATCH_BAND_Y_LO = -30.800
@@ -891,21 +904,22 @@ class PoweredUpHubCover:
           the tab's outline offset outward by the running clearance, so
           matching the tab leaves exactly that clearance on both sides and
           the strip cannot bind in the opening.
-        * **+X** -- stops one running clearance SHORT of the housing wall's
-          outer face rather than flush with it. The Cover has +-0.150 mm of
-          deliberate sideways play (the round-48 plate-edge relief), so a
-          flush strip would stand proud of the wall whenever the lid sits
-          off-centre; recessed, the worst case is flush.
+        * **+X** -- flush with the housing wall's outer face as of round 64
+          (:attr:`WINDOW_SILL_FLUSH`). It used to stop one running clearance
+          short, so that under the lid's own +-X play the worst case was
+          flush rather than proud; see that constant for when to go back.
         * **-X** -- overlaps back into the plate for a real fused volume,
           not a coincident face.
 
-        ``WALL_X_OUTER_LOWER`` (28.000) is hardcoded rather than imported:
-        :class:`~vibe_cading.lego_adapters.poweredup_hub.housing.PoweredUpHubHousing`
-        imports this class, so importing it back would cycle. It has been
-        the reference's own outer face since the envelope was first
-        measured; re-derive by hand if it ever moves.
+        :attr:`HOUSING_WALL_X_OUTER` is a constant here rather than imported
+        from :class:`~vibe_cading.lego_adapters.poweredup_hub.housing.PoweredUpHubHousing`,
+        which imports this class -- the reverse would cycle. Round 65 changed
+        where its VALUE comes from: it is now the owner's measurement of the
+        real housing (27.800), not our own Housing's stud-grid envelope
+        (28.000). Against the real part the old figure stood the sill 0.200 mm
+        proud of the wall it is supposed to sit flush with.
         """
-        housing_wall_x_outer = 28.000
+        housing_wall_x_outer = self.HOUSING_WALL_X_OUTER
         c = self._profile.free.radial
         seam_overlap = 0.050
 
