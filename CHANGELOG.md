@@ -16,6 +16,41 @@ section to the new version and date.
 ## [Unreleased]
 
 ### Changed
+- **Breaking** — **`PoweredUpHubCover`'s latch is a V, not a U** (round 62,
+  after the owner printed round 61 and reported the hook still wrong).
+  - **The two members converge.** The reference's aperture is `1.454 mm` wide
+    at `z = 2` and `0.087` at `z = 11` — a V with its vertex up, the
+    plate-side member dead straight and all the slope on the outer one. Every
+    round from 38 onward built them **parallel** and then argued about where
+    to place them.
+  - **Why it took four rounds:** rounds 60 and 61 read span *tables* off the
+    reference and inferred a shape from the numbers. A table of widths at
+    stations cannot distinguish "two parallel walls" from "two converging
+    walls" unless you difference the stations. Plotting the section
+    (`tmp/ldraw/latch_picture_r62.py`) shows it immediately. *Plot the
+    section before believing a table about it.*
+  - **The peg grows; the hook does not move.** Round 61 reached the peg's
+    `5.000 mm` by translating the whole leg outboard `1.580 mm`. The peg now
+    protrudes `1.835 mm` from a leg back on its own geometry. The new
+    assertion checks the **protrusion**, not the reach — the reach was
+    correct in every wrong round, so asserting it caught nothing.
+  - **Peg reshaped** to match `~1 mm` tall against `~1.8 mm` proud: a right
+    triangle with a ramped underside (lead-in on `+Z` insertion, and the
+    printable face at ~32° rather than an unsupported 90°) and a flat
+    horizontal top (retention face, taking pull-out square-on). A symmetric
+    bump would bear the load on a slope that cams itself open.
+  - `hook_depth` **`13.000 → 14.720`**, `TAB_TIP_OUT` **`6.240 → 6.000`**,
+    both measured. The LDraw reference ends at `13.000`, so hook height is one
+    more place it falls short of the hardware.
+  - **Fixed a defect no check could see:** with the leg sloping, the thumb
+    pad's fixed inner face lost contact with it above `z ≈ 0.44`. The pad
+    stayed fused to the *plate*, so `solids == 1` and every dimensional check
+    passed — but pressing it would no longer deflect the leg. A dead release
+    mechanism that measures perfectly. `PAD_INNER_Y` is now derived from the
+    leg's face at the pad's own top, the worst case.
+  - Removed: `U_CENTRELINE_SEP`, `U_BEND_WALL`, `U_FLARE_Z`, `BEAD_PEAK_Y`,
+    `BEAD_BASELINE_Y`, `CROWN_SLOPE_H`, `CROWN_TOP_CLEAR` — all hairpin-era.
+    Added: `LEG_BASE_OUT_Y`, `APEX_Z_FRAC`, `CROWN_TOP_HALF`, `TAB_TIP_OUT`.
 - **Breaking** — **`PoweredUpHubCover` re-datumed from the printed part**
   (round 61). The owner printed the round-60 cover and measured four faults on
   the physical object; all four are now corrected, and each was re-verified

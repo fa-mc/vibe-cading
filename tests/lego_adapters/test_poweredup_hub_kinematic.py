@@ -63,6 +63,7 @@ from vibe_cading.lego_adapters.poweredup_hub.battery_tray import (
 )
 from vibe_cading.lego_adapters.poweredup_hub.cover import PoweredUpHubCover
 from vibe_cading.lego_adapters.poweredup_hub.housing import PoweredUpHubHousing
+from vibe_cading.lego_adapters.poweredup_hub.latch_geometry import get_latch_geometry
 from vibe_cading.print_settings import get_profile
 from tests.lego_adapters._poweredup_hub_datum import xfail_cross_datum
 
@@ -450,17 +451,29 @@ def test_latch_hook_has_lateral_running_clearance_in_its_channel():
     expected = 2 * prof.free.radial          # housing's half + the cover's
     tol = 0.02                               # the probe's own step, rounded up
 
-    # The ribbon is a hairpin: material sits on the leg and finger
-    # centrelines, NOT between them. Probing the space between finds the
-    # void and would read as enormous clearance.
-    finger_y = PoweredUpHubCover.U_FINGER_CL_Y
-    leg_y = finger_y - PoweredUpHubCover.U_CENTRELINE_SEP
+    # Material sits ON the two members, NOT between them: the space between
+    # is the aperture, and probing it would find the void and read as
+    # enormous clearance.
+    #
+    # Round 62: the leg is SLOPED now (the latch is a converging V, not a
+    # hairpin), so its Y has to be read per station from the part's own
+    # geometry. The old version took a single `U_FINGER_CL_Y -
+    # U_CENTRELINE_SEP`, which no longer exists -- and had it merely been
+    # stale rather than absent, this probe would have walked off the leg at
+    # the higher stations and reported the aperture as clearance.
+    cover_obj = PoweredUpHubCover(profile=prof)
+    dy = cover_obj._latch_dy
+    _, finger_in = cover_obj._finger_faces()
+    finger_y = finger_in - PoweredUpHubCover.FINGER_WALL / 2.0 + dy
+    lg = get_latch_geometry(prof)
+    x_hook = lg.hook_pitch / 2.0 + lg.hook_width / 2.0
 
     checked = 0
-    for y in (leg_y, finger_y):
-        for z in (3.0, 7.0, 11.0):
+    for z in (3.0, 7.0, 11.0):
+        leg_out, leg_in = cover_obj._leg_faces(z)
+        for y in ((leg_out + leg_in) / 2.0 + dy, finger_y):
             for side in (+1, -1):
-                xc = side * 12.4        # hook_pitch/2 + hook_width/2
+                xc = side * x_hook
                 assert cover.isInside(cq.Vector(xc, y, z), 1e-9), (
                     f"no cover material at the channel centre (side={side}, "
                     f"Y={y}, Z={z}) -- the probe is not on the ribbon, so any "

@@ -161,6 +161,55 @@ outer profile converges `2.153 → 1.286 mm` over `z = 11.25…12.75`.
 > direction as the width. The reference can confirm the crown's *shape*; it
 > cannot arbitrate the latch's *dimensions*.
 
+## Round 62 (2026-08-30) — the latch is a V, and how three rounds missed it
+
+The owner printed round 61 and reported the hook still wrong. Superseding
+figures, all measured on the real cover:
+
+| Feature | Round 61 built | **Round 62 measured** |
+|---|---|---|
+| Thumb-tab tip, outboard of plate end | 6.190 | **6.000** |
+| Peg tip, outboard of plate | 5.000 ✓ | **5.000** (by a *larger peg*) |
+| Peg height | 1.000 | **~1.000** |
+| Hook height, from the cover's bottom | 13.000 | **14.720** |
+| Aperture shape | parallel (a U) | **converging (a V)** |
+
+The `6.240` U-base figure from the round-60 session is superseded by `6.000`.
+
+### The method failure, which matters more than the numbers
+
+Rounds 60 and 61 both read **span tables** off the reference and inferred a
+shape from the numbers. Plotting the section
+(`tmp/ldraw/latch_picture_r62.py`) shows in one screen what three rounds of
+tables did not: the two members **converge**. The reference's aperture is
+`1.454 mm` wide at `z = 2` and `0.087` at `z = 11` — a V with its vertex up,
+the plate-side member dead straight and all the slope on the outer one.
+
+Every round from 38 onward built them **parallel** and then argued about where
+to place them. That is why each individual dimension could be verified correct
+while the shape stayed wrong: *a table of widths at stations cannot distinguish
+"two parallel walls" from "two converging walls" unless you difference the
+stations, and nobody did.*
+
+Round 61's specific error follows from it: reading "the leg sits further
+outboard at the bottom than at the top" as "the leg is in the wrong place", it
+translated the whole assembly outboard by `1.580` to reach the peg's `5.000`.
+The owner's correction — *"make the peg larger, not increasing the size of the
+hook"* — names exactly that. **The reach was correct in every wrong round**,
+which is why `assert reach == 5.000` never caught anything; the guard that
+does is on the peg's own **protrusion** (`0.220 → 1.835`).
+
+**Rule to carry forward: plot the section before believing a table about it.**
+
+### A defect only the plot could see
+
+With the leg sloping, the thumb pad's fixed inner face lost contact with it
+above `z ≈ 0.44`. The pad stayed fused to the **plate**, so `solids == 1`
+passed and every dimensional check passed — but pressing the pad would no
+longer deflect the leg. A dead release mechanism that measures perfectly. The
+pad's inner bound is now derived from the leg's face at the pad's own top (the
+worst case, since the leg is furthest inboard there).
+
 ## Consequence applied
 
 All `[[component]]` rows in `reference_contracts.toml` were **retired** on this

@@ -155,7 +155,10 @@ def get_latch_geometry(profile: ToleranceProfile | str | None = None) -> LatchGe
         hook_pitch=11.200,
         engagement_band_lo=11.0,
         engagement_band_hi=13.0,
-        hook_depth=13.000,
+        # Round 62: 13.000 -> 14.720, measured on the real cover from the
+        # plate's own bottom face. The LDraw reference ends at 13.000, so this
+        # is one more place the reference is short of the hardware.
+        hook_depth=14.720,
         barb_axis_z=12.000,
         arm_draft_deg=2.0,
         undercut_depth=barb_protrusion - prof.slip.radial,

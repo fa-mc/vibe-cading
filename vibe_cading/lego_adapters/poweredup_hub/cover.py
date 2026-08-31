@@ -447,76 +447,82 @@ class PoweredUpHubCover:
     #     Confirmed on the reference independently (tmp/ldraw/latch_shape_r61.py):
     #     its outer profile converges from 2.153 mm wide at z = 11.25 to
     #     1.286 at z = 12.75 before ending at 13.000 -- a taper, not an arc.
+    #
+    # === ROUND 62 -- the latch is a V, and round 61 built the wrong fix ===
+    #
+    # The owner printed round 61 and reported the hook still wrong. The cause
+    # is worth recording, because it was a METHOD failure, not an arithmetic
+    # one: rounds 60 and 61 both read span TABLES off the reference and
+    # inferred a shape from the numbers. Plotting the section
+    # (tmp/ldraw/latch_picture_r62.py) shows what the tables could not:
+    #
+    #   * The two members CONVERGE. The aperture between them is 1.454 mm
+    #     wide at z = 2 and 0.087 at z = 11 -- a V with its vertex UP, not the
+    #     parallel-legged U every previous round built.
+    #   * The plate-side member is a STRAIGHT vertical wall. The slope is
+    #     entirely on the outer member.
+    #
+    # Round 61 read "the leg is further out at the bottom than the top" as
+    # "the leg is in the wrong place" and translated the whole assembly
+    # outboard by 1.580 to get the peg's reach. The owner's correction --
+    # "make the peg larger, not increasing the size of the hook" -- is exactly
+    # that error. The leg goes back; the PEG grows instead.
+    #
+    # Look at the geometry before believing a table about it.
     U_WALL = 0.800                # LEG wall: 2 x 0.4 mm extrusion width
-    FINGER_WALL = 1.600           # (b) measured on the printed part
-    # Sized so the BEAD peaks BARB_TIP_OUT outboard of the plate edge; see
-    # the derivation in __init__, which is where the arithmetic lives so it
-    # cannot drift from the bead constants it depends on.
-    U_CENTRELINE_SEP = 3.630
+    FINGER_WALL = 1.600           # the straight, plate-rooted member
     U_FINGER_CL_Y = -31.550       # finger spans -32.350..-30.750 (1.600 wall)
-    # (a) The engaging tongue's tip, measured OUTBOARD from the plate edge
-    # (LATCH_DATUM_Y). Everything else at this end is derived from it.
-    BARB_TIP_OUT = 5.000
-    # (c) Crown taper: the outer faces converge over this Z run below the
-    # hook's tip, replacing the round bend. The aperture's inner arc is NOT
-    # replaced -- it is the spring's most cyclically loaded section and a
-    # sharp corner there is the round-37 defect this file already fixed once.
-    CROWN_SLOPE_H = 2.000
-    CROWN_TOP_CLEAR = 0.400       # crown flat half-width, beyond the inner arc
-    # Round 39: the BEND is thicker than the legs. It is the most highly and
-    # most cyclically loaded section of the spring, so it carries more
-    # material -- but NOT by shrinking the inner radius, which would raise the
-    # stress concentration it exists to avoid. The inner radius stays at
-    # 0.800 (= 1.00 x leg wall) and the OUTER surface flares instead, from
-    # U_FLARE_Z up to the bend. Because the outer arc radius grows to
-    # U_BEND_WALL + 0.800, the bend centre drops so the crown still lands
-    # exactly on hook_depth.
-    # 1.050, not 1.200: the reference's own bend wall measures 1.047, and at
-    # 1.200 the flare put the leg's outer face at -34.350 -- 0.050 mm off the
-    # housing wall, and cost 14 points of agreement for material the reference
-    # does not have. Still 1.31x the leg wall, which is the point.
-    U_BEND_WALL = 1.050
-    U_FLARE_Z = 8.000
 
-    # Round 61: Z band and the 0.220 mm protrusion are UNCHANGED -- they are
-    # the reference's own resolved profile and nothing measured contradicts
-    # them. Only the Y datum moves, carrying the bead out with the leg so its
-    # peak lands at BARB_TIP_OUT from the plate edge (-30.800 - 5.000).
+    # --- The V ---
+    # The leg's OUTER face at the plate (z = 0), its widest point. Chosen so
+    # the aperture's base is 1.454 -- the reference's own base width -- given
+    # the finger's outer face at -32.350. INFERRED from the reference's
+    # proportion, not measured: if the spring's feel is wrong, this is the
+    # constant that sets its free length and lever arm.
+    LEG_BASE_OUT_Y = -34.604
+    # Where the two members meet, as a fraction of hook height. The reference
+    # closes its aperture at z = 11.2 of 13.000, i.e. 0.862.
+    APEX_Z_FRAC = 0.862
+    # Crown: above the apex the hook is solid, tapering to a flat tip.
+    CROWN_TOP_HALF = 0.500
+
+    # --- The peg (the "tongue that joins the housing") ---
+    # Measured: tip 5.000 mm outboard of the plate edge, and ~1 mm tall.
+    # 1 mm tall with a ~1.6 mm protrusion makes it a SHELF, not the reference's
+    # smooth 0.220 bulge -- so it is built as a right triangle in section:
+    #   * ramped underside, which is the lead-in as the hook enters (+Z), and
+    #     also the printable face (a 32 deg overhang rather than a 90 deg one);
+    #   * FLAT horizontal top, which is the retention face -- it takes the
+    #     pull-out load in -Z square-on, and prints as a short bridge.
+    # A symmetric bump would put a 17 deg overhang under the peg and bear the
+    # retention load on a slope that wants to cam itself open.
     BEAD_Z_LO = 4.750
-    BEAD_Z_HI = 5.750
-    BEAD_PEAK_Y = -35.800     # == LATCH_DATUM_Y - BARB_TIP_OUT (was -34.220)
-    # Now exactly the leg's own outer face, so the bead's BUILT outermost
-    # point is peak, not peak + slop. Pre-round-61 this sat 0.050 outboard of
-    # our leg face (it recorded the REFERENCE's face, -34.000, against our
-    # -33.950), which quietly cost 0.050 mm of reach -- invisible while the
-    # constant was only ever read as a protrusion difference.
-    BEAD_BASELINE_Y = -35.580
-    # Round 38: -34.000 -> -33.900. The U ribbon's leg outer face is at
-    # -33.950, so the old value left a 0.050 mm gap and the pad (and the
-    # end walls, which share this bound) came off as separate solids.
-    # Now overlaps the leg by 0.050 -- volume overlap, not a touching face.
+    BEAD_Z_HI = 5.750             # 1.000 tall, measured
+    BARB_TIP_OUT = 5.000          # peg tip, outboard from LATCH_DATUM_Y
+    # --- The thumb tab ---
+    TAB_TIP_OUT = 6.000           # tab tip, outboard from LATCH_DATUM_Y
     # Thumb-pad plan outline: scalloped in Y across the hook width.
-    # Round 61: the pad rides out with the leg. Its OUTER face is set by the
-    # second measurement rather than by the same one that sets the bead --
-    # 6.240 from the hook's root (finger inner face, -30.750) puts it at
-    # -36.990, and the 0.400 scallop step is kept as measured. Driving the
-    # bead off the 5.000 reading and the pad off the 6.240 reading means both
-    # measurements are honoured; had a single figure driven both, one of them
-    # would have been silently discarded.
+    # Round 62: the tab tip is TAB_TIP_OUT (6.000) outboard of the plate edge,
+    # i.e. -36.800, superseding round 61's -36.990 (which came from the
+    # earlier 6.240 depth reading). The 0.400 scallop step is kept as measured.
+    #
+    # X: the NOMINAL hook footprint, 5.600..17.800, in six evenly-spaced steps
+    # (round 61 fix -- these had been left on the pre-round-60 13.600 hook
+    # width, making the pad 1.400 mm wider than both the hook it sits on and
+    # the window it passes through; silent, because the pad is union-only).
     PAD_SCALLOP = (
-        # X: the NOMINAL hook footprint, 5.600..17.800, in six evenly-spaced
-        # steps. Round 61 correction -- these were still on the OLD footprint
-        # (5.600..19.200, from hook_width 13.600), which round 60 changed to
-        # 12.200 without following through here. The scallop was therefore
-        # 1.400 mm wider than the hook it sits on and 1.400 mm wider than the
-        # housing window it passes through. Nothing caught it: the pad is
-        # union-only, so the excess simply widened the part.
-        (5.600, -36.990), (8.040, -36.990), (10.480, -36.590),
-        (12.920, -36.590), (15.360, -36.990), (17.800, -36.990),
+        (5.600, -36.800), (8.040, -36.800), (10.480, -36.400),
+        (12.920, -36.400), (15.360, -36.800), (17.800, -36.800),
     )
-    # Overlaps the leg's outer face (-35.530) by 0.050 -- a real fused volume,
-    # not a coincident face. Tracks the leg; see the round-38 note above.
-    PAD_INNER_Y = -35.530
+    # NOT a constant any more -- see self._pad_inner_y, derived in __init__.
+    # The leg SLOPES, so its outer face retreats inboard as Z rises and a
+    # fixed inner bound here loses contact with it partway up the pad. A first
+    # round-62 version used LEG_BASE_OUT_Y + 0.050 (the leg's face at the
+    # PLATE) and the pad parted company with the leg above z = 0.44 -- visible
+    # immediately in the section plot, and invisible to every check we own:
+    # the pad is still fused to the PLATE, so `solids == 1` passes, and a
+    # thumb pad that no longer drives the leg is a dead release mechanism that
+    # measures perfectly.
     # Round 33: the reference's pad is a LIP, not a tall block. Ray-probing
     # 24853.dat's own outer face gives -35.120 at z = 1.0 and -35.104 at
     # z = 1.2, then -34.112 at z = 1.4 -- so it ends between 1.2 and 1.4. The
@@ -538,7 +544,7 @@ class PoweredUpHubCover:
     # cutting the walls off entirely: 1.361 mm missing at x = 6.400 / 18.400,
     # y = -35.377, z = 2.791.
     PAD_END_WALL_X = 0.800
-    PAD_END_WALL_Y = -36.790   # round 61: rides with the pad (was -35.400)
+    PAD_END_WALL_Y = -36.600   # round 62: rides with the pad's new tip
     PAD_END_WALL_Z_HI = 2.791
 
     def __init__(self, profile: ToleranceProfile | str | None = None) -> None:
@@ -663,29 +669,42 @@ class PoweredUpHubCover:
             "U is not fused to the plate"
         )
 
-        # Round 61 (a): the engaging tongue's REACH, which is the defect the
-        # owner reported. U_CENTRELINE_SEP is what actually positions the leg
-        # the bead rides on, and it is three constants away from BARB_TIP_OUT
-        # -- so the relationship is asserted rather than left to a comment
-        # that says "sized so".
+        # Round 62: the peg must GROW to its reach, not be carried there.
         #
-        # Falsifier, stated up front: any edit to U_FINGER_CL_Y,
-        # U_CENTRELINE_SEP, U_WALL, BEAD_PEAK_Y or BEAD_BASELINE_Y that leaves
-        # the bead's outermost point somewhere other than BARB_TIP_OUT from
-        # the plate edge fails this, at import, before any geometry is built.
-        # The tolerance is 1e-6, not a working tolerance: these are exact
-        # arithmetic, and a loose bound here would re-admit exactly the
-        # 0.050 mm of silent slop BEAD_BASELINE_Y used to carry.
-        leg_outer = self.U_FINGER_CL_Y - self.U_CENTRELINE_SEP - self.U_WALL / 2.0
-        bead_reach = self.LATCH_DATUM_Y - (
-            leg_outer - (self.BEAD_BASELINE_Y - self.BEAD_PEAK_Y)
+        # This is the guard the owner's correction earns. Rounds 58-61 each
+        # met BARB_TIP_OUT by translating the leg outboard, and nothing
+        # objected -- the reach was correct every time, and the hook got
+        # bigger every time. So the check is not "does the peg reach 5.000"
+        # (it always did) but "does the peg reach 5.000 by PROTRUDING from a
+        # leg that is still where the spring's own geometry puts it".
+        #
+        # Falsifier: move LEG_BASE_OUT_Y outboard to chase the reach and the
+        # protrusion collapses toward zero, failing the lower bound. Leave the
+        # leg alone and shrink the peg, and it fails too.
+        peg_root, _ = self._leg_faces(self.BEAD_Z_HI)
+        peg_tip = self.LATCH_DATUM_Y - self.BARB_TIP_OUT
+        protrusion = peg_root - peg_tip
+        assert protrusion > 0.500, (
+            f"the peg protrudes only {protrusion:.3f} mm from the leg face "
+            f"({peg_root:.3f}) -- its {self.BARB_TIP_OUT:.3f} mm reach is "
+            "coming from the leg's position rather than from the peg itself, "
+            "which is the round 58-61 mistake"
         )
-        assert abs(bead_reach - self.BARB_TIP_OUT) < 1e-6, (
-            f"the retention bead reaches {bead_reach:.3f} mm outboard of the "
-            f"plate edge, not the measured {self.BARB_TIP_OUT:.3f} -- the leg "
-            f"(outer face {leg_outer:.3f}) and the bead constants disagree "
-            "about where the tongue that engages the housing ends"
+        # And the thumb tab is the outermost thing on the part, by measurement
+        # (6.000 vs the peg's 5.000). If that order ever inverts, the peg is
+        # what the thumb presses on.
+        tab_tip = min(y for _, y in self.PAD_SCALLOP)
+        assert tab_tip < peg_tip - 1e-9, (
+            f"the thumb tab ({tab_tip:.3f}) does not reach further outboard "
+            f"than the peg ({peg_tip:.3f})"
         )
+
+        # The pad's inner bound, taken at the pad's OWN TOP -- the worst case,
+        # because the sloped leg is furthest inboard there. Sampling anywhere
+        # lower certifies an overlap that has already run out higher up.
+        pad_leg_out, _ = self._leg_faces(self.PAD_TOP_Z)
+        self._pad_inner_y = pad_leg_out + 0.050
+        assert self._pad_inner_y > pad_leg_out, "pad does not bite into the leg"
 
         self._solid = self._build()
 
@@ -884,8 +903,8 @@ class PoweredUpHubCover:
             return side * (nominal_c + (x - nominal_c) * k)
 
         pts = [(sx(x), y) for x, y in self.PAD_SCALLOP]
-        pts += [(sx(self.PAD_SCALLOP[-1][0]), self.PAD_INNER_Y),
-                (sx(self.PAD_SCALLOP[0][0]), self.PAD_INNER_Y)]
+        pts += [(sx(self.PAD_SCALLOP[-1][0]), self._pad_inner_y),
+                (sx(self.PAD_SCALLOP[0][0]), self._pad_inner_y)]
         wp = cq.Workplane("XY").moveTo(*pts[0])
         for q in pts[1:]:
             wp = wp.lineTo(*q)
@@ -899,8 +918,8 @@ class PoweredUpHubCover:
         so the union is a volume overlap rather than the coincident-faces case.
         """
         x_center, half_w = self._hook_span(side)
-        depth = self.PAD_INNER_Y - self.PAD_END_WALL_Y
-        y_mid = (self.PAD_END_WALL_Y + self.PAD_INNER_Y) / 2.0
+        depth = self._pad_inner_y - self.PAD_END_WALL_Y
+        y_mid = (self.PAD_END_WALL_Y + self._pad_inner_y) / 2.0
 
         walls = None
         for edge in (-1, +1):
@@ -916,115 +935,150 @@ class PoweredUpHubCover:
             walls = block if walls is None else walls.union(block)
         return walls
 
+    def _finger_faces(self) -> tuple[float, float]:
+        """``(outer, inner)`` Y of the straight, plate-rooted member.
+
+        Vertical -- it does not vary with Z. That is the owner's "the side
+        connecting to the cover plate in a straight shape", and it is what the
+        reference section shows: a constant-width band from the plate to the
+        crown, with all of the slope on the other member.
+        """
+        d = self.FINGER_WALL / 2.0
+        return self.U_FINGER_CL_Y - d, self.U_FINGER_CL_Y + d
+
+    def _leg_faces(self, z: float) -> tuple[float, float]:
+        """``(outer, inner)`` Y of the SLOPED member at height ``z``.
+
+        The leg is widest at the plate and converges on the finger as it
+        rises, closing the aperture to a point at ``_apex_z()``. Constant
+        thickness :attr:`U_WALL` throughout -- it is a leaning wall, not a
+        tapering one, so its stiffness does not vary along its length.
+        """
+        finger_out, _ = self._finger_faces()
+        base_in = self.LEG_BASE_OUT_Y + self.U_WALL
+        t = min(max(z / self._apex_z(), 0.0), 1.0)
+        inner = base_in + t * (finger_out - base_in)
+        return inner - self.U_WALL, inner
+
+    def _apex_z(self) -> float:
+        """Z at which the aperture closes and the two members merge."""
+        return self._latch.hook_depth * self.APEX_Z_FRAC
+
     def _build_latch_u(self, side: int) -> cq.Workplane:
-        """The latch U -- one constant-thickness ribbon (round 38).
+        """The latch: a converging **V**, not the hairpin U of rounds 38-61.
 
-        A hairpin spring: down the release leg, around the bend, up the
-        finger. Built by offsetting an OPEN centreline, which
-        :meth:`cadquery.Workplane.offset2D` closes into a constant-thickness
-        ribbon with rounded end caps in a single call.
+        Round 62, from plotting the reference's own section rather than
+        reading a table of it (``tmp/ldraw/latch_picture_r62.py``). Two
+        members: a straight vertical finger rooted in the plate, and a leg
+        that leans inboard as it rises until the two meet at
+        :meth:`_apex_z`, above which the hook is solid and tapers to a flat
+        tip at ``hook_depth``.
 
-        The centreline starts at ``z = U_WALL/2`` so those end caps land
-        exactly on ``z = 0`` rather than below it.
-
-        **Validation is not optional here.** Per the research, offset failures
-        are SILENT: a self-intersecting ribbon still returns one closed wire
-        with ``solids() == 1`` and an area within 0.01% of nominal, and
-        ``isValid()`` returns True for tight-radius collapses. The design keeps
-        the centreline bend radius at 3.0x the offset distance (measured
-        threshold: 1.05x), well clear of that regime.
+        The aperture is therefore a wedge, open at the plate and closed at the
+        top -- the reference measures it 1.454 mm wide at ``z = 2`` and
+        0.087 at ``z = 11``. Every earlier round built these two members
+        PARALLEL and then argued about where to put them; that is why the
+        shape kept being wrong while each individual dimension looked right.
         """
         lg: LatchGeometry = self._latch
         x_center, half_w = self._hook_span(side)
 
-        # Round 61: the two members no longer share a thickness. The finger is
-        # the stiff, body-rooted wall (FINGER_WALL); the leg stays thin so the
-        # spring keeps the compliance the owner signed off. See the constants'
-        # own note (b) -- this is why the docstring's "one constant-thickness
-        # ribbon" no longer describes the geometry.
-        d_leg = self.U_WALL / 2.0
-        d_fin = self.FINGER_WALL / 2.0
-        finger_cl = self.U_FINGER_CL_Y
-        leg_cl = finger_cl - self.U_CENTRELINE_SEP
+        finger_out, finger_in = self._finger_faces()
+        base_out, base_in = self._leg_faces(0.0)
+        z_apex = self._apex_z()
 
-        # Aperture faces -- these set the INNER arc.
-        leg_in = leg_cl + d_leg
-        finger_out = finger_cl - d_fin
-        y_c = (leg_in + finger_out) / 2.0
-        r_in = (finger_out - leg_in) / 2.0
+        # Above the apex the hook is one solid section spanning the leg's
+        # outer face to the finger's inner face, tapering to a flat tip.
+        apex_out, _ = self._leg_faces(z_apex)
+        mid = (apex_out + finger_in) / 2.0
+        crown_out = mid - self.CROWN_TOP_HALF
+        crown_in = mid + self.CROWN_TOP_HALF
 
-        leg_out = leg_cl - d_leg
-        finger_in = finger_cl + d_fin
-
-        # (c) Sloped crown, replacing the round outer bend. The outer faces
-        # run straight to z_bend, then converge onto a short flat at the
-        # hook's tip. The INNER arc is untouched -- see the constants' note.
-        z_bend = lg.hook_depth - self.CROWN_SLOPE_H
-        crown_half = r_in + self.CROWN_TOP_CLEAR
-        crown_out = y_c - crown_half
-        crown_in = y_c + crown_half
-
-        # The aperture's arc must terminate BELOW the crown flat, or the
-        # slope would cut into it and the hook would be hollow at its tip.
-        assert z_bend + r_in < lg.hook_depth - 1e-9, (
-            f"the aperture arc tops out at {z_bend + r_in:.3f}, at or above "
-            f"the hook tip ({lg.hook_depth:.3f}) -- CROWN_SLOPE_H "
-            f"({self.CROWN_SLOPE_H}) is too small for an aperture of "
-            f"{2 * r_in:.3f}, so the crown carries no material"
+        # The V must actually converge, and must not cross over. A leg that
+        # over-runs the finger would produce a self-intersecting profile,
+        # which OCCT will happily extrude into a single valid-looking solid
+        # -- the silent-failure mode this file has been bitten by before.
+        assert base_in < finger_out - 1e-9, (
+            f"the leg's inner face at the plate ({base_in:.3f}) is not "
+            f"outboard of the finger's outer face ({finger_out:.3f}) -- "
+            "there is no aperture to open, so this is not a V"
         )
-        # And the slope must actually converge, or it is not a slope.
-        assert crown_half < (finger_in - leg_out) / 2.0 - 1e-9, (
-            f"the crown flat ({2 * crown_half:.3f} wide) is no narrower than "
-            f"the hook below it ({finger_in - leg_out:.3f}) -- "
-            "CROWN_TOP_CLEAR leaves nothing to taper"
+        assert z_apex < lg.hook_depth - 1e-9, (
+            f"the aperture closes at {z_apex:.3f}, at or above the hook tip "
+            f"({lg.hook_depth:.3f}) -- APEX_Z_FRAC leaves no crown"
+        )
+        assert crown_out < crown_in and crown_out > apex_out - 1e-9, (
+            f"the crown flat ({crown_out:.3f}..{crown_in:.3f}) does not sit "
+            f"inside the hook's own section at the apex "
+            f"({apex_out:.3f}..{finger_in:.3f})"
         )
 
-        # One closed profile: up the leg's outer face, up the crown slope,
-        # across the flat, down the finger's outer slope and inner face,
-        # across the foot, up the finger's aperture face, around the inner
-        # arc, down the leg's aperture face, close.
+        # One closed profile, anticlockwise from the leg's outer foot: up the
+        # sloped leg, up the crown taper, across the flat, down the finger's
+        # inner face to the plate, across the foot, up the finger's vertical
+        # aperture face to the apex, then back down the leg's inner face.
         wp = (
             cq.Workplane("YZ")
             .transformed(offset=cq.Vector(0.0, 0.0, x_center - half_w))
-            .moveTo(leg_out, 0.0)
-            .lineTo(leg_out, z_bend)
+            .moveTo(base_out, 0.0)
+            .lineTo(apex_out, z_apex)
             .lineTo(crown_out, lg.hook_depth)
             .lineTo(crown_in, lg.hook_depth)
-            .lineTo(finger_in, z_bend)
+            .lineTo(finger_in, z_apex)
             .lineTo(finger_in, 0.0)
             .lineTo(finger_out, 0.0)
-            .lineTo(finger_out, z_bend)
-            .threePointArc((y_c, z_bend + r_in), (leg_in, z_bend))
-            .lineTo(leg_in, 0.0)
+            .lineTo(finger_out, z_apex)
+            .lineTo(base_in, 0.0)
         )
         return wp.close().extrude(self._hook_width_printed)
 
 
     def _build_leg_bead(self, side: int) -> cq.Workplane:
-        """The retention bead: a local thickening of the leg's outer face.
+        """The **peg** -- the tongue that engages the housing.
 
-        In the reference this is not a bolted-on feature but a bulge in the
-        leg's own wall (thickness 0.70 -> 1.028 at z = 5.0), which is why
-        modelling it as a separate body kept looking wrong.
+        Round 62. Measured on the real cover: tip 5.000 mm outboard of the
+        plate edge, ~1 mm tall. Rounds 58-61 kept the reference's smooth
+        0.220 mm bulge and chased the reach by MOVING THE WHOLE LEG outboard;
+        the owner's correction -- *"make the peg larger, not increasing the
+        size of the hook"* -- is that error named. The leg is back on its own
+        geometry and the peg grows out of it instead.
+
+        1 mm tall against a ~1.6 mm protrusion makes this a shelf, so it is a
+        right triangle in section, and which way round matters:
+
+        * **Ramped underside**, from the leg face at :attr:`BEAD_Z_LO` out to
+          the tip at :attr:`BEAD_Z_HI`. This is the lead-in as the hook
+          enters (+Z), and it is also the printable face -- roughly 32 deg
+          from horizontal instead of an unsupported 90 deg.
+        * **Flat horizontal top** at :attr:`BEAD_Z_HI`, back to the leg. This
+          is the retention face: pull-out acts in -Z and bears on it
+          square-on. A symmetric bump would instead present a slope that cams
+          itself open under load, and hang a 17 deg overhang underneath.
+
+        The peg sits on the leg's own SLOPED face, so its root Y is read from
+        :meth:`_leg_faces` at each end rather than from a constant -- a fixed
+        baseline would float off the leg at one end and bury itself at the
+        other.
         """
         x_center, half_w = self._hook_span(side)
-        leg_outer = self.U_FINGER_CL_Y - self.U_CENTRELINE_SEP - self.U_WALL / 2.0
-        z_c = (self.BEAD_Z_LO + self.BEAD_Z_HI) / 2.0
-        r_b = (self.BEAD_Z_HI - self.BEAD_Z_LO) / 2.0
-        protrusion = self.BEAD_BASELINE_Y - self.BEAD_PEAK_Y   # 0.220
-        axis_y = leg_outer + (r_b - protrusion)
-        seam = 0.05
+        tip_y = self.LATCH_DATUM_Y - self.BARB_TIP_OUT
+        root_lo, _ = self._leg_faces(self.BEAD_Z_LO)
+        root_hi, _ = self._leg_faces(self.BEAD_Z_HI)
+        seam = 0.050   # bite back into the leg so this fuses by volume
 
-        disc = (
+        assert tip_y < root_hi - 1e-9, (
+            f"the peg's tip ({tip_y:.3f}) is not outboard of the leg face it "
+            f"grows from ({root_hi:.3f}) -- it would be a notch, not a peg"
+        )
+
+        wp = (
             cq.Workplane("YZ")
             .transformed(offset=cq.Vector(0.0, 0.0, x_center - half_w))
-            .center(axis_y, z_c)
-            .circle(r_b)
-            .extrude(self._hook_width_printed)
+            .moveTo(root_lo + seam, self.BEAD_Z_LO)
+            .lineTo(tip_y, self.BEAD_Z_HI)
+            .lineTo(root_hi + seam, self.BEAD_Z_HI)
         )
-        keep = cq.Workplane("XY").box(120.0, 40.0, 40.0).translate(
-            (0.0, leg_outer + seam - 20.0, z_c))
-        return disc.intersect(keep)
+        return wp.close().extrude(self._hook_width_printed)
 
     def _build_tongue(self) -> cq.Workplane:
         """Slide-in tongue + ledge -- a riser (fused to the plate, full
