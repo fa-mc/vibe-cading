@@ -258,7 +258,14 @@ def test_tongue_is_segmented_into_the_reference_four_blades():
 
     # Tip / ledge: only Tongue A reaches here, so two blades with the
     # centre gap between them -- Tongue B stops at TONGUE_STEP_Y (T5).
-    for y, z in ((33.000, 2.400), (33.900, 2.300)):
+    #
+    # Round 67: both stations derived from y_root rather than written as
+    # literals. y = 33.000 used to sit safely inside the gap; when the body
+    # grew 0.200 at this end the gap's start face moved onto exactly that
+    # station, and a probe sitting on a boundary face reports material. It
+    # failed as "the centre gap is missing" -- a datum move masquerading as a
+    # geometry defect, and the third time this round of literals has done it.
+    for y, z in ((y_root + 0.400, 2.400), (y_root + 1.300, 2.300)):
         bands = _occupied_x_bands(solid, y=y, z=z)
         assert len(bands) == 2, f"expected 2 tip blades at y={y}, z={z}, got {bands}"
         assert abs(bands[0][1] + inner) <= 0.05 and abs(bands[1][0] - inner) <= 0.05, (

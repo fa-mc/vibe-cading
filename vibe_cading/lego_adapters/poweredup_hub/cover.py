@@ -252,8 +252,21 @@ class PoweredUpHubCover:
     # That coupling is now handled properly by LATCH_DATUM_Y below instead of
     # being a reason not to move: the latch constants keep their reference
     # provenance and the assembly rides along.
-    PLATE_Y_LO = -27.800  # = PLATE_Y_HI - 59.800 (measured, round 61)
-    PLATE_Y_HI = 32.000   # tongue-end plate edge, held as the datum
+    # ROUND 67: body 59.800 -> 60.000, measured side by side against the real
+    # part ("from outer side of the two straight lines across the body").
+    #
+    # The 0.200 is taken at the TONGUE end by the owner's decision, so the
+    # LATCH end is now the fixed datum -- the opposite of rounds 61-66. The
+    # reason is the hook: it was certified working on the round-63 print, and
+    # growing the body at that end would have pushed the whole latch 0.200 mm
+    # deeper into the housing pocket. Nothing about the latch moves.
+    #
+    # Two consequences that follow from the same choice:
+    #   * the tongue lengths below are measured from the NEW edge (32.200)
+    #   * the window sill stays where it is, because it is dimensioned from
+    #     the thumb-tab (latch) side -- see WINDOW_SILL_Y_CENTER
+    PLATE_Y_LO = -27.800  # latch-end plate edge, now the held datum
+    PLATE_Y_HI = 32.200   # = PLATE_Y_LO + 60.000 (measured, round 67)
     # The plate edge every latch constant below was MEASURED against. The
     # latch sub-assembly is built in that frame and translated to wherever
     # PLATE_Y_LO now sits, so re-datuming the lid's length never again means
@@ -279,7 +292,15 @@ class PoweredUpHubCover:
     # 1.750. Against a REAL housing it should fit; against ours it will not.
     # test_window_sill_tracks_the_tab_width is xfailed for exactly this.
     WINDOW_SILL_WIDTH = 23.500     # measured (was 2 x 12.000 from the tab)
-    WINDOW_SILL_Y_CENTER = 2.000   # measured, shifted toward the tongue end
+    # Measured, shifted toward the tongue end. ROUND 67: confirmed good on the
+    # print and deliberately NOT moved when the body grew, per "hold the
+    # position constant (relative to the thumb tab side)". Because the 0.200
+    # was taken at the tongue end, PLATE_Y_LO did not move and this absolute
+    # figure already IS anchored to the thumb-tab side -- so holding it means
+    # changing nothing here. Stated explicitly because that is a coincidence
+    # of this round's datum choice, not a property of the constant: had the
+    # growth gone to the latch end, this would have needed +0.200.
+    WINDOW_SILL_Y_CENTER = 2.000
     #: ``True`` puts the sill's outer face flush with the housing's outer
     #: wall. Rounds 55-63 held it one running clearance short, so that the
     #: worst case under the lid's own +-X play was flush rather than proud.
@@ -325,20 +346,21 @@ class PoweredUpHubCover:
     # riser keeps its proportion of the width. Flagged as inferred: if the
     # riser matters for the fit, measure it.
     RISER_X_HALF = 25.010
-    # ROUND 61: the tongue protrudes 4.000 beyond the body edge, measured on
-    # the real part ("the tongue length to be 4mm from the end of the body").
-    # Round 60 built 1.700, derived as 63.600 - 61.900 from two whole-part
-    # readings -- an arithmetic difference of two large numbers, so both
-    # errors landed in it. This is the feature measured directly, and it also
-    # closes the length books: 59.800 + 4.000 = 63.800 against the 63.600
-    # "including tongues" reading.
+    # ROUND 67: the four blades are TWO different lengths, both measured from
+    # the body's end line -- the outer pair ("short pegs, on each side")
+    # 2.000, the inner pair ("long pegs, toward the middle") 3.800.
     #
-    # The riser/tip split is still NOT measured; the LDraw proportion (1.378
-    # riser to 1.022 tip, 2.400 total) is scaled by 4.000/2.400 so the tip
-    # stays a blade rather than guessing a new split. Inferred -- if the
-    # rebate fit is wrong at this end, this is the number to measure next.
-    TONGUE_STEP_Y = 34.297   # PLATE_Y_HI + 1.378 * (4.000 / 2.400)
-    TONGUE_Y_HI = 36.000     # PLATE_Y_HI + 4.000
+    # The model already had two lengths in the right sense (the outer pair
+    # ends at the riser step, the inner pair carries on as the thin tip), so
+    # this is a correction of 0.290 and 0.200, not a rework. The split itself
+    # is no longer inferred from an LDraw proportion -- both numbers are now
+    # measured, which retires the round-61 note that flagged them as guesses.
+    #
+    # Note TONGUE_Y_HI does not move: the body's edge grew out to meet the
+    # tip (32.000 + 4.000 and 32.200 + 3.800 are the same place). The tongue
+    # tip is, in effect, the one part of this end that was already right.
+    TONGUE_STEP_Y = 34.200   # PLATE_Y_HI + 2.000 -- outer pair ends here
+    TONGUE_Y_HI = 36.000     # PLATE_Y_HI + 3.800 -- inner pair ends here
     RISER_Z_HI = 2.800
     TIP_Z_LO = 1.874
 
@@ -575,6 +597,19 @@ class PoweredUpHubCover:
     ARM_X = 0.800                 # each arm's width, as the pad's end walls
     ARM_Z = 2.000                 # how far they rise above the peg
     ARM_OUT = 1.100               # how far they stand proud of the leg face
+    # Round 67: the arms' top OUTBOARD corner is rounded, not square.
+    #
+    # Round 63 built them as plain blocks, which put a square shoulder at the
+    # leading edge -- the hook travels +Z on insertion, so that corner is the
+    # first thing to meet the housing wall and it catches rather than rides.
+    # The radius turns it into a lead-in.
+    #
+    # Only that ONE corner. The arms' inboard-top corner is buried against the
+    # leg, and their BOTTOM face sits on the peg, where a radius would cut
+    # into the peg's own flat retention face -- the surface taking pull-out,
+    # which the owner specifically asked to keep rectangular.
+    ARM_TIP_R = 0.800             # inferred: 0.73 x ARM_OUT, leaves 1.200
+    #                             # of full-protrusion arm below the curve
     # --- The thumb tab ---
     TAB_TIP_OUT = 6.000           # tab tip, outboard from LATCH_DATUM_Y
     # Thumb-pad plan outline: scalloped in Y across the hook width.
@@ -1224,20 +1259,42 @@ class PoweredUpHubCover:
             "foul the housing before the peg ever engaged it"
         )
 
+        z_lo = self.BEAD_Z_HI
+        z_hi = z_lo + self.ARM_Z
+        r = self.ARM_TIP_R
+        y_root = root + seam
+
+        assert r < self.ARM_OUT + seam and r < self.ARM_Z, (
+            f"ARM_TIP_R ({r}) does not fit the arm it rounds "
+            f"({self.ARM_OUT} out x {self.ARM_Z} tall)"
+        )
+
+        # Profile in YZ, extruded across ARM_X. Built as an explicit arc rather
+        # than a fillet() on a box: OCCT fillets on a small feature that also
+        # gets unioned into a larger solid are a known source of silent
+        # failures here, and an arc through three known points cannot collapse.
+        #
+        # Up the outboard face, round the top-outboard corner, across the top
+        # to the leg, and down the leg face. Arc centre is (y_outer + r,
+        # z_hi - r), so the midpoint is that centre offset by r at 135 deg.
+        arc_mid = (
+            y_outer + r - r * 0.7071067811865476,
+            z_hi - r + r * 0.7071067811865476,
+        )
         arms = None
         for edge in (-1, +1):
             x_edge = x_center + edge * half_w
-            block = rounded_box(
-                width=self.ARM_X,
-                depth=(root + seam) - y_outer,
-                height=self.ARM_Z,
-                corner_r=0.0,
-                center=(
-                    x_edge - edge * self.ARM_X / 2.0,
-                    (y_outer + root + seam) / 2.0,
-                    self.BEAD_Z_HI,
-                ),
+            x_start = min(x_edge, x_edge - edge * self.ARM_X)
+            wp = (
+                cq.Workplane("YZ")
+                .transformed(offset=cq.Vector(0.0, 0.0, x_start))
+                .moveTo(y_root, z_lo)
+                .lineTo(y_outer, z_lo)
+                .lineTo(y_outer, z_hi - r)
+                .threePointArc(arc_mid, (y_outer + r, z_hi))
+                .lineTo(y_root, z_hi)
             )
+            block = wp.close().extrude(self.ARM_X)
             arms = block if arms is None else arms.union(block)
         return arms
 
