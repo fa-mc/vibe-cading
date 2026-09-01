@@ -79,6 +79,9 @@ import cadquery as cq
 
 from vibe_cading.cq_utils import rounded_box
 from vibe_cading.lego_adapters.poweredup_hub.cover import PoweredUpHubCover
+from vibe_cading.lego_adapters.poweredup_hub.latch_geometry import (
+    get_latch_geometry,
+)
 from vibe_cading.print_settings import ToleranceProfile, get_profile
 
 
@@ -185,7 +188,14 @@ class PoweredUpHubBatteryTray:
     # round 51), so importing Housing back would cycle. Re-derive by hand
     # if PoweredUpHubHousing.WALL_INNER_STEP_Z (currently 21.200, world) or
     # PoweredUpHubCover.PLATE_THICKNESS (this class's seat offset) change.
-    WALL_Z_HI = 20.000   # == 21.200 (Housing.WALL_INNER_STEP_Z, world) - 1.200 (seat)
+    # ROUND 70: 20.000 -> 26.000, the owner's measured tray height. This is
+    # now an OWNER-SPECIFIED figure, not a derivation from Housing's cavity
+    # step -- so the round-57 note above (which derived it as
+    # Housing.WALL_INNER_STEP_Z - the seat) no longer governs. The wall now
+    # stands 4.800 mm ABOVE Housing's own 21.200 inner step, which our Housing
+    # is not yet shaped to receive; that is expected and is part of bringing
+    # the Housing backward to the frozen Cover/Tray, not a defect here.
+    WALL_Z_HI = 26.000
     WALL_THICKNESS = WALL_OUTER_X - WALL_INNER_X   # 0.800
 
     # --- Y span (round 51) -- the U's open ends. ---
@@ -196,9 +206,31 @@ class PoweredUpHubBatteryTray:
     # the wall footprint never overlaps either raised band, by construction
     # rather than by a cutter this class would otherwise need. Derived live
     # from Cover (safe: Cover does not import this class or Housing).
-    _SAFETY_MARGIN = 0.100
-    WALL_Y_LO = PoweredUpHubCover.LATCH_BAND_Y_HI + _SAFETY_MARGIN    # -29.900
-    WALL_Y_HI = PoweredUpHubCover.GROOVE_Y_LO - _SAFETY_MARGIN        # 29.900
+    # ROUND 70 -- re-datumed to the Cover's BODY, 60.000 long by the owner's
+    # measurement, and a real bug fixed on the way.
+    #
+    # THE BUG: WALL_Y_LO derived from PoweredUpHubCover.LATCH_BAND_Y_HI, which
+    # since round 61 is written in the Cover's LATCH FRAME and translated at
+    # build time. This class read the raw constant, so it placed the wall
+    # against -29.600 while the band is actually built at -26.600 -- putting
+    # the tray's end 1.700 mm OUTBOARD of the Cover's own plate edge, hanging
+    # off the part. Round 61 introduced the frame and never propagated it
+    # here; nothing caught it because the tray's own single-solid and
+    # dimensional checks are all internal, and the seated-interference test
+    # that would have seen it is one of the 13 xfailed cross-datum tests.
+    #
+    # THE FIX, and why it is a re-datum rather than a +3.000: the owner's
+    # 60.000 is exactly the Cover's body length, so these now derive from the
+    # BODY EDGES themselves. That is the same span as "between the two lines'
+    # OUTER faces" -- the lines sit at [-27.800, -26.600] and [31.000, 32.200],
+    # so their outer faces are 60.000 apart. Deriving from PLATE_Y_LO/HI means
+    # no frame translation is involved at all, so this class can no longer be
+    # wrong about which frame a Cover constant lives in.
+    #
+    # CONSEQUENCE, handled in _build_line_reliefs: the floor now lands ON both
+    # raised lines (0.800 and 0.400 proud). It is relieved over each.
+    WALL_Y_LO = PoweredUpHubCover.PLATE_Y_LO     # -27.800
+    WALL_Y_HI = PoweredUpHubCover.PLATE_Y_HI     #  32.200
 
     # --- Floor (rounds 52-53, restored and re-datumed in round 55) ---
     # Not reference-derived: LDraw 24849's own floor is inside the part's
@@ -343,6 +375,8 @@ class PoweredUpHubBatteryTray:
         part = part.union(self._build_extraction_tab(-1))
         part = part.cut(self._build_strap_channel())
         part = part.cut(self._build_cap_rebate())
+        part = part.cut(self._build_line_reliefs())
+        part = part.cut(self._build_hook_notches())
 
         # One piece again as of round 55: the floor is what joins the two
         # otherwise-disconnected side walls, so this assertion is also the
@@ -412,6 +446,127 @@ class PoweredUpHubBatteryTray:
             corner_r=0.0,
             center=(0.0, (self.WALL_Y_LO + self.WALL_Y_HI) / 2.0, 0.0),
         )
+
+    def _build_line_reliefs(self) -> cq.Workplane:
+        """Underside pockets clearing the Cover's two raised locating lines
+        (round 70).
+
+        Rounds 51-69 kept this tray's Y reach SHORT of both raised bands, so
+        it never touched them. The owner's 60.000 length spans the Cover's
+        whole body, which puts the floor directly over both -- the latch band
+        standing 0.800 proud of the plate and the tongue-end line 0.400. Left
+        alone that is a hard interference: the tray would rock on two supports
+        of different height and never seat.
+
+        Relieved rather than the tray being raised to sit ON them, because
+        they are NOT the same height. Seating on the taller latch band would
+        leave the tongue end 0.400 mm in the air -- a rocking part that still
+        passes every dimensional check. Relieved, the tray keeps a single flat
+        seat on the plate itself, which is the only surface that is level
+        across the whole span.
+
+        Each pocket is the line's own footprint grown by a running clearance
+        on the three faces that matter, and cut with an overcut on the
+        outboard/underside faces, which open into free space. The INBOARD
+        face is bounded by the line's own extent rather than overcut -- past
+        it is the tray's own floor, and an unbounded pocket there would eat
+        the seat this exists to protect.
+        """
+        c = self._profile.free.radial
+        overcut = 1.0
+        # The Cover's latch-end line lives in its LATCH frame; translate it
+        # the same way the Cover does. This is the single place this class
+        # touches that frame, and it does so explicitly -- see WALL_Y_LO for
+        # the bug that came from reading the raw constant.
+        latch_dy = PoweredUpHubCover.PLATE_Y_LO - PoweredUpHubCover.LATCH_DATUM_Y
+        lines = (
+            (PoweredUpHubCover.LATCH_BAND_Y_LO + latch_dy,
+             PoweredUpHubCover.LATCH_BAND_Y_HI + latch_dy,
+             PoweredUpHubCover.LATCH_BAND_THICKNESS),
+            (PoweredUpHubCover.GROOVE_Y_LO,
+             PoweredUpHubCover.GROOVE_Y_HI,
+             PoweredUpHubCover.GROOVE_THICKNESS),
+        )
+
+        pockets = None
+        for y_lo, y_hi, cover_thickness in lines:
+            # How far the line stands proud of the plate == how deep the
+            # pocket must be, plus a clearance so the two never touch.
+            proud = cover_thickness - PoweredUpHubCover.PLATE_THICKNESS
+            depth = proud + c
+            outboard = y_lo < 0.0
+            p_lo = (y_lo - overcut) if outboard else (y_lo - c)
+            p_hi = (y_hi + c) if outboard else (y_hi + overcut)
+            pocket = rounded_box(
+                width=4 * self.WALL_OUTER_X,      # clear across, waste in X
+                depth=p_hi - p_lo,
+                height=depth + overcut,
+                corner_r=0.0,
+                center=(0.0, (p_lo + p_hi) / 2.0, -overcut),
+            )
+            pockets = pocket if pockets is None else pockets.union(pocket)
+
+        assert pockets is not None, "no line reliefs built"
+        return pockets
+
+    def _build_hook_notches(self) -> cq.Workplane:
+        """Clear the Cover's two latch fingers where they stand proud of the
+        plate edge (round 70).
+
+        The Cover's finger is deliberately built 0.050 mm INBOARD of its own
+        plate edge, so that it fuses to the plate by volume instead of meeting
+        it on a coincident face (see ``PoweredUpHubCover.__init__``'s fusion
+        assertion). At the old length this tray stopped well short and never
+        met it. At the owner's 60.000 -- which is the plate edge exactly --
+        that 0.050 mm becomes a real interference: measured 2.1875 mm^3 in two
+        lumps at ``X = +-[5.750, 18.250]``, i.e. precisely the hook footprint.
+
+        A 0.050 mm overlap is small enough to look like noise and be
+        "tolerance-adjusted" away. It is not noise: the parts genuinely cannot
+        assemble, and the fix belongs on THIS part because the Cover's overlap
+        is load-bearing -- removing it there would unfuse the latch from the
+        lid.
+
+        Cut over the hook's NOMINAL footprint plus a clearance each side, not
+        the printed one: the printed hook is already narrower by the lateral
+        running clearance, so notching to nominal leaves that clearance intact
+        rather than consuming it.
+        """
+        lg = get_latch_geometry(self._profile)
+        c = self._profile.free.radial
+        overcut = 1.0
+
+        # Where the Cover's finger actually stands, in the built frame.
+        latch_dy = PoweredUpHubCover.PLATE_Y_LO - PoweredUpHubCover.LATCH_DATUM_Y
+        finger_inner = (
+            PoweredUpHubCover.U_FINGER_CL_Y
+            + PoweredUpHubCover.FINGER_WALL / 2.0
+            + latch_dy
+        )
+        y_hi = finger_inner + c
+        y_lo = self.WALL_Y_LO - overcut
+
+        assert y_hi > self.WALL_Y_LO, (
+            f"the finger's inner face ({finger_inner:.3f}) is outboard of the "
+            f"tray's own end ({self.WALL_Y_LO:.3f}) -- there is nothing to "
+            "notch, so this cutter would remove material for no reason"
+        )
+
+        x_lo = lg.hook_pitch / 2.0 - c
+        x_hi = lg.hook_pitch / 2.0 + lg.hook_width + c
+
+        notches = None
+        for sign in (-1.0, 1.0):
+            lo, hi = sorted((sign * x_lo, sign * x_hi))
+            notch = rounded_box(
+                width=hi - lo,
+                depth=y_hi - y_lo,
+                height=self.WALL_Z_HI + 2 * overcut,
+                corner_r=0.0,
+                center=((lo + hi) / 2.0, (y_lo + y_hi) / 2.0, -overcut),
+            )
+            notches = notch if notches is None else notches.union(notch)
+        return notches
 
     def _build_strap_channel(self) -> cq.Workplane:
         """The strap corridor: ONE opening cut clear through the floor,
