@@ -305,18 +305,53 @@ class PoweredUpHubBatteryTray:
     # (world Z = 0), while this class's Z = 0 sits 1.200 mm above that, so
     # world Z = local Z + 1.200 and every constant below is (Cover's old
     # HANDLE_*_Z value) - 1.200.
+    # ROUND 71 -- the tab is DERIVED FROM THE COVER, which is now ground truth.
+    #
+    # The Cover is frozen; the Tray and Housing come backward to it. The tab's
+    # Y length and position are therefore no longer this class's own numbers:
+    # they are the Cover's window sill, read live. That also closes the
+    # round-64 flag -- the sill was moved to 23.500 wide at centre +2.000 while
+    # the tab stayed 24.000 at centre 0.000, so the sill overhung the window
+    # (which the Housing cuts FROM this tab) by 1.750 on its +Y edge. Deriving
+    # both from one source makes that mismatch unrepresentable rather than
+    # merely fixed.
     TAB_ROOT_X = 27.200        # side-wall face the tab stands on
     TAB_PAD_X = 28.000         # 0.800 mm proud
-    TAB_PAD_Y_HALF = 12.000    # 24.000 long
-    TAB_PAD_Z_HI = 7.200       # == 8.400 (Cover's old world value) - 1.200
+    TAB_PAD_Y_HALF = PoweredUpHubCover.WINDOW_SILL_WIDTH / 2.0    # 11.750
+    TAB_Y_CENTER = PoweredUpHubCover.WINDOW_SILL_Y_CENTER          # 2.000
+    # Owner-measured 7.500 from the BOTTOM OF THE COVER, i.e. world Z. This
+    # class's own frame is the tray's underside, one PLATE_THICKNESS above
+    # that, so the local value is the measurement less the seat offset.
+    TAB_PAD_Z_HI = 7.500 - PoweredUpHubCover.PLATE_THICKNESS       # 6.300
     TAB_LEDGE_X = 28.400       # 1.200 mm proud -- the border's own face
-    TAB_LEDGE_Y_HALF = 8.400   # the corner round-over's centre |Y|
     TAB_RIB_X = 28.320         # 0.320 mm proud of the pad
     TAB_RIB_Y_HALF = 8.800
     TAB_RIB_1_Z = (0.720, 1.680)   # == (1.920, 2.880) - 1.200
     TAB_RIB_2_Z = (2.720, 3.680)   # == (3.920, 4.880) - 1.200
     TAB_ROUND_R = 3.600
-    TAB_ROUND_CZ = 3.600      # == 4.800 (Cover's old world value) - 1.200
+    # ROUND 71 -- these two are DERIVED, and the invariant they express is the
+    # whole reason the tab's corners are true round-overs.
+    #
+    # The outline's corner is a threePointArc from (yh, cz) via a 45-degree
+    # point to (ly, zhi). Those three points lie on a circle of radius
+    # TAB_ROUND_R centred at (ly, cz) ONLY IF
+    #
+    #       TAB_ROUND_R == yh - ly == zhi - cz
+    #
+    # At the original numbers all three were 3.600 and it was an exact quarter
+    # circle. Nothing said so, and a first round-71 attempt set the height from
+    # the owner's measurement and merely SCALED cz -- leaving 11.750 - 8.400 =
+    # 3.350 against 6.300 - 3.150 = 3.150 against r = 3.600, three different
+    # values. OCCT drew an arc through them regardless; it just was not the arc
+    # intended. Measured on the built solid it bulged 0.062 mm past each side
+    # and 0.102 mm past the top -- which is how it was caught, since the tab
+    # then failed to match the sill it was supposed to equal.
+    #
+    # Deriving both keeps the invariant true for the inset (frame) pass too:
+    # inset shrinks yh, zhi and r by the same amount while ly and cz hold, so
+    # all three stay equal automatically.
+    TAB_LEDGE_Y_HALF = TAB_PAD_Y_HALF - TAB_ROUND_R    # 8.150, round-over centre |Y|
+    TAB_ROUND_CZ = TAB_PAD_Z_HI - TAB_ROUND_R          # 2.700, round-over centre Z
     TAB_FRAME_WIDTH = 1.200   # uniform border width, see the retired
     # PoweredUpHubCover._build_side_handle docstring (round 47) for the
     # full derivation of this border from the tab's own outline.
@@ -645,6 +680,29 @@ class PoweredUpHubBatteryTray:
         and this class's own frame differs by the fixed seat offset.
         """
         cz, ly = self.TAB_ROUND_CZ, self.TAB_LEDGE_Y_HALF
+        yc = self.TAB_Y_CENTER
+
+        # The corner is a TRUE round-over only while
+        #     TAB_ROUND_R == yh - ly == zhi - cz
+        # holds -- see TAB_LEDGE_Y_HALF / TAB_ROUND_CZ. Asserted at both the
+        # outer pass and the inset (frame) pass, because the inset reduces yh,
+        # zhi and r together and the equality must survive that.
+        #
+        # This is not decoration: violating it does NOT raise anywhere in
+        # OCCT. threePointArc happily fits a circle through any three
+        # non-collinear points, so the failure is a silently wrong shape --
+        # which is exactly how round 71's first attempt shipped a tab 0.124 mm
+        # too long and 0.102 mm too tall.
+        for _inset in (0.0, self.TAB_FRAME_WIDTH):
+            _r = self.TAB_ROUND_R - _inset
+            _yh = self.TAB_PAD_Y_HALF - _inset
+            _zhi = self.TAB_PAD_Z_HI - _inset
+            assert abs((_yh - ly) - _r) < 1e-9 and abs((_zhi - cz) - _r) < 1e-9, (
+                f"the tab's corner is not a true round-over at inset "
+                f"{_inset:.3f}: radius {_r:.3f}, but yh - ly = {_yh - ly:.3f} "
+                f"and zhi - cz = {_zhi - cz:.3f}. All three must be equal or "
+                "the arc is some other circle and the tab silently changes size"
+            )
 
         def _outline(x_at: float, inset: float) -> cq.Workplane:
             yh = self.TAB_PAD_Y_HALF - inset
@@ -654,12 +712,12 @@ class PoweredUpHubBatteryTray:
             return (
                 cq.Workplane("YZ")
                 .transformed(offset=cq.Vector(0.0, 0.0, side * x_at))
-                .moveTo(-yh, 0.0)
-                .lineTo(-yh, cz)
-                .threePointArc((-ly - d, cz + d), (-ly, zhi))
-                .lineTo(ly, zhi)
-                .threePointArc((ly + d, cz + d), (yh, cz))
-                .lineTo(yh, 0.0)
+                .moveTo(yc - yh, 0.0)
+                .lineTo(yc - yh, cz)
+                .threePointArc((yc - ly - d, cz + d), (yc - ly, zhi))
+                .lineTo(yc + ly, zhi)
+                .threePointArc((yc + ly + d, cz + d), (yc + yh, cz))
+                .lineTo(yc + yh, 0.0)
                 .close()
             )
 
@@ -684,7 +742,7 @@ class PoweredUpHubBatteryTray:
                 depth=2 * y_half,
                 height=z_hi - z_lo,
                 corner_r=0.0,
-                center=((x_lo + x_hi) / 2.0, 0.0, z_lo),
+                center=((x_lo + x_hi) / 2.0, self.TAB_Y_CENTER, z_lo),
             )
 
         for z_lo, z_hi in (self.TAB_RIB_1_Z, self.TAB_RIB_2_Z):

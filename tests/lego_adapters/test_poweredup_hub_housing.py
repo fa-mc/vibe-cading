@@ -395,11 +395,26 @@ def test_side_tab_is_built_at_reference_size():
     Cover to :class:`PoweredUpHubBatteryTray`; the pinned figures
     (``TAB_PAD_Y_HALF``, and ``TAB_PAD_Z_HI`` re-based by the Tray's own
     seat offset) are unchanged from the reference's own dimensions.
+
+    Round 71 re-datums the pinned figures onto the COVER, which is now
+    ground truth: the tab's length and position are the Cover's window sill
+    read live, so the tab is no longer symmetric about Y = 0 -- it is
+    symmetric about ``TAB_Y_CENTER``. The check is unchanged in kind (the tab
+    is still pinned to a measured reference rather than free to follow a
+    clearance); only which artifact is authoritative has moved.
     """
-    bb = PoweredUpHubBatteryTray()._build_extraction_tab(+1).val().BoundingBox()
-    assert abs(bb.ymax - PoweredUpHubBatteryTray.TAB_PAD_Y_HALF) < 1e-6
-    assert abs(bb.ymin + PoweredUpHubBatteryTray.TAB_PAD_Y_HALF) < 1e-6
-    assert abs(bb.zmax - PoweredUpHubBatteryTray.TAB_PAD_Z_HI) < 1e-6
+    T = PoweredUpHubBatteryTray
+    bb = T()._build_extraction_tab(+1).val().BoundingBox()
+    assert abs(bb.ymax - (T.TAB_Y_CENTER + T.TAB_PAD_Y_HALF)) < 1e-6
+    assert abs(bb.ymin - (T.TAB_Y_CENTER - T.TAB_PAD_Y_HALF)) < 1e-6
+    assert abs(bb.zmax - T.TAB_PAD_Z_HI) < 1e-6
+
+    # And it equals the Cover's window sill, which is the thing it now
+    # derives from. Falsifier: change either the sill's width or its centre
+    # in the Cover and this fires -- that is the point of the re-datum.
+    assert abs(bb.ylen - PoweredUpHubCover.WINDOW_SILL_WIDTH) < 1e-6
+    assert abs((bb.ymin + bb.ymax) / 2.0
+               - PoweredUpHubCover.WINDOW_SILL_Y_CENTER) < 1e-6
 
 
 def test_thumb_pad_has_running_clearance_in_its_window():

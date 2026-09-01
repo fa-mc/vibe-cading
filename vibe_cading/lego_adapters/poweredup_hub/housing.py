@@ -478,6 +478,35 @@ class PoweredUpHubHousing:
     # into a derived one and widening the mouth by 5.600 mm of pure
     # extrapolation past the sampled band.
     SOCKET_Z_HI = REF_STEP_Z      # 24.000
+    # ROUND 71 -- KNOWN-WRONG, and deliberately left wrong. Read this before
+    # touching it.
+    #
+    # The Tray is now 26.000 tall (owner-measured; the old 20.000 was derived
+    # from THIS class's step, so the Tray had been sized to a reference that
+    # was itself unverified). At 21.200 the wall's inner face steps in to
+    # 26.400 while the Tray's wall stands at 27.200, so the two interfere over
+    # the Tray's whole 60.000 length -- 413.040 mm^3 in two lumps at
+    # X = +-[26.400, 27.200], Z = [21.200, 27.200]. The Tray cannot physically
+    # enter the Housing today.
+    #
+    # The obvious fix -- derive this from the Tray's top (27.350) -- was tried
+    # and REVERTED, because it silently destroys the trapezoid mating socket.
+    # _build_side_wall's thickened band 2 spans [WALL_INNER_STEP_Z,
+    # REF_STEP_Z]; at 27.350 against REF_STEP_Z = 24.000 that band is
+    # INVERTED, so the material the socket is pocketed into stops existing and
+    # the socket becomes nothing. OCCT raises nothing -- two housing tests
+    # caught it.
+    #
+    # So this constant is not independently movable. It is bound to
+    # WALL_STEP_Z (22.000), REF_STEP_Z (24.000) and SOCKET_Z_HI (24.000), and
+    # the whole group has to move together in one coherent re-datum of the
+    # Housing's Z frame. That re-datum changes the part's external silhouette
+    # (the wide lower section grows ~5.35 mm, the narrow upper section shrinks
+    # 7.600 -> 2.250), which makes it a measurement question, not a derivation
+    # question: it is blocked on a caliper reading of the real housing's
+    # compartment height. Deferring the whole group is the honest state;
+    # raising one member of it would leave a part that fits the Tray and has
+    # no socket.
     WALL_INNER_STEP_Z = 21.200    # where the wall doubles to 1.600 mm
 
     # --- Cover budget (round 55e) ---
@@ -650,8 +679,22 @@ class PoweredUpHubHousing:
     # constants are the reference's own measurements of it, kept as the
     # cross-check that this class and the cover still describe one feature
     # (asserted in _build_side_window, not merely documented here).
-    WINDOW_Y_HALF = 12.000        # flat half-width, Z <= WINDOW_SHOULDER_Z
-    WINDOW_SHOULDER_Z = 4.800     # where the corner round-over begins
+    # ROUND 71: these were the LDraw reference's own measurements (12.000 and
+    # 4.800). The Cover is now ground truth and the Tray's tab derives from
+    # its window sill, so these follow the TAB rather than the reference --
+    # otherwise the assertion in _build_side_window fires, which is exactly
+    # what it is for and exactly what happened when the tab moved.
+    #
+    # Kept as constants rather than inlined into the builder: they are still
+    # the independent statement of "what this window is", and the assertion
+    # comparing them against the tab is still a real cross-check on the
+    # DERIVATION (a sign error or a missing seat offset in _build_side_window
+    # would break it). What changed is which part is authoritative.
+    WINDOW_Y_HALF = PoweredUpHubBatteryTray.TAB_PAD_Y_HALF        # 11.750
+    WINDOW_Y_CENTER = PoweredUpHubBatteryTray.TAB_Y_CENTER        # 2.000
+    WINDOW_SHOULDER_Z = (
+        PoweredUpHubBatteryTray.TAB_ROUND_CZ + PoweredUpHubCover.PLATE_THICKNESS
+    )  # 4.350 world
     #
     # Round 41 retires WINDOW_TAPER_PROFILE = ((6.000, 11.761),
     # (8.000, 9.966), (8.400, 8.400)) -- three points sampled off the
@@ -1406,16 +1449,20 @@ class PoweredUpHubHousing:
         )
 
         # 45-degree point on each round-over, for the three-point arc.
+        # Round 71: the tab is no longer centred on Y = 0 -- it tracks the
+        # Cover's window sill at TAB_Y_CENTER -- so the window it passes
+        # through must move with it. Read from the tab, not restated.
+        yc = PoweredUpHubBatteryTray.TAB_Y_CENTER
         d = r * math.sqrt(0.5)
         sketch = (
             cq.Workplane("YZ")
             .transformed(offset=cq.Vector(0.0, 0.0, min(x_lo, x_hi)))
-            .moveTo(-half, 0.0)
-            .lineTo(-half, cz)
-            .threePointArc((-ly - d, cz + d), (-ly, zhi))
-            .lineTo(ly, zhi)
-            .threePointArc((ly + d, cz + d), (half, cz))
-            .lineTo(half, 0.0)
+            .moveTo(yc - half, 0.0)
+            .lineTo(yc - half, cz)
+            .threePointArc((yc - ly - d, cz + d), (yc - ly, zhi))
+            .lineTo(yc + ly, zhi)
+            .threePointArc((yc + ly + d, cz + d), (yc + half, cz))
+            .lineTo(yc + half, 0.0)
         )
         return sketch.close().extrude(width)
 

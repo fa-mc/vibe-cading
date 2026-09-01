@@ -289,8 +289,12 @@ def test_side_tab_is_built_at_reference_size():
     quietly start shrinking the part again.
     """
     bb = PoweredUpHubBatteryTray()._build_extraction_tab(+1).val().BoundingBox()
-    assert abs(bb.ymax - PoweredUpHubBatteryTray.TAB_PAD_Y_HALF) < 1e-6
-    assert abs(bb.ymin + PoweredUpHubBatteryTray.TAB_PAD_Y_HALF) < 1e-6
+    # Round 71: the tab is no longer centred on Y = 0. Its length and its
+    # centre both derive from the Cover's window sill (the Cover is ground
+    # truth), so these are stated about TAB_Y_CENTER rather than about zero.
+    _yc = PoweredUpHubBatteryTray.TAB_Y_CENTER
+    assert abs(bb.ymax - (_yc + PoweredUpHubBatteryTray.TAB_PAD_Y_HALF)) < 1e-6
+    assert abs(bb.ymin - (_yc - PoweredUpHubBatteryTray.TAB_PAD_Y_HALF)) < 1e-6
     assert abs(bb.zmax - PoweredUpHubBatteryTray.TAB_PAD_Z_HI) < 1e-6
 
 
@@ -303,7 +307,15 @@ def _proud_spans(shape: cq.Workplane, x_face: float, z: float,
     """
     probe = cq.Workplane("XY").box(step, step, step)
     hits, out, start = [], [], None
-    ys = [round(-12.6 + i * step, 3) for i in range(int(25.2 / step) + 1)]
+    # Round 71: the window follows TAB_Y_CENTER. It was a Y=0-centred literal
+    # (-12.6..+12.6) while the tab was symmetric about Y=0; once the tab moved
+    # to centre +2.000 that window CLIPPED its far edge, and a clipped span
+    # reads as a real edge -- the probe reported hi = 12.600 (the window's own
+    # limit) for an edge actually at 13.750. Derive it so it cannot happen again.
+    y_c = PoweredUpHubBatteryTray.TAB_Y_CENTER
+    y_lo, y_hi = y_c - 12.6, y_c + 12.6
+    ys = [round(y_lo + i * step, 3)
+          for i in range(int((y_hi - y_lo) / step) + 1)]
     for y in ys:
         b = probe.translate((x_face - step / 2.0, y, z))
         try:
@@ -346,17 +358,30 @@ def test_side_tab_carries_a_border_round_three_edges():
 
     # Down the straight sides: two separate legs, one per edge, each the
     # border's own width, seated on the tab's outer profile.
-    for z in (0.5, 2.0, 4.0):
+    #
+    # Round 71: the stations were the literals (0.5, 2.0, 4.0), chosen when
+    # TAB_ROUND_CZ was 3.600. It is now 2.700, so z = 4.0 sits 1.300 mm INSIDE
+    # the corner round-over and the probe reads the arc (13.507) rather than
+    # the straight side (13.750) -- a genuine reading of the wrong feature, not
+    # a geometry fault. z = 4.0 was already 0.400 inside the old round-over and
+    # passed only because the arc had not yet pulled in by more than the 0.05
+    # tolerance. Derive the stations from the round-over's own start so a
+    # future move of TAB_ROUND_CZ cannot silently re-aim them.
+    for z in (0.5, T.TAB_ROUND_CZ * 0.5, T.TAB_ROUND_CZ - 0.2):
         legs = _proud_spans(tray, T.TAB_LEDGE_X, z)
         assert len(legs) == 2, (
             f"expected two border legs at z={z}, got {legs} -- a straight "
             "top ledge alone reads as [] here"
         )
         (lo_a, hi_a), (lo_b, hi_b) = legs
-        assert abs(hi_b - T.TAB_PAD_Y_HALF) < 0.05
-        assert abs(lo_a + T.TAB_PAD_Y_HALF) < 0.05
-        assert abs(lo_b - (T.TAB_PAD_Y_HALF - w)) < 0.05
-        assert abs((hi_a + T.TAB_PAD_Y_HALF - w)) < 0.05
+        # Round 71: offset by TAB_Y_CENTER -- see test_side_tab_is_built_at
+        # _reference_size. The two legs are still mirrored about the tab's
+        # own centre, just not about Y = 0.
+        yc = T.TAB_Y_CENTER
+        assert abs(hi_b - (yc + T.TAB_PAD_Y_HALF)) < 0.05
+        assert abs(lo_a - (yc - T.TAB_PAD_Y_HALF)) < 0.05
+        assert abs(lo_b - (yc + T.TAB_PAD_Y_HALF - w)) < 0.05
+        assert abs(hi_a - (yc - T.TAB_PAD_Y_HALF + w)) < 0.05
 
     # Over the top the two legs have merged into one continuous run: the
     # border closes across the third edge.
@@ -370,8 +395,8 @@ def test_side_tab_carries_a_border_round_three_edges():
         f"border vanished at z={near_top}"
     )
     interior = _proud_spans(tray, T.TAB_LEDGE_X, 3.0)
-    assert all(abs(abs(lo) - (T.TAB_PAD_Y_HALF - w)) < 0.05
-               or abs(abs(hi) - (T.TAB_PAD_Y_HALF - w)) < 0.05
+    assert all(abs(abs(lo - T.TAB_Y_CENTER) - (T.TAB_PAD_Y_HALF - w)) < 0.05
+               or abs(abs(hi - T.TAB_Y_CENTER) - (T.TAB_PAD_Y_HALF - w)) < 0.05
                for lo, hi in interior), (
         f"interior is not recessed behind the border: {interior}"
     )
