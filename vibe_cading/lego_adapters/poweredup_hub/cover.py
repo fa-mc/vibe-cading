@@ -323,8 +323,16 @@ class PoweredUpHubCover:
     HOUSING_WALL_X_OUTER = 27.800
 
     # --- Latch-end local thickening band (SS1.4) ---
-    LATCH_BAND_Y_LO = -30.800
-    LATCH_BAND_Y_HI = -30.000
+    # ROUND 68: the OTHER of the two "straight lines across the body". Its
+    # outer face was already on the plate edge; it was 0.800 wide against the
+    # owner's measured 1.200, so it grows INBOARD to match. Both lines are now
+    # 1.200 wide with their outer faces on their respective edges.
+    #
+    # Written in the LATCH frame (LATCH_DATUM_Y), so growing it inboard cannot
+    # disturb the hook -- which is what "keep the pegs and hook unchanged, the
+    # position should be relative to the hook side edge" requires.
+    LATCH_BAND_Y_LO = -30.800   # == LATCH_DATUM_Y: on the plate edge
+    LATCH_BAND_Y_HI = -29.600   # = LO + 1.200 (was -30.000, i.e. 0.800 wide)
     LATCH_BAND_THICKNESS = 2.000
 
     # --- Tongue / ledge (SS1.5, simplified -- see class docstring) ---
@@ -406,34 +414,36 @@ class PoweredUpHubCover:
     # "the lid seats laterally on the 1.600 mm groove at Y in [30.0, 31.2]"
     # -- a lid-to-HOUSING seating feature that has nothing to do with the
     # tray. Restored here on the reference's own wording.
-    GROOVE_Y_LO = 30.000
-    GROOVE_Y_HI = 31.200
-    GROOVE_THICKNESS = 1.600   # local plate thickness over the groove band
+    # ROUND 68: this is one of the two "straight lines across the body" the
+    # owner measures the cover's length between -- 1.200 wide, and its OUTER
+    # face sits ON the plate edge.
+    #
+    # It was at [30.000, 31.200], 1.000 short of the edge, and the ledge-teeth
+    # floor at [31.200, 32.400] stood at the same height right beside it. The
+    # two therefore read as ONE raised band 2.400 wide that overshot the plate
+    # edge by 0.200 -- neither the width nor the position the owner measures.
+    # Merged into a single 1.200 band ending exactly on the edge.
+    GROOVE_Y_LO = 31.000       # = GROOVE_Y_HI - 1.200
+    GROOVE_Y_HI = 32.200       # == PLATE_Y_HI: the line locates on the edge
+    GROOVE_THICKNESS = 1.600   # local plate thickness over the band
 
-    # --- Ledge locating teeth + notches (SS1.5) -- round 22 full copy ---
-    # The reference's castellation at the insertion end, reproduced exactly
-    # rather than simplified away: 6 teeth (3 per half) at the |X| bands
-    # below extend the ledge forward from LEDGE_Y_LO to TEETH_Y_LO, and the
-    # floor between them drops back to NOTCH_FLOOR_Z. Rounds 18-21 dropped
-    # both ("rather than reproducing the 6 locating teeth or the ledge
-    # notches between them"); round 22 restores them at the user's
-    # direction. The teeth are the male side and the notches simply the
-    # material between them -- both live on this part, exactly as in the
-    # reference, so the housing carries a plain mating lip and no ridges.
-    TEETH_Y_LO = 31.200
-    TEETH_Y_HI = 32.400
-    # Scaled with the ledge in _build_ledge_teeth (round 59) -- these stay
-    # the LDraw pattern because the teeth themselves were not measured; only
-    # their outer extent is pinned, by riding on LEDGE_X_HALF.
-    TOOTH_X_BANDS = ((0.800, 2.000), (7.600, 8.800), (14.400, 15.600))
-    NOTCH_FLOOR_Z = 1.600
-    LEDGE_Z_HI = 2.800         # == RISER_Z_HI; the teeth rise to the ledge top
+    # --- Ledge (SS1.5) ---
+    # ROUND 68: the six locating TEETH are gone, at the owner's direction --
+    # "get rid of the three dots behind each tongue, they are interfering with
+    # the battery tray". Round 22 had restored them from the LDraw reference;
+    # they are a real feature of the real lid, but they foul this project's
+    # own tray, and the tray is the part that has to work.
+    #
+    # LEDGE_X_HALF and LEDGE_Y_LO survive the teeth because
+    # PoweredUpHubHousing consumes both to shape its tongue rebate. They are
+    # NOT vestigial -- deleting them would break that import -- but they are
+    # now the ledge's own bounds only, with no castellation on them.
     LEDGE_X_HALF = 14.950      # == TONGUE_X_HALF (round 60, measured)
-    # The ledge proper starts where the teeth end. Rounds 18-21 ran the
-    # riser from the plate edge (32.000), which is 0.400 mm too far
-    # forward: SS1.5 puts the raised ledge over Y in [32.400, 34.400] and
-    # leaves [32.000, 32.400] as plain plate.
-    LEDGE_Y_LO = 32.400
+    # ROUND 68: 32.400 -> 32.200. The ledge now starts exactly at the plate
+    # edge, because the band that used to occupy [32.200, 32.400] is gone
+    # with the teeth. Leaving it at 32.400 would have opened a 0.200 mm step
+    # of plain plate between the line and the ledge that nothing fills.
+    LEDGE_Y_LO = 32.200
 
     # --- Release leg / U-spring (SS1.4) ---
     # OUTER face of the leg. Rounds 18-21's profile is kept -- it was
@@ -773,7 +783,6 @@ class PoweredUpHubCover:
         self._tongue_y_hi = self.TONGUE_Y_HI - self._fit
         self._tongue_x_half = self.TONGUE_X_HALF - self._fit
         self._riser_x_half = self.RISER_X_HALF - self._fit
-        self._ledge_x_half = self.LEDGE_X_HALF - self._fit
         # The centre gap and the rib gaps are VOIDS the housing's ribs stand
         # in, so they open outward by the clearance instead of closing.
         self._tongue_gap_x_inner = self.TONGUE_GAP_X_INNER + self._fit
@@ -910,7 +919,6 @@ class PoweredUpHubCover:
         part = part.union(self._latch_frame(self._build_thumb_pad(-1)))
         part = part.union(self._build_tongue())
         part = part.union(self._build_locating_groove())
-        part = part.union(self._build_ledge_teeth())
         if self._window_sill:
             part = part.union(self._build_window_sill(+1))
             part = part.union(self._build_window_sill(-1))
@@ -1322,10 +1330,11 @@ class PoweredUpHubCover:
         """
         riser_depth = self._tongue_step_y - self.PLATE_Y_HI
         riser_y_center = (self.PLATE_Y_HI + self._tongue_step_y) / 2.0
-        # Round 22: the full-height riser starts at LEDGE_Y_LO, not at the
-        # plate edge -- see that constant. The 0.400 mm strip in between is
-        # plain plate, and the teeth built by _build_ledge_teeth carry the
-        # ledge height forward from there.
+        # Round 68: LEDGE_Y_LO is now the plate edge itself, so the riser and
+        # the plate start together. Rounds 22-67 held the ledge 0.400 back and
+        # let the ledge teeth carry its height forward over that strip; with
+        # the teeth removed, keeping the setback would leave a step of plain
+        # plate with nothing on it.
         ledge_depth = self._tongue_step_y - self.LEDGE_Y_LO
         riser_inner = rounded_box(
             width=2 * self._tongue_x_half,
@@ -1415,55 +1424,6 @@ class PoweredUpHubCover:
             corner_r=0.0,
             center=(0.0, (self.GROOVE_Y_LO + self.GROOVE_Y_HI) / 2.0, self.PLATE_THICKNESS),
         )
-
-    def _build_ledge_teeth(self) -> cq.Workplane:
-        """The 6 ledge locating teeth and the 4 notches between them
-        (SS1.5) -- the reference's castellation at the insertion end.
-
-        Two stacked bands over ``[TEETH_Y_LO, TEETH_Y_HI]``:
-
-        * a continuous floor across the ledge width, raised to
-          :attr:`NOTCH_FLOOR_Z` -- this IS the notch floor, so the notches
-          are not cut, they are simply where the teeth are absent;
-        * the 6 teeth themselves, rising from that floor to
-          :attr:`LEDGE_Z_HI` at the three ``TOOTH_X_BANDS`` per half.
-
-        Modelling the notches as "floor without a tooth on top" rather than
-        as a subtractive cut keeps this additive-only, so it cannot
-        interact with the tongue geometry built alongside it.
-        """
-        y_span = self.TEETH_Y_HI - self.TEETH_Y_LO
-        part = rounded_box(
-            width=2 * self._ledge_x_half,
-            depth=y_span,
-            height=self.NOTCH_FLOOR_Z - self.PLATE_THICKNESS,
-            corner_r=0.0,
-            center=(0.0, (self.TEETH_Y_LO + self.TEETH_Y_HI) / 2.0, self.PLATE_THICKNESS),
-        )
-        # Round 59: the teeth ride on the ledge, so they scale with it. The
-        # outermost band ends at the nominal LEDGE_X_HALF (15.600); left
-        # unscaled it stood proud of the clearance-adjusted ledge under it
-        # and butted the housing's locating rib, which had been sized from
-        # the lid's retreated walls. Interference was 0.0225 mm^3 at half the
-        # flank clearance -- invisible seated, and found only by the
-        # sideways-travel test.
-        k = self._ledge_x_half / self.LEDGE_X_HALF
-        for nom_lo, nom_hi in self.TOOTH_X_BANDS:
-            x_lo, x_hi = nom_lo * k, nom_hi * k
-            for side in (+1, -1):
-                tooth = rounded_box(
-                    width=x_hi - x_lo,
-                    depth=y_span,
-                    height=self.LEDGE_Z_HI - self.NOTCH_FLOOR_Z,
-                    corner_r=0.0,
-                    center=(
-                        side * (x_lo + x_hi) / 2.0,
-                        (self.TEETH_Y_LO + self.TEETH_Y_HI) / 2.0,
-                        self.NOTCH_FLOOR_Z,
-                    ),
-                )
-                part = part.union(tooth)
-        return part
 
     @property
     def solid(self) -> cq.Workplane:
