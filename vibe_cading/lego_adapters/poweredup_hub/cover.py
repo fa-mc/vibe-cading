@@ -627,14 +627,16 @@ class PoweredUpHubCover:
     # i.e. -36.800, superseding round 61's -36.990 (which came from the
     # earlier 6.240 depth reading). The 0.400 scallop step is kept as measured.
     #
-    # X: the NOMINAL hook footprint, 5.600..17.800, in six evenly-spaced steps
-    # (round 61 fix -- these had been left on the pre-round-60 13.600 hook
-    # width, making the pad 1.400 mm wider than both the hook it sits on and
-    # the window it passes through; silent, because the pad is union-only).
-    PAD_SCALLOP = (
-        (5.600, -36.800), (8.040, -36.800), (10.480, -36.400),
-        (12.920, -36.400), (15.360, -36.800), (17.800, -36.800),
-    )
+    # X used to be six literal steps across the nominal hook footprint,
+    # hardcoded at whatever hook_width was current. That went stale in round
+    # 61 (hook_width 13.600 -> 12.200 left the pad 1.400 mm wider than both
+    # the hook and the window -- silent, because the pad is union-only) and
+    # went stale AGAIN at round 69 (12.200 -> 12.800), the same failure twice.
+    # See self._pad_scallop() in __init__: the X values are now DERIVED from
+    # LatchGeometry every time this class is built, so a third hook_width
+    # change cannot repeat this -- there is no literal left to go stale.
+    PAD_SCALLOP_Y_OUTER = -36.800
+    PAD_SCALLOP_Y_INNER = -36.400
     # Derived, not a constant -- see self._pad_inner_y in __init__.
     #
     # Round 63 makes the leg's outer face vertical, so this is once again the
@@ -840,7 +842,11 @@ class PoweredUpHubCover:
         # And the thumb tab is the outermost thing on the part, by measurement
         # (6.000 vs the peg's 5.000). If that order ever inverts, the peg is
         # what the thumb presses on.
-        tab_tip = min(y for _, y in self.PAD_SCALLOP)
+        #
+        # PAD_SCALLOP_Y_OUTER rather than self._pad_scallop() here: this runs
+        # before that derivation (below), and the tab's outermost Y does not
+        # depend on hook_width, so the constant is exact -- not a shortcut.
+        tab_tip = self.PAD_SCALLOP_Y_OUTER
         assert tab_tip < peg_tip - 1e-9, (
             f"the thumb tab ({tab_tip:.3f}) does not reach further outboard "
             f"than the peg ({peg_tip:.3f})"
@@ -852,6 +858,21 @@ class PoweredUpHubCover:
         pad_leg_out, _ = self._leg_faces(self.PAD_TOP_Z)
         self._pad_inner_y = pad_leg_out + 0.050
         assert self._pad_inner_y > pad_leg_out, "pad does not bite into the leg"
+
+        # Round 69: the thumb pad's plan-outline X positions, derived from
+        # LatchGeometry rather than the hardcoded PAD_SCALLOP this replaces.
+        # Six points, five equal steps across the NOMINAL hook footprint
+        # [hook_pitch/2, hook_pitch/2 + hook_width] -- verified to reproduce
+        # the old literal exactly at hook_width = 12.200 before this was
+        # trusted to replace it (tmp/r69_pad_scallop.py).
+        lo = self._latch.hook_pitch / 2.0
+        step = self._latch.hook_width / 5.0
+        ys = (
+            self.PAD_SCALLOP_Y_OUTER, self.PAD_SCALLOP_Y_OUTER,
+            self.PAD_SCALLOP_Y_INNER, self.PAD_SCALLOP_Y_INNER,
+            self.PAD_SCALLOP_Y_OUTER, self.PAD_SCALLOP_Y_OUTER,
+        )
+        self._pad_scallop = tuple((lo + i * step, y) for i, y in enumerate(ys))
 
         self._solid = self._build()
 
@@ -1041,12 +1062,12 @@ class PoweredUpHubCover:
         changes nothing; where the reference stands proud of it, this
         supplies the missing material.
         """
-        # The scallop's X values are the NOMINAL hook footprint
-        # (5.600..19.200). Scale them about the footprint's own centre by
-        # the printed/nominal ratio so the pad takes the same lateral
-        # clearance as the ribbon it sits on -- scaled rather than shifted,
-        # so the scallop keeps its shape instead of having its two end
-        # segments distorted.
+        # The scallop's X values span the NOMINAL hook footprint (see
+        # self._pad_scallop in __init__). Scale them about the footprint's own
+        # centre by the printed/nominal ratio so the pad takes the same
+        # lateral clearance as the ribbon it sits on -- scaled rather than
+        # shifted, so the scallop keeps its shape instead of having its two
+        # end segments distorted.
         lg: LatchGeometry = self._latch
         nominal_c = lg.hook_pitch / 2.0 + lg.hook_width / 2.0
         k = self._hook_width_printed / lg.hook_width
@@ -1054,9 +1075,9 @@ class PoweredUpHubCover:
         def sx(x: float) -> float:
             return side * (nominal_c + (x - nominal_c) * k)
 
-        pts = [(sx(x), y) for x, y in self.PAD_SCALLOP]
-        pts += [(sx(self.PAD_SCALLOP[-1][0]), self._pad_inner_y),
-                (sx(self.PAD_SCALLOP[0][0]), self._pad_inner_y)]
+        pts = [(sx(x), y) for x, y in self._pad_scallop]
+        pts += [(sx(self._pad_scallop[-1][0]), self._pad_inner_y),
+                (sx(self._pad_scallop[0][0]), self._pad_inner_y)]
         wp = cq.Workplane("XY").moveTo(*pts[0])
         for q in pts[1:]:
             wp = wp.lineTo(*q)

@@ -139,13 +139,25 @@ def get_latch_geometry(profile: ToleranceProfile | str | None = None) -> LatchGe
     # real part's continued taper -- see the design brief's Round 18 -> B1).
     # barb_protrusion = crest_Y - HOOK_FACE_Y1 = -31.200 - (-32.240) = 1.040.
     barb_protrusion = 1.040
-    # Round 60: 13.600 -> 12.200, measured on the real cover. Changed HERE,
-    # in the shared contract, rather than in the cover alone -- that is what
-    # this module exists for. The housing's latch channel is derived from the
-    # same figure, so both halves of the interface move together and cannot
-    # drift apart; a cover-only override would have left the housing cutting
-    # a channel for a hook that no longer exists.
-    hook_width = 12.200
+    # Round 60: 13.600 -> 12.200. Round 69: 12.200 -> 12.800, per the owner's
+    # own fit test ("make the hook wider to 12.8mm, keep the inner edge
+    # constant and expand outwards"). Changed HERE, in the shared contract,
+    # rather than in the cover alone -- that is what this module exists for.
+    # The housing's latch channel is derived from the same figure, so both
+    # halves of the interface move together and cannot drift apart; a
+    # cover-only override would have left the housing cutting a channel for a
+    # hook that no longer exists.
+    #
+    # "Keep the inner edge constant" falls out of the existing formula rather
+    # than needing a new one: both consumers place the hook centre at
+    # +-(hook_pitch/2 + hook_width/2) and extend +-hook_width/2 from there, so
+    # the INNER face is always exactly +-hook_pitch/2 -- independent of
+    # hook_width. Growing hook_width only ever moves the OUTER face. That is
+    # also why PAD_SCALLOP in cover.py must be DERIVED from hook_pitch/
+    # hook_width rather than hardcoded -- round 61 already hit this once as a
+    # stale literal after a hook_width change; round 69 removes the literal
+    # instead of patching it again.
+    hook_width = 12.800
 
     return LatchGeometry(
         barb_diameter=2.000,
