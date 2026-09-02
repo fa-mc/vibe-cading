@@ -123,19 +123,21 @@ A new consumer that reads `slot` would be any cutter whose narrow-slot geometry 
 
 ## 3. Shipped Profile Reference
 
-The three shipped profiles in [`_FALLBACK_PROFILES`](../vibe_cading/print_settings.py#L575-L593) resolve to the following 27 leaf-float values when passed through [`_profile_from_nested`](../vibe_cading/print_settings.py#L344) (i.e. the per-field defaults in [`_fitgrade_from_dict`](../vibe_cading/print_settings.py#L320) fill any missing leaf with `0.0`). These tuples are pinned in [`tests/test_tolerance_profile.py`](../tests/test_tolerance_profile.py) T9b — `test_shipped_profiles_pinned_tuples` — and a regression in any of the 27 values fails that test loudly.
+The four shipped profiles in [`_FALLBACK_PROFILES`](../vibe_cading/print_settings.py#L575-L601) resolve to the following 36 leaf-float values when passed through [`_profile_from_nested`](../vibe_cading/print_settings.py#L344) (i.e. the per-field defaults in [`_fitgrade_from_dict`](../vibe_cading/print_settings.py#L320) fill any missing leaf with `0.0`). These tuples are pinned in [`tests/test_tolerance_profile.py`](../tests/test_tolerance_profile.py) T9b — `test_shipped_profiles_pinned_tuples` — and a regression in any of the values fails that test loudly.
 
 | Profile          | `free.radial` | `free.axial` | `free.slot` | `slip.radial` | `slip.axial` | `slip.slot` | `press.radial` | `press.axial` | `press.slot` |
 |------------------|---------------|--------------|-------------|---------------|--------------|-------------|----------------|---------------|--------------|
 | `fdm_standard`   | 0.15          | 0.20         | 0.0         | 0.05          | 0.20         | **0.10**    | 0.04           | 0.20          | 0.0          |
 | `resin_precise`  | 0.05          | 0.05         | 0.0         | 0.03          | 0.05         | 0.0         | 0.02           | 0.05          | 0.0          |
 | `cnc`            | 0.02          | 0.0          | 0.0         | 0.01          | 0.0          | 0.0         | 0.0            | 0.0           | 0.0          |
+| `petg`           | 0.20          | 0.25         | 0.0         | 0.15          | 0.25         | **0.15**    | 0.06           | 0.25          | 0.0          |
 
 **How to read the table:**
 
-- `fdm_standard` is the safest default — loosest radials and largest axials, plus the conservative narrow-slot floor on `slip.slot`. It's also the hardcoded fallback when no profile name is configured (see [`get_default_profile_name`](../vibe_cading/print_settings.py#L224)).
+- `fdm_standard` is the safest generic-FDM default — loosest radials and largest axials, plus the conservative narrow-slot floor on `slip.slot`. It's also the hardcoded fallback when no profile name is configured (see [`get_default_profile_name`](../vibe_cading/print_settings.py#L224)).
 - `resin_precise` is ~3× tighter radially and ~4× tighter axially than `fdm_standard` — resin parts shrink uniformly and don't sag.
 - `cnc` is ~10× tighter than `fdm_standard` and the only profile that ships `press.radial=0.0` — on a machined part the nominal IS the final dimension.
+- `petg` is looser than `fdm_standard` on `radial`/`slip.slot` — PETG strings and oozes more than PLA on the same nozzle/temp, so a free/slip fit under-tolerances more readily if given PLA-grade clearances. `press.radial` gets a smaller relative bump than `free`/`slip`, since PETG's own flexibility already tolerates a snugger fit without cracking (unlike brittle PLA). Intended as the material default for parts documented as PETG-appropriate (e.g. heat-adjacent RC mounts), not a general FDM replacement for `fdm_standard`.
 
 ---
 
@@ -245,7 +247,7 @@ User-defined profile keys SHOULD follow the `<machine>__<material>[__<brand>]` l
 - `ender3__petg_polymaker`
 - `prusa_mk4__pla`
 
-The shipped keys (`fdm_standard`, `resin_precise`, `cnc`) are coarse-default categories and exempt from the convention.
+The shipped keys (`fdm_standard`, `resin_precise`, `cnc`, `petg`) are coarse-default categories and exempt from the convention.
 
 ### Null and type-mismatch are hard errors
 
