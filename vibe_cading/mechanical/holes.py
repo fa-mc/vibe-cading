@@ -147,7 +147,15 @@ class CounterboreHole:
             head = (cq.Workplane("XY", origin=(0, 0, z_recess - cone_h))
                     .circle(shaft_r).workplane(offset=cone_h).circle(head_r).loft())
         else:
-            head = cq.Workplane("XY", origin=(0, 0, z_recess)).circle(head_r).extrude(self.head_depth)
+            # Sink DOWN from the entry face (z_recess), matching the shaft's
+            # and the cone branch's direction — extrude()'s default direction
+            # is +Z (outward, into open air above the entry face), which is
+            # the wrong side for a recess that must cut INTO the part.
+            head = (
+                cq.Workplane("XY", origin=(0, 0, z_recess - self.head_depth))
+                .circle(head_r)
+                .extrude(self.head_depth)
+            )
 
         return shaft.union(head)
 
@@ -173,11 +181,19 @@ class CounterboreHole:
             head_overcut = cq.Workplane("XY", origin=(0, 0, z_recess)).circle(head_r).extrude(overcut)
             head = cone.union(head_overcut)
         else:
-            head = (
-                cq.Workplane("XY", origin=(0, 0, z_recess))
+            # Mirror the cone branch's two-part structure: sink the recess
+            # body DOWN into the part by head_depth (the direction the
+            # original bug got backwards), then a separate small overcut
+            # breaking OUTWARD past the entry face (z_recess, +Z) per the
+            # "outward overcut on entry face" convention — this is the
+            # opening-side overcut, not extra depth into the part.
+            head_body = (
+                cq.Workplane("XY", origin=(0, 0, z_recess - max(self.head_depth, 0.0)))
                 .circle(head_r)
-                .extrude(max(self.head_depth, 0.0) + overcut)
+                .extrude(max(self.head_depth, 0.0))
             )
+            head_overcut = cq.Workplane("XY", origin=(0, 0, z_recess)).circle(head_r).extrude(overcut)
+            head = head_body.union(head_overcut)
 
         return shaft.union(head)
 
