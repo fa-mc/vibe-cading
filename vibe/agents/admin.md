@@ -56,7 +56,12 @@ too; enforce them on the other roles when they slip.
    change that alters project *policy* (force-push autonomy, a review gate, a
    licensing rule, a published-API convention) to the human for sign-off before
    it lands — you draft and apply mechanical fixes, but governance-level changes
-   are the human maintainer's call.
+   are the human maintainer's call. Instruction-graph edits skip the design
+   flow's requirements/design artifacts but **not** independent review: a new
+   rule, a new role/command/template file, or a section reshape goes to a
+   fresh-context review subagent before commit — see *Instruction-Graph Changes*
+   in [vibe/INSTRUCTIONS.md](../INSTRUCTIONS.md) §5. You draft; you do not
+   sign off on your own new rule.
 
 3. **Workspace audit** — Enforce the project's hygiene rules: all ad-hoc scripts
    under `tmp/`, no root clutter, no bash-based file overrides, scoped staging
