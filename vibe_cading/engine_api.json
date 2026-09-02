@@ -5139,6 +5139,49 @@
       "result_accessor": ".solid"
     },
     {
+      "module": "vibe_cading.rc.arrma_223s_receiver_mount",
+      "name": "ArrmaReceiverMount",
+      "fqn": "vibe_cading.rc.arrma_223s_receiver_mount.ArrmaReceiverMount",
+      "doc": "ESC/receiver-box mount plate for the Arrma 223S platform, replacing\nthe stock BLX185 3S motor plate.\n\n(0, 0, 0) is the shared mating face that contacts the chassis rail.\n``body_thickness`` (the plate's own full thickness, extruded from\nZ=0) is a *derived*, read-only property \u2014 ``base_thickness +\naccessory_thickness`` \u2014 NOT a constructor parameter. The arm and\nsouth ear occupy only the plate's own top ``accessory_thickness``\nband (Z \u2208 [base_thickness, body_thickness]), flush with the plate's\ntop face; they do not extend past it (see the module docstring's\n2026-09-01 correction note for the full rationale \u2014 the accessory\nthickness is added ON TOP OF the base thickness, not stacked as a\nseparate perched layer).\n\nParameters\n----------\nbase_thickness : float\n    Plate slab's own base thickness (mm) before the accessory band\n    is added on top. Independent of ``accessory_thickness``.\naccessory_thickness : float\n    Thickness (mm) of the top band the arm and south ear occupy;\n    also the amount added on top of ``base_thickness`` to form the\n    plate's full ``body_thickness``. Independent of\n    ``base_thickness``.\nmaterial : str | None\n    Tolerance profile name resolved via\n    :func:`vibe_cading.print_settings.get_profile` (shipped keys:\n    ``fdm_standard`` / ``resin_precise`` / ``cnc`` / ``petg``, plus\n    any user-defined ``print_profiles_user.json`` entry). Defaults to\n    ``\"petg\"`` \u2014 this mount sits next to a motor/ESC, and PETG's heat\n    resistance matters more here than for a generic part; pass an\n    explicit name (or ``None`` to defer to the project's configured\n    ``PRINT_PROFILE`` env default) to calibrate for a different\n    printer/material.",
+      "constructors": [
+        {
+          "kind": "init",
+          "name": "__init__",
+          "doc": null,
+          "params": [
+            {
+              "name": "base_thickness",
+              "type": "float",
+              "required": false,
+              "default": "DEFAULT_BASE_THICKNESS",
+              "units": "mm",
+              "allowed_values": null,
+              "value_doc": null
+            },
+            {
+              "name": "accessory_thickness",
+              "type": "float",
+              "required": false,
+              "default": "DEFAULT_ACCESSORY_THICKNESS",
+              "units": "mm",
+              "allowed_values": null,
+              "value_doc": null
+            },
+            {
+              "name": "material",
+              "type": "str | None",
+              "required": false,
+              "default": "'petg'",
+              "units": null,
+              "allowed_values": null,
+              "value_doc": null
+            }
+          ]
+        }
+      ],
+      "result_accessor": ".solid"
+    },
+    {
       "module": "vibe_cading.rc.freespin_hex_hub",
       "name": "FreespinHexHub",
       "fqn": "vibe_cading.rc.freespin_hex_hub.FreespinHexHub",

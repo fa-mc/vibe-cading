@@ -60,6 +60,18 @@ section to the new version and date.
   every other caller; raises `ValueError` on an unrecognized grade name).
 
 ### Fixed
+- `vibe_cading/mechanical/holes.py`: `CounterboreHole`'s cylindrical (pan/socket)
+  head-recess branch extruded in the wrong Z direction — outward, into open air
+  above the entry face — instead of sinking into the part like the sibling cone
+  (flat-head) branch. In practice the recess cut almost nothing (or, depending on
+  cutter placement, the oversized head diameter punched through the full part
+  thickness instead of transitioning back to the shaft diameter). Both `.solid`
+  and `.to_cutter()` now sink the recess body downward from the entry face, with
+  a small outward overcut at the opening (matching the cone branch's existing
+  convention) rather than putting the whole recess on the outward side. No
+  shipped model previously exercised this code path (`ArrmaReceiverMount`'s
+  pan-head ear/motor-mount holes are the first real usage), so no other model's
+  geometry changes as a result.
 - `vibe_cading/tools/view.py`: no longer reports a false success when no OCP CAD
   Viewer is listening. Previously it printed `Showing <Class>` and exited 0 while
   the model was never transmitted (the underlying connection failure surfaced only
@@ -78,6 +90,43 @@ section to the new version and date.
   with no VS Code required. Covers the client/server split, port forwarding, and
   the "browser tab must be open before you push" behaviour. Port 3939 was already
   in the dev container's `forwardPorts`, so no container change was needed.
+- `vibe_cading/print_settings.py` / `vibe_cading/print_profiles.json`: new shipped
+  `petg` tolerance-profile tier alongside `fdm_standard` / `resin_precise` / `cnc`
+  — looser radial/slip-slot clearances than `fdm_standard` (PETG strings/oozes
+  more than PLA) and a smaller press-fit bump (PETG's own flexibility already
+  tolerates a snugger fit). See `docs/print-tolerances.md` §3.
+- `vibe_cading/rc/arrma_223s_receiver_mount.py`: `ArrmaReceiverMount`, an
+  ESC/receiver-box mount plate replacing the stock Arrma 223S-platform BLX185 3S
+  motor plate. Reverse-engineered from an STL-only reference (no STEP available)
+  — see `docs/design_plans/2026-08-31-arrma-223s-receiver-mount_design.md` for
+  the full measurement method and correction history, including a 2026-09-01
+  user-directed resize that overrides several reference dimensions (the physical
+  reference part turned out to be the wrong size for the target vehicle).
+  `base_thickness` (default 6.0 mm) and `accessory_thickness` (default 4.0 mm)
+  are the two independent constructor parameters; `body_thickness` (the
+  plate's own full thickness, extruded from Z=0) is a *derived*, read-only
+  property equal to `base_thickness + accessory_thickness` (10.0 mm at
+  defaults) — not a constructor argument. The accessory thickness is added ON
+  TOP OF the base thickness: the plate itself is the full `body_thickness`,
+  and the arm + south ear are `accessory_thickness`-tall tabs occupying only
+  the plate's own top band, flush with its top face — they do not perch on a
+  thinner plate over open air. The north ear was removed; its M2.5 fastener
+  is now a flat-head countersink hole in the plate body itself, with the cone
+  opening on the bottom (chassis-mating) face and narrowing upward — the
+  screw seats from below. Its X position (shared with the south ear's hole)
+  is now derived from the real motor's 37.0 mm body length and 16.0/21.0 mm
+  hole-to-edge offsets, centered between the two M3 hole centers, rather than
+  a bare measured literal — X = -3.5 at the shipped M3 positions. The south
+  ear's fastener is a plain M2.5 clearance hole with no recess, spaced
+  exactly 38.0 mm from the relocated hole. Where
+  the arm and south ear meet the plate they now butt against its full-height
+  vertical side wall over a real 2D area, so only a small (0.02 mm)
+  boolean-robustness union overlap is needed there, matching the project's
+  existing flush-join convention (`HexHubWithBearing`, `AxleHexHubAdapter`).
+  The main body still carries both original motor-mount holes (M3 pan-head
+  clearance + top-face counterbore, plus an as-measured relief pocket on one
+  hole's back face) alongside a back recess. Defaults to the `petg` tolerance
+  profile (heat-adjacent mount).
 - `vibe_cading/rc/hex_hub_bearing/`: RC 12 mm hex-wheel-adapter hub fused with
   an MR85-2RS bearing housing (`HexHubNut`, `BearingHexHousing`, and the
   primary deliverable `HexHubWithBearing`, which `.union()`s the two into a
