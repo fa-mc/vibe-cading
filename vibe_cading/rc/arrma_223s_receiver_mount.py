@@ -101,14 +101,14 @@ Local Y=0 : main body's "north" edge — the edge the arm projects from.
       thickness is added ON TOP OF the base thickness, not stacked as a
       separate layer floating over open air: ``body_thickness`` is now a
       *derived*, read-only property = ``base_thickness + accessory_thickness``
-      (10.0 mm at the defaults of 6.0 + 4.0). The **plate itself is the
+      (12.0 mm at the defaults of 7.0 + 5.0). The **plate itself is the
       full ``body_thickness``** (Z ∈ [0, body_thickness]) — the arm and
-      south ear are 4 mm tabs occupying only the plate's own top
-      ``accessory_thickness`` band (Z ∈ [base_thickness, body_thickness]),
+      south ear are ``accessory_thickness``-tall tabs occupying only the
+      plate's own top band (Z ∈ [base_thickness, body_thickness]),
       flush with the plate's own top face. Z=0 remains the chassis-mating
-      datum; the overall envelope (Z ∈ [0, 10] at defaults) is unchanged
-      from the (wrong) perched-layer version — only the plate's own
-      thickness moves, from 6 mm to the full 10 mm.
+      datum; the overall envelope is Z ∈ [0, 12] at defaults. Relative to
+      the (wrong) perched-layer version this moved the plate's own
+      thickness from just the base value up to the full ``body_thickness``.
 
       Because this makes the arm and south ear butt against the plate's
       own full-height vertical side wall (real 2D contact area = accessory
@@ -157,13 +157,13 @@ BODY_WIDTH: float = 58.5
 BODY_LENGTH: float = 38.00  # user-specified 2026-09-01 (was 46.00, then 40.86)
 BODY_CORNER_R: float = 5.0
 
-# ── Default thicknesses (user-specified 2026-09-01 — no longer derived
-# from the reference part's single-slab REF_THICKNESS; see the module's
-# Z-stacking contract note). ``body_thickness`` is NOT a default here — it
-# is a derived, read-only property (base + accessory); only these two
-# independent inputs have defaults. ─────────────────────────────────────────
-DEFAULT_BASE_THICKNESS: float = 6.0
-DEFAULT_ACCESSORY_THICKNESS: float = 4.0
+# ── Default thicknesses (user-specified; revised 2026-09-02 from 6.0/4.0 —
+# no longer derived from the reference part's single-slab REF_THICKNESS; see
+# the module's Z-stacking contract note). ``body_thickness`` is NOT a default
+# here — it is a derived, read-only property (base + accessory); only these
+# two independent inputs have defaults. ────────────────────────────────────
+DEFAULT_BASE_THICKNESS: float = 7.0
+DEFAULT_ACCESSORY_THICKNESS: float = 5.0
 
 # ── Back recess (measured; flush with the body's right edge) ───────────────
 RECESS_WIDTH: float = 12.1

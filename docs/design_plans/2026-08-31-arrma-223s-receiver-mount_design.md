@@ -699,3 +699,28 @@ depend on this bug and are completed below.
 ### Human Final Approval
 - [ ] **Human approved** for merge / release
 - Human notes:
+
+---
+
+## Implementation log (continued)
+
+- **Round (2026-09-02) — default thicknesses raised.** User-specified, no re-measurement:
+  `DEFAULT_BASE_THICKNESS` 6.0 → **7.0 mm**, `DEFAULT_ACCESSORY_THICKNESS` 4.0 → **5.0 mm**.
+  `body_thickness` is derived, so the plate goes 10.0 → **12.0 mm** and the overall envelope
+  Z ∈ [0, 12]. The arm and south ear now occupy Z ∈ [7, 12].
+
+  No structural change — only the two default constants moved; every dependent dimension is
+  already derived from them. Re-verified on the built solid rather than by arithmetic: single
+  solid; plate solid through the full 12 mm at a feature-free spot; arm and south ear present
+  only in Z ∈ [7, 12] and absent at Z ≤ 6.9, i.e. still flush with the plate's top face and not
+  perched; hole 1's countersink still opens on the bottom face (Ø5.1 at Z=0.05 → Ø3.1 constant
+  from Z≈1.5) and clears the full 12 mm.
+
+  Side effect worth noting: the LEFT chassis hole's web (material between the Z=0–2 back relief
+  and the top pan-head recess) grows again — the recess now starts at Z≈9.35, so the web is
+  **≈7.35 mm** (was 5.35 mm at the 10 mm plate, and 1.35 mm back when the plate was mistakenly
+  6 mm). The structural concern raised at that 1.35 mm reading is now comfortably retired.
+
+  Regenerated: visual contract (1/21 refreshed, then 21/21 fresh) and `engine_api.json`
+  (unchanged in content — the defaults live in module constants, not the signature, so the wire
+  contract did not move and no further version bump was required).

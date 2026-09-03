@@ -102,10 +102,10 @@ section to the new version and date.
   the full measurement method and correction history, including a 2026-09-01
   user-directed resize that overrides several reference dimensions (the physical
   reference part turned out to be the wrong size for the target vehicle).
-  `base_thickness` (default 6.0 mm) and `accessory_thickness` (default 4.0 mm)
+  `base_thickness` (default 7.0 mm) and `accessory_thickness` (default 5.0 mm)
   are the two independent constructor parameters; `body_thickness` (the
   plate's own full thickness, extruded from Z=0) is a *derived*, read-only
-  property equal to `base_thickness + accessory_thickness` (10.0 mm at
+  property equal to `base_thickness + accessory_thickness` (12.0 mm at
   defaults) — not a constructor argument. The accessory thickness is added ON
   TOP OF the base thickness: the plate itself is the full `body_thickness`,
   and the arm + south ear are `accessory_thickness`-tall tabs occupying only
