@@ -724,3 +724,44 @@ depend on this bug and are completed below.
   Regenerated: visual contract (1/21 refreshed, then 21/21 fresh) and `engine_api.json`
   (unchanged in content — the defaults live in module constants, not the signature, so the wire
   contract did not move and no further version bump was required).
+
+- **Round (2026-09-02) — hole 1: countersink → round-head counterbore.** User-specified: change
+  the plate's M2.5 motor-screw hole from a flat-head countersink to a **flat round head**, and
+  let the head **pass through the whole `base_thickness`** so the screw binds only on the
+  `accessory_thickness` band — explicitly "similar to the screw on the southern ear", which
+  likewise clamps only its accessory band.
+
+  Implemented as a counterbore, replacing `_hole1_countersink_cutter()` with
+  `_hole1_counterbore_cutter()`:
+  - Z ∈ [0, `base_thickness`] — head-diameter clearance bore (head passes freely)
+  - Z ∈ [`base_thickness`, `body_thickness`] — shaft clearance bore; the shoulder at
+    Z = `base_thickness` is the bearing face.
+
+  **Head sizing:** the project's `head_type="flat"` means *countersunk*, so "flat round head" is
+  not that — it is a round-profile head with a flat bearing underside, i.e. pan or socket. Sized
+  to the M2.5 **pan** head (`pan_head_dia` = 5.0 mm), the larger of the two, since a bore that
+  clears a pan head also clears a socket head (4.5 mm); this is the safe reading and matches the
+  M3 chassis pair, which is also pan. Built from `CounterboreHole` directly rather than via
+  `MetricMachineScrew.to_cutter()`, because the head recess here is deliberately
+  `base_thickness` deep — a pass-through, not a catalog `pan_head_h` seat.
+
+  **Axial-allowance compensation (non-obvious, deliberate).** `CounterboreHole` sinks its head
+  recess an extra `profile.free.axial` past nominal, so a naive `head_depth = base_thickness`
+  put the shoulder at 7.25 mm rather than 7.0 (verified by slicing). That allowance is correct
+  for an ordinary counterbore — it keeps a head below the surface rather than proud — but wrong
+  here for two reasons: this floor is a *bearing* shoulder, where clearance only eats into the
+  clamped band; and it made a **functional datum drift with the print profile** (shoulder at
+  7.25 on `petg`, 7.20 on `fdm_standard`, 7.00 on `cnc`). So the cutter pre-subtracts the
+  allowance (`head_depth = base_thickness − profile.free.axial`, floored at 0). Verified: the
+  shoulder now lands between 6.99 and 7.01 on all three profiles, so the clamped band is exactly
+  `accessory_thickness` regardless of calibration.
+
+  **Constructor guard replaced.** The old guard checked that the countersink cone fit inside the
+  plate — meaningless now. It is replaced by positivity checks on both `base_thickness` and
+  `accessory_thickness`: a non-positive accessory band would silently degrade hole 1 into a plain
+  through-hole with no clamping face at all, which is exactly the kind of silent functional loss
+  the guard exists to make loud.
+
+  Validation: single solid; envelope Z ∈ [0, 12]; head bore Ø5.4 through Z 0→7.0 then shaft bore
+  Ø3.1 through Z 7.0→12; 21/21 contracts fresh; `engine_api.json` unchanged (private method
+  rename only — not part of the wire contract), so no version bump.

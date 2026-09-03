@@ -111,9 +111,15 @@ section to the new version and date.
   and the arm + south ear are `accessory_thickness`-tall tabs occupying only
   the plate's own top band, flush with its top face — they do not perch on a
   thinner plate over open air. The north ear was removed; its M2.5 fastener
-  is now a flat-head countersink hole in the plate body itself, with the cone
-  opening on the bottom (chassis-mating) face and narrowing upward — the
-  screw seats from below. Its X position (shared with the south ear's hole)
+  is now a round-head (M2.5 pan) counterbore in the plate body itself, entered
+  from the bottom (chassis-mating) face: a head-diameter bore runs the whole
+  `base_thickness` so the head passes freely through it, and the screw binds
+  only on the shoulder at Z=`base_thickness`, clamping just the top
+  `accessory_thickness` band — mirroring the south ear's plain bore, which
+  likewise clamps only its accessory band. The cutter pre-subtracts the
+  profile's `free.axial` allowance so that shoulder lands on `base_thickness`
+  exactly, rather than drifting with the active print profile.
+  Its X position (shared with the south ear's hole)
   is now derived from the real motor's 37.0 mm body length and 16.0/21.0 mm
   hole-to-edge offsets, centered between the two M3 hole centers, rather than
   a bare measured literal — X = -3.5 at the shipped M3 positions. The south

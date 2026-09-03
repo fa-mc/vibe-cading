@@ -80,13 +80,17 @@ Local Y=0 : main body's "north" edge — the edge the arm projects from.
    2. **The north ear is removed entirely.** Its M2.5 fastener becomes a
       hole in the main plate body at local ``HOLE1_CENTER`` = (1.026,
       -5.0) — 5 mm south (inward) of the north edge, on the old ear's
-      centerline X. It is a **flat-head countersink** whose cone opens on
-      the BOTTOM (Z=0, chassis-mating) face and narrows going +Z (upward,
-      into the plate) — the screw is inserted from below, head sitting
-      flush in the bottom face. See ``_hole1_countersink_cutter`` for the
-      construction (a 180 deg X-axis flip of ``MetricMachineScrew``'s
-      default cutter, which normally opens at its own local Z=0 and
-      narrows toward -Z).
+      centerline X. **Revised 2026-09-02** (was a flat-head countersink):
+      it is now a **round-head counterbore**, sized to the M2.5 pan head.
+      The screw is still inserted from below, but its head is no longer
+      seated flush in the bottom face — a head-diameter bore runs the
+      whole ``base_thickness`` so the head passes freely up through it,
+      and the screw binds only on the shoulder at Z = ``base_thickness``,
+      clamping just the top ``accessory_thickness`` band. That mirrors the
+      south ear's plain bore, which likewise clamps only its accessory
+      band. See ``_hole1_counterbore_cutter`` (a 180 deg X-axis flip of a
+      ``CounterboreHole``, which normally opens at its own local Z=0 and
+      sinks toward -Z).
    3. **The south ear's hole is exactly 38.00 mm from hole 1** (local Y =
       -43.0, i.e. ``HOLE1_CENTER`` minus ``HOLE_SPACING`` along Y). Its
       stadium-lug outline is unchanged in shape/radius. Its hole is now a
@@ -148,6 +152,7 @@ from __future__ import annotations
 import cadquery as cq
 
 from vibe_cading.cq_utils import cylinder
+from vibe_cading.mechanical.holes import CounterboreHole
 from vibe_cading.mechanical.screws.metric import METRIC_SIZES, MetricMachineScrew
 from vibe_cading.print_settings import get_profile
 
@@ -336,22 +341,24 @@ class ArrmaReceiverMount:
         self.material = material
         self._profile = get_profile(material)
 
-        # Hole 1's M2.5 flat-head countersink cone must fit inside the
-        # full plate thickness (it's cut all the way through the plate,
-        # from the bottom face upward — module note item 2). head_angle=90
-        # deg => tan(45)=1, and the tolerance profile's radial allowance is
-        # added identically to both head_r and shaft_r inside
-        # CounterboreHole, so it cancels: cone depth reduces to exactly
-        # (flat_head_dia - clearance_dia)/2, independent of the active
-        # tolerance profile.
-        hole1_screw = MetricMachineScrew.from_size(
-            "M2.5", length=self.body_thickness, head_type="flat"
-        )
-        cone_depth = (hole1_screw.head_diameter - hole1_screw.clearance_diameter) / 2.0
-        if cone_depth >= self.body_thickness:
+        # Hole 1 is a counterbore whose head-clearance bore runs the full
+        # base_thickness, leaving the top accessory_thickness band as the
+        # shoulder the screw head bears on (see
+        # ``_hole1_counterbore_cutter``). Both bands must therefore be
+        # non-degenerate: a zero/negative base gives the head nothing to
+        # pass through, and a zero/negative accessory band gives it no
+        # shoulder to bind against at all — the latter would silently
+        # produce a plain through-hole with no clamping face, which is
+        # exactly the failure this check exists to make loud.
+        if self.base_thickness <= 0.0:
             raise ValueError(
-                f"body_thickness ({self.body_thickness} mm) must exceed "
-                f"the M2.5 flat-head countersink cone depth ({cone_depth} mm)"
+                f"base_thickness ({self.base_thickness} mm) must be positive"
+            )
+        if self.accessory_thickness <= 0.0:
+            raise ValueError(
+                f"accessory_thickness ({self.accessory_thickness} mm) must be "
+                "positive — it is the band hole 1's screw head bears against, "
+                "and it is the arm's and south ear's whole thickness"
             )
 
         self._solid = self._build()
@@ -409,31 +416,65 @@ class ArrmaReceiverMount:
 
     # ── Hole 1 (former north-ear fastener, now in the plate body) ─────────
 
-    def _hole1_countersink_cutter(self) -> cq.Workplane:
-        """M2.5 flat-head countersink cutter at HOLE1_CENTER, cut into the
-        main plate body (user-specified 2026-09-01, module note item 2).
+    def _hole1_counterbore_cutter(self) -> cq.Workplane:
+        """M2.5 round-head COUNTERBORE cutter at HOLE1_CENTER, cut into
+        the main plate body (user-specified 2026-09-02; supersedes the
+        countersink of 2026-09-01, module note item 2).
 
-        The cone opens on the BOTTOM (Z=0, chassis-mating) face and
-        narrows going +Z (upward, into the plate) — the screw is
-        inserted from below, with its head sitting flush in the bottom
-        face and its shaft threading upward through the plate.
+        The screw is still inserted from below, but its head is no longer
+        seated flush in the bottom face. Instead the head passes *freely*
+        up through the whole ``base_thickness``, and the screw binds only
+        against the top ``accessory_thickness`` band — the same "clamps
+        only the accessory band" behaviour the south ear's plain bore has,
+        which is what the user asked this hole to match. So:
 
-        ``MetricMachineScrew.to_cutter()`` always builds its countersink
-        cone with the WIDE opening at the cutter's own local Z=0 (the
-        "entry" face) and narrows toward -Z (i.e. it's built for a screw
-        entering from "above" in the cutter's own frame, with the shaft
-        continuing further down) — the opposite Z-direction of what's
-        needed here. Rotating the cutter 180 deg about the X axis flips
-        both Y and Z; since the cutter is a solid of revolution about its
-        own Z-axis (a plain circular countersink), the Y-flip has no
-        geometric effect — only the load-bearing Z-flip survives. After
-        rotation the (still-local) Z=0 entry face lands exactly back on
-        itself, so placing it at the part's Z=0 needs only an XY
-        translation, no Z offset.
+        - Z ∈ [0, base_thickness]         — head-diameter clearance bore
+        - Z ∈ [base_thickness, body_thickness] — shaft clearance bore; the
+          shoulder at Z = base_thickness is the bearing face the head
+          lands on.
+
+        Sized to the M2.5 **pan** head (``pan_head_dia`` = 5.0 mm), the
+        larger of the project's two round-head catalog diameters — a bore
+        that clears a pan head also clears a socket head (4.5 mm), so this
+        is the safe reading of "flat round head" and keeps the hardware
+        consistent with the M3 chassis pair, which is also pan.
+
+        Built from ``CounterboreHole`` directly rather than via
+        ``MetricMachineScrew.to_cutter()`` because the head recess here is
+        deliberately ``base_thickness`` deep — a pass-through, not a
+        head-height seat, so the catalog ``pan_head_h`` is not the depth
+        we want.
+
+        ``CounterboreHole`` puts its head recess at the cutter's own local
+        Z=0 "entry" face sinking toward -Z, with the shaft continuing
+        further -Z — built for a screw entering from above. Ours enters
+        from below, so the cutter is rotated 180 deg about X. It is a
+        solid of revolution about its own Z axis, so the accompanying
+        Y-flip has no geometric effect; only the Z-flip matters. After
+        rotation the local Z=0 entry face lands back on itself, so placing
+        it at the part's Z=0 needs only an XY translation.
         """
-        cutter = MetricMachineScrew.from_size(
-            "M2.5", length=self.body_thickness, head_type="flat"
-        ).to_cutter(profile=self._profile, fit="clearance")
+        m2_5 = METRIC_SIZES["M2.5"]
+        # ``CounterboreHole`` sinks its head recess an extra
+        # ``profile.free.axial`` past the nominal depth, so the recess floor
+        # lands at ``free.axial + head_depth``. That allowance is right for a
+        # normal counterbore (it keeps the head below the surface rather than
+        # proud), but wrong here: this floor is the *bearing* shoulder the
+        # head clamps against, so extra axial clearance only eats into the
+        # clamped band — and worse, it would make a functional datum drift
+        # with the active print profile (the shoulder would sit at 7.25 on
+        # petg, 7.20 on fdm_standard, 7.00 on cnc). Pre-subtracting the
+        # allowance pins the shoulder at exactly ``base_thickness`` on every
+        # profile, so the clamped band is exactly ``accessory_thickness``.
+        head_depth = max(self.base_thickness - self._profile.free.axial, 0.0)
+        cutter = CounterboreHole(
+            shaft_diameter=m2_5["clearance"],
+            shaft_depth=self.body_thickness,
+            head_diameter=m2_5["pan_head_dia"],
+            head_depth=head_depth,
+            head_type="cylinder",
+            profile=self._profile,
+        ).to_cutter(profile=self._profile)
         cutter = cutter.rotate((0, 0, 0), (1, 0, 0), 180)
         cx, cy = HOLE1_CENTER
         return cutter.translate((cx, cy, 0.0))
@@ -626,7 +667,7 @@ class ArrmaReceiverMount:
         part = part.union(self._arm())
 
         part = part.cut(self._back_recess_cutter())
-        part = part.cut(self._hole1_countersink_cutter())
+        part = part.cut(self._hole1_counterbore_cutter())
         part = part.cut(self._south_ear_clearance_cutter())
         for hole in self._arm_hole_cutters():
             part = part.cut(hole)
