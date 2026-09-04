@@ -114,6 +114,46 @@ output = "xlego/axle_to_pin_bore_adapter.step"
 [build.params]
 # No params required
 
+# TechnicPinHoleBushing — Technic pin hole to machine screw, one variant per
+# screw size. fit/bore_fit default to "slip" (see class docstring: a printed
+# and measured M3 unit showed shipped "press" radial values don't model
+# genuine interference on a real printer). `profile = "bambu_p1s__petg"` is
+# a maintainer-local scoped calibration key (print_profiles_user.json,
+# gitignored) — slip.radial=0.02 (retightened from an initial 0.04 after
+# the M2.5 unit still measured loose in both ID and OD) reproducing a
+# 4.76 mm OD without touching the shared "bambu_p1s" key's slip.radial=0.11
+# used by unrelated consumers (Lego axle-hole fits, bearing shaft cutouts).
+# On a fresh clone without that key, these fall back through
+# get_profile()'s default chain. `length=3.6` (shorter than the
+# BEAM_THICKNESS default) per these builds' intended use.
+# M4 omitted — test-printed and found unprintable (wall too thin; M4's
+# clearance bore is intrinsically close to the whole barrel OD, which is
+# fixed by the Lego pin hole). Still constructible programmatically via
+# `bore_nominal_diameter`, just not a registered build target.
+[[build]]
+model  = "vibe_cading.lego_adapters.technic_pin_hole_bushing.TechnicPinHoleBushing"
+output = "xlego/bushings/technic_pin_hole_bushing_m2.step"
+[build.params]
+bore_nominal_diameter = 2.2   # METRIC_SIZES["M2"]["clearance"]
+length                = 3.6
+profile               = "bambu_p1s__petg"
+
+[[build]]
+model  = "vibe_cading.lego_adapters.technic_pin_hole_bushing.TechnicPinHoleBushing"
+output = "xlego/bushings/technic_pin_hole_bushing_m2_5.step"
+[build.params]
+bore_nominal_diameter = 2.7   # METRIC_SIZES["M2.5"]["clearance"]
+length                = 3.6
+profile               = "bambu_p1s__petg"
+
+[[build]]
+model  = "vibe_cading.lego_adapters.technic_pin_hole_bushing.TechnicPinHoleBushing"
+output = "xlego/bushings/technic_pin_hole_bushing_m3.step"
+[build.params]
+# bore_nominal_diameter omitted — M3 (3.2 mm) is the class default
+length  = 3.6
+profile = "bambu_p1s__petg"
+
 # ── Lego Technic primitives (vibe_cading.lego.*) ──────────────────────────────
 
 [[build]]
@@ -121,6 +161,12 @@ model  = "vibe_cading.lego.technic_beam.LegoTechnicBeam"
 output = "lego/technic_beam_5stud.step"
 [build.params]
 length_in_studs = 5
+
+[[build]]
+model  = "vibe_cading.lego.technic_beam_perp.PerpendicularHolesLiftarm"
+output = "lego/perpendicular_holes_liftarm_5hole.step"
+[build.params]
+num_holes = 5
 
 # ── Mechanical Utilities ──────────────────────────────────────────────────────
 [[build]]

@@ -135,3 +135,58 @@ def test_pin_hole_standard_forwards_profile() -> None:
     )
     # Same value as the pinned snapshot row for resin_precise.
     assert math.isclose(cutter.diameter, _PINNED_SLIP_BORE["resin_precise"], abs_tol=1e-9)
+
+
+# ── 5. counterbore_ends — which rims are flanged ─────────────────────────────
+
+
+def _rim_radius_at(cutter: TechnicPinHole, z: float) -> float:
+    """Outer radius of the cutter solid at height ``z``."""
+    import cadquery as cq
+
+    sl = cutter.to_cutter().intersect(
+        cq.Workplane("XY").box(40.0, 40.0, 0.02).translate((0.0, 0.0, z))
+    )
+    return sl.val().BoundingBox().xlen / 2.0
+
+
+def test_counterbore_ends_default_is_both_and_unchanged() -> None:
+    """The default must stay the through-hole shape, byte-for-byte.
+
+    Every pre-existing caller relies on it; a changed default would silently
+    reshape holes across the whole repo.
+    """
+    cb_r = TechnicPinHole.DEFAULT_CB_DIAMETER / 2
+    c = TechnicPinHole.standard(depth=8.0)
+    assert c.counterbore_ends == "both"
+    assert math.isclose(_rim_radius_at(c, 0.5), cb_r, abs_tol=0.05)
+    assert math.isclose(_rim_radius_at(c, 7.5), cb_r, abs_tol=0.05)
+
+
+def test_counterbore_ends_entry_flanges_only_the_mouth() -> None:
+    """``"entry"`` is the blind-hole shape (LDraw ``connhol3``).
+
+    Falsifier: if the far counterbore were still cut, the reading at the deep
+    end would be the counterbore radius rather than the bore radius. That is
+    exactly the defect this option exists to remove — a Ø6.2 flange hollowing
+    out the material immediately behind a blind hole's floor.
+    """
+    c = TechnicPinHole.standard(depth=8.0, counterbore_ends="entry")
+    cb_r = TechnicPinHole.DEFAULT_CB_DIAMETER / 2
+    assert math.isclose(_rim_radius_at(c, 0.5), cb_r, abs_tol=0.05), (
+        "the entry rim must still be counterbored"
+    )
+    assert math.isclose(_rim_radius_at(c, 7.5), c.diameter / 2, abs_tol=0.05), (
+        "the deep end must be the plain bore, not a counterbore"
+    )
+
+
+def test_counterbore_ends_none_is_a_plain_bore() -> None:
+    c = TechnicPinHole.standard(depth=8.0, counterbore_ends="none")
+    for z in (0.5, 4.0, 7.5):
+        assert math.isclose(_rim_radius_at(c, z), c.diameter / 2, abs_tol=0.05)
+
+
+def test_counterbore_ends_rejects_an_unknown_token() -> None:
+    with pytest.raises(ValueError, match="counterbore_ends"):
+        TechnicPinHole(depth=8.0, counterbore_ends="top")

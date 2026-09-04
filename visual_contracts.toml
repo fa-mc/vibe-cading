@@ -186,6 +186,108 @@ mate_teeth = 20
 face_width = 6.0
 bore = 5.0
 
+# ── PerpendicularHolesLiftarm (num_holes is REQUIRED; default alternating 5-hole) ─
+# Design brief: docs/design_plans/2026-06-26-perpendicular-holes-liftarm_design.md
+# Human design gate approved 2026-06-26 (5-hole alternating: perp at 0,2,4; main at 1,3).
+# Text-free → no labels knob needed; fully byte-reproducible.
+
+[[contract]]
+svg   = "visual_contracts/2026-06-26-perpendicular-holes-liftarm_design_iso_ne.svg"
+model = "vibe_cading.lego.technic_beam_perp.PerpendicularHolesLiftarm"
+view  = "iso_ne"
+[contract.params]
+num_holes = 5
+
+[[contract]]
+svg   = "visual_contracts/2026-06-26-perpendicular-holes-liftarm_design_front.svg"
+model = "vibe_cading.lego.technic_beam_perp.PerpendicularHolesLiftarm"
+view  = "front"
+[contract.params]
+num_holes = 5
+
+# ── TechnicPinHoleBushing (all defaults: length=BEAM_THICKNESS, fit="press",
+#    flange=True, flange_od=7.0, flange_thickness=0.8) ─────────────────────
+# Design brief: docs/design_plans/2026-08-10-technic-pin-hole-bushing_design.md
+# Text-free → no labels knob needed; fully byte-reproducible.
+
+[[contract]]
+svg   = "visual_contracts/2026-08-10-technic-pin-hole-bushing_design_iso_ne.svg"
+model = "vibe_cading.lego_adapters.technic_pin_hole_bushing.TechnicPinHoleBushing"
+view  = "iso_ne"
+[contract.params]
+
+[[contract]]
+svg   = "visual_contracts/2026-08-10-technic-pin-hole-bushing_design_front.svg"
+model = "vibe_cading.lego_adapters.technic_pin_hole_bushing.TechnicPinHoleBushing"
+view  = "front"
+[contract.params]
+
+# ── PoweredUpHubCover / PoweredUpHubBatteryTray / PoweredUpHubHousing
+#    (tasks 2 and 3 of the Powered Up hub battery-box implementation
+#    sequence) ────────────────────────────────────────────────────────────
+# Design brief: docs/design_plans/2026-08-19-poweredup-hub-battery-box_design.md
+# All three classes take only defaults (profile=None). Text-free -> no labels knob.
+# The combined "_assembly_iso_ne.svg" view is a cross-class composition
+# (vibe_cading.lego_adapters.poweredup_hub.assembly.assemble()) and is
+# deliberately NOT registered here -- the freshness checker regenerates a
+# single class's `.solid` per row and has no assembly-module concept; see
+# that module's own docstring for the full rationale. It remains an
+# unregistered, illustrative contract.
+
+[[contract]]
+svg   = "visual_contracts/2026-08-19-poweredup-hub-battery-box_design_cover_iso_ne.svg"
+model = "vibe_cading.lego_adapters.poweredup_hub.cover.PoweredUpHubCover"
+view  = "iso_ne"
+[contract.params]
+
+[[contract]]
+svg   = "visual_contracts/2026-08-19-poweredup-hub-battery-box_design_cover_top.svg"
+model = "vibe_cading.lego_adapters.poweredup_hub.cover.PoweredUpHubCover"
+view  = "top"
+[contract.params]
+
+[[contract]]
+svg   = "visual_contracts/2026-08-19-poweredup-hub-battery-box_design_cover_bottom.svg"
+model = "vibe_cading.lego_adapters.poweredup_hub.cover.PoweredUpHubCover"
+view  = "bottom"
+[contract.params]
+
+[[contract]]
+svg   = "visual_contracts/2026-08-19-poweredup-hub-battery-box_design_iso_ne.svg"
+model = "vibe_cading.lego_adapters.poweredup_hub.housing.PoweredUpHubHousing"
+view  = "iso_ne"
+[contract.params]
+
+[[contract]]
+svg   = "visual_contracts/2026-08-19-poweredup-hub-battery-box_design_top.svg"
+model = "vibe_cading.lego_adapters.poweredup_hub.housing.PoweredUpHubHousing"
+view  = "top"
+[contract.params]
+
+# PoweredUpHubBatteryTray + its glued strap cap, added in the same
+# implementation sequence. The tray's front view is registered as well as its
+# iso: round 57 removed an upper wall band that was standing on a hairline
+# ledge, and a wall-height/section change is exactly the class of edit a
+# front elevation catches and an iso can hide.
+
+[[contract]]
+svg   = "visual_contracts/2026-08-19-poweredup-hub-battery-box_design_tray_iso_ne.svg"
+model = "vibe_cading.lego_adapters.poweredup_hub.battery_tray.PoweredUpHubBatteryTray"
+view  = "iso_ne"
+[contract.params]
+
+[[contract]]
+svg   = "visual_contracts/2026-08-19-poweredup-hub-battery-box_design_tray_front.svg"
+model = "vibe_cading.lego_adapters.poweredup_hub.battery_tray.PoweredUpHubBatteryTray"
+view  = "front"
+[contract.params]
+
+[[contract]]
+svg   = "visual_contracts/2026-08-19-poweredup-hub-battery-box_design_strap_cap_iso_ne.svg"
+model = "vibe_cading.lego_adapters.poweredup_hub.battery_tray_cap.PoweredUpHubBatteryTrayCap"
+view  = "iso_ne"
+[contract.params]
+
 # ── HexHubWithBearing (fused RC 12mm hex hub + MR85 bearing housing) ──────────
 # Design brief: docs/design_plans/2026-08-25-rc-hex-hub-bearing_design.md
 # Human design gate approved 2026-08-25 (Round 3 — wrapper class renamed

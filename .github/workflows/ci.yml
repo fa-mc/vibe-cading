@@ -175,6 +175,20 @@ jobs:
         # actions/setup-python pins (same one build.py and the topology step
         # use).  Local contributors run it as `python3.11`.
         run: python3 vibe_cading/tools/check_visual_contract_freshness.py
+      - name: Reference conformance
+        # Scores each component registered in reference_contracts.toml against
+        # its reference geometry via vibe_cading/tools/surface_diff.py, and
+        # fails if one drops below its declared floor.
+        #
+        # WHAT THIS DOES AND DOES NOT COVER, stated plainly: components whose
+        # reference is third-party geometry that cannot be committed (the
+        # PoweredUp hub's LDraw-derived lid) SKIP here and exit 0. For those,
+        # CI validates the MANIFEST and exercises the tooling, but the
+        # component itself is scored only on a contributor's machine. The
+        # checker prints a NOTE naming every skipped row so this is visible in
+        # the log rather than mistaken for coverage. Committing a
+        # redistributable reference is what would turn a skip into a gate.
+        run: python3 vibe_cading/tools/check_reference_conformance.py
       - name: MCP SDK tests (install the [mcp] extra, run smoke + contract snapshot)
         # Runs LAST, after every CadQuery-bearing step and after the MCP import
         # isolation step (so Layer B above asserted `mcp` ABSENT in the lint
