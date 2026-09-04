@@ -765,3 +765,41 @@ depend on this bug and are completed below.
   Validation: single solid; envelope Z ∈ [0, 12]; head bore Ø5.4 through Z 0→7.0 then shaft bore
   Ø3.1 through Z 7.0→12; 21/21 contracts fresh; `engine_api.json` unchanged (private method
   rename only — not part of the wire contract), so no version bump.
+
+- **Round (2026-09-03) — class/module renamed; supersedes a different, older `EscMount`.**
+  `ArrmaReceiverMount` (`vibe_cading/rc/arrma_223s_receiver_mount.py`) renamed to
+  **`Arrma223sEscMount`** (`vibe_cading/rc/arrma_223s_esc_mount.py`) — user correction: "it should
+  be called esc mount, not receiver mount." This surfaced a pre-existing name collision the
+  earlier rounds never checked for: `parts/arrma_vorteks_223s/esc_mount.py` already defined a
+  *different*, older `EscMount` class (an unmeasured stub — a flat 57×38×4 mm notched plate with
+  a back-face groove, no holes at all, no thickness split, no measured fastener geometry),
+  registered in `build.toml` at `rc/vorteks_223s/esc_mount.step`. Its 57×38 mm footprint is close
+  enough to this part's reverse-engineered 58.5×38 mm that they are almost certainly the same
+  physical slot on the vehicle, modelled at two very different levels of fidelity.
+
+  Human resolution: rename to `Arrma223sEscMount` (keeps the vehicle-specific prefix, so the bare
+  name `EscMount` is never reused for something more general); delete the old stub outright and
+  have the new class supersede its `build.toml` registration at the same output path, rather than
+  keeping both as separate parts.
+
+  Mechanical changes: `git mv` the module; class-name replace-all inside it (2 occurrences — the
+  `class` line and one assertion message); `git rm parts/arrma_vorteks_223s/esc_mount.py`; updated
+  `build.toml` (model path + explicit `base_thickness`/`accessory_thickness`/`material` params,
+  replacing the old `length`/`width`/`height` params which don't exist on this class);
+  `visual_contracts.toml` (model path + corrected the previously-stale 6.0/4.0 default comment to
+  7.0/5.0); `tests/test_smoke.py`'s `test_project_specific_class_resolves` (which imported the now
+  -deleted old `EscMount` to prove the `parts.*` namespace resolves) repointed at
+  `parts.arrma_vorteks_223s.motor_mount_plate.MotorMountPlate` — the only class left under
+  `parts.arrma_vorteks_223s` after the deletion, and a genuinely different, still-live part (a
+  24×24×4.12 mm motor-to-gearbox adapter plate, unrelated to this ESC/receiver-box mount); and a
+  stale dotted-path example in a `build.py` comment.
+
+  Not touched: `MotorMountPlate` itself and its own `build.toml` registration
+  (`xlego/motors/mount_plate_370.step`) — a different, still-live physical part.
+
+  Validation: pure rename plus a deletion, no geometry change to this class — confirmed by the
+  visual contract re-running byte-identical (0/21 refreshed on `--update`, still 21/21 fresh) and
+  `engine_api.json` regeneration showing exactly the expected module/class-name delta (78 classes,
+  was 79 — net effect of removing the old `EscMount` and keeping this one under its new name).
+  Both the old `EscMount` and old `ArrmaReceiverMount` import paths confirmed to raise
+  `ModuleNotFoundError`, i.e. the rename is atomic, not an alias.

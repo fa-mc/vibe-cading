@@ -69,7 +69,7 @@ section to the new version and date.
   and `.to_cutter()` now sink the recess body downward from the entry face, with
   a small outward overcut at the opening (matching the cone branch's existing
   convention) rather than putting the whole recess on the outward side. No
-  shipped model previously exercised this code path (`ArrmaReceiverMount`'s
+  shipped model previously exercised this code path (`Arrma223sEscMount`'s
   pan-head ear/motor-mount holes are the first real usage), so no other model's
   geometry changes as a result.
 - `vibe_cading/tools/view.py`: no longer reports a false success when no OCP CAD
@@ -95,9 +95,12 @@ section to the new version and date.
   — looser radial/slip-slot clearances than `fdm_standard` (PETG strings/oozes
   more than PLA) and a smaller press-fit bump (PETG's own flexibility already
   tolerates a snugger fit). See `docs/print-tolerances.md` §3.
-- `vibe_cading/rc/arrma_223s_receiver_mount.py`: `ArrmaReceiverMount`, an
+- `vibe_cading/rc/arrma_223s_esc_mount.py`: `Arrma223sEscMount`, an
   ESC/receiver-box mount plate replacing the stock Arrma 223S-platform BLX185 3S
-  motor plate. Reverse-engineered from an STL-only reference (no STEP available)
+  motor plate. Also replaces the unrelated `parts.arrma_vorteks_223s.esc_mount.
+  EscMount` (removed — an unmeasured stub with the same footprint role but no
+  holes) at the same `build.toml` output path, `rc/vorteks_223s/esc_mount.step`
+  — see "Removed" below. Reverse-engineered from an STL-only reference (no STEP available)
   — see `docs/design_plans/2026-08-31-arrma-223s-receiver-mount_design.md` for
   the full measurement method and correction history, including a 2026-09-01
   user-directed resize that overrides several reference dimensions (the physical
@@ -167,6 +170,15 @@ section to the new version and date.
   construction; its `build.toml` registration (`rc/hex_wheel_hub_12mm.step`)
   is unchanged pending a separate human decision on migration. May be removed
   in a future release.
+
+### Removed
+- `parts.arrma_vorteks_223s.esc_mount.EscMount` — an unmeasured stub (a flat
+  notched plate with no holes) for the Arrma 223S ESC mount slot. Replaced by
+  `vibe_cading.rc.arrma_223s_esc_mount.Arrma223sEscMount` (see "Added" above),
+  reverse-engineered from the vehicle's actual BLX185 3S mount plate, at the
+  same `build.toml` output path (`rc/vorteks_223s/esc_mount.step`) since it
+  fills the same physical slot. No deprecation cycle — a direct replacement,
+  since the two never coexisted as intentionally-distinct parts.
 
 ## [0.1.4] - 2026-06-26
 

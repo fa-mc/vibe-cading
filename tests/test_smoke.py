@@ -18,4 +18,4 @@ def test_library_class_resolves():
 
 def test_project_specific_class_resolves():
     """A representative project-specific part resolves under ``parts.*``."""
-    from parts.arrma_vorteks_223s.esc_mount import EscMount  # noqa: F401
+    from parts.arrma_vorteks_223s.motor_mount_plate import MotorMountPlate  # noqa: F401

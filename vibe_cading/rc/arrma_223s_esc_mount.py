@@ -293,7 +293,7 @@ def _edges_near_xy(
     return solid.newObject(picked)
 
 
-class ArrmaReceiverMount:
+class Arrma223sEscMount:
     """ESC/receiver-box mount plate for the Arrma 223S platform, replacing
     the stock BLX185 3S motor plate.
 
@@ -676,7 +676,7 @@ class ArrmaReceiverMount:
         part = part.cut(self._chassis_left_bottom_relief_cutter())
 
         assert len(part.solids().vals()) == 1, (
-            "ArrmaReceiverMount: expected a single contiguous solid — check "
+            "Arrma223sEscMount: expected a single contiguous solid — check "
             "ear/arm overlap with the main body and hole/recess depths."
         )
         return part
