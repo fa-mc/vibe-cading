@@ -13,5 +13,10 @@
         "free":  {"radial": 0.02, "axial": 0.00},
         "slip":  {"radial": 0.01, "axial": 0.00},
         "press": {"radial": 0.00, "axial": 0.00}
+    },
+    "petg": {
+        "free":  {"radial": 0.20, "axial": 0.25, "slot": 0.00},
+        "slip":  {"radial": 0.15, "axial": 0.25, "slot": 0.15},
+        "press": {"radial": 0.06, "axial": 0.25, "slot": 0.00}
     }
 }

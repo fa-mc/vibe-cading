@@ -219,3 +219,17 @@ view  = "iso_ne"
 svg   = "visual_contracts/2026-08-25-lego-axle-hex-hub-adapter_design_top.svg"
 model = "vibe_cading.lego_adapters.axle_hex_hub.axle_hex_hub_adapter.AxleHexHubAdapter"
 view  = "top"
+
+# ── Arrma223sEscMount (Arrma 223S ESC/receiver-box mount, BLX185 3S
+# replacement plate — class renamed 2026-09-03, was ArrmaReceiverMount,
+# module was arrma_223s_receiver_mount.py) ─────────────────────────────────
+# Design brief: docs/design_plans/2026-08-31-arrma-223s-receiver-mount_design.md
+# All-defaults construction (base_thickness=7.0, accessory_thickness=5.0,
+# material="petg"; body_thickness is a derived property = base_thickness +
+# accessory_thickness, not a constructor parameter); no [contract.params]
+# needed. No text labels engraved -> fully byte-reproducible.
+
+[[contract]]
+svg   = "visual_contracts/2026-08-31-arrma-223s-receiver-mount_design_iso_ne.svg"
+model = "vibe_cading.rc.arrma_223s_esc_mount.Arrma223sEscMount"
+view  = "iso_ne"

@@ -41,6 +41,7 @@ they too declare a documented ``_THROUGH_OVERCUT`` policy.
 
 from __future__ import annotations
 
+import cadquery as cq
 import pytest
 
 from vibe_cading.mechanical.holes import (
@@ -51,6 +52,7 @@ from vibe_cading.mechanical.holes import (
     SlottedHole,
     TaperedHole,
 )
+from vibe_cading.print_settings import get_profile
 
 
 # Tolerance for bounding-box assertions (mm).  OCCT round-trip + lofts /
@@ -100,6 +102,73 @@ def test_counterbore_hole_through_overcut():
     assert zmin <= -hole.shaft_depth - _THROUGH_OVERCUT + _BBOX_EPS, (
         f"CounterboreHole shaft overcut missing: zmin={zmin}, "
         f"expected <= {-hole.shaft_depth - _THROUGH_OVERCUT}"
+    )
+
+
+def test_counterbore_hole_cylinder_head_sinks_into_part():
+    """Regression: a non-``"cone"`` head recess (the default ``"cylinder"``
+    branch) must sink DOWN from the entry face into the part.
+
+    ``.solid``'s shaft spans ``[-shaft_depth, 0]``, so its own ``zmax`` is
+    exactly 0 at the entry face. The pre-fix bug called ``extrude()``
+    without an explicit direction from ``z_recess``, which extrudes in
+    the default +Z (outward) direction — pushing the head recess to
+    ``[z_recess, z_recess + head_depth]``, i.e. *above* the entry face
+    into open air, instead of ``[z_recess - head_depth, z_recess]``
+    cutting into the part. Because ``head_depth`` (3.0 mm here) dwarfs
+    ``_BBOX_EPS``, the two directions are unambiguous from the combined
+    solid's ``zmax`` alone — no need to isolate the head geometry.
+    """
+    hole = CounterboreHole(
+        shaft_diameter=3.2, shaft_depth=5.0,
+        head_diameter=5.5, head_depth=3.0,
+    )
+    zmax = hole.solid.val().BoundingBox().zmax
+    assert zmax <= _BBOX_EPS, (
+        f"CounterboreHole.solid zmax={zmax} extends above the Z=0 entry "
+        f"face — the head recess is extruding AWAY from the part instead "
+        f"of sinking into it (pre-fix Z-direction bug)"
+    )
+
+
+def test_counterbore_hole_to_cutter_cylinder_head_sinks_into_part():
+    """Regression on ``to_cutter()`` itself — the path every shipped
+    consumer of a non-``"cone"`` ``CounterboreHole`` actually calls (e.g.
+    ``Arrma223sEscMount._hole1_counterbore_cutter``), distinct from the
+    ``.solid`` property guarded by the previous test.
+
+    ``to_cutter()``'s ``head_body`` has the same pre-fix Z-direction bug
+    as ``.solid``'s ``head``, but a plain bounding-box check on the
+    *combined* cutter can't see it: the class-level ``_THROUGH_OVERCUT``
+    (100 mm) piece (``head_overcut``) already blows the bbox out to
+    ``z_recess + 100`` regardless of which way ``head_body`` points, and
+    the shaft's own overcut already pushes ``zmax`` to ``1.0``. So this
+    test probes for material PRESENCE at a specific point instead: in the
+    annulus between the shaft and head radii, strictly below the entry
+    face (``z_recess - head_depth / 2``), material must be present with
+    the fix (``head_body`` occupies ``[z_recess - head_depth, z_recess]``)
+    and would be ABSENT with the pre-fix bug (``head_body`` would occupy
+    ``[z_recess, z_recess + head_depth]`` instead — open air below
+    ``z_recess`` outside the shaft radius).
+    """
+    hole = CounterboreHole(
+        shaft_diameter=3.2, shaft_depth=5.0,
+        head_diameter=5.5, head_depth=3.0,
+    )
+    cutter = hole.to_cutter()
+    tol = get_profile("fdm_standard")
+    shaft_r = (hole.shaft_diameter / 2.0) + tol.free.radial
+    head_r = (hole.head_diameter / 2.0) + max(0.0, tol.free.radial)
+    mid_r = (shaft_r + head_r) / 2.0
+    z_recess = -tol.free.axial
+    probe_z = z_recess - hole.head_depth / 2.0
+
+    probe = cq.Workplane("XY", origin=(mid_r, 0, probe_z)).box(0.2, 0.2, 0.2)
+    hit = probe.intersect(cutter)
+    assert len(hit.solids().vals()) > 0, (
+        f"No material at annulus radius={mid_r}, Z={probe_z} (between shaft "
+        f"and head radii, below the entry face) — head_body is not sinking "
+        f"into the part at this depth (pre-fix Z-direction bug)"
     )
 
 

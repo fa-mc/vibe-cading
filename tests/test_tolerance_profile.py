@@ -683,6 +683,7 @@ def test_shipped_profiles_pinned_tuples(tmp_path, monkeypatch):
         "fdm_standard":  ("fdm_standard",  0.15, 0.20, 0.0,  0.05, 0.20, 0.10, 0.04, 0.20, 0.0),
         "resin_precise": ("resin_precise", 0.05, 0.05, 0.0,  0.03, 0.05, 0.0,  0.02, 0.05, 0.0),
         "cnc":           ("cnc",           0.02, 0.0,  0.0,  0.01, 0.0,  0.0,  0.0,  0.0,  0.0),
+        "petg":          ("petg",          0.20, 0.25, 0.0,  0.15, 0.25, 0.15, 0.06, 0.25, 0.0),
     }
     for name, expected_tuple in expected.items():
         prof = mod.get_profile(name)

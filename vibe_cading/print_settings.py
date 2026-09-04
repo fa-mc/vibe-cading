@@ -65,8 +65,8 @@ collision-free against hyphenated machine names.  Examples::
 The convention is purely documentary — the loader treats every
 top-level key as an opaque profile name and does not decompose it.
 The shipped fallback keys (``fdm_standard``, ``resin_precise``,
-``cnc``) remain the coarse-default categories and are exempt from the
-convention.
+``cnc``, ``petg``) remain the coarse-default categories and are exempt
+from the convention.
 
 Field-level deep-merge
 ----------------------
@@ -590,6 +590,16 @@ _FALLBACK_PROFILES: dict[str, dict] = {
         "slip":  {"radial": 0.01, "axial": 0.0},
         "press": {"radial": 0.0,  "axial": 0.0},
     },
+    "petg": {
+        # Looser than fdm_standard: PETG strings/oozes more than PLA on the
+        # same nozzle/temp, so free/slip fits under-tolerance more readily
+        # if given PLA-grade clearances. Press fits get a smaller radial
+        # bump than free/slip since PETG's own flexibility already
+        # tolerates a snugger fit without cracking (unlike brittle PLA).
+        "free":  {"radial": 0.20, "axial": 0.25},
+        "slip":  {"radial": 0.15, "axial": 0.25, "slot": 0.15},
+        "press": {"radial": 0.06, "axial": 0.25},
+    },
 }
 
 
@@ -641,7 +651,7 @@ def get_profile(name: str | None = None) -> ToleranceProfile:
         f"unknown_profile_{name}",
         f"unknown print profile '{name}'; falling back to 'fdm_standard'. "
         f"Add a '{name}' entry to print_profiles_user.json or pick a shipped "
-        f"profile name (fdm_standard, resin_precise, cnc).",
+        f"profile name (fdm_standard, resin_precise, cnc, petg).",
         category=UserWarning,
         prefix="WARNING",
         stacklevel=2,  # attribute to ``get_profile`` — the public surface
