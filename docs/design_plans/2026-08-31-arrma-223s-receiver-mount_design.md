@@ -314,7 +314,7 @@ Not applicable — no new shared abstraction, `Protocol`/`ABC`, or cross-cutting
 | 3 | **Corrected this pass** — Ear stadium-lug shape / hole placement matches the corrected §3 construction (±0.1 mm) | ear arc centers at local **(1.026, 3.000)** [top] and **(1.026, −49.00)** [bottom] (i.e. −46.00−3.00); each ear's outline is two vertical walls at local X = 1.026∓4.4945 plus a tangent R4.4945 semicircular cap — NOT a plain OD circle | `hole_finder.py`-style manual check via `section_slicer.py` on the built class (STEP export first); additionally, fit a circle to only the ear's *curved* sub-arc (not the whole ear outline) and verify the fitted arc spans ~180° with straight tangent walls on either side — a full-360° clean circle fit against the whole ear boundary would indicate a regression back to the wrong circular-boss shape |
 | 4 | M2.5 pan-head recess depth doesn't exceed accessory_thickness (**CORRECTED this round — was flat-head**) | `pan_head_h` (2.1 mm) < accessory_thickness for all valid inputs, or raise | unit assertion in class `__init__` |
 | 5 | Arm hole diameters/positions match measurements (±0.1 mm) | D≈3.202 at root position, D≈2.801 at tip position | `section_slicer.py --axis Z --at <hole Z>` |
-| 6 | **Pre-merge representative-scale row** — full `python build.py` rebuild after `build.toml` registration (pending explicit user approval per project convention) | build completes without error; new part's STEP exports | `python build.py` |
+| 6 | **Pre-merge representative-scale row** — full `python build.py` rebuild after `build.toml` registration (pending explicit user approval per project convention) | build completes without error; new part's STEP exports | `python build.py` — **RUN 2026-09-03 (PR #94 review):** full 15-target rebuild succeeded end-to-end (`Done.`), including `rc/vorteks_223s/esc_mount.step` built from `vibe_cading.rc.arrma_223s_esc_mount.Arrma223sEscMount` with its three `[build.params]` (`base_thickness`, `accessory_thickness`, `material`) accepted by the constructor. The unrelated `unknown print profile 'PETG'` warning on the sibling `mount_plate_370.step` target is pre-existing on `main` (verified via `git show main:build.toml` — that entry predates this PR and this PR's diff never touches it), not a regression from this change. |
 | 7 | **NEW this round** — Arm tip cap is flush (no neck) with the shaft | at the tip cap's tangent-Y row (local Y≈28.0), a Y-slice through the arm reports full-width X = 6.0 mm each side of the shaft centerline (i.e. matches the shaft's own half-width exactly); reproduces the falsification pattern used for the ear (`tmp/check_ear_shape.py`) — measure the arm's half-width at a station just below the tip-cap tangent Y and confirm it equals `ARM_WIDTH/2`, not a smaller inset value | `section_slicer.py --axis Y --at 27.9` or an intersect-box bbox probe analogous to `check_ear_shape.py` |
 | 8 | **NEW this round** — Arm-root fillet is tangent to the plate edge and does not intersect the ear's own footprint | `.intersect()` between the arm-root-fillet region (bounded by the arm's left wall and the plate's own top-edge line) and the ear's stadium-lug solid is `0.0` (empty) | programmatic `.intersect()` volume check, per the project's *Validating Internal Intersections* convention |
 | 9 | **NEW this round** — Motor-mount hole bores accept M3 hardware with positive clearance (only applicable if Open Question 3 resolves to option (a)) | bore diameter ≥ `METRIC_SIZES["M3"]["clearance"]` (3.2 mm) at both hole centers | `hole_finder.py`-style manual check on the built class, or a unit assertion against `MetricMachineScrew`'s own cutter dimensions |
@@ -323,13 +323,13 @@ Not applicable — no new shared abstraction, `Protocol`/`ABC`, or cross-cutting
 
 1. `ArrmaReceiverMount` builds a single contiguous solid for the full parameter range described above.
 2. Main body footprint (**58.5×46.00 mm, corrected**), corner radius, recess footprint/depth (**≈4.49 mm top inset, corrected**), ear stadium-lug shape/positions (**corrected — straight walls + semicircular cap, not a circular OD boss**), and arm dimensions/hole positions all match the measured values in this brief within ±0.1 mm.
-3. `body_thickness` and `accessory_thickness` are independently overridable and the bottom face (Z=0) remains fixed under both.
-4. Ear holes are M2.5 **pan-head (CORRECTED this round, was flat-head)** clearance cutters via the existing `MetricMachineScrew` class; arm holes remain plain cylinders at the measured diameters.
+3. **AS-SHIPPED CORRECTION (2026-09-03, PR #94 review)** — supersedes the original wording below, which described an independent-parameter contract this class never implements. As shipped, `base_thickness` and `accessory_thickness` are the two independently-overridable constructor parameters; `body_thickness` is a **derived, read-only property** (`= base_thickness + accessory_thickness`), not itself overridable. The bottom face (Z=0) remains fixed under both inputs. ~~`body_thickness` and `accessory_thickness` are independently overridable and the bottom face (Z=0) remains fixed under both.~~
+4. Ear holes are M2.5 **pan-head (CORRECTED this round, was flat-head)** clearance cutters; the south ear hole is built via the existing `MetricMachineScrew` class (`_south_ear_clearance_cutter`), while hole 1 (former north ear) is built directly from `CounterboreHole` rather than `MetricMachineScrew` — see item 9 below for why. Arm holes remain plain cylinders at the measured diameters.
 5. Visual contract SVG regenerated from the real class and visually matches this brief's approximate preview (gross shape, axis convention, hole pattern).
-6. Both pre-existing motor-mount holes (§5) reproduced per the human's "keep faithfully" resolution — LEFT and RIGHT both as double-counterbore-style clearance holes (RIGHT top-face-only), pending Open Question 3's M3-standard-vs-mesh resolution.
+6. **AS-SHIPPED CORRECTION (2026-09-03)** — Open Question 3 resolved as option (a), standard-cutter: both chassis motor-mount holes cut a standard M3 pan-head `MetricMachineScrew` cutter from the top face (`_chassis_hole_cutter`); the LEFT hole additionally keeps an as-measured 7.0 mm OD x 2.0 mm deep mesh-fidelity relief pocket on the bottom face (`_chassis_left_bottom_relief_cutter`). ~~Both pre-existing motor-mount holes (§5) reproduced per the human's "keep faithfully" resolution — LEFT and RIGHT both as double-counterbore-style clearance holes (RIGHT top-face-only), pending Open Question 3's M3-standard-vs-mesh resolution.~~
 7. **NEW this round** — the arm tip cap is flush with the shaft (radius = half the shaft width, tangent to both walls, no neck).
 8. **NEW this round** — the arm-root fillet is verified tangent to the plate's own edge and does not intersect or blend through the ear's footprint.
-9. **NEW 2026-09-01 (§8 resize, supersedes items 2-3 above for these features)** — `BODY_LENGTH=38.00`; the north ear is removed and its fastener relocated into the plate body as an M2.5 flat-head countersink opening bottom/narrowing up; the south ear hole is a plain M2.5 clearance bore with no recess, spaced exactly 38.0 mm from hole 1; the arm/south-ear accessory layer stacks on the plate's top face (Z ∈ [body_thickness, body_thickness+accessory_thickness]) with explicit XY bonding overlaps rather than sharing the plate's Z=0 datum — all verified by section-slicing per Implementation Status.
+9. **NEW 2026-09-01 (§8 resize, supersedes items 2-3 above for these features), AS-SHIPPED CORRECTION 2026-09-03** — `BODY_LENGTH=38.00`; the north ear is removed and its fastener relocated into the plate body at `HOLE1_CENTER`, spaced exactly 38.0 mm from the south ear hole. The relocated hole is a **round-head counterbore** (`_hole1_counterbore_cutter`, revised 2026-09-02 from the originally-planned flat-head countersink — sized to the M2.5 pan head; a head-diameter bore runs the whole `base_thickness` so the head passes freely through, and the screw binds on the shoulder at `Z = base_thickness`); the south ear hole remains a plain M2.5 clearance bore with no recess. The arm/south-ear accessory layer stacks on the plate's top face at **Z ∈ [base_thickness, body_thickness]** (not `[body_thickness, body_thickness+accessory_thickness]` as originally written here — corrected to match the 2026-09-01 thickness-contract correction in the module docstring, under which `body_thickness` is the top of the stack, not its base) with explicit XY bonding overlaps rather than sharing the plate's Z=0 datum — all verified by section-slicing per Implementation Status.
 
 ## Out of Scope
 
@@ -803,3 +803,37 @@ depend on this bug and are completed below.
   was 79 — net effect of removing the old `EscMount` and keeping this one under its new name).
   Both the old `EscMount` and old `ArrmaReceiverMount` import paths confirmed to raise
   `ModuleNotFoundError`, i.e. the rename is atomic, not an alias.
+
+- **Round (2026-09-03) — PR #94 review cycle, 3 blockers from the `tl` reviewer addressed.**
+  Isolated-context review (`tl` + `admin`, fresh subagents against `req.md`/`contract.md`/
+  `diff.patch`/`ci.txt` only) returned `admin: approve` and `tl: request-changes` with three
+  blockers, all resolved in this round without any geometry change:
+
+  1. **Tests row 6 (pre-merge `python build.py`) was still unchecked** despite this PR changing a
+     `build.toml` registration. Ran the full 15-target rebuild — succeeded end-to-end, confirming
+     the new `[build.params]` (`base_thickness`, `accessory_thickness`, `material`) are accepted by
+     `Arrma223sEscMount.__init__`. Row 6 updated with the result. An unrelated pre-existing
+     `unknown print profile 'PETG'` warning on the sibling `mount_plate_370.step` target was
+     confirmed via `git show main:build.toml` to predate this PR and be untouched by its diff — not
+     a regression, out of scope for this PR.
+  2. **The `CounterboreHole` Z-direction fix (from the earlier TL escalation above) shipped with no
+     regression test** — the 615-test suite passed with the bug present, so it was provably blind
+     to a re-regression. Added `test_counterbore_hole_cylinder_head_sinks_into_part` to
+     `tests/test_cutter_overcut.py`, asserting `.solid`'s `zmax` stays at the Z=0 entry face (not
+     `z_recess + head_depth` above it). Positive-controlled per the project's *Positive Control
+     Before Any Absence Claim* rule: temporarily reverted the fix locally, confirmed the new test
+     fails (`zmax=2.8` vs. the `<=0.1` bound), then restored the fix and confirmed it passes again.
+  3. **Success Criteria items 3, 4, 6, 9 were stale against the shipped code** — item 3 described
+     `body_thickness` as independently overridable when it is a derived read-only property; item 6
+     described the motor-mount holes as still pending Open Question 3 when it had been resolved to
+     option (a); item 9 described the accessory-layer Z range and hole-1 fastener type from before
+     the 2026-09-01 thickness-contract correction and the 2026-09-02 counterbore revision. All four
+     updated in place (strikethrough + "AS-SHIPPED CORRECTION" annotation, per this doc's existing
+     correction convention) to match the code as actually shipped, per the `tl` reviewer's finding
+     that "the declared acceptance gate cannot fail" while it described a superseded contract.
+
+  Validation: full suite re-run after the test addition — 616 passed, 2 xfailed (615→616, the one
+  new regression test); `check_visual_contract_freshness.py` still 21/21 fresh (no model file
+  touched); `gen_engine_api.py` regeneration byte-identical (doc-only + test-only changes carry no
+  public-surface delta, so no further version bump beyond the 0.2.2 already applied for the
+  rename/deletion in the prior round).

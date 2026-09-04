@@ -103,6 +103,32 @@ def test_counterbore_hole_through_overcut():
     )
 
 
+def test_counterbore_hole_cylinder_head_sinks_into_part():
+    """Regression: a non-``"cone"`` head recess (the default ``"cylinder"``
+    branch) must sink DOWN from the entry face into the part.
+
+    ``.solid``'s shaft spans ``[-shaft_depth, 0]``, so its own ``zmax`` is
+    exactly 0 at the entry face. The pre-fix bug called ``extrude()``
+    without an explicit direction from ``z_recess``, which extrudes in
+    the default +Z (outward) direction — pushing the head recess to
+    ``[z_recess, z_recess + head_depth]``, i.e. *above* the entry face
+    into open air, instead of ``[z_recess - head_depth, z_recess]``
+    cutting into the part. Because ``head_depth`` (3.0 mm here) dwarfs
+    ``_BBOX_EPS``, the two directions are unambiguous from the combined
+    solid's ``zmax`` alone — no need to isolate the head geometry.
+    """
+    hole = CounterboreHole(
+        shaft_diameter=3.2, shaft_depth=5.0,
+        head_diameter=5.5, head_depth=3.0,
+    )
+    zmax = hole.solid.val().BoundingBox().zmax
+    assert zmax <= _BBOX_EPS, (
+        f"CounterboreHole.solid zmax={zmax} extends above the Z=0 entry "
+        f"face — the head recess is extruding AWAY from the part instead "
+        f"of sinking into it (pre-fix Z-direction bug)"
+    )
+
+
 def test_slotted_hole_through_overcut():
     """``SlottedHole`` extends through past both faces."""
     hole = SlottedHole(diameter=3.2, length=10.0, depth=5.0)
