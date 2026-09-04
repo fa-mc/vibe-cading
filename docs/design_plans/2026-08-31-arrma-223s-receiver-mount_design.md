@@ -321,12 +321,12 @@ Not applicable — no new shared abstraction, `Protocol`/`ABC`, or cross-cutting
 
 ## Success Criteria
 
-1. `ArrmaReceiverMount` builds a single contiguous solid for the full parameter range described above.
+1. `Arrma223sEscMount` (renamed 2026-09-03 from `ArrmaReceiverMount`, see the round log below) builds a single contiguous solid for the full parameter range described above.
 2. Main body footprint (**58.5×46.00 mm, corrected**), corner radius, recess footprint/depth (**≈4.49 mm top inset, corrected**), ear stadium-lug shape/positions (**corrected — straight walls + semicircular cap, not a circular OD boss**), and arm dimensions/hole positions all match the measured values in this brief within ±0.1 mm.
 3. **AS-SHIPPED CORRECTION (2026-09-03, PR #94 review)** — supersedes the original wording below, which described an independent-parameter contract this class never implements. As shipped, `base_thickness` and `accessory_thickness` are the two independently-overridable constructor parameters; `body_thickness` is a **derived, read-only property** (`= base_thickness + accessory_thickness`), not itself overridable. The bottom face (Z=0) remains fixed under both inputs. ~~`body_thickness` and `accessory_thickness` are independently overridable and the bottom face (Z=0) remains fixed under both.~~
-4. Ear holes are M2.5 **pan-head (CORRECTED this round, was flat-head)** clearance cutters; the south ear hole is built via the existing `MetricMachineScrew` class (`_south_ear_clearance_cutter`), while hole 1 (former north ear) is built directly from `CounterboreHole` rather than `MetricMachineScrew` — see item 9 below for why. Arm holes remain plain cylinders at the measured diameters.
+4. **AS-SHIPPED CORRECTION (2026-09-03, PR #94 review, iteration 2)** — the original wording below described the south ear hole as an `MetricMachineScrew`-based pan-head recess; the user's 2026-09-01 resize (§8) removed that recess entirely. As shipped, `_south_ear_clearance_cutter` is a **plain M2.5 clearance through-hole** — a bare `cq.Workplane` circle/extrude sized from `METRIC_SIZES["M2.5"]["clearance"]`, with no `MetricMachineScrew` involvement and no countersink/counterbore/recess of any kind (see the method's own docstring). Hole 1 (former north ear) is the one fastener on this part that IS a recessed cutter — built directly from `CounterboreHole` (`_hole1_counterbore_cutter`, see item 9) — because it needs to clamp a screw head against a shoulder mid-thickness, unlike the south ear's plain pass-through. Arm holes remain plain cylinders at the measured diameters. ~~Ear holes are M2.5 pan-head clearance cutters via the existing `MetricMachineScrew` class; arm holes remain plain cylinders at the measured diameters.~~
 5. Visual contract SVG regenerated from the real class and visually matches this brief's approximate preview (gross shape, axis convention, hole pattern).
-6. **AS-SHIPPED CORRECTION (2026-09-03)** — Open Question 3 resolved as option (a), standard-cutter: both chassis motor-mount holes cut a standard M3 pan-head `MetricMachineScrew` cutter from the top face (`_chassis_hole_cutter`); the LEFT hole additionally keeps an as-measured 7.0 mm OD x 2.0 mm deep mesh-fidelity relief pocket on the bottom face (`_chassis_left_bottom_relief_cutter`). ~~Both pre-existing motor-mount holes (§5) reproduced per the human's "keep faithfully" resolution — LEFT and RIGHT both as double-counterbore-style clearance holes (RIGHT top-face-only), pending Open Question 3's M3-standard-vs-mesh resolution.~~
+6. **AS-SHIPPED CORRECTION (2026-09-03)** — Open Question 3 resolved as option (a), standard-cutter: both chassis motor-mount holes cut a standard M3 pan-head `MetricMachineScrew` cutter from the top face (`_chassis_mount_cutter`); the LEFT hole additionally keeps an as-measured 7.0 mm OD x 2.0 mm deep mesh-fidelity relief pocket on the bottom face (`_chassis_left_bottom_relief_cutter`). ~~Both pre-existing motor-mount holes (§5) reproduced per the human's "keep faithfully" resolution — LEFT and RIGHT both as double-counterbore-style clearance holes (RIGHT top-face-only), pending Open Question 3's M3-standard-vs-mesh resolution.~~
 7. **NEW this round** — the arm tip cap is flush with the shaft (radius = half the shaft width, tangent to both walls, no neck).
 8. **NEW this round** — the arm-root fillet is verified tangent to the plate's own edge and does not intersect or blend through the ear's footprint.
 9. **NEW 2026-09-01 (§8 resize, supersedes items 2-3 above for these features), AS-SHIPPED CORRECTION 2026-09-03** — `BODY_LENGTH=38.00`; the north ear is removed and its fastener relocated into the plate body at `HOLE1_CENTER`, spaced exactly 38.0 mm from the south ear hole. The relocated hole is a **round-head counterbore** (`_hole1_counterbore_cutter`, revised 2026-09-02 from the originally-planned flat-head countersink — sized to the M2.5 pan head; a head-diameter bore runs the whole `base_thickness` so the head passes freely through, and the screw binds on the shoulder at `Z = base_thickness`); the south ear hole remains a plain M2.5 clearance bore with no recess. The arm/south-ear accessory layer stacks on the plate's top face at **Z ∈ [base_thickness, body_thickness]** (not `[body_thickness, body_thickness+accessory_thickness]` as originally written here — corrected to match the 2026-09-01 thickness-contract correction in the module docstring, under which `body_thickness` is the top of the stack, not its base) with explicit XY bonding overlaps rather than sharing the plate's Z=0 datum — all verified by section-slicing per Implementation Status.
@@ -837,3 +837,46 @@ depend on this bug and are completed below.
   touched); `gen_engine_api.py` regeneration byte-identical (doc-only + test-only changes carry no
   public-surface delta, so no further version bump beyond the 0.2.2 already applied for the
   rename/deletion in the prior round).
+
+- **Round (2026-09-03) — PR #94 review, iteration 2. Both fresh `tl` and `admin` reviewers found
+  the same real defect in the round above's own fix; both blockers addressed, no geometry change.**
+
+  1. **The new regression test guarded `.solid`, not the path shipped models actually call.**
+     `Arrma223sEscMount._hole1_counterbore_cutter` calls `CounterboreHole.to_cutter()`, whose
+     cylinder-head branch has its own separate `head_body`/`head_overcut` construction (restructured
+     in the same commit as the original fix) — completely untested. A bounding-box check on
+     `to_cutter()`'s combined output can't distinguish the two directions either: the class-level
+     100 mm `_THROUGH_OVERCUT` piece and the shaft's own overcut both dominate the bbox regardless
+     of which way `head_body` points. Added
+     `test_counterbore_hole_to_cutter_cylinder_head_sinks_into_part`, which instead probes for
+     material PRESENCE at a specific point — the annulus between the shaft and head radii, strictly
+     below the entry face — where the fix places material and the pre-fix bug would leave open air.
+     Positive-controlled the same way as the first test: reverted `to_cutter()`'s `head_body` origin
+     locally, confirmed the new test fails (no material found at the probe point), restored the fix,
+     confirmed it passes again.
+  2. **Success Criterion 4 was re-labelled "CORRECTED this round" without actually correcting its
+     substance** — it still claimed the south ear hole is "built via the existing `MetricMachineScrew`
+     class" as a pan-head recess, but the 2026-09-01 resize (§8) removed that ear and its recess
+     entirely; `_south_ear_clearance_cutter` is a bare `cq.Workplane` circle/extrude with explicitly
+     no recess (per its own docstring), and has no `MetricMachineScrew` involvement at all — only
+     hole 1 (`_hole1_counterbore_cutter`) and the two chassis motor-mount holes
+     (`_chassis_mount_cutter`) use recessed/screw-class cutters. Item 4 corrected in place with the
+     same strikethrough convention already used for items 3/6/9. Also fixed a stale method-name
+     reference in item 6 (`_chassis_hole_cutter` → `_chassis_mount_cutter`, the reviewer's actual
+     name) and the stale `ArrmaReceiverMount` references in items 1-2 (this doc's own Success
+     Criteria hadn't been updated for the rename in either prior round).
+
+  Not fixed, deliberately deferred as non-blocking (both reviewers filed these as `nit`/`question`,
+  not `blocker`): `_edges_near_xy`'s generic-selector placement in a per-part module rather than
+  `cq_utils.py`; whether a single-vehicle end product belongs in `vibe_cading/rc/` vs `parts/`
+  (an architectural question, not a defect, and changing it now would re-open the public-surface
+  rename this PR exists to land); stale "motor-mount" wording in `_chassis_mount_cutter`'s docstring
+  section header; and `_hole1_counterbore_cutter`'s `head_depth` guard only checking
+  `base_thickness > 0`, not `base_thickness > profile.free.axial` (the actual degenerate-to-through-
+  hole threshold) — a real edge case, but unreachable at any default or currently-registered
+  `build.toml` parameter value, so deferred rather than risking a third review round over an
+  unreachable input.
+
+  Validation: full suite — 617 passed, 2 xfailed (616→617, the second new regression test);
+  `check_visual_contract_freshness.py` 21/21 fresh; `gen_engine_api.py` byte-identical (doc/test-only
+  changes, no public-surface delta, no further version bump).
