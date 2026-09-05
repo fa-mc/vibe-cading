@@ -309,7 +309,7 @@ Not applicable — no new shared abstraction, `Protocol`/`ABC`, or cross-cutting
 
 | # | Test description | Expected assertion | File / location |
 |---|------------------|--------------------|-----------------|
-| 1 | Single-solid topology | `len(ArrmaReceiverMount().solid.solids().vals()) == 1` | new `tests/` file or inline dev script |
+| 1 | Single-solid topology | `len(Arrma223sEscMount().solid.solids().vals()) == 1` | new `tests/` file or inline dev script |
 | 2 | Bottom face fixed at Z=0 across body_thickness values | bounding box Z-min == 0.0 for `body_thickness` ∈ {6, 12, 20} | `preview.py` + bbox check |
 | 3 | **Corrected this pass** — Ear stadium-lug shape / hole placement matches the corrected §3 construction (±0.1 mm) | ear arc centers at local **(1.026, 3.000)** [top] and **(1.026, −49.00)** [bottom] (i.e. −46.00−3.00); each ear's outline is two vertical walls at local X = 1.026∓4.4945 plus a tangent R4.4945 semicircular cap — NOT a plain OD circle | `hole_finder.py`-style manual check via `section_slicer.py` on the built class (STEP export first); additionally, fit a circle to only the ear's *curved* sub-arc (not the whole ear outline) and verify the fitted arc spans ~180° with straight tangent walls on either side — a full-360° clean circle fit against the whole ear boundary would indicate a regression back to the wrong circular-boss shape |
 | 4 | M2.5 pan-head recess depth doesn't exceed accessory_thickness (**CORRECTED this round — was flat-head**) | `pan_head_h` (2.1 mm) < accessory_thickness for all valid inputs, or raise | unit assertion in class `__init__` |

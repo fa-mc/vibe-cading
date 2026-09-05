@@ -69,9 +69,13 @@ section to the new version and date.
   and `.to_cutter()` now sink the recess body downward from the entry face, with
   a small outward overcut at the opening (matching the cone branch's existing
   convention) rather than putting the whole recess on the outward side. No
-  shipped model previously exercised this code path (`Arrma223sEscMount`'s
-  pan-head ear/motor-mount holes are the first real usage), so no other model's
-  geometry changes as a result.
+  shipped model previously exercised this code path — `Arrma223sEscMount` is the
+  first real usage, via hole 1 (`_hole1_counterbore_cutter`, an M2.5 round-head
+  counterbore built directly on `CounterboreHole`) and the two chassis
+  motor-mount holes (`_chassis_mount_cutter`, M3 pan-head via
+  `MetricMachineScrew.to_cutter()`). Its south ear hole is *not* affected: the
+  2026-09-01 resize made it a plain M2.5 clearance through-hole with no recess
+  of any kind. No other model's geometry changes as a result.
 - `vibe_cading/tools/view.py`: no longer reports a false success when no OCP CAD
   Viewer is listening. Previously it printed `Showing <Class>` and exited 0 while
   the model was never transmitted (the underlying connection failure surfaced only
