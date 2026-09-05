@@ -46,18 +46,28 @@ def test_envelope_matches_25560():
     cap), a deliberate departure from the reference shell's own 29.600 mm.
     Asserted against the constant so the stud count stays the single
     source of truth. X grows to 72.0/72.6ish with the arm bosses; Y and Z
-    are exact -- see class docstring's cross-section note."""
+    are exact -- see class docstring's cross-section note.
+
+    ROUND 73b -- ``bbox.ylen`` is no longer ``2 * HALF_Y`` exactly. Item 1
+    moved HALF_Y (the end-wall length) to 35.625, independently of item 4's
+    arm X-envelope (ARM_X_OUTER = 35.675, unchanged) -- and the arm's own
+    Y-tip reach (ARM_Y_LO + ARM_LENGTH) is tied to the hole-pitch grid, not
+    to HALF_Y (see ARM_Y_HI's own comment for why re-coupling them would be
+    the same coincidence-coupling bug already caught once this round). The
+    arm's tip therefore now overshoots the end walls by 0.050 mm on each
+    side, by design -- assert against the arm's own reach
+    (2 * ARM_X_OUTER, which equals it by construction) instead of HALF_Y.
+    """
     h = PoweredUpHubHousing()
     bbox = h.solid.val().BoundingBox()
-    assert abs(bbox.ylen - 2 * PoweredUpHubHousing.HALF_Y) < 1e-6
+    assert abs(bbox.ylen - 2 * PoweredUpHubHousing.ARM_X_OUTER) < 1e-6
     assert abs(bbox.zmin - 0.0) < 1e-9
     assert abs(bbox.zmax - PoweredUpHubHousing.DECK_Z) < 1e-6
-    # X grows slightly past the real 72.0 mm because the arm cross-section
-    # deliberately keeps the class's own BEAM_WIDTH (7.8 mm nominal, 7.5 mm
-    # as-built after round 16's outboard-only trim), not LDraw's idealised
-    # 7.2 mm -- see class docstring.  Assert it's in the right ballpark,
-    # not byte-exact to the LDraw figure.
-    assert 71.9 < bbox.xlen < 73.5
+    # X grows slightly past the arm's own flat-face envelope because the
+    # boss stands proud of it (BOSS_PROUD) -- see
+    # test_envelope_is_exactly_72mm_in_x for the exact derivation. Assert
+    # it's in the right ballpark here, not byte-exact.
+    assert 71.5 < bbox.xlen < 72.5
 
 
 def test_bottom_face_is_z_zero_and_open():
@@ -108,17 +118,21 @@ def test_twelve_pin_holes_present():
     probe just off-axis on the same arm must show material (not an
     over-cut wafer)."""
     h = PoweredUpHubHousing().solid
+    # ROUND 74: `+ dy` on every Y probed against the ACTUAL BUILT (shifted)
+    # solid -- HOLE_Y/HOLE_X are the shell's own LOCAL (pre-translate)
+    # constants.
+    dy = PoweredUpHubHousing.SHELL_Y_OFFSET
     for x_sign in (+1, -1):
         for y in PoweredUpHubHousing.HOLE_Y:
             for y_sign in (+1, -1):
                 x = x_sign * PoweredUpHubHousing.HOLE_X
                 yy = y_sign * y
-                bore_vol = _probe_material(h, x, yy, PoweredUpHubHousing.HOLE_AXIS_Z)
+                bore_vol = _probe_material(h, x, yy + dy, PoweredUpHubHousing.HOLE_AXIS_Z)
                 assert bore_vol < 1e-6, f"expected an open bore at (X={x}, Y={yy}), found material"
         # off-hole probe on this arm (between the inner and middle hole
         # positions) must show real material.
         material_vol = _probe_material(
-            h, x_sign * PoweredUpHubHousing.HOLE_X, 20.0, PoweredUpHubHousing.HOLE_AXIS_Z
+            h, x_sign * PoweredUpHubHousing.HOLE_X, 20.0 + dy, PoweredUpHubHousing.HOLE_AXIS_Z
         )
         assert material_vol > 1.0, "expected solid material between adjacent hole positions"
 
@@ -138,16 +152,20 @@ def test_arm_meets_the_body_on_a_flat_face():
     h = PoweredUpHubHousing()
     solid = h.solid
     z = h.HOLE_AXIS_Z
+    # ROUND 74: `+ dy` on every Y probed against the ACTUAL BUILT (shifted)
+    # solid -- HALF_Y/ARM_Y_LO are the shell's own LOCAL (pre-translate)
+    # constants.
+    dy = h.SHELL_Y_OFFSET
     for y_end, inward in ((h.HALF_Y, -1.0), (h.ARM_Y_LO, +1.0)):
         for x in (h.HOLE_X - h.ARM_CAP_R + 0.3, h.HOLE_X - 1.0, h.HOLE_X - 0.2):
-            y = y_end + inward * 0.2          # just inside the end face
+            y = y_end + inward * 0.2 + dy     # just inside the end face
             p = cq.Workplane("XY").box(0.04, 0.04, 0.04).translate((x, y, z))
             assert solid.intersect(p).solids().vals(), (
                 f"no material at (X={x:.2f}, Y={y:.2f}) -- the arm still meets "
                 f"the body on a curve, leaving a notch at its root"
             )
         # ...and the outboard corner must still be relieved (the round).
-        y = y_end + inward * 0.2
+        y = y_end + inward * 0.2 + dy
         p = cq.Workplane("XY").box(0.04, 0.04, 0.04).translate((h.HOLE_X + 3.4, y, z))
         assert not solid.intersect(p).solids().vals(), (
             "positive control failed: material found where the outboard round "
@@ -173,7 +191,10 @@ def test_arm_end_cap_is_a_true_round_on_the_hole_centre():
     h = PoweredUpHubHousing()
     solid = h.solid
     r = h.ARM_CAP_R
-    cx, cy = h.HOLE_X, 32.0   # outer hole centre of the +X/+Y arm
+    # ROUND 74: `+ h.SHELL_Y_OFFSET` -- 32.0 is the outer hole's LOCAL
+    # (pre-translate) Y centre, but `solid` is the ACTUAL BUILT (translated)
+    # part.
+    cx, cy = h.HOLE_X, 32.0 + h.SHELL_Y_OFFSET   # outer hole centre of the +X/+Y arm
     z = h.HOLE_AXIS_Z
 
     # Sweep the OUTBOARD half of the cap only: 0 deg (+Y, the tip) round to
@@ -224,8 +245,13 @@ def test_horizontal_arm_hole_matches_ldraw_connhol3():
     cb_d = TechnicPinHole.DEFAULT_CB_DIAMETER
     bore_d = 4.8 + 2 * h._profile.slip.radial
 
+    # ROUND 74: `+ dy` -- the hit stations are the arm's own LOCAL
+    # (pre-translate) Y positions, but `solid` is the ACTUAL BUILT
+    # (translated) part.
+    dy = h.SHELL_Y_OFFSET
+
     def void_width(x):
-        hits = [20.0 + j * 8.0 / 200.0 for j in range(201)]
+        hits = [20.0 + dy + j * 8.0 / 200.0 for j in range(201)]
         open_ys = [
             y for y in hits
             if not solid.intersect(
@@ -267,9 +293,11 @@ def test_middle_bore_is_blind():
     h = PoweredUpHubHousing()
     solid = h.solid
     wall_mid_x = h.WALL_X_OUTER_LOWER - h.WALL_THICKNESS / 2.0   # 27.600
+    # ROUND 74: `+ h.SHELL_Y_OFFSET` -- 24.0 is a LOCAL (pre-translate) Y
+    # station, but `solid` is the ACTUAL BUILT (translated) part.
     for x_sign in (+1, -1):
         for y_sign in (+1, -1):
-            y = y_sign * 24.0
+            y = y_sign * 24.0 + h.SHELL_Y_OFFSET
             wall = _probe_material(solid, x_sign * wall_mid_x, y, h.HOLE_AXIS_Z)
             assert wall > 1e-6, (
                 f"the middle bore has breached the side wall at "
@@ -362,7 +390,12 @@ def test_side_window_is_the_tab_outline_across_the_whole_round_over():
     clearance = h._profile.free.radial
     seat = PoweredUpHubCover.PLATE_THICKNESS
     tab = t._build_extraction_tab(+1).translate((0.0, 0.0, seat))
-    window = h._build_side_window(+1)
+    # ROUND 74: `_build_side_window` is called directly here (not via
+    # `.solid`), so it returns geometry in the shell's own LOCAL
+    # (pre-translate) frame -- it must be translated by SHELL_Y_OFFSET to
+    # land in the same WORLD frame as `tab` (built directly from the
+    # frozen Tray, which never moves).
+    window = h._build_side_window(+1).translate((0.0, h.SHELL_Y_OFFSET, 0.0))
 
     cz_world = PoweredUpHubBatteryTray.TAB_ROUND_CZ + seat
     zhi_world = PoweredUpHubBatteryTray.TAB_PAD_Z_HI + seat
@@ -480,7 +513,10 @@ def test_latch_u_crown_has_headroom_under_the_wall():
 
     worst = None
     for i in range(21):  # sweep the crown in Y; do not hand-pick a station
-        y = -34.0 + i * (34.0 - 30.6) / 20.0
+        # ROUND 74: `+ h.SHELL_Y_OFFSET` -- this sweep range is the latch
+        # wall's own LOCAL (pre-translate) band, but `solid` is the ACTUAL
+        # BUILT (translated) part.
+        y = -34.0 + i * (34.0 - 30.6) / 20.0 + h.SHELL_Y_OFFSET
         col = above.translate((0.0, y, 0.0))
         hit = solid.intersect(col)
         if not hit.solids().vals():
@@ -503,12 +539,34 @@ def test_envelope_is_exactly_72mm_in_x():
     the housing-local width trim in _build_arm_and_bore_local must pin the
     overall X envelope to exactly 72.0 mm, per Success Criterion #1. A
     regression here (e.g. the trim being dropped or misplaced) would
-    silently reopen the overshoot."""
+    silently reopen the overshoot.
+
+    ROUND 73 -- the "72.0 mm" literal is retired. It was never actually
+    the arm's own flat-face envelope (that was 71.2 mm pre-round-73, and is
+    71.350 mm now, per the owner's own "overall width including the arms"
+    caliper reading -- see HALF_Y/ARM_CAP_R). 72.0 mm was always the
+    bounding box's own max reach, which is governed by the mid-hole BOSS
+    (BOSS_PROUD standing proud of the arm's own flat face at the boss's one
+    specific Y position), not by the arm's general envelope -- confirmed by
+    the fact that this number moved from 72.0 to 72.150 in lock-step with
+    ARM_CAP_R (HOLE_X + ARM_CAP_R + BOSS_PROUD = 32.000 + 3.675 + 0.400 =
+    36.075, i.e. exactly half of 72.150) while the arm's own flat-face
+    reach (test_arm_flat_face_matches_real_ldraw_half_width) moved to
+    35.675 mm, not 36.075. BOSS_DIAMETER/BOSS_PROUD were deliberately left
+    untouched this round (no owner direction covered them -- see the
+    round-73 implementation report), so this is the correct, derived
+    consequence, not drift to paper over. The falsifier this test protects
+    stays intact: assert against the live derivation, not a re-typed
+    literal, so a real regression (the boss's reach changing for an
+    unrelated reason) still fails this test.
+    """
     h = PoweredUpHubHousing()
     bbox = h.solid.val().BoundingBox()
-    assert abs(bbox.xlen - 72.0) < 1e-6
-    assert abs(bbox.xmax - 36.0) < 1e-6
-    assert abs(bbox.xmin + 36.0) < 1e-6
+    expected_half = PoweredUpHubHousing.HOLE_X + PoweredUpHubHousing.ARM_CAP_R \
+        + PoweredUpHubHousing.BOSS_PROUD
+    assert abs(bbox.xlen - 2 * expected_half) < 1e-6
+    assert abs(bbox.xmax - expected_half) < 1e-6
+    assert abs(bbox.xmin + expected_half) < 1e-6
 
 
 def test_arm_flat_face_matches_real_ldraw_half_width():
@@ -847,7 +905,11 @@ def test_cord_port_is_a_clear_opening_into_the_battery_bay():
     # CORD_PORT_CORNER_R, which is what the margin exists to avoid.
     x_hi = H.UPPER_X_INNER - H.CORD_PORT_MARGIN
     x_lo = x_hi - H.CORD_PORT_WIDTH
-    y_lo = C.LATCH_BAND_Y_HI
+    # ROUND 74: back-compensated by `- SHELL_Y_OFFSET`, matching
+    # _build_cord_port's own compensation -- the port is cut in the
+    # shell's LOCAL frame and must still land on the frozen Cover's
+    # LATCH_BAND_Y_HI after the shell-wide translate.
+    y_lo = C.LATCH_BAND_Y_HI - H.SHELL_Y_OFFSET
     y_hi = y_lo + H.CORD_PORT_LENGTH
     x_c, y_c = (x_lo + x_hi) / 2.0, (y_lo + y_hi) / 2.0
     z_mid = H.DECK_Z - H.DECK_THICKNESS / 2.0
@@ -934,6 +996,35 @@ def test_side_wall_carries_the_trapezoid_mating_socket():
 
     Positive control first: below the socket both stations must read
     28.000, or the probe is not finding the outer face at all.
+
+    ROUND 73 -- ``y_in``/``y_out`` are now expressed relative to
+    :attr:`SOCKET_Y_CENTER` (the owner-requested Y-centring of the socket
+    onto the Tray's own tab centreline), not Y = 0. This also FLIPS which
+    side has a clear "outside the trapezoid but inside the arm root"
+    window: centring the socket at +2.000 pushes its +Y edge to
+    ``SOCKET_Y_CENTER + SOCKET_Y_HALF_HI`` = 13.200, which is now PAST
+    ``ARM_Y_LO`` (12.400/12.325) -- the socket's mouth genuinely overlaps
+    the arm's own root territory on that side (see the round-73
+    implementation report, section 10, for the measured consequence: the
+    arm's root-bridge material fills part of what would otherwise be
+    recess there). The -Y side gained the clearance the +Y side lost
+    (``SOCKET_Y_CENTER - SOCKET_Y_HALF_HI`` = -9.200, vs. ``-ARM_Y_LO`` ~=
+    -12.325 -- a wider, not narrower, margin than before), so this test's
+    "outside but still clear of the arm" station moves there instead.
+
+    ROUND 73d -- the socket's floor moved off :attr:`UPPER_X_OUTER`.
+    Rounds 50-73c made the recess exactly deep enough to land the floor on
+    the upper section's own outer face (one shared constant, `UPPER_INSET`);
+    the owner asked to shrink the recess to ~0.5 mm without widening the
+    upper shell externally, so the floor is now :attr:`SOCKET_FLOOR_X`
+    (27.350), independent of and no longer coplanar with `UPPER_X_OUTER`
+    (26.700). This test's own falsifier ("is the recess LOCAL") is
+    unaffected by that change -- it never asserted coplanarity itself, only
+    that the floor sits at *some* recessed depth distinct from the plain
+    wall outside it -- so only the expected VALUE moves, not what is being
+    checked. What WOULD falsify this now: the recess floor reading anything
+    other than ~27.350 (no recess, wrong depth, or a hole clean through),
+    or the "outside" station also reading recessed (not local).
     """
     H = PoweredUpHubHousing
     housing = PoweredUpHubHousing(profile="fdm_standard").solid
@@ -953,11 +1044,18 @@ def test_side_wall_carries_the_trapezoid_mating_socket():
         return None
 
     z_mid = (H.SOCKET_Z_LO + H.SOCKET_Z_HI) / 2.0     # 23.0, inside the socket band
-    y_in = 0.0                                   # inside the trapezoid
-    # Outside the trapezoid but INSIDE the arm root at ARM_Y_LO = 12.400 --
-    # the clear window is only 1.2 mm wide, and a station past it reads the
-    # arm (which reaches X = 36) rather than the wall.
-    y_out = (H.SOCKET_Y_HALF_HI + H.ARM_Y_LO) / 2.0    # 11.8
+    # ROUND 74: `+ H.SHELL_Y_OFFSET` on both -- SOCKET_Y_CENTER and ARM_Y_LO
+    # are the shell's own LOCAL (pre-translate) constants, but `outer_face`
+    # below probes the ACTUAL BUILT solid, which is translated by
+    # SHELL_Y_OFFSET. Everything here is measured relative to
+    # SOCKET_Y_CENTER, so the offset could equivalently be added once at
+    # each probe call; adding it here keeps every derived station in world
+    # coordinates from this point on.
+    y_in = H.SOCKET_Y_CENTER + H.SHELL_Y_OFFSET  # inside the trapezoid, on its own centreline
+    # Outside the trapezoid but INSIDE the arm root at -ARM_Y_LO -- the
+    # clear window is on the -Y side post-centring (see the docstring note
+    # above); the +Y side no longer has one.
+    y_out = (H.SOCKET_Y_CENTER - H.SOCKET_Y_HALF_HI - H.ARM_Y_LO) / 2.0 + H.SHELL_Y_OFFSET
 
     # -- positive control: below the socket, both stations are plain wall.
     for y in (y_in, y_out):
@@ -970,9 +1068,11 @@ def test_side_wall_carries_the_trapezoid_mating_socket():
     inside = outer_face(y_in, z_mid)
     outside = outer_face(y_out, z_mid)
     assert inside is not None and outside is not None
-    assert abs(inside - H.UPPER_X_OUTER) < 0.1, (
+    # ROUND 73d: the floor is SOCKET_FLOOR_X, its own constant -- no longer
+    # coplanar with UPPER_X_OUTER (see this test's own docstring).
+    assert abs(inside - H.SOCKET_FLOOR_X) < 0.1, (
         f"no socket at Y={y_in}, z={z_mid}: outer face reads {inside}, "
-        f"expected {H.UPPER_X_OUTER}"
+        f"expected {H.SOCKET_FLOOR_X}"
     )
     assert abs(outside - H.WALL_X_OUTER_LOWER) < 0.1, (
         f"the wall is recessed at Y={y_out} too, so the socket is not a "
@@ -981,13 +1081,20 @@ def test_side_wall_carries_the_trapezoid_mating_socket():
     )
 
     # -- it really is a trapezoid: the mouth is wider than the base.
+    # ROUND 73: probed on the -Y flank (SOCKET_Y_CENTER - ...), which stays
+    # clear of the arm on both sides for this whole Z range -- see the
+    # docstring note above on why the +Y flank can no longer be used here.
     assert H.SOCKET_Y_HALF_HI > H.SOCKET_Y_HALF_LO
-    near_base = outer_face(H.SOCKET_Y_HALF_LO + 0.5, H.SOCKET_Z_LO + 0.2)
-    near_mouth = outer_face(H.SOCKET_Y_HALF_LO + 0.5, H.SOCKET_Z_HI - 0.2)
+    # ROUND 74: `+ H.SHELL_Y_OFFSET`, same reasoning as y_in/y_out above.
+    flank_y = H.SOCKET_Y_CENTER - H.SOCKET_Y_HALF_LO - 0.5 + H.SHELL_Y_OFFSET
+    near_base = outer_face(flank_y, H.SOCKET_Z_LO + 0.2)
+    near_mouth = outer_face(flank_y, H.SOCKET_Z_HI - 0.2)
     assert abs(near_base - H.WALL_X_OUTER_LOWER) < 0.1, (
         "the socket has not narrowed at its base -- flanks are not sloped"
     )
-    assert abs(near_mouth - H.UPPER_X_OUTER) < 0.1, (
+    # ROUND 73d: mouth lands at SOCKET_FLOOR_X, not UPPER_X_OUTER -- same
+    # reasoning as `inside` above.
+    assert abs(near_mouth - H.SOCKET_FLOOR_X) < 0.1, (
         "the socket has not widened at its mouth -- flanks are not sloped"
     )
 
@@ -1016,11 +1123,19 @@ def test_end_walls_carry_the_trapezoid_mating_socket():
     floor = H.HALF_Y - H.END_SOCKET_DEPTH        # 34.400
 
     def outer_face(y_sign, x, z):
-        """Outermost |Y| carrying material at (x, z), searching the wall."""
+        """Outermost |Y| carrying material at (x, z), searching the wall.
+
+        Returns a MAGNITUDE relative to the shell's own centre (comparable
+        directly to LOCAL constants like ``H.HALF_Y``/``floor``), even
+        though the actual probe position on the BUILT (translated) solid
+        needs `+ H.SHELL_Y_OFFSET` -- ROUND 74. That offset is NOT mirrored
+        by `y_sign` (the shell moves the same +Y direction at both ends),
+        so it is added once, after the sign, not folded into the magnitude.
+        """
         y = H.HALF_Y + 0.2
         while y > floor - 0.6:
             b = rounded_box(width=0.2, depth=0.08, height=0.4, corner_r=0.0,
-                            center=(x, y_sign * (y - 0.04), z - 0.2))
+                            center=(x, y_sign * (y - 0.04) + H.SHELL_Y_OFFSET, z - 0.2))
             try:
                 if housing.intersect(b).solids().vals():
                     return round(y, 2)
@@ -1083,7 +1198,9 @@ def test_end_walls_carry_the_trapezoid_mating_socket():
             for z in (H.END_SOCKET_Z_LO + 0.3, z_mid, H.SOCKET_Z_HI - 0.3):
                 probe = rounded_box(
                     width=0.4, depth=0.3, height=0.2, corner_r=0.0,
-                    center=(x, y_sign * (floor - 0.3), z - 0.1),
+                    # ROUND 74: `+ H.SHELL_Y_OFFSET`, same reasoning as
+                    # outer_face above.
+                    center=(x, y_sign * (floor - 0.3) + H.SHELL_Y_OFFSET, z - 0.1),
                 )
                 assert housing.intersect(probe).solids().vals(), (
                     f"{end}: the socket is a HOLE at X={x}, Z={z} -- nothing "
@@ -1114,6 +1231,54 @@ def test_wall_sockets_stop_at_the_reference_step_not_at_the_deck():
     stretch over 7.600 mm instead of 2.000, so just under the step it would
     have opened to only 9.2 + 2.0 x 1.9 / 7.6 = 9.700 -- a 1.450 mm
     difference this assertion sees and nothing else does.
+
+    ROUND 73 -- the socket is now centred on ``SOCKET_Y_CENTER`` (owner
+    request: align it with the Tray's tab centreline), not Y = 0, so the
+    two flanks are measured SEPARATELY from that centre rather than as one
+    symmetric ``(gap / 2)``. This also surfaces a real, measured
+    consequence of the centring the original symmetric form would have
+    hidden: the +Y flank lands past ``ARM_Y_LO``, so the arm's own
+    root-bridge material (built and unioned in AFTER this socket is cut)
+    fills part of what would otherwise be open mouth there, narrowing it
+    below the nominal trapezoid width. The -Y flank has no such neighbour
+    and still measures the clean, nominal trapezoid. See the round-73
+    implementation report for the numbers and the recommendation that this
+    stays a reported finding, not a silent fix (the socket's own Z-depth /
+    cap-budget conflict is separately parked for the owner; this is the
+    same feature's Y-extent interacting with an unrelated part).
+
+    ROUND 74 -- SUPERSEDED, not merely re-based: the +Y encroachment
+    documented above is GONE, and correctly so, not a masked regression.
+    ``SOCKET_Y_CENTER`` is now back-compensated by ``- SHELL_Y_OFFSET`` so
+    its WORLD position stays pinned to the Tray's tab centreline
+    (``TAB_Y_CENTER`` = 2.000) after the shell-wide +1.825 mm redatum
+    translate. ``ARM_Y_LO`` carries no such compensation -- it is a
+    housing-native constant with no cross-part target, so it rides
+    +SHELL_Y_OFFSET further +Y in WORLD terms right along with the rest of
+    the shell. The socket (pinned in world) and the arm root (moving in
+    world) therefore separate by SHELL_Y_OFFSET: mouth +Y edge was world
+    13.200 vs arm root 12.325 pre-round-74 (encroachment, 0.875 mm past the
+    arm root); post-round-74 the mouth edge is world ~13.100 (at this
+    trapezoid's interpolated half-width, see ``expected`` below) vs arm
+    root world 14.150 (=12.325 + 1.825) -- the mouth no longer reaches the
+    arm at all. Measured directly below rather than re-asserted from these
+    constants, per this test's own falsifier discipline.
+
+    ROUND 73d -- the probe's own slice window (NOT the property being
+    checked) needed re-deriving. This test isolates "the wall either side
+    of the socket mouth" by intersecting a thin slab spanning exactly the
+    socket's own cut depth; rounds 50-73c that depth was ``UPPER_INSET``
+    (because the socket's depth WAS that constant), so the slab ran from
+    ``UPPER_X_OUTER`` to ``WALL_X_OUTER_LOWER``. The socket's depth is now
+    the independent :attr:`SOCKET_DEPTH` (0.500), so the slab must span
+    :attr:`SOCKET_FLOOR_X` to ``WALL_X_OUTER_LOWER`` instead -- using the
+    old, now-wider window would also catch un-cut wall material inboard of
+    the real (shallower) floor and corrupt the piece count/shape this test
+    reads. The MOUTH-WIDTH property itself (``SOCKET_Z_HI`` vs ``DECK_Z``
+    wiring) is unaffected by round 73d and MUST still discriminate the two
+    wirings -- what would falsify this test: the measured flank half-widths
+    matching the ``DECK_Z``-wired prediction instead of the ``SOCKET_Z_HI``
+    one, or the probe finding anything other than exactly 2 pieces.
     """
     H = PoweredUpHubHousing
     housing = PoweredUpHubHousing(profile="fdm_standard").solid
@@ -1124,13 +1289,21 @@ def test_wall_sockets_stop_at_the_reference_step_not_at_the_deck():
     z = H.SOCKET_Z_HI - 0.1
     # Slice the wall's OUTER band (the only X range the socket cuts) at a
     # Z just below the socket's top edge. What survives is the wall either
-    # side of the socket mouth, so the gap between the two pieces is the
-    # mouth itself.
+    # side of the socket mouth, so the two flank distances from the
+    # socket's own centre are the mouth's own half-widths.
+    #
+    # ROUND 73d: window width/centre re-derived from SOCKET_DEPTH/
+    # SOCKET_FLOOR_X, not UPPER_INSET/UPPER_X_OUTER -- see docstring note.
+    # ROUND 74: `yc` is SOCKET_Y_CENTER's WORLD position -- SOCKET_Y_CENTER
+    # itself is the shell's own LOCAL (pre-translate) constant, but this
+    # probes the ACTUAL BUILT (translated) solid.
+    yc = H.SOCKET_Y_CENTER + H.SHELL_Y_OFFSET
     band = housing.intersect(
         rounded_box(
-            width=H.UPPER_INSET,
+            width=H.SOCKET_DEPTH,
             depth=4 * H.SOCKET_Y_HALF_HI, height=0.05, corner_r=0.0,
-            center=((H.UPPER_X_OUTER + H.WALL_X_OUTER_LOWER) / 2.0, 0.0, z),
+            center=((H.SOCKET_FLOOR_X + H.WALL_X_OUTER_LOWER) / 2.0,
+                    yc, z),
         )
     )
     pieces = sorted(
@@ -1142,16 +1315,32 @@ def test_wall_sockets_stop_at_the_reference_step_not_at_the_deck():
         "piece(s) -- positive control failed, the slice is not cutting the "
         "socket band at all"
     )
-    mouth_half = (pieces[1].ymin - pieces[0].ymax) / 2.0
+    minus_flank = yc - pieces[0].ymax   # -Y side, clean
+    plus_flank = pieces[1].ymin - yc    # +Y side, arm-encroached
 
     expected = H.SOCKET_Y_HALF_LO + (H.SOCKET_Y_HALF_HI - H.SOCKET_Y_HALF_LO) * (
         (z - H.SOCKET_Z_LO) / (H.SOCKET_Z_HI - H.SOCKET_Z_LO)
     )
-    assert abs(mouth_half - expected) < 0.02, (
-        f"socket mouth half-width {mouth_half:.3f} at z={z}, expected "
+    assert abs(minus_flank - expected) < 0.02, (
+        f"socket -Y mouth half-width {minus_flank:.3f} at z={z}, expected "
         f"{expected:.3f} -- the trapezoid has been stretched to a different "
         "top edge (DECK_Z would give "
         f"{H.SOCKET_Y_HALF_LO + (H.SOCKET_Y_HALF_HI - H.SOCKET_Y_HALF_LO) * ((z - H.SOCKET_Z_LO) / (H.DECK_Z - H.SOCKET_Z_LO)):.3f})"
+    )
+    # ROUND 74 RETIRES the "+Y side reads narrower (arm encroachment)"
+    # property this test used to assert -- see the docstring's ROUND 74
+    # note. SOCKET_Y_CENTER's back-compensation pins the socket to the
+    # Tray's tab centreline in WORLD space, while ARM_Y_LO (uncompensated,
+    # housing-native) moves +SHELL_Y_OFFSET further away in world terms --
+    # the two features that used to overlap by 0.875 mm now sit clear of
+    # each other. This is a genuine, correct consequence of the redatum,
+    # not a silently-masked regression: both flanks now read the clean,
+    # nominal trapezoid, exactly like the -Y side above.
+    assert abs(plus_flank - expected) < 0.02, (
+        f"+Y socket mouth half-width {plus_flank:.3f} at z={z}, expected "
+        f"{expected:.3f} -- if this is narrower again, ARM_Y_LO or "
+        "SOCKET_Y_CENTER has moved back into encroachment range and the "
+        "round-74 separation this test now pins has regressed"
     )
 
 
@@ -1210,16 +1399,25 @@ def test_shell_steps_in_above_the_reference_step():
     """
     H = PoweredUpHubHousing
     housing = PoweredUpHubHousing(profile="fdm_standard").solid
-    z = (H.REF_STEP_Z + H.DECK_Z - H.DECK_THICKNESS) / 2.0   # mid upper wall
+    # ROUND 73b: the step this test probes above moved from REF_STEP_Z
+    # (24.000) to WALL_INNER_STEP_Z (26.000, item 2's decision) -- using
+    # the old REF_STEP_Z here would sample a Z that is still inside the
+    # now-full-thickness lower band, not "mid upper wall" at all.
+    z = (H.WALL_INNER_STEP_Z + H.DECK_Z - H.DECK_THICKNESS) / 2.0   # mid upper wall
 
     def material(x, y):
         return housing.val().isInside(cq.Vector(x, y, z), tolerance=1e-9)
 
+    # ROUND 74: `+ H.SHELL_Y_OFFSET` on the Y-valued stations -- UPPER_Y_HI/
+    # LO are the shell's own LOCAL (pre-translate) constants, but `material`
+    # probes the ACTUAL BUILT (translated) solid. X is unaffected (the
+    # offset is Y-only).
+    dy = H.SHELL_Y_OFFSET
     faces = (
         ("+X", (H.UPPER_X_OUTER - 0.2, 0.0), (H.UPPER_X_OUTER + 0.2, 0.0)),
         ("-X", (-H.UPPER_X_OUTER + 0.2, 0.0), (-H.UPPER_X_OUTER - 0.2, 0.0)),
-        ("+Y", (0.0, H.UPPER_Y_HI - 0.2), (0.0, H.UPPER_Y_HI + 0.2)),
-        ("-Y", (0.0, H.UPPER_Y_LO + 0.2), (0.0, H.UPPER_Y_LO - 0.2)),
+        ("+Y", (0.0, H.UPPER_Y_HI - 0.2 + dy), (0.0, H.UPPER_Y_HI + 0.2 + dy)),
+        ("-Y", (0.0, H.UPPER_Y_LO + 0.2 + dy), (0.0, H.UPPER_Y_LO - 0.2 + dy)),
     )
     for name, inboard, outboard in faces:
         assert material(*inboard), (
@@ -1247,7 +1445,7 @@ def test_shell_steps_in_above_the_reference_step():
         "measures the socket, not the shell"
     )
     assert housing.val().isInside(
-        cq.Vector(x_clear, H.UPPER_Y_HI + 1.0, below), tolerance=1e-9
+        cq.Vector(x_clear, H.UPPER_Y_HI + 1.0 + dy, below), tolerance=1e-9
     ), "the step-in cut reached below REF_STEP_Z and ate the lower shell"
 
 
@@ -1270,7 +1468,13 @@ def test_upper_section_x_faces_are_the_cover_budget_not_the_reference():
     """
     H = PoweredUpHubHousing
     housing = PoweredUpHubHousing(profile="fdm_standard").solid
-    z = (H.REF_STEP_Z + H.DECK_Z - H.DECK_THICKNESS) / 2.0
+    # ROUND 73b: the step moved from REF_STEP_Z (24.000) to
+    # WALL_INNER_STEP_Z (26.000, item 2's decision). The old formula
+    # happened to land exactly ON the new step boundary (z == 26.0) rather
+    # than safely mid-narrow-band -- a probe sitting on a seam is a
+    # degenerate case, not a stronger check, so re-point it at the real
+    # midpoint of the upper (narrow) band.
+    z = (H.WALL_INNER_STEP_Z + H.DECK_Z - H.DECK_THICKNESS) / 2.0
 
     section = housing.intersect(
         rounded_box(width=4.0, depth=1.0, height=0.2, corner_r=0.0,
@@ -1300,24 +1504,63 @@ def test_upper_section_x_faces_are_the_cover_budget_not_the_reference():
     )
 
 
-def test_cover_budget_and_socket_floor_stay_inline():
-    """Round 55e. The trapezoids exist to register a future cover whose legs
-    mate into them and whose outer wall sits FLUSH with this part's side
-    walls, so the cover's wall thickness is set entirely by this class:
-    ``outer face - (upper section + fit clearance)``.
+def test_cover_budget_and_socket_backing_are_sufficient():
+    """Round 55e, RENAMED round 73d. Was ``test_cover_budget_and_socket_
+    floor_stay_inline`` -- the rename is the point, same discipline as
+    round 55e's own ``test_upper_section_x_faces_are_the_cover_budget_not_
+    the_reference`` precedent: a test's name must describe what it still
+    checks, not a property that used to be true.
 
-    The user's requirement is 1.000 mm minimum -- 0.650 (rounds 55b-55d, the
-    reference's own inset) is about 1.6 extrusion widths. Asserted on the
-    BUILT solid at both faces, not re-derived from the constants that set it,
-    since a builder can ignore a constant.
+    This test bundles TWO INDEPENDENT properties that happened to share one
+    docstring; round 73d is the round that made them stop sharing a value
+    too, so they are separated here explicitly:
 
-    Also asserts the two things deepening the socket is apt to break, both of
-    which it did break in this round before being caught:
+    1. **Cover-wall budget (long edge + short end) -- UNCHANGED by round
+       73d, still checks what it always checked.** The trapezoids exist to
+       register a future cover whose legs mate into them and whose outer
+       wall sits FLUSH with this part's side walls, so the cover's wall
+       thickness is set entirely by this class: ``outer face - (upper
+       section + fit clearance)``. The user's requirement is 1.000 mm
+       minimum -- 0.650 (rounds 55b-55d, the reference's own inset) is
+       about 1.6 extrusion widths. Asserted on the BUILT solid at both
+       faces, not re-derived from the constants that set it, since a
+       builder can ignore a constant. This property lives entirely in
+       ``UPPER_X_OUTER``/``UPPER_Y_HI``/``COVER_WALL``/
+       ``COVER_FIT_CLEARANCE``, none of which round 73d touched -- what
+       would falsify it: either measured wall dropping below 1.000 mm.
 
-    * the wall left BEHIND the socket must stay a normal section -- a 1.150
-      recess in a 1.600 wall leaves 0.450;
-    * the socket floor must stay INLINE with the upper section, which is what
-      makes the recess read as a socket rather than a slot in a flat face.
+    2. **Socket backing (was "inline") -- THE PROPERTY ITSELF CHANGED,
+       round 73d, owner request.** Rounds 50-73c made the socket's own
+       depth exactly ``UPPER_INSET``, so the recess floor and the upper
+       section's outer face were mathematically the SAME PLANE
+       (coplanarity) -- "the socket floor must stay INLINE with the upper
+       section, which is what makes the recess read as a socket rather
+       than a slot in a flat face" was this test's own original framing.
+       Owner, round 73d: "Can we reduce the recess's thickness, to
+       something like 0.5mm?" -- fusing the two constants would have meant
+       satisfying that request by moving the upper section's OWN outer face
+       too, widening the housing's whole upper shell 53.400 -> 54.700
+       externally, which nobody asked for. So round 73d decoupled the
+       socket's depth into its own constant, ``SOCKET_DEPTH`` (0.500), and
+       the coplanarity this test used to assert is GONE ON PURPOSE -- the
+       socket floor (``SOCKET_FLOOR_X`` = 27.350) and the upper section's
+       outer face (``UPPER_X_OUTER`` = 26.700) are now 0.650 mm apart, and
+       that gap is not a defect to re-close.
+
+       What survives, and is re-derived rather than dropped: the coplanarity
+       existed ONLY to keep the wall behind the socket a normal, printable
+       section -- that requirement did not go away just because the
+       mechanism that used to guarantee it did. Round 73b (a previous
+       round) found that the OLD mechanism, applied under a since-changed
+       cavity width, left only 0.200 mm of backing (under one FDM extrusion
+       line) -- a live, then-unresolved defect this test was deliberately
+       left failing on. Round 73d's fix IS the minimum-thickness guard,
+       re-pointed at the new, independent ``SOCKET_BACKING`` (0.850)
+       instead of at coplanarity. What would falsify this now: measured
+       backing dropping back under ~0.770 mm (the same bound this test has
+       used since round 73b, unrelated to whether the floor is coplanar
+       with anything) -- e.g. if a future round widens ``SOCKET_DEPTH`` or
+       thins ``WALL_THICKNESS_LOWER`` again without checking this trade.
     """
     H = PoweredUpHubHousing
     housing = PoweredUpHubHousing(profile="fdm_standard").solid
@@ -1331,8 +1574,12 @@ def test_cover_budget_and_socket_floor_stay_inline():
             x += step
         return None
 
+    # -- Property 1: cover-wall budget (long edge + short end). --
     # Long edge: measured at a Z above the step, where the cover's wall sits.
-    z_upper = (H.REF_STEP_Z + H.DECK_Z - H.DECK_THICKNESS) / 2.0
+    # ROUND 73b: the step moved from REF_STEP_Z (24.000) to
+    # WALL_INNER_STEP_Z (26.000, item 2's decision) -- see the identical
+    # note in test_shell_steps_in_above_the_reference_step.
+    z_upper = (H.WALL_INNER_STEP_Z + H.DECK_Z - H.DECK_THICKNESS) / 2.0
     upper_face = outer_face_at(0.0, z_upper, H.WALL_X_OUTER_LOWER + 0.5)
     assert upper_face is not None, "no upper side wall found to measure"
     wall = H.WALL_X_OUTER_LOWER - (upper_face + H.COVER_FIT_CLEARANCE)
@@ -1348,23 +1595,42 @@ def test_cover_budget_and_socket_floor_stay_inline():
         f"a cover wall of only {end_wall:.3f} mm fits on the short end"
     )
 
-    # Inline: the socket floor and the upper section are one plane.
+    # -- Property 2: socket backing (was "inline with the upper section"; --
+    # -- round 73d retired the coplanarity, kept the printability floor). --
+    #
+    # ROUND 73d removed the old coplanarity assertion here
+    # (``abs(socket_floor - upper_face) < 0.02``) -- see this test's own
+    # docstring, section 2, for why that property no longer exists on this
+    # part and is not being silently restored. ``socket_floor`` is still
+    # measured on the built solid (a probe, not a retyped constant) because
+    # a builder can ignore SOCKET_FLOOR_X; only the comparison against
+    # ``upper_face`` was removed, not the measurement itself.
     z_socket = (H.SOCKET_Z_LO + H.SOCKET_Z_HI) / 2.0
     socket_floor = outer_face_at(0.0, z_socket, H.WALL_X_OUTER_LOWER + 0.5)
     assert socket_floor is not None, "no socket recess found to measure"
-    assert abs(socket_floor - upper_face) < 0.02, (
-        f"socket floor at {socket_floor:.3f} is not inline with the upper "
-        f"section at {upper_face:.3f} -- the recess reads as a slot"
+    assert abs(socket_floor - H.SOCKET_FLOOR_X) < 0.02, (
+        f"socket floor at {socket_floor:.3f}, expected {H.SOCKET_FLOOR_X:.3f} "
+        "(SOCKET_FLOOR_X) -- the recess depth has drifted from what "
+        "SOCKET_DEPTH says it should be"
     )
 
     # ...and a normal section behind the recess: walk inward from the floor
-    # until material stops.
+    # until material stops. This is a MINIMUM-THICKNESS GUARD -- it does not
+    # compare against a value re-derived from the same geometry it measures
+    # (that would be a tautology, per the round-73b/73c precedent this file
+    # already caught itself on); 0.770 is a fixed, independent bound, so a
+    # future change to SOCKET_DEPTH or WALL_THICKNESS_LOWER that eats the
+    # backing back down will fail this, not silently redefine "sufficient."
     inner = socket_floor
     while housing.val().isInside(cq.Vector(inner - 0.01, 0.0, z_socket), tolerance=1e-9):
         inner -= 0.01
-    assert socket_floor - inner >= H.WALL_THICKNESS - 0.03, (
-        f"only {socket_floor - inner:.3f} mm of wall behind the socket "
-        f"(expected {H.WALL_THICKNESS}) -- deepening the recess ate its floor"
+    backing = socket_floor - inner
+    assert backing >= H.WALL_THICKNESS - 0.03, (
+        f"only {backing:.3f} mm of wall behind the socket "
+        f"(expected >= {H.WALL_THICKNESS - 0.03:.3f}, a normal section) -- "
+        "SOCKET_DEPTH and/or WALL_THICKNESS_LOWER have moved enough to "
+        "reopen the round-73b unprintable-backing defect that round 73d "
+        "fixed by decoupling SOCKET_DEPTH from UPPER_INSET"
     )
 
 
@@ -1412,16 +1678,25 @@ def test_cord_port_leaves_a_full_wall_section_outboard():
 
 
 def _end_reach(housing, x, z, y_sign):
-    """Furthest |Y| carrying material at (x, z), or None."""
+    """Furthest |Y| carrying material at (x, z), or None.
+
+    Returns a value in the shell's own LOCAL (pre-translate) frame -- i.e.
+    directly comparable to ``H.HALF_Y`` and to the fixed reference stations
+    callers pin against -- even though `housing` is the ACTUAL BUILT
+    (translated) solid. ROUND 74: the search itself runs in WORLD
+    coordinates (`+ H.SHELL_Y_OFFSET`), and the found position is converted
+    back to LOCAL (`- H.SHELL_Y_OFFSET`) before returning, so every existing
+    caller's comparison logic is unchanged.
+    """
     H = PoweredUpHubHousing
-    y = y_sign * (H.HALF_Y + 0.5)
+    y = y_sign * (H.HALF_Y + 0.5) + H.SHELL_Y_OFFSET
     step = -y_sign * 0.002
     # Must span past the round's full pullback (BOTTOM_ROUND_R = 3.600 at
     # Z = 0) or the probe returns None for a correctly-rounded segment and
     # the caller reads that as "no material".
     for _ in range(3000):
         if housing.isInside(cq.Vector(x, y, z), tolerance=1e-9):
-            return y
+            return y - H.SHELL_Y_OFFSET
         y += step
     return None
 
@@ -1437,11 +1712,29 @@ def test_bottom_end_round_follows_the_reference_arc():
     Positive control: well above the arc the wall must reach the full
     ``HALF_Y``, so a probe that finds a pullback everywhere (a cutter gone
     wild) fails rather than looking like a very large radius.
+
+    ROUND 73 -- the station table below is RE-BASED, not re-measured off
+    LDraw. ``BOTTOM_ROUND_CY = HALF_Y - BOTTOM_ROUND_R`` is derived from
+    HALF_Y, which moved from the LDraw-derived 35.600 to the owner-measured
+    35.675 this round (see HALF_Y's own comment) -- a ground-truth input
+    change, not a defect in the arc-fit code. The arc's own shape
+    (BOTTOM_ROUND_R, BOTTOM_ROUND_CZ_FULL) is untouched; only its centre
+    translates with HALF_Y. The station values here are the same LATCH-end
+    stations from the original curve fit, re-measured on the round-73 BUILT
+    solid via this test's own ``_end_reach`` helper (not hand-derived by a
+    uniform +/-0.075 mm shift, since the arc's sagitta makes the shift
+    non-uniform near the tangent point at Z = 0) -- i.e. this asserts the
+    code's own construction is still a clean, single arc of the same
+    radius, now centred on the new HALF_Y, rather than re-confirming
+    fidelity to the LDraw reference (that fidelity claim is unaffected --
+    the arc's SHAPE didn't change, only the datum it's built against did).
     """
     H = PoweredUpHubHousing
     housing = PoweredUpHubHousing(profile="fdm_standard").solid.val()
 
-    # (z, |Y| reached) from tmp/ldraw/curve_fit.py.
+    # (z, |Y| reached), re-measured round 73 (see docstring above) --
+    # previously (0.274, -33.378), (1.054, -34.546), (2.222, -35.326) at
+    # the pre-round-73 HALF_Y = 35.600.
     #
     # LATCH END ONLY. Round 56 made the whole tongue end a full-depth arc by
     # user direction, so the tongue end no longer follows the reference's
@@ -1451,7 +1744,7 @@ def test_bottom_end_round_follows_the_reference_arc():
     # shape is pinned by test_the_tongue_end_is_rounded_all_the_way_across
     # and declared as an accepted deviation in reference_contracts.toml.
     stations = {
-        -1: ((0.274, -33.378), (1.054, -34.546), (2.222, -35.326)),
+        -1: ((0.274, -33.499), (1.054, -34.639), (2.222, -35.409)),
     }
     x_probe = {-1: 24.0}
     for sign in (-1,):

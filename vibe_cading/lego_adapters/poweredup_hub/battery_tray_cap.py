@@ -91,6 +91,14 @@ class PoweredUpHubBatteryTrayCap:
     #: this part does not have to know which class owns the number.
     SEAT_Z = PoweredUpHubBatteryTray.STRAP_CAP_Z
 
+    #: Y of this plate's own centre once seated, in the Tray's frame.
+    #: Round 72 centre-aligned the whole strap assembly with the side tabs
+    #: (Y = 2.000) instead of leaving it on Y = 0, so a caller that places
+    #: this part at Y = 0 now misses its rebate by that much. Re-exported
+    #: for the same reason as SEAT_Z: the placer should not have to know
+    #: which class owns the number.
+    SEAT_Y = PoweredUpHubBatteryTray.STRAP_Y_CENTER
+
     def __init__(self, profile: ToleranceProfile | str | None = None) -> None:
         if profile is None or isinstance(profile, str):
             prof = get_profile(profile) if isinstance(profile, str) else get_profile()

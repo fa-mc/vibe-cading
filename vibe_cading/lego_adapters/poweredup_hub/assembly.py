@@ -145,7 +145,11 @@ def assemble(
         (tray.solid.translate(seat), "Tray", "royalblue"),
         (
             cap.solid.translate(
-                (seat[0], seat[1], seat[2] + PoweredUpHubBatteryTrayCap.SEAT_Z)
+                (
+                    seat[0],
+                    seat[1] + PoweredUpHubBatteryTrayCap.SEAT_Y,
+                    seat[2] + PoweredUpHubBatteryTrayCap.SEAT_Z,
+                )
             ),
             "StrapCap",
             "seagreen",

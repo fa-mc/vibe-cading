@@ -518,19 +518,39 @@ def test_the_floating_region_check_can_actually_see_one():
         width=T.WALL_THICKNESS, depth=10.0, height=T.WALL_Z_HI, corner_r=0.0,
         center=(T.WALL_OUTER_X - T.WALL_THICKNESS / 2.0, 0.0, 0.0),
     )
+    # ROUND 72 -- both probe X's were literals (25.575 and 26.8) keyed to the
+    # wall as it stood when this was written (inner face 26.400, outer 27.200).
+    # Thickening the wall inboard to 24.250 put 25.575 INSIDE the wall, so the
+    # "floating" band was no longer floating -- it fused to the wall and read
+    # as one continuous run, failing a test about the PROBE while the model was
+    # fine. 26.8 meanwhile fell outside the wall entirely. Derived now, so the
+    # synthetic defect stays a genuine defect wherever the wall goes:
+    #   band_x  -- just inboard of the inner face: over the floor, clear of the
+    #              wall, hence actually unsupported.
+    #   wall_x  -- the wall's own mid-thickness: actually supported.
+    band_w = 0.650
+    band_x = T.WALL_INNER_X - band_w / 2.0
+    wall_x = T.WALL_OUTER_X - T.WALL_THICKNESS / 2.0
+    assert band_x < T.WALL_INNER_X, (
+        "the floating-band probe must sit inboard of the wall's inner face"
+    )
+    assert T.WALL_INNER_X < wall_x < T.WALL_OUTER_X, (
+        "the supported-wall probe must sit inside the wall's own section"
+    )
+
     band = rounded_box(                           # round 55's upper band
-        width=0.650, depth=10.0, height=6.0, corner_r=0.0,
-        center=(25.575, 0.0, T.WALL_Z_HI),
+        width=band_w, depth=10.0, height=6.0, corner_r=0.0,
+        center=(band_x, 0.0, T.WALL_Z_HI),
     )
     defect = floor.union(wall).union(band).val()
     z_hi = T.WALL_Z_HI + 8.0
 
-    broken = _z_runs(defect, 25.575, 0.0, z_hi)
+    broken = _z_runs(defect, band_x, 0.0, z_hi)
     assert len(broken) == 2, (
         f"the helper sees {len(broken)} run(s) where the defect has two -- "
         "it cannot see a floating band built on purpose, so it is not a check"
     )
-    whole = _z_runs(defect, 26.8, 0.0, z_hi)
+    whole = _z_runs(defect, wall_x, 0.0, z_hi)
     assert len(whole) == 1 and whole[0][0] < 0.1 and (
         abs(whole[0][1] - T.WALL_Z_HI) < 0.1
     ), (

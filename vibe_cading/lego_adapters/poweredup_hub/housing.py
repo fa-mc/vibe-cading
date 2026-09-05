@@ -275,7 +275,70 @@ class PoweredUpHubHousing:
     """
 
     # --- Envelope (SS0, SS1) ---
-    HALF_Y = 35.600
+    # ROUND 73 -- owner-measured with calipers on the real part, superseding
+    # the LDraw-derived 35.600. "Length between the outer end walls =
+    # 71.350" -> HALF_Y = 35.675. This is a ground-truth input, not derived
+    # from anything else in this class -- but it CASCADES into every
+    # constant below that is itself derived from HALF_Y (DECK_Y_LO/HI,
+    # BOTTOM_ROUND_CY, the end-socket floor, UPPER_Y_HI/LO, LATCH_Y,
+    # TONGUE_Y): those moves are unavoidable consequences of this one
+    # ground-truth change, not separate decisions, and none of them touch
+    # the parked trapezoid-socket / cover-budget group's OWN literals
+    # (SOCKET_*, END_SOCKET_*, UPPER_INSET, COVER_WALL, COVER_FIT_CLEARANCE,
+    # DECK_THICKNESS all stay exactly as they were).
+    #
+    # ROUND 73b -- REVISED, superseding the above 71.350/35.675. Owner,
+    # verbatim, with the actual inner-wall measurement this time: "The
+    # length between the inner walls (flat part, not counting the holes
+    # left for the tongues and pegs) is 61.75mm. Outer wall length put
+    # 71.25mm." -> HALF_Y = 71.250 / 2 = 35.625. See CAVITY_LENGTH below for
+    # the owner's own cross-check on this figure, made impossible to break
+    # silently by a runtime assert.
+    #
+    # NOT re-coupled to the arm's X envelope. Round 73b's item 4 found that
+    # ARM_CAP_R (and everything built from the arm's own width) must NOT
+    # key off HALF_Y at all -- the X arm envelope (ARM_X_OUTER, see below)
+    # and this Y length are now two independently owner-measured figures
+    # that no longer coincide (they did, by coincidence, at 35.675 in round
+    # 73a). See ARM_X_OUTER's own comment for the coincidence-coupling bug
+    # this discovery repeats (the same class of bug ARM_Y_LO already caught
+    # once this round against a hardcoded literal).
+    HALF_Y = 35.625
+
+    # ROUND 74 -- the shell's own LENGTH (2 * HALF_Y = 71.250) is locked
+    # ground truth (unchanged above), but its POSITION in the assembly was
+    # wrong. The owner gave two independent registration constraints, both
+    # read off the real, ground-truth Cover: (1) the hook's inner (+Y) face
+    # must sit flush with the latch wall's own INNER face (not the hook
+    # cavity), and (2) the thumb tab's outer (-Y) face must sit flush with,
+    # or slightly proud of, the latch wall's OUTER face. Measured against
+    # the frozen Cover (`tmp/r74_latch_wall_datum.py`), those two
+    # constraints require the whole shell to move +1.825 mm in +Y (and the
+    # latch wall to thicken -- see :attr:`LATCH_WALL_THICKNESS`).
+    #
+    # This is applied as ONE final rigid-body translate of the fully
+    # assembled shell in :meth:`_build`, rather than by editing HALF_Y (or
+    # any of the ~15 constants derived from it) -- every constant authored
+    # in the shell's OWN internal frame (DECK_Y_LO/HI, BOTTOM_ROUND_CY, the
+    # end-socket floor, UPPER_Y_HI/LO, LATCH_Y, TONGUE_Y, ...) stays exactly
+    # as self-consistent as it always was; only the shell's placement in the
+    # WORLD/assembly frame changes.
+    #
+    # The one thing a single rigid translate does NOT fix for free: any
+    # feature that was built using another part's OWN ground-truth Y
+    # constant directly (`PoweredUpHubBatteryTray.TAB_Y_CENTER`,
+    # `PoweredUpHubCover.PLATE_Y_LO/HI`, `PoweredUpHubCover.LEDGE_Y_LO`,
+    # `PoweredUpHubCover.LATCH_BAND_Y_HI`) as if it were already a WORLD
+    # position. Those features are built in the shell's LOCAL (pre-translate)
+    # frame like everything else, so once this offset is applied they would
+    # drift +SHELL_Y_OFFSET off their intended target. Each such site is
+    # back-compensated by `- SHELL_Y_OFFSET` at its own point of use (grep
+    # for `SHELL_Y_OFFSET` below) so it still lands on the OTHER part's own,
+    # unmoved ground truth after the shell-wide translate. Z-valued
+    # cross-part references (`PLATE_THICKNESS`, `RISER_Z_HI`, ...) are
+    # untouched -- this offset is Y-only.
+    SHELL_Y_OFFSET = 1.825
+
     # DECK_Z is the housing's own overall height.
     #
     # **Round 22 -- this is now a DESIGN DECISION, not a copy of the
@@ -389,6 +452,17 @@ class PoweredUpHubHousing:
 
     # --- Side walls (X-direction, stepped -- SS4) ---
     WALL_THICKNESS = 0.800
+    # ROUND 73b -- LEGACY, retired as a description of any current wall
+    # geometry. This used to mark where the wall's own X-profile stepped
+    # in Z (hence the name); it has not described that since round 55's
+    # redatum split it from SOCKET_Z_LO (see that constant's own note),
+    # and now that WALL_INNER_STEP_Z has moved to 26.000 (the Tray's own
+    # wall top, item 2), the REAL current wall step is at a completely
+    # different Z than this constant. Kept ONLY because
+    # `_build_arm_and_bore_local`'s Band A/B Z-split still reads it as an
+    # internal bookkeeping boundary (see that method's own assert) -- not
+    # because it still means "the wall steps here". Do not read this as a
+    # wall-geometry constant; see WALL_INNER_STEP_Z for the real one.
     WALL_STEP_Z = 22.000
     # --- Plate-edge running clearance (round 48) ---
     # The Cover's plate is PLATE_WIDTH/2 = 27.200 mm half-width and this
@@ -418,12 +492,46 @@ class PoweredUpHubHousing:
     # _build_plate_edge_relief. 0.300 mm clears the wall's own inner face
     # without reaching anything that stands in the interior.
     _RELIEF_X_OVERCUT = 0.300
+    # ROUND 76 -- owner, from an annotated top view: the hook-side contact
+    # bands "should have 1mm gaps".  Measured at the time, all three read
+    # -0.050 (interference).  Applied by _build_latch_plate_relief over the
+    # plate's Z band ONLY, so the Cover hook's flush seat higher up (round
+    # 74's ground-truth constraint) is preserved -- see that method.
+    LATCH_PLATE_RELIEF_GAP = 1.000
+
     PLATE_EDGE_RELIEF_Z_HI = max(
         PoweredUpHubCover.PLATE_THICKNESS,
         PoweredUpHubCover.GROOVE_THICKNESS,
         PoweredUpHubCover.LATCH_BAND_THICKNESS,
     )
-    WALL_X_OUTER_LOWER = 28.000   # |X| outer face, Z < WALL_STEP_Z
+    # ROUND 73 -- owner-measured with calipers, superseding the LDraw-derived
+    # 28.000: "outer shell width over Z [10.000, 21.500] = 55.700" -> half
+    # 27.850. That Z band sits entirely inside band 1/2's own outer face
+    # (both read this same constant; only band 3, past REF_STEP_Z, reads
+    # the separate, parked UPPER_X_OUTER), so this one change satisfies the
+    # measurement exactly with no other constant needing to move. The owner
+    # reasons it as clearing 7 Technic studs (7 * STUD_PITCH = 56.000) less
+    # clearance -- consistent with, but not re-derived from, STUD_PITCH,
+    # since the exact clearance split is a caliper reading, not a grid rule.
+    # ROUND 78 -- 27.850 -> 27.500, owner-measured: *"the short side is
+    # measured 55mm between outer walls"* => half 27.500.  Supersedes the
+    # round-73 reading of 55.700 over Z[10.000, 21.500].
+    #
+    # This is the SHELL only.  The arms are explicitly NOT affected -- owner:
+    # *"Do not change the arm to arm length though, it should be locked"* --
+    # and they do not read this constant: :attr:`ARM_X_OUTER` (35.675, arm
+    # flat-face half-width) is its own owner-measured value, and the
+    # round-73b note there records that deriving one from the other is a
+    # coincidence-coupling this file has already retired once.
+    #
+    # Consistency check against the other two measured numbers, since three
+    # independent readings now constrain this axis: outer 55.000 with a Cover
+    # plate of 52.330 leaves (55.000 - 52.330) / 2 = 1.335 per side for wall
+    # PLUS running gap.  With the cavity at CAVITY_X_HALF_LOWER (26.500,
+    # separately measured) the wall becomes 1.000 and the gap 0.335 -- which
+    # matches the 0.315/side the owner measured on the real mating pair to
+    # within 0.020.  The three numbers agree; none is being forced.
+    WALL_X_OUTER_LOWER = 27.500   # |X| outer face, Z < WALL_STEP_Z
     # NO LONGER the socket floor, nor the face above it -- round 55e moved
     # both to UPPER_X_OUTER (26.850) when it deepened the socket to widen
     # the cover's wall. What is left of this constant is the TOP DECK's
@@ -431,6 +539,29 @@ class PoweredUpHubHousing:
     # upper footprint anyway; it survives as the deck slab's starting
     # size, not as a face anything mates against.
     WALL_X_OUTER_UPPER = 27.200   # top deck slab half-width, pre-trim
+
+    # ROUND 73 -- band 1's OWN wall thickness, owner-measured and split out
+    # from the shared WALL_THICKNESS constant above. Cavity clear half-width
+    # over Z [10.000, 20.000] is measured at 26.500 ("53.000 across"), and
+    # this Z band sits entirely below WALL_INNER_STEP_Z (21.200), i.e.
+    # entirely inside band 1. Deriving it as WALL_X_OUTER_LOWER - 26.500
+    # rather than retyping keeps it tied to the same owner-measured outer
+    # face rather than an independent literal.
+    #
+    # This is a NEW, separate constant rather than a change to
+    # WALL_THICKNESS itself, because WALL_THICKNESS is not band 1's alone:
+    # it is also band 3's own section thickness AND (via UPPER_X_INNER
+    # below) an input to the parked trapezoid-socket / cover-budget group.
+    # Changing WALL_THICKNESS's value would have silently thinned the
+    # socket's own "normal 0.800 section" and shifted UPPER_X_INNER --
+    # exactly the parked-group collision this round's task brief says to
+    # avoid "beyond what is unavoidable". Band 1 has no such coupling (the
+    # socket only ever lives in bands 2/3), so it gets its own constant
+    # instead, used by band 1's own slab, the plate-edge relief, and the
+    # side window -- the three places that read band 1's real inner face.
+    CAVITY_X_HALF_LOWER = 26.500   # owner-measured, cavity clear over Z[10,20]
+    WALL_THICKNESS_LOWER = WALL_X_OUTER_LOWER - CAVITY_X_HALF_LOWER  # 1.350
+
     # --- Trapezoid mating socket, outer face of each side wall (round 50) ---
     # Measured off 25560.dat. Rounds 16-49 read the design doc's SS4 line
     # "side-wall step at 22.0" as a step running the WHOLE length, and built
@@ -468,9 +599,29 @@ class PoweredUpHubHousing:
     # cover in the same breath, so nothing depends on that today. Restoring
     # the register means restoring the step (see DECK_Z), not re-cutting
     # this feature.
-    SOCKET_Z_LO = 22.000          # == the old WALL_STEP_Z, now a local datum
+    # ROUND 73b: no longer "== WALL_STEP_Z" in any derived sense -- that
+    # constant is now retired/legacy (see its own note) and this socket
+    # band sits, numerically coincidentally, at the SAME Z the old
+    # WALL_STEP_Z also names, but the two are independent literals now.
+    # The socket's own Z-depth stays PARKED (owner direction, round 73b):
+    # this value is unchanged.
+    SOCKET_Z_LO = 22.000
     SOCKET_Y_HALF_LO = 9.200      # narrow (lower) edge half-width
     SOCKET_Y_HALF_HI = 11.200     # wide (upper) edge half-width, at SOCKET_Z_HI
+    # ROUND 73 -- owner: "the center line of the trapezoid should be aligned
+    # with the center line of the thumb tab on the tray". Read live from the
+    # Tray (ground truth), the same pattern WINDOW_Y_CENTER below already
+    # uses for the side window -- not retyped as 2.000, so the two cannot
+    # silently drift apart if the Tray's own tab centre ever moves.  This is
+    # a Y-AXIS CENTRING change only: SOCKET_Y_HALF_LO/HI (the trapezoid's own
+    # half-widths) and its Z band are unchanged, per the owner's explicit
+    # scope note that this does not reopen the parked Z-depth question.
+    # ROUND 74 -- back-compensated by `- SHELL_Y_OFFSET`. This socket is cut
+    # in the shell's LOCAL (pre-translate) frame like every other feature,
+    # so without the compensation the shell-wide translate would carry it
+    # SHELL_Y_OFFSET past the Tray's own tab centreline instead of landing
+    # on it. See SHELL_Y_OFFSET's own comment.
+    SOCKET_Y_CENTER = PoweredUpHubBatteryTray.TAB_Y_CENTER - SHELL_Y_OFFSET   # 0.175
     # Round 55: pinned to the reference's own step, NOT to DECK_Z. The
     # wide edge above was measured AT Z = 24.000; once DECK_Z rose to
     # 29.600 a z_hi of DECK_Z would have stretched the same trapezoid
@@ -478,36 +629,82 @@ class PoweredUpHubHousing:
     # into a derived one and widening the mouth by 5.600 mm of pure
     # extrapolation past the sampled band.
     SOCKET_Z_HI = REF_STEP_Z      # 24.000
-    # ROUND 71 -- KNOWN-WRONG, and deliberately left wrong. Read this before
-    # touching it.
+
+    # ROUND 73b -- DECIDED by the owner, resolving the round-71/§1 blocker
+    # this constant carried for many rounds (see the retired history below
+    # this comment, kept for the record).
     #
-    # The Tray is now 26.000 tall (owner-measured; the old 20.000 was derived
-    # from THIS class's step, so the Tray had been sized to a reference that
-    # was itself unverified). At 21.200 the wall's inner face steps in to
-    # 26.400 while the Tray's wall stands at 27.200, so the two interfere over
-    # the Tray's whole 60.000 length -- 413.040 mm^3 in two lumps at
-    # X = +-[26.400, 27.200], Z = [21.200, 27.200]. The Tray cannot physically
-    # enter the Housing today.
+    # DECISION: raise the wall's inner step to the Tray's own wall top, and
+    # change nothing else about the upper section. Derived from two frozen
+    # ground-truth constants, not typed, so it tracks them if either ever
+    # moves: `PoweredUpHubCover.PLATE_THICKNESS + PoweredUpHubBatteryTray.WALL_Z_HI`
+    # = 1.200 + 24.800 = 26.000 (world Z). The narrowing now begins exactly
+    # where the Tray's wall ends, so the Tray sees the full lower cavity
+    # (53.000 mm clear, WALL_THICKNESS_LOWER-thick wall) over its ENTIRE
+    # standing height, and the narrower upper band (51.800 mm clear,
+    # unchanged -- UPPER_INSET/COVER_WALL/COVER_FIT_CLEARANCE all untouched,
+    # per the owner's explicit choice to spend no external width and no
+    # top-cover budget) no longer intersects the Tray at all. The 1.200 mm
+    # gap between the Tray's wall top (24.800 mm local / 26.000 mm world)
+    # and the compartment ceiling (27.200 mm world) is
+    # `PoweredUpHubBatteryTray.SNAP_FIT_ALLOWANCE` -- room a future top
+    # cover's own snap-fits occupy, so the narrowed band living in that
+    # zone is fine, not a fidelity gap.
     #
-    # The obvious fix -- derive this from the Tray's top (27.350) -- was tried
-    # and REVERTED, because it silently destroys the trapezoid mating socket.
-    # _build_side_wall's thickened band 2 spans [WALL_INNER_STEP_Z,
-    # REF_STEP_Z]; at 27.350 against REF_STEP_Z = 24.000 that band is
-    # INVERTED, so the material the socket is pocketed into stops existing and
-    # the socket becomes nothing. OCCT raises nothing -- two housing tests
-    # caught it.
+    # THE TRAP (round 71 shipped it once already; do not repeat it):
+    # `_build_side_wall` used to build a separate "thickened band 2" over
+    # `[WALL_INNER_STEP_Z, REF_STEP_Z]` to host the socket. With
+    # WALL_INNER_STEP_Z now ABOVE REF_STEP_Z (26.000 > 24.000), that
+    # interval is INVERTED and OCCT raises nothing -- it silently vanishes,
+    # taking the socket's own host material with it. Round 73b restructures
+    # the banding instead of retrying that shape: the socket's own Z-band
+    # [SOCKET_Z_LO, SOCKET_Z_HI] = [22.000, 24.000] now sits entirely INSIDE
+    # what was band 1 (now the single full-thickness band, [0,
+    # WALL_INNER_STEP_Z]), and the socket is still a plain OUTER-face
+    # recess -- it does not care which inner-face band it's pocketed into,
+    # as long as that band is thick enough to host it as a blind pocket
+    # (WALL_THICKNESS_LOWER = 1.350 > UPPER_INSET = 1.150, leaving 0.200 mm
+    # of floor behind it -- topologically a pocket, not a hole, but NOT a
+    # printable wall section: 0.200 mm is under a single typical FDM
+    # extrusion width (~0.4 mm). This was a real, open trade flagged for the
+    # owner in the round-73b report -- restoring a normal section here
+    # costs either item 5's CAVITY_X_HALF_LOWER (thin the cavity) or the
+    # parked UPPER_INSET (thicken the cover budget's own wall).
     #
-    # So this constant is not independently movable. It is bound to
-    # WALL_STEP_Z (22.000), REF_STEP_Z (24.000) and SOCKET_Z_HI (24.000), and
-    # the whole group has to move together in one coherent re-datum of the
-    # Housing's Z frame. That re-datum changes the part's external silhouette
-    # (the wide lower section grows ~5.35 mm, the narrow upper section shrinks
-    # 7.600 -> 2.250), which makes it a measurement question, not a derivation
-    # question: it is blocked on a caliper reading of the real housing's
-    # compartment height. Deferring the whole group is the honest state;
-    # raising one member of it would leave a part that fits the Tray and has
-    # no socket.
-    WALL_INNER_STEP_Z = 21.200    # where the wall doubles to 1.600 mm
+    # ROUND 73d RESOLVED this: the owner chose neither of the above --
+    # instead of moving CAVITY_X_HALF_LOWER or UPPER_INSET, the socket's own
+    # depth was decoupled into its own constant (SOCKET_DEPTH = 0.500,
+    # backing 0.850) so the recess itself got shallower rather than either
+    # of the walls around it changing. `test_cover_budget_and_socket_floor_
+    # stay_inline` (renamed -- see its own docstring) now passes on real,
+    # not tautological, backing. See SOCKET_DEPTH's own comment for the
+    # fix and `_build_wall_socket`'s docstring for the coplanarity this
+    # traded away.) See
+    # `_build_side_wall`'s own docstring for the resulting two-band
+    # structure (full-thickness 0..26.000, narrowed 26.000..DECK_Z).
+    # `_build_wall_socket` needed no change AT THE TIME -- round 73b it
+    # still read `UPPER_X_OUTER` directly, never `WALL_INNER_STEP_Z` (round
+    # 73d later gave it its own `SOCKET_FLOOR_X`, unrelated to this item's
+    # own Z-banding change). `_build_upper_step_in` DID need a change --
+    # its own ``z_lo`` used to read `REF_STEP_Z` (24.000); left
+    # unchanged it would cut into the now-full-thickness band between
+    # 24.000 and the new 26.000 step, a second instance of the exact same
+    # inverted-interval trap this whole item exists to avoid. See that
+    # method's own docstring for the fix.
+    #
+    # RETIRED HISTORY (round 71-73a, kept for the record; no longer the
+    # blocking state): the constant used to sit at 21.200 ("where the wall
+    # doubles to 1.600mm" under the old, now-removed thickened-band
+    # scheme), which put the Tray's own wall (26.250 half-width, standing
+    # to world Z 27.200) in direct 413.040 mm^3 collision with the
+    # housing's narrowed cavity -- the Tray could not physically enter.
+    # Round 73a's owner-measured cavity figures (26.500 half over Z[10,20])
+    # only fixed the region BELOW this step; the step's own position was
+    # explicitly left as an open question (§1 of the round-73 redatum plan)
+    # until this round's owner decision above closed it.
+    WALL_INNER_STEP_Z = (
+        PoweredUpHubCover.PLATE_THICKNESS + PoweredUpHubBatteryTray.WALL_Z_HI
+    )   # 26.000
 
     # --- Cover budget (round 55e) ---
     # The trapezoid sockets are kept as the register for a future cover
@@ -522,10 +719,18 @@ class PoweredUpHubHousing:
     # for all the cover walls? I feel 0.65 is too thin").
     #
     # So the budget is now the INPUT and the upper section is derived from
-    # it, rather than the other way round. Deriving it also makes the
-    # "inline with the trapezoid" property structural: the socket's depth IS
-    # the upper section's inset, so the socket floor and the upper wall are
-    # the same plane by construction, not by two constants agreeing.
+    # it, rather than the other way round.
+    #
+    # ROUND 73d -- the paragraph that used to stand here claimed deriving
+    # UPPER_INSET this way ALSO made "inline with the trapezoid" structural,
+    # because the socket's own depth was this same constant. That coupling
+    # is RETIRED: the socket's depth is now its own constant, SOCKET_DEPTH,
+    # decoupled on purpose so the owner's request to shrink the socket
+    # recess did not also (silently) widen the upper shell externally. See
+    # SOCKET_DEPTH's own comment for the trade and the fix it makes.
+    # UPPER_INSET/UPPER_X_OUTER/COVER_WALL below are UNCHANGED by that
+    # change -- they still govern the upper section's own step-in, which
+    # nobody asked to move.
     COVER_WALL = 1.000
     # Nominal, not read from the live profile: this class must not change
     # shape with the print profile (its visual contracts are byte-compared),
@@ -533,8 +738,100 @@ class PoweredUpHubHousing:
     # clearance when it is built. 0.150 is fdm_standard's free.radial.
     COVER_FIT_CLEARANCE = 0.150
     UPPER_INSET = COVER_WALL + COVER_FIT_CLEARANCE          # 1.150
-    UPPER_X_OUTER = WALL_X_OUTER_LOWER - UPPER_INSET        # 26.850
-    UPPER_X_INNER = UPPER_X_OUTER - WALL_THICKNESS          # 26.050
+    # ROUND 73b: comment value corrected (was stale at 26.850, left over
+    # from before round 73a moved WALL_X_OUTER_LOWER 28.000 -> 27.850 --
+    # the derivation itself was always live and correct, only this inline
+    # comment had drifted).
+    UPPER_X_OUTER = WALL_X_OUTER_LOWER - UPPER_INSET        # 26.700
+    UPPER_X_INNER = UPPER_X_OUTER - WALL_THICKNESS          # 25.900
+
+    # --- ROUND 73d: the socket recess DECOUPLED from the upper inset ---
+    #
+    # Owner: "Can we reduce the recess's thickness, to something like 0.5mm?"
+    #
+    # Until now the socket's depth WAS `UPPER_INSET`, deliberately -- the
+    # comment above calls that "structural": one constant made the socket
+    # floor and the upper wall the same plane by construction. That was a
+    # good property while both faces answered to the same requirement. They
+    # no longer do, and keeping them fused would mean the owner's request
+    # (a shallower RECESS) silently widened the housing's whole upper shell
+    # from 53.400 to 54.700 -- an externally visible change nobody asked
+    # for. So the two are now separate constants, and the property they used
+    # to share is asserted rather than assumed (see below).
+    #
+    # WHY 0.500 IS THE RIGHT ORDER OF MAGNITUDE, not just "what was asked":
+    # the wall hosting the socket is `WALL_THICKNESS_LOWER` = 1.350 thick
+    # (set by the owner's own 53.000 cavity measurement), so the material
+    # left behind the recess is 1.350 - depth. At the old 1.150 that was
+    # 0.200 mm -- under one 0.4 mm extrusion width, i.e. not printable as a
+    # wall at all, which is the defect this fixes. At 0.500 it is 0.850,
+    # comfortably above the 0.770 "normal section" floor that
+    # `test_cover_budget_and_socket_backing_are_sufficient` guards (renamed
+    # in round 73d from `..._floor_stay_inline` -- "stay inline" described
+    # exactly the coplanarity property this change retires; see that
+    # test's own docstring).
+    # ROUND 73e -- 0.500 -> 0.550, the owner's "more balanced" call, made
+    # against the one fact that governs this choice:
+    #
+    #     cover lip + backing = WALL_THICKNESS_LOWER - COVER_FIT_CLEARANCE
+    #                         = 1.350 - 0.150 = 1.200 mm, FIXED.
+    #
+    # The two are a 1:1 trade, so there is no depth that makes both
+    # comfortable -- two solid 0.800 walls would need 1.600 and the budget is
+    # 1.200. 0.550 splits it onto clean 0.4 mm-nozzle multiples: backing
+    # 0.800 (exactly two perimeters, clear of the 0.770 floor with margin
+    # rather than sitting on it) and cover lip 0.400 (exactly one).
+    #
+    # NOT split evenly at 0.600/0.600 (depth 0.750), which sounds more
+    # balanced and is worse: the backing is the battery compartment's own
+    # structural outer wall -- thin it and the compartment opens into the
+    # recess -- while the socket is a REGISTER whose job is to locate a cover,
+    # not carry load. An even split weakens a load-bearing wall to strengthen
+    # an alignment feature. It also drops the backing below the 0.770 guard.
+    #
+    # If 0.400 proves too thin for the cover's lip, the honest fix is to WIDEN
+    # the wall (i.e. revisit the owner-measured 53.000 cavity or 55.700 shell)
+    # -- NOT to shave the backing or lower the guard. Lowering a bound to
+    # accommodate a number is the ratchet this project has already been bitten
+    # by; see the *Functional Claims* ratchet corollary in vibe/INSTRUCTIONS.md.
+    # ROUND 78 -- 0.550 -> 0.230, forced by the owner's new 55.000 mm
+    # short-side measurement and chosen by the owner over removing the
+    # socket outright.
+    #
+    # That measurement puts the side wall at WALL_THICKNESS_LOWER = 1.000
+    # (27.500 outer less the 26.500 cavity), and a 0.550 recess left only
+    # 0.450 mm of backing -- the SOCKET_BACKING >= 0.770 guard below fired
+    # and the model would not build.  The guard was NOT relaxed: it defends
+    # a real failure (the battery compartment breaking through into the
+    # recess), and this project treats widening such a bound to reach green
+    # as a defect in itself.
+    #
+    # 0.230 is the deepest recess that keeps 0.770 backing at a 1.000 wall
+    # (1.000 - 0.230 = 0.770 exactly).  The arithmetic has no slack left:
+    # deepening this again requires either a thicker wall (a larger outer
+    # dimension, which the 55.000 measurement rules out) or a narrower
+    # cavity, and the cavity is already within 0.335 of the frozen Cover's
+    # own plate edge.  Consequence accepted by the owner: the socket is now
+    # a shallow register rather than a deep seat, so whatever mates into it
+    # engages less.
+    SOCKET_DEPTH = 0.230
+    #: |X| of the socket's floor -- derived, so it tracks the outer face.
+    SOCKET_FLOOR_X = WALL_X_OUTER_LOWER - SOCKET_DEPTH       # 27.350
+    #: Material surviving behind the recess. Named because it is the whole
+    #: point of this change and because a future edit to either input
+    #: silently spends it -- exactly how it reached 0.200 in round 73b.
+    SOCKET_BACKING = WALL_THICKNESS_LOWER - SOCKET_DEPTH     # 0.850
+
+    # CONSEQUENCE THE OWNER MUST OWN, recorded here rather than buried:
+    # the socket is the register for a FUTURE top cover, and its depth was
+    # previously sized as COVER_WALL (1.000) + COVER_FIT_CLEARANCE (0.150).
+    # At a 0.500 recess, a cover wall seating in it can be at most
+    # 0.500 - 0.150 = 0.350 mm. `COVER_WALL` (1.000) is therefore NO LONGER
+    # the wall that fits this socket -- it still describes the upper
+    # section's step-in, which is untouched. Do not read COVER_WALL as "the
+    # thickness the top cover's wall may be at the socket"; that number is
+    # now SOCKET_DEPTH - COVER_FIT_CLEARANCE.
+    SOCKET_COVER_WALL_BUDGET = SOCKET_DEPTH - COVER_FIT_CLEARANCE   # 0.350
 
     # --- End-wall trapezoid mating sockets (round 51) ---
     # The same molded feature as SOCKET_* above, on the two END walls
@@ -577,14 +874,20 @@ class PoweredUpHubHousing:
     # with the trapezoid (similar to what we currently have for the long
     # edges)".
     #
-    # The long edges already work that way, which is what makes the sockets
-    # read as sockets: the side trapezoid's floor is at |X| = 27.200
-    # (WALL_X_OUTER_UPPER, where _build_wall_socket starts cutting) and the
-    # upper section's outer face is the same 27.200, so the socket floor and
-    # the wall above it are one continuous plane. The end trapezoids' floor
-    # is at |Y| = HALF_Y - END_SOCKET_DEPTH = 34.400 while the reference's
-    # upper section stops 2.400 / 1.124 mm short of it, leaving the end
-    # sockets with a lip over them that the side ones do not have.
+    # The long edges already worked that way AT THE TIME (round 55d): the
+    # side trapezoid's floor was at |X| = 27.200 (WALL_X_OUTER_UPPER, where
+    # _build_wall_socket started cutting) and the upper section's outer face
+    # was the same 27.200, so the socket floor and the wall above it were
+    # one continuous plane. ROUND 73d RETIRED that side-wall coplanarity on
+    # purpose (see SOCKET_DEPTH's own comment) -- the side socket's floor is
+    # now SOCKET_FLOOR_X (27.350), independent of UPPER_X_OUTER (26.700).
+    # This paragraph is kept for why UPPER_Y_HI below is DERIVED rather than
+    # typed; the END-wall coplanarity it describes is UNCHANGED by round
+    # 73d (END_SOCKET_DEPTH was not touched) -- only the SIDE-wall analogy
+    # that originally motivated it is now historical.  The end trapezoids'
+    # floor is at |Y| = HALF_Y - END_SOCKET_DEPTH = 34.400 while the
+    # reference's upper section stops 2.400 / 1.124 mm short of it, leaving
+    # the end sockets with a lip over them that the side ones do not have.
     #
     # DERIVED, not typed: "inline with the trapezoid" IS the requirement, so
     # it is expressed as the same arithmetic the end socket's own floor uses
@@ -629,6 +932,34 @@ class PoweredUpHubHousing:
     # the arc's centre sits -- the tongue end's bottom face cuts the same arc
     # 0.274 mm above its tangent point.
     BOTTOM_ROUND_R = 3.600
+
+    # ROUND 75 -- floor for the TONGUE end's bottom round, in Z.
+    #
+    # Owner, round 75: "The end should sit flush with the cover bottom and
+    # lives little gap (the tongues should be mostly covered)".  The Cover's
+    # bottom face is Z = 0.000 (it is the print-bed datum), and the housing's
+    # tongue-end wall was bottoming out at Z = 0.264 -- the height at which
+    # the bottom-round arc crosses that wall's own inner face (Y 35.203).
+    #
+    # DISABLED (None) -- flooring the cutter was the WRONG MECHANISM and is
+    # kept only as a documented dead end.
+    #
+    # Setting a floor stops the arc cutting below it, which does bring the
+    # wall down to the Cover's bottom -- but it does so by leaving a FLAT
+    # square lip (measured: a Z 0.000..1.874 slab at Y 35.5..36.0), i.e. it
+    # destroys the very curve the owner asked to keep.  Owner, immediately
+    # after seeing it: *"The tongue side should stay curved"*.
+    #
+    # The owner's actual request -- "the bottom curve EXTENDS and wraps like
+    # a pocket... the end should sit flush with the cover bottom" -- is that
+    # MORE of the same arc be realised, not that the arc be truncated flat.
+    # On this arc (R 3.600, centre Y 33.850, tangent to Z = 0 there) the wall
+    # bottoms out wherever its own inner face crosses it: at the present
+    # inner face, Y 35.203, that crossing is Z 0.264.  Extending the wall
+    # inboard is what walks the curve further down -- Y 34.693 would put it
+    # at Z 0.100 -- with the radius, and the latch end, untouched.
+    BOTTOM_ROUND_Z_FLOOR_TONGUE: float | None = None
+    BOTTOM_ROUND_Z_FLOOR_TONGUE: float | None = None
     BOTTOM_ROUND_CY = HALF_Y - BOTTOM_ROUND_R      # 32.000, both ends
     BOTTOM_ROUND_CZ_FULL = 3.600                   # tangent to Z = 0
     BOTTOM_ROUND_CZ_TRUNCATED = 3.326              # 0.274 lower
@@ -665,12 +996,18 @@ class PoweredUpHubHousing:
     # The latch end is UNCHANGED and stays segmented -- the user asked for its
     # middle to remain square ("only the outer segments have the curve"), and
     # the reference agrees, with square vertices at X = +-5.600.
+    # ROUND 73: the outer bound of each band IS the wall's own outer face
+    # (a real identity, not a coincidence -- the round necessarily reaches
+    # all the way to the shell's own edge), so it reads WALL_X_OUTER_LOWER
+    # live instead of the pre-round-73 literal 28.000. The 19.200 inner
+    # bound is an independent LDraw-measured curve-span boundary, unrelated
+    # to the wall thickness, and is untouched.
     BOTTOM_ROUND_X_LATCH = (
-        (-28.000, -19.200, BOTTOM_ROUND_CZ_FULL),
-        (19.200, 28.000, BOTTOM_ROUND_CZ_FULL),
+        (-WALL_X_OUTER_LOWER, -19.200, BOTTOM_ROUND_CZ_FULL),
+        (19.200, WALL_X_OUTER_LOWER, BOTTOM_ROUND_CZ_FULL),
     )
     BOTTOM_ROUND_X_TONGUE = (
-        (-28.000, 28.000, BOTTOM_ROUND_CZ_FULL),       # round 56, full span
+        (-WALL_X_OUTER_LOWER, WALL_X_OUTER_LOWER, BOTTOM_ROUND_CZ_FULL),  # round 56, full span
     )
 
     # --- Side windows (SS7.2, round 20 H3, round 21 RH3, round 41) ---
@@ -691,7 +1028,13 @@ class PoweredUpHubHousing:
     # DERIVATION (a sign error or a missing seat offset in _build_side_window
     # would break it). What changed is which part is authoritative.
     WINDOW_Y_HALF = PoweredUpHubBatteryTray.TAB_PAD_Y_HALF        # 11.750
-    WINDOW_Y_CENTER = PoweredUpHubBatteryTray.TAB_Y_CENTER        # 2.000
+    # ROUND 74 -- back-compensated by `- SHELL_Y_OFFSET`, same reasoning as
+    # SOCKET_Y_CENTER above: this window is cut in the shell's LOCAL frame
+    # and must still land on the Tray's own tab centreline once the
+    # shell-wide translate is applied. _build_side_window reads this
+    # constant (`self.WINDOW_Y_CENTER`), not the bare Tray constant, so the
+    # two stay coupled through one definition.
+    WINDOW_Y_CENTER = PoweredUpHubBatteryTray.TAB_Y_CENTER - SHELL_Y_OFFSET   # 0.175
     WINDOW_SHOULDER_Z = (
         PoweredUpHubBatteryTray.TAB_ROUND_CZ + PoweredUpHubCover.PLATE_THICKNESS
     )  # 4.350 world
@@ -751,13 +1094,28 @@ class PoweredUpHubHousing:
     CORD_PORT_MARGIN = 0.300
 
     # --- Pin-hole / arm map (SS1, SS2) ---
-    HOLE_X = 32.000
-    HOLE_Y = (16.000, 24.000, 32.000)   # inner / middle / outer, one quadrant
+    # ROUND 73 -- owner: "the two side arms' hole centres are 64.000 apart",
+    # and explicit that the Technic pattern is STRICT and must not be
+    # compromised to suit the shell. Derived from the stud pitch rather
+    # than left a bare literal, per that direction; the assert below is the
+    # verification the owner asked for (64.000 = 2 * HOLE_X).
+    HOLE_X = 4 * STUD_PITCH   # 32.000
+    assert abs(2 * HOLE_X - 64.000) < 1e-9, (
+        "owner-measured round 73: the two side arms' hole centres must be "
+        "64.000 mm apart -- the strict Technic pattern is not negotiable"
+    )
+    HOLE_Y = (16.000, 24.000, HOLE_X)   # inner / middle / outer, one quadrant
+    # outer element derived, not retyped: the outer hole sits at the same
+    # distance from centre in both X and Y (this is why a single ARM_CAP_R
+    # makes the arm tangent to the envelope in both directions -- see it).
     HOLE_AXIS_Z = 20.000
     ARM_THICKNESS = 8.000                # -> PerpendicularHolesLiftarm(thickness=...)
     ARM_Z_LO = HOLE_AXIS_Z - ARM_THICKNESS / 2   # 16.000
-    ARM_Y_LO = 12.400                    # inboard flat face (envelope trim)
-    ARM_Y_HI = HALF_Y                    # 35.600, outboard face
+    # ARM_Y_LO (inboard flat face), ARM_Y_HI (outboard face) and
+    # ARM_LENGTH are defined further down, once ARM_CAP_R exists -- round
+    # 73 made ARM_Y_LO a DERIVED value (see the note there for why the old
+    # fixed literal silently broke), and round 73b made ARM_Y_HI derived
+    # too (it must NOT read HALF_Y -- see its own note).
 
     # Root-bridge Band A (round 17, Escalation 8) -- the arm-local Z
     # window (thickness axis, pre-_place_arm) where the root bridge
@@ -773,14 +1131,6 @@ class PoweredUpHubHousing:
     # margin proving Band A alone still fuses the arm to the wall.
     ROOT_BAND_A_Z_HI = ARM_THICKNESS
     ROOT_BAND_A_Z_LO = ARM_THICKNESS - 2.000
-
-    # Local-frame -> global-Y translation offset for the arm/bore remap
-    # (see _place_arm). Round 43: the arm is now built at its own real
-    # length with cap centres ON the hole line, so local X = 0 IS the arm's
-    # inboard face and the offset is simply ARM_Y_LO. Rounds 16-42 needed a
-    # separate number (12.0) because the arm was built one stud pitch too
-    # long and then trimmed back, which put local X = 0 outside the part.
-    _ARM_Y_OFFSET = ARM_Y_LO
 
     # --- Arm plan geometry (round 43) -- measured off Philo's own LDraw
     # subpart `s\24851s01.dat`, which builds each arm end from
@@ -799,12 +1149,112 @@ class PoweredUpHubHousing:
     # what cut the round cap into a 3.440 mm flat chord at the tip and a
     # flat down the outboard side, and what left the re-entrant notch where
     # the arm met the end wall.
-    ARM_LENGTH = 23.200         # 2 x hole pitch + 2 x cap radius
-    ARM_WIDTH = 7.200           # = 2 x ARM_CAP_R; the reference's own 18 LDU
-    ARM_CAP_R = ARM_WIDTH / 2.0
+    # ROUND 73a -- owner-measured: "overall width INCLUDING the arms =
+    # 71.350" -> half 35.675, DERIVED at the time as `HALF_Y - HOLE_X`
+    # because the X arm-envelope and the Y length HAPPENED to share the
+    # same 35.675 figure that round.
+    #
+    # ROUND 73b -- that coupling is now WRONG and has been removed. HALF_Y
+    # moved to 35.625 (see its own comment) on a completely independent
+    # owner measurement (inner cavity length), while the arm's own X reach
+    # is UNCHANGED at 71.350/half 35.675 (owner re-confirmed: "along X:
+    # arm flat face to flat face = 71.350... unchanged"). Deriving
+    # ARM_CAP_R from HALF_Y would have silently SHRUNK the arm by 0.050 mm
+    # the moment HALF_Y moved -- exactly the class of coincidence-coupling
+    # bug already caught once this round against ARM_Y_LO's old hardcoded
+    # literal (see that constant's own note). `ARM_X_OUTER` is the correct,
+    # independent input: it is its OWN owner ground truth (the arm's flat
+    # face envelope), not derived from the housing's Y length.
+    ARM_X_OUTER = 35.675   # owner-measured, arm flat-face half-width (71.350 / 2)
+    # ROUND 73b -- owner: "I did not include the bosses. When including
+    # them the measurement is 71.7mm" -> boss-tip half-width 35.850. This
+    # is the SECOND independent X-axis ground truth this round (the first
+    # being ARM_X_OUTER above); BOSS_PROUD below is derived from the two
+    # rather than kept as its own free literal, so the two measurements
+    # cannot silently drift apart.
+    ARM_BOSS_X_OUTER = 35.850   # owner-measured, boss-tip half-width (71.700 / 2)
+    # The arm's cap is centred ON the outer hole (HOLE_X) and tangent to
+    # the X envelope (see the LDraw note above), so the cap radius is the
+    # remaining reach from the hole centre to ARM_X_OUTER.
+    ARM_CAP_R = ARM_X_OUTER - HOLE_X   # 3.675
+    ARM_WIDTH = 2 * ARM_CAP_R     # 7.350
+    ARM_LENGTH = 2 * STUD_PITCH + ARM_WIDTH   # 23.350; 2 x hole pitch + 2 x cap radius
 
+    # ROUND 73 CORRECTION (found by the verification probe, not by paper
+    # arithmetic -- see the round-73 implementation report). ARM_Y_LO used
+    # to be a fixed literal (12.400, "inboard flat face, envelope trim").
+    # That was fine only as long as it happened to satisfy
+    # HOLE_X - ARM_Y_LO == 2 * STUD_PITCH (32.000 - 12.400 == 19.600 ==
+    # 2 * 8.000) -- the coincidence that made the arm's two vertical hole
+    # positions (built from `half_w + i * STUD_PITCH` in
+    # _build_arm_and_bore_local) land on the correct global Y (HOLE_Y) AND
+    # made the outboard cap land exactly on HALF_Y, simultaneously, with
+    # the OLD ARM_CAP_R (3.600). Once ARM_CAP_R moved to 3.675 (this
+    # round), a fixed 12.400 could no longer satisfy both at once -- it
+    # either overshoots the envelope by 0.075 mm (if ARM_LENGTH is derived
+    # from tangency) or breaks the hole-pitch construction's own internal
+    # assert (if ARM_LENGTH keeps the "2 hole pitches + cap width" form
+    # while ARM_Y_LO stays fixed) -- both were tried and both failed
+    # (see the report). The two conditions are only simultaneously
+    # satisfiable if ARM_Y_LO itself is derived FROM ARM_CAP_R, not held
+    # fixed: the arm's inner vertical hole must land at global Y = HOLE_Y[0]
+    # (16.000, an independent grid position unaffected by this round), and
+    # that hole sits at local X = ARM_CAP_R in the arm's own frame, so
+    # ARM_Y_LO = HOLE_Y[0] - ARM_CAP_R. Algebraically this is the same
+    # value as `HOLE_X - ARM_CAP_R - 2 * STUD_PITCH` (since HOLE_Y[0] and
+    # HOLE_X are 2 * STUD_PITCH apart on the hole line), which is the form
+    # used here to keep it visibly tied to the same envelope/pitch inputs
+    # ARM_LENGTH above already uses.
+    ARM_Y_LO = HOLE_X - ARM_CAP_R - 2 * STUD_PITCH   # 12.325
+
+    # ROUND 73b -- the round-73a cross-check assert that used to live here
+    # (`ARM_LENGTH == HALF_Y - ARM_Y_LO`) is RETIRED, not merely relaxed. It
+    # asserted the arm's outboard tip lands exactly on HALF_Y -- true only
+    # while the X arm-envelope and the Y housing-length coincided at
+    # 35.675. They no longer do (HALF_Y = 35.625, ARM_X_OUTER = 35.675), so
+    # the arm's actual Y-tip (ARM_Y_LO + ARM_LENGTH, see ARM_Y_HI below) now
+    # sits 0.050 mm PAST HALF_Y by design -- the arm's own hole-pitch grid
+    # (HOLE_X, STUD_PITCH, ARM_CAP_R) governs its length, per the owner's
+    # "strict Technic pattern" direction (item 3), and is independent of
+    # the housing's own end-wall length. Keeping the old assert here would
+    # fire on every future measurement of either quantity even though
+    # nothing is wrong. See ARM_Y_HI immediately below for the arm's real,
+    # measured Y-reach and the round-73b implementation report for the
+    # built-solid measurement confirming this is a harmless, expected
+    # overshoot (not a wall collision -- the arm sits at a different X range
+    # than the end walls').
+    #
+    # The arm's own outboard face in Y, i.e. where its tip's rounded cap
+    # actually reaches -- NOT the housing's HALF_Y (see the retired assert
+    # above for why those are no longer the same number). Kept for
+    # documentation; not read by any builder (the geometry itself is
+    # already fully determined by ARM_Y_LO and ARM_LENGTH).
+    ARM_Y_HI = ARM_Y_LO + ARM_LENGTH   # 35.675 (== ARM_X_OUTER, by construction)
+
+    # Local-frame -> global-Y translation offset for the arm/bore remap
+    # (see _place_arm). Round 43: the arm is now built at its own real
+    # length with cap centres ON the hole line, so local X = 0 IS the arm's
+    # inboard face and the offset is simply ARM_Y_LO. Rounds 16-42 needed a
+    # separate number (12.0) because the arm was built one stud pitch too
+    # long and then trimmed back, which put local X = 0 outside the part.
+    _ARM_Y_OFFSET = ARM_Y_LO
+
+    # ROUND 73a -- NOT re-derived from ARM_WIDTH. BOSS_DIAMETER already
+    # equalled the OLD ARM_WIDTH (7.200) before this round, which reads as
+    # a plausible independent Technic-standard boss diameter (the
+    # reference's own connector-boss figure) rather than a tracked
+    # relationship to this class's own arm cross-section -- no comment or
+    # test in this file ties the two together, so this round leaves it as
+    # its own literal rather than inventing a coupling that was never
+    # stated.
     BOSS_DIAMETER = 7.200
-    BOSS_PROUD = 0.400          # beyond the arm's own ARM_WIDTH/2 edge, see docstring
+
+    # ROUND 73b -- BOSS_PROUD is now DERIVED, not its own literal. Owner:
+    # "I did not include the bosses. When including them the measurement
+    # is 71.7mm" -> boss-tip half-width 35.850 (ARM_BOSS_X_OUTER, defined
+    # above alongside ARM_X_OUTER). The proud distance is simply the gap
+    # between the two independently-measured half-widths.
+    BOSS_PROUD = ARM_BOSS_X_OUTER - ARM_X_OUTER   # 0.175 (was 0.400)
 
     # --- Horizontal (middle) arm hole, round 43 ---
     # Philo builds it from LDraw's `connhol3` primitive -- the BLIND pin
@@ -821,11 +1271,41 @@ class PoweredUpHubHousing:
     #
     # Round 42 had reached the blind conclusion independently but floored at
     # 28.000 with counterbores at BOTH rims; the far flange hollowed out
-    # exactly the thin material a blind hole has least of. These figures are
-    # the reference's own.
-    MID_BORE_DEPTH = 7.200
-    MID_BORE_FLOOR_X = 28.800   # |X| the bore stops at, measured from 24851s01
-    MID_BORE_MIN_FLOOR = 0.400  # arm material that must survive behind it
+    # exactly the thin material a blind hole has least of. These figures
+    # were originally the reference's own.
+    #
+    # ROUND 73b -- superseded by a FUNCTIONAL requirement. Owner, verbatim:
+    # "The bore for the horizon holes should be 8mm. These need to work
+    # with a lego technic pin." This is no longer a cosmetic LDraw copy --
+    # a real Technic pin needs the full 8.000 mm to seat and grip.
+    MID_BORE_DEPTH = 8.000
+    # ROUND 73a -- this was a bare LDraw-measured literal (28.800, off
+    # 24851s01) cross-checked against the method's own derivation via an
+    # assert. That cross-check went stale that same round (ARM_CAP_R moved
+    # off its LDraw value), so it was re-derived from the method's own four
+    # inputs instead of asserting against a superseded reference number.
+    #
+    # ROUND 73b -- re-derived again with MID_BORE_DEPTH = 8.000 and the new
+    # BOSS_PROUD = 0.175. The assert in _build_arm_and_bore_local remains a
+    # restated identity (defense-in-depth against the two expressions
+    # drifting apart), not an independent LDraw fidelity check.
+    MID_BORE_FLOOR_X = HOLE_X + ARM_CAP_R + BOSS_PROUD - MID_BORE_DEPTH  # 27.850
+    # ROUND 73b -- RE-INTERPRETED, not just re-valued, per the owner's own
+    # description: "the horizon hole is not fully connected to the housing,
+    # there is a small gap. The thickness including the gap and boss should
+    # be 8mm exactly." Read literally against the geometry (see the
+    # stack-up in _build_arm_and_bore_local's own comment at the bore): at
+    # 8.000 mm the bore's floor lands 0.475 mm PAST the arm's own nominal
+    # flat face (ARM_CAP_R from the hole centre) -- i.e. genuinely into the
+    # "gap"/root-bridge transition zone the owner is describing, not a
+    # defect to shave away. The MEANINGFUL floor guard is therefore no
+    # longer "how much of the arm's own bulk survives" (that number is now
+    # negative by design) but "how much of the ROOT BRIDGE's own reach
+    # survives beyond the bore's floor" -- the true remaining backing
+    # material, re-measured on the built solid in the round-73b report.
+    # Value UNCHANGED (0.400) -- what changed is what it's measured
+    # against; see the assert in _build_arm_and_bore_local.
+    MID_BORE_MIN_FLOOR = 0.400
 
     # --- Latch end (-Y), SS5.2 / SS11 ---
     LATCH_Y = -HALF_Y
@@ -849,8 +1329,44 @@ class PoweredUpHubHousing:
     # was derived against. The thickening is confined to the three spans
     # BETWEEN and OUTBOARD of the fingers, which is precisely where the
     # gaps were and precisely where the alignment ridges go.
-    LATCH_WALL_THICKNESS = 4.800   # -35.600 -> -30.800
+    # ROUND 73 -- owner-measured, superseding round 22's 4.800 (which was
+    # itself derived to land exactly on Cover.PLATE_Y_LO, -27.800).
+    #
+    # ROUND 73b -- value UNCHANGED at 5.000 (owner re-confirmed: "Can we do
+    # 5mm on the hook side"). Only the datum it's measured FROM moved
+    # (HALF_Y: 35.675 -> 35.625), so the inner face itself moves slightly:
+    # LATCH_Y + LATCH_WALL_THICKNESS = -35.625 + 5.000 = -30.625 (was
+    # -30.675). Still sits OUTBOARD of the frozen Cover.PLATE_Y_LO (-27.800)
+    # by 2.825 mm -- clearance, not a collision.
+    #
+    # ROUND 74 -- 5.000 -> 6.050, thickened INWARD (LATCH_Y, the OUTER face,
+    # is untouched -- only the wall's own thickness grows, so the shell's
+    # overall length is unaffected). Required by the same two ground-truth
+    # constraints that produced SHELL_Y_OFFSET: with the shell re-datumed,
+    # the wall's inner face must land on the frozen Cover hook's own inner
+    # face. Measured (`tmp/r74_latch_wall_datum.py`): world outer face
+    # -33.800 (= LATCH_Y + SHELL_Y_OFFSET), world inner face -27.750 (=
+    # LATCH_Y + LATCH_WALL_THICKNESS + SHELL_Y_OFFSET) -- both match the
+    # hook/thumb-pad targets to within 0.020 mm. Kept a SOLID slab, not a
+    # two-skin void -- see the design brief's round-74 *Latch-end wall*
+    # decision.
+    LATCH_WALL_THICKNESS = 6.050   # world: -33.800 -> -27.750
     LATCH_SKIN_THICKNESS = 1.200   # what survives in the latch-U band
+
+    # ROUND 73b -- owner's own cross-check on HALF_Y and the two end-wall
+    # thicknesses, verbatim: "The length between the inner walls (flat
+    # part, not counting the holes left for the tongues and pegs) is
+    # 61.75mm... This leaves 9.5mm for the two walls... 5mm on the hook
+    # side and 4.5mm on the tongue side" (71.250 - 61.750 = 9.500 =
+    # 5.000 + 4.500). Made impossible to break silently: whichever of
+    # HALF_Y / LATCH_WALL_THICKNESS / TONGUE_WALL_THICKNESS changes next,
+    # this assert (evaluated at class-body time, i.e. at import) fires
+    # immediately rather than leaving a silently-drifted cavity length.
+    # "Not counting the holes left for the tongues and pegs" means the
+    # tongue rebate (TONGUE_INNER_Y_LOWER) and end-wall trapezoid pegs are
+    # explicitly EXEMPT from this identity -- they are deeper, functional
+    # cuts into the flat wall this constant describes, not violations of it.
+    CAVITY_LENGTH = 61.750
 
     # The cover's nominal hook footprint, which _build_finger_windows asserts
     # these still equal. Round 61: HI 19.200 -> 17.800, following round 60's
@@ -878,16 +1394,155 @@ class PoweredUpHubHousing:
     # --- Tongue end (+Y), SS12 ---
     TONGUE_Y = HALF_Y
     TONGUE_STEP_Z = 1.874
-    TONGUE_INNER_Y_LOWER = 33.378   # inner face, Z < TONGUE_STEP_Z (the rebate)
+    # ROUND 76 -- moved INBOARD, 33.378 -> 32.525, to close the gaps the
+    # owner marked on the tongue side of an annotated top view: *"Tongue
+    # side (blue part) should have these gaps covered"*.
+    #
+    # Measured before the change (`tmp/r76_end_gaps.py`), the gap from the
+    # Cover's own tongue edge to this face read 1.003 mm across most of the
+    # span, opening to 2.203 at |X| ~ 1/17 and 3.003 at |X| ~ 26 -- the four
+    # open bands the owner circled.  The face sat at 35.203 world while the
+    # Cover's tongue edge sits at 34.200, so the wall simply stopped short
+    # of the tongues instead of covering them.
+    #
+    # 32.525 local = 34.350 world = the Cover's tongue edge (34.200) plus
+    # one running clearance (0.150), so the wall now covers the tongues with
+    # the same allowance every other Cover/Housing interface uses rather
+    # than a number invented here.
+    #
+    # SECOND EFFECT, and it is the one the owner asked for two rounds ago:
+    # the wall bottoms out where its own inner face crosses the bottom-round
+    # arc, so walking the face inboard walks the wall further AROUND that
+    # arc -- from Z 0.264 at the old face to ~Z 0.035 at this one.  That is
+    # "the bottom curve extends and wraps like a pocket... the end should sit
+    # flush with the cover bottom", achieved by extending the curve rather
+    # than truncating it (an earlier floored-cutter attempt flattened it and
+    # was reverted -- see BOTTOM_ROUND_Z_FLOOR_TONGUE).
+    TONGUE_INNER_Y_LOWER = 32.525   # inner face, Z < TONGUE_STEP_Z (the rebate)
+    # ROUND 73c -- KEPT UNCHANGED. This is a genuinely DIFFERENT feature from
+    # the owner's "first 5mm is narrower" observation below, not the same
+    # feature mis-dimensioned -- the evidence is the exact numeric coupling
+    # `TONGUE_STEP_Z == PoweredUpHubCover.TIP_Z_LO` (both 1.874), asserted in
+    # test_tongue_rebate_matches_cover_tongue. That is not a coincidence: it
+    # marks exactly where the Cover's own tongue-tip riser feature begins.
+    # Retuning it to 5.000 would decouple this rebate from the real Cover
+    # geometry it hooks under. See TONGUE_RELIEF_Z_HI below for the separate,
+    # wider relief the owner is actually describing.
+
     # Nominal back-wall inner face -- exactly coincident with
     # PoweredUpHubCover.TONGUE_Y_HI (34.400 mm), i.e. a bare zero-clearance
-    # literal-to-literal butt (round 18, S7). Every other Cover/Housing
-    # interface routes its insertion datum through profile.free.radial;
-    # this one didn't, making the tongue's insertion stop unreachable on
-    # FDM. self._tongue_inner_y_upper (below) is the profile-corrected
-    # value actually used by _build_tongue_wall -- this class constant is
-    # kept for its docstring/reference value only.
+    # literal-to-literal butt (round 18, S7). self._tongue_inner_y_upper
+    # (below) is the profile-corrected value _build_tongue_wall actually
+    # uses. This governs the NARROW tip-clearance band (`TONGUE_STEP_Z` to
+    # `tongue_clear_z_hi`, ~2.95 mm) that clears the Cover's own riser as it
+    # is inserted -- an independent, still-load-bearing requirement.
+    #
+    # ROUND 73c -- ATTEMPTED retirement, REVERTED. My first pass at this
+    # round merged this band into a single wider relief (see
+    # TONGUE_RELIEF_Z_HI/THICKNESS below) on the theory that it was the same
+    # feature as the owner's "first 5mm is narrower" observation,
+    # mis-dimensioned. Measured on the built solid: that merge INCREASED
+    # Housing/Cover seated interference by 49.546 mm^3 (A/B-isolated,
+    # `tmp/r73c_cover_triple_ab.py`) -- this band's own old, narrower
+    # thickness was doing real clearance work for the Cover's riser/rib
+    # mating features that the owner's wider, plate-seating-derived figure
+    # (3.000 mm) does not provide (that figure was grounded against
+    # `Cover.PLATE_Y_HI`, a DIFFERENT Cover feature than the riser). Kept
+    # UNCHANGED; the owner's new relief is added as a genuinely SEPARATE,
+    # adjacent band above it instead -- see TONGUE_RELIEF_Z_HI.
     TONGUE_INNER_Y_UPPER = 34.400
+
+    # ROUND 73c -- the owner's separately-described relief, verbatim:
+    # "I noticed the wall on the tongue side is stepped. The first 5mm on
+    # the Z is narrower. It's difficult to measure due the curve on the
+    # outer wall." Then, on follow-up: "Beneath that the tongue side wall
+    # is measured around 4 to 4.2mm" (see TONGUE_WALL_THICKNESS below) --
+    # read together, this places the visible step's TOP at Z = 5.000, with
+    # a DIFFERENT (thinner) wall below it.
+    #
+    # This is a THIRD, adjacent band -- ABOVE the existing riser-clearance
+    # band (`TONGUE_STEP_Z` to `tongue_clear_z_hi`, ~2.95 mm, UNCHANGED, see
+    # `TONGUE_INNER_Y_UPPER`'s note), not a replacement for it. The owner's
+    # single visible "first 5mm" observation encloses BOTH the rebate
+    # (Z < 1.874) and the riser-clearance band (up to ~2.95) as well as this
+    # new extension (2.95 to 5.000) -- from outside, a caliper or eye cannot
+    # distinguish three internal sub-bands from one, so "the first 5mm is
+    # narrower" is consistent with all three existing/added, not evidence
+    # that they should collapse into one.
+    TONGUE_RELIEF_Z_HI = 5.000
+
+    # The owner could not directly measure this thickness (curved outer
+    # wall defeats a flush caliper reading), so it is NOT a measured
+    # literal -- it is DERIVED from the frozen Cover, which the owner's own
+    # instruction requires: below TONGUE_RELIEF_Z_HI the wall must clear
+    # PoweredUpHubCover.PLATE_Y_HI (32.200, frozen), so the relieved
+    # thickness must be <= HALF_Y - PLATE_Y_HI = 35.625 - 32.200 = 3.425.
+    #
+    # A follow-up owner reading grounds the actual value within that bound:
+    # the tongue-end gap (outer face -> Cover plate edge) reads ~3.000 with
+    # NO visible gap -- i.e. this relief's own thickness IS that reading,
+    # because the Cover's plate seats flush into this exact recess. This
+    # value is a SOFT number (owner's own words: no direct caliper read),
+    # comfortably inside the 3.425 derived cap (0.425 mm margin). This band
+    # occupies Z = [tongue_clear_z_hi, TONGUE_RELIEF_Z_HI] -- ABOVE where
+    # the Cover's riser itself reaches (RISER_Z_HI = 2.800), a Z-range with
+    # no pre-existing clearance requirement -- verified against the built
+    # solid in the round-73c report (adding this band alone, without
+    # touching the riser-clearance band above, introduces NO new
+    # Housing/Cover collision).
+    TONGUE_RELIEF_THICKNESS = 3.000
+    # ROUND 74 -- the bound is `+ SHELL_Y_OFFSET`, not the bare local
+    # HALF_Y. HALF_Y is the tongue outer face's LOCAL (pre-translate) Y;
+    # its WORLD position (what actually has to clear the frozen Cover's
+    # PLATE_Y_HI) is HALF_Y + SHELL_Y_OFFSET, since the whole shell rides
+    # +SHELL_Y_OFFSET further from the latch end and hence further PAST the
+    # tongue end's own old position -- the redatum only WIDENS this
+    # clearance (35.625 - 32.200 = 3.425 margin 0.425 -> 37.450 - 32.200 =
+    # 5.250 margin 2.250), so this bound was never at risk from the redatum;
+    # it is kept accurate rather than left silently understating the true
+    # clearance.
+    assert TONGUE_RELIEF_THICKNESS <= HALF_Y + SHELL_Y_OFFSET - PoweredUpHubCover.PLATE_Y_HI, (
+        "the tongue relief's thickness must clear the frozen Cover's own "
+        "plate edge (derived bound, not measured) -- see TONGUE_RELIEF_"
+        "THICKNESS's own comment"
+    )
+
+    # ROUND 73c -- the flat wall's OWN thickness above TONGUE_RELIEF_Z_HI,
+    # SUPERSEDES round 73b's 4.500. Owner, first pass: "Can we do... 4.5mm
+    # on the tongue side" -- a proposed round number, not yet a caliper
+    # reading. Owner, follow-up (this round): "Beneath that the tongue side
+    # wall is measured around 4 to 4.2mm" -- an ACTUAL measurement of the
+    # real part's wall, taken above the newly-identified step. This is the
+    # more authoritative figure for what `_build_tongue_wall`'s main band
+    # actually builds, so it supersedes 4.500. The owner gave a RANGE, not
+    # a point value -- 4.100 is the range's midpoint, held as a soft
+    # nominal (not to be read as more precise than the +-0.100 range it
+    # came from).
+    TONGUE_WALL_THICKNESS = 4.100
+
+    # ROUND 73c -- the round-73b cross-check identity NO LONGER CLOSES and
+    # the strict assert that encoded it has been REMOVED (not loosened) --
+    # see the round-73c report for the full arithmetic. Three independently
+    # owner-measured quantities (outer length 2*HALF_Y = 71.250, flat
+    # cavity length CAVITY_LENGTH = 61.750, and the two end-wall
+    # thicknesses LATCH_WALL_THICKNESS + TONGUE_WALL_THICKNESS = 5.000 +
+    # 4.100 = 9.100) no longer sum consistently: 71.250 - 61.750 = 9.500,
+    # not 9.100 -- a 0.400 mm gap. This is NOT a code bug to silently
+    # reconcile by adjusting one of the three; it is reported to the owner
+    # as an open question (round-73c report, item C) because the housing's
+    # curved ends make all of these approximate reads. Keeping a strict
+    # assert here would either force a silent, uninstructed choice of which
+    # figure is "wrong," or fail every import -- both worse than removing
+    # the now-false claim and reporting the discrepancy honestly.
+    # ROUND 74 -- this assert (round 73c's "unchanged" pin at 5.000) is
+    # RETIRED, not loosened: LATCH_WALL_THICKNESS legitimately changes this
+    # round (5.000 -> 6.050, see its own comment), by explicit owner
+    # direction, thickened INWARD only -- it does not touch CAVITY_LENGTH,
+    # HALF_Y, or the outer envelope the round-73c arithmetic above was
+    # about. A stale `== 5.000` pin left in place would fail on every import
+    # from here on for a change that is intentional and already accounted
+    # for elsewhere; deleting it (rather than bumping the literal) avoids
+    # leaving a second assert nobody re-derives next time this value moves.
 
     # --- Tongue-end locating ribs (round 46), SS12.2 T1/T2/T3 ---
     # The reference tongue end is a two-skin structure whose skins are
@@ -913,8 +1568,91 @@ class PoweredUpHubHousing:
     # and the ribs only tighten it.  They are built because the Cover now
     # carries the matching slots, so omitting them leaves the mating
     # surface deliberately unpaired; they are NOT what holds the lid on.
-    TONGUE_RIB_CENTRE_X_HALF = 0.800
-    TONGUE_RIB_X_BANDS = ((15.600, 17.200), (26.000, 28.000))
+    # ROUND 77 -- 0.800 -> 0.900, thickening the centre ridge along X.
+    # Owner: *"make the 5 ridges mating the sockets slightly thicker (along
+    # X).  Use the sockets thickness as the truth, try leaving 0.4mm gap on
+    # the side."*
+    #
+    # The Cover's centre socket spans X +-TONGUE_GAP_X_INNER (+-1.150,
+    # measured 2.300 wide), so the target BUILT half-width is
+    # 1.150 - 0.400 = 0.750.  `_build_tongue_ribs` already takes one running
+    # clearance off each flank, so the NOMINAL half-width carried here is
+    # 0.750 + clr = 0.900 at the default profile -- i.e. the owner's 0.400 is
+    # the total per-flank gap, of which 0.150 was already being applied.
+    # Built width goes 1.300 -> 1.500.
+    TONGUE_RIB_CENTRE_X_HALF = 0.900
+    # ROUND 75 -- the inner band is RE-CENTRED on the Cover's own slot, not
+    # left on its nominal reference value.  Measured on the built Cover
+    # (`tmp/r75b_gap_sweep.py`), the three slots are 2.300 wide and centred at
+    # X = 0.000 and +-16.100.  The inner band was (15.600, 17.200), i.e.
+    # centre 16.400 -- 0.300 outboard of the slot it enters, which left
+    # 0.200 mm on one flank and 0.800 on the other instead of a symmetric
+    # 0.350.  Re-centred to 16.100 at the SAME 1.600 width; only the centre
+    # moved, so the rib still clears both flanks by 0.350 before clearance.
+    # The centre band is already on 0.000 and is unchanged.  The outer band
+    # (26.000, 28.000) is the Tongue B / shell divider -- it is NOT one of
+    # the three slots and is deliberately untouched.
+    # ROUND 77 -- inner band widened 1.600 -> 1.800 nominal, same 16.100
+    # centre, for the owner's 0.400 mm per-flank gap (see
+    # TONGUE_RIB_CENTRE_X_HALF's note for the clearance arithmetic).  The
+    # Cover's inner sockets span X 14.950..17.250 (2.300), so the built
+    # ridge becomes 15.350..16.850 (1.500) with exactly 0.400 to each socket
+    # flank.  The OUTER band is left alone pending the owner's "strange
+    # socket" call -- it sits outboard of the Cover's plate edge (26.165)
+    # and so is not mating a Cover socket the way the other four are.
+    #
+    # ROUND 77, the outer band's upper edge: 28.000 -> WALL_X_OUTER_LOWER,
+    # DERIVED rather than restated.  Owner: *"Some strange socket here,
+    # remove it"*, corrected to *"it's not a socket, it's a bump"*.
+    # Measured: a 0.562 mm^3 lump at X 27.850..28.000, Y 33.150..34.400,
+    # Z 0.000..3.000 -- this rib standing 0.150 mm PROUD of the side wall's
+    # outer face.
+    #
+    # It is a stale literal, not a feature.  The band's own comment above
+    # says the outer flank "is already the shell side wall", which was true
+    # when that face was at 28.000; round 73 moved it to 27.850 (owner's
+    # measured 55.700 overall width) and this literal did not follow.  The
+    # builder then skips the clearance for exactly this flank ("only the
+    # shell's own outer face has nothing to clear"), so the mismatch showed
+    # up undiminished as a bump.  Deriving it means the next width change
+    # cannot reopen this.
+    #
+    # ROUND 78 -- a THIRD band added, the side-socket ridge.  Owner: *"For
+    # the blue area on the tongue edge, add a small ridge similar to the 3
+    # ridges in the middle"*.
+    #
+    # The side socket runs from the Cover's riser edge (RISER_X_HALF,
+    # 25.010, measured ground truth) to its plate edge (PLATE_WIDTH/2,
+    # 26.165) -- 1.155 wide.  At the same 0.400 per flank the other ridges
+    # now use, the built ridge is 1.155 - 0.800 = 0.355, centred on 25.588;
+    # the nominal band carries the builder's own clearance back on top.
+    #
+    # This is DELIBERATELY under one 0.400 mm nozzle width, on the owner's
+    # explicit call ("Build it at 0.340 anyway") after being shown the
+    # figure.  A slicer may thin it or drop it; that is accepted, and it is
+    # recorded here so a later reader does not "fix" it as an error.
+    #
+    # ROUND 79 -- the outermost ridge and the old separate outer band are
+    # now ONE band, (25.260, WALL_X_OUTER_LOWER).  Owner: *"On the tongue
+    # side the first and the last ridges should connect with the inner
+    # wall. No cut should present."*, and earlier: *"the ridges on the
+    # corners should connect to the long wall (so it's actually a wedge)"*.
+    #
+    # Round 78 built these as two separate bands -- the side ridge at
+    # 25.410..25.765 and the outer band at 26.150..27.500 -- leaving a
+    # measured 0.385 mm cut between them, and the side ridge floating clear
+    # of the wall.  Merged, the built ridge runs 25.410..27.500: one
+    # continuous wedge from the socket out into the side wall, no cut.
+    #
+    # The inboard flank keeps its 0.400 mm gap to the Cover's riser edge
+    # (25.010 + 0.400 = 25.410, unchanged).  The outboard flank
+    # deliberately takes NO clearance -- it IS the wall now, which is the
+    # whole point, and the builder already skips the clearance for a flank
+    # sitting at WALL_X_OUTER_LOWER.
+    TONGUE_RIB_X_BANDS = (
+        (15.200, 17.000),
+        (25.260, WALL_X_OUTER_LOWER),
+    )
 
     def __init__(self, profile: ToleranceProfile | str | None = None) -> None:
         if profile is None or isinstance(profile, str):
@@ -924,13 +1662,12 @@ class PoweredUpHubHousing:
         self._profile = prof
         self._latch = get_latch_geometry(prof)
         # Round 18, S7: add a running-clearance allowance to the tongue
-        # back wall's inner face -- moving it FURTHER from Cover's tongue
-        # tip (TONGUE_Y_HI = 34.400 mm, unchanged), i.e. thinning this
-        # local wall slightly so the tip has somewhere to actually reach on
-        # FDM, instead of a bare zero-clearance literal-to-literal butt.
-        # (An earlier version subtracted here instead, which moved the
-        # inner face TOWARD the tip and thickened the wall -- the opposite
-        # of clearance -- and measurably collided with Cover's tongue tip.)
+        # riser-clearance band's inner face -- moving it FURTHER from
+        # Cover's tongue tip, i.e. thinning this local wall slightly so the
+        # tip has somewhere to actually reach on FDM, instead of a bare
+        # zero-clearance literal-to-literal butt. ROUND 73c: reinstated
+        # after an attempted retirement regressed Cover clearance by
+        # 49.546 mm^3 -- see TONGUE_INNER_Y_UPPER's own note.
         self._tongue_inner_y_upper = self.TONGUE_INNER_Y_UPPER + prof.free.radial
 
         self._solid = self._build()
@@ -960,14 +1697,33 @@ class PoweredUpHubHousing:
         # undone by the union.
         body = body.cut(self._build_end_wall_socket(+1))
         body = body.cut(self._build_end_wall_socket(-1))
-        body = body.cut(self._build_plate_edge_relief())
+        # ROUND 78 -- _build_plate_edge_relief is NO LONGER APPLIED.  It
+        # double-counted a clearance that is already inside the measured
+        # numbers, and its Y bound was what produced the corner step the
+        # owner flagged.  See that method's own docstring for the full
+        # reasoning; it is kept, unwired, because the reasoning is worth
+        # more than the code.
+        body = body.cut(self._build_latch_plate_relief())
         body = body.cut(self._build_cord_port())
         # Last: it rounds the end walls and the tongue ribs, so it has
         # to run after both exist.
         body = body.cut(self._build_bottom_end_round(-1))
         body = body.cut(self._build_bottom_end_round(+1))
+        # ROUND 75 -- the tongue-end floor trim is NOT wired in.  See
+        # _build_tongue_end_floor_trim's own docstring: both attempts to
+        # square the wall off at 0.100 severed the shell into multiple
+        # solids.  The wall currently ends at Z = 0.000.
 
         assert len(body.solids().vals()) == 1, "Expected single solid, got multiple pieces"
+
+        # ROUND 74 -- the one place SHELL_Y_OFFSET is actually applied: a
+        # single rigid-body translate of the fully assembled shell, re-
+        # datuming it onto the ground-truth Cover/Tray frame. See
+        # SHELL_Y_OFFSET's own comment for why this is a translate here
+        # rather than an edit to HALF_Y (or the constants derived from it),
+        # and for which OTHER constants had to be back-compensated because
+        # they anchor to a cross-part ground-truth Y position directly.
+        body = body.translate((0.0, self.SHELL_Y_OFFSET, 0.0))
         return body
 
     # ------------------------------------------------------------------
@@ -977,72 +1733,71 @@ class PoweredUpHubHousing:
     def _build_side_wall(self, x_sign: int) -> cq.Workplane:
         """One side wall, with the trapezoid mating socket in its outer face.
 
-        Three pieces, per the reference (see :attr:`SOCKET_Z_LO`):
+        ROUND 73b restructure (item 2 decision) -- TWO pieces now, not
+        three. The old "thickened band 2" scheme (rounds 50-73a) existed
+        solely to give the socket, which sits at fixed Z
+        ``[SOCKET_Z_LO, SOCKET_Z_HI]`` = ``[22.000, 24.000]``, a host band
+        thicker than the plain lower skin. Now that ``WALL_INNER_STEP_Z``
+        has moved to 26.000 (the Tray's own wall top), the socket's Z-band
+        sits entirely INSIDE the lower band already -- ``WALL_THICKNESS_LOWER``
+        (1.350) is thick enough on its own to host the socket as a blind
+        pocket (leaving :attr:`SOCKET_BACKING` -- 0.850 mm as of round 73d,
+        previously an unprintable 0.200 mm before that round decoupled the
+        socket's own depth -- of floor behind it), so the separate
+        thickened band is no longer needed at all. Building it anyway would
+        have hit exactly the round-71 trap: ``[WALL_INNER_STEP_Z,
+        REF_STEP_Z]`` = ``[26.000, 24.000]`` is INVERTED (an empty/negative
+        interval), which OCCT accepts silently and which would have deleted
+        the socket's own host material.
 
-        1. ``[0, WALL_INNER_STEP_Z]`` -- plain 0.800 mm skin, outer face at
-           :attr:`WALL_X_OUTER_LOWER`.
-        2. ``[WALL_INNER_STEP_Z, DECK_Z]`` -- the wall doubles to 1.600 mm
-           by stepping its INNER face inboard to
-           ``WALL_X_OUTER_UPPER - WALL_THICKNESS``. This is what lets the
-           socket be a pocket rather than a hole.
-        3. The socket itself, cut out of that thickened band.
-
-        Rounds 16-49 instead built band 2 as a 0.800 mm skin recessed to
-        ``WALL_X_OUTER_UPPER``, i.e. the socket's own depth applied along
-        the whole wall. That is why this part had no socket: it was all
-        socket. The correction adds material outboard over
-        ``[SOCKET_Z_LO, DECK_Z]`` everywhere the trapezoid is not.
+        1. ``[0, WALL_INNER_STEP_Z]`` -- full-thickness skin,
+           :attr:`WALL_THICKNESS_LOWER` mm, outer face at
+           :attr:`WALL_X_OUTER_LOWER`. The socket (see
+           :meth:`_build_wall_socket`) is a plain OUTER-face recess cut into
+           this band -- it does not care which inner-face band it lands in,
+           only that the band is thick enough to host it as a pocket.
+        2. ``[WALL_INNER_STEP_Z, DECK_Z]`` -- the narrowed upper section,
+           unchanged from round 73a: outer face :attr:`UPPER_X_OUTER`,
+           thickness :attr:`WALL_THICKNESS` (the parked group's own,
+           untouched section).
         """
         overlap = 0.050
-        # DERIVED from the socket floor, not typed. This band exists to give
-        # the socket a floor of normal section, so its inner face is
-        # "socket floor minus one wall" by definition -- exactly
-        # UPPER_X_INNER. Round 55e deepened the socket to 1.150 (to widen the
-        # cover's wall) while this constant still read 26.400, which left
-        # only 0.450 mm behind the recess instead of 0.800; deriving it means
-        # the next depth change cannot repeat that.
-        #
-        # It also makes the inner face UNIFORM from WALL_INNER_STEP_Z all the
-        # way to DECK_Z -- the doubled band and the upper section now share
-        # it -- which is what lets the Tray keep a single upper band and the
-        # cord port a single flush edge.
-        inner_upper = self.UPPER_X_INNER                              # 26.050
 
-        # Band 1 runs slightly past the step. Its X span is a subset of band
-        # 2's, so the extra 0.050 mm is a genuine volume overlap that changes
-        # no face -- unlike the round-20 H5 trick it replaces, which widened
-        # an externally-visible face to buy the same overlap.
-        lower = self._x_slab(
-            x_sign, self.WALL_X_OUTER_LOWER, self.WALL_THICKNESS,
+        # ROUND 73b: this reads WALL_THICKNESS_LOWER, NOT the shared
+        # WALL_THICKNESS -- band 1's own owner-measured section, independent
+        # of the parked socket group's own (unchanged) 0.800 mm section.
+        # Runs slightly past the step so the two bands share a genuine
+        # volume overlap rather than a coincident face (CLAUDE.md,
+        # *Chord-vs-arc ring*).
+        full = self._x_slab(
+            x_sign, self.WALL_X_OUTER_LOWER, self.WALL_THICKNESS_LOWER,
             0.0, self.WALL_INNER_STEP_Z + overlap,
-        )
-        # Band 2 stops at REF_STEP_Z, where the shell steps in. Running it
-        # to DECK_Z (as rounds 55-55d did) and letting _build_upper_step_in
-        # trim the outboard side leaves the upper wall only
-        # UPPER_X_OUTER - inner_upper = 0.450 mm thick, because the inner
-        # face never moved with it. Band 3 is the upper section's own
-        # section, at its own two faces.
-        thickened = self._x_slab(
-            x_sign, self.WALL_X_OUTER_LOWER,
-            self.WALL_X_OUTER_LOWER - inner_upper,        # 1.600
-            self.WALL_INNER_STEP_Z, self.REF_STEP_Z,
         )
         upper = self._x_slab(
             x_sign, self.UPPER_X_OUTER, self.WALL_THICKNESS,
-            self.REF_STEP_Z - overlap, self.DECK_Z,
+            self.WALL_INNER_STEP_Z - overlap, self.DECK_Z,
         )
         return (
-            lower.union(thickened).union(upper)
+            full.union(upper)
             .cut(self._build_wall_socket(x_sign))
         )
 
     def _build_wall_socket(self, x_sign: int) -> cq.Workplane:
         """The trapezoidal recess in one side wall's outer face.
 
-        Geometry and provenance: :attr:`SOCKET_Z_LO`. Cut from
-        :attr:`WALL_X_OUTER_UPPER` outward, so the surviving 0.800 mm of
-        wall inboard of it is a normal section and the socket floor lands
-        on the same plane the reference measures.
+        Geometry and provenance: :attr:`SOCKET_Z_LO`. Cut inward from the
+        outer face by :attr:`SOCKET_DEPTH`, so the floor lands at
+        :attr:`SOCKET_FLOOR_X` and the surviving :attr:`SOCKET_BACKING` mm
+        of wall inboard of it is a normal, printable section.
+
+        ROUND 73d -- this floor is NO LONGER the same plane as the upper
+        section's own outer face (:attr:`UPPER_X_OUTER`). Rounds 50-73c
+        made the socket's depth exactly `UPPER_INSET`, so the two were
+        coplanar by construction; the owner asked to shrink the recess to
+        ~0.5 mm (fixing an unprintable 0.200 mm backing at the old depth)
+        without widening the upper shell externally, which decoupled them
+        on purpose. See :attr:`SOCKET_DEPTH`'s own comment for the full
+        trade and :attr:`UPPER_INSET`'s for why fusing them was rejected.
 
         The profile stops DEAD at ``SOCKET_Z_HI``: it is a blind recess in
         both Z directions, as in the reference. See the inline note at the
@@ -1051,6 +1806,9 @@ class PoweredUpHubHousing:
         oc = 1.0
         y_lo, y_hi = self.SOCKET_Y_HALF_LO, self.SOCKET_Y_HALF_HI
         z_lo, z_hi = self.SOCKET_Z_LO, self.SOCKET_Z_HI
+        # ROUND 73 -- centred on the Tray's own tab centreline, not on
+        # Y = 0. See SOCKET_Y_CENTER.
+        yc = self.SOCKET_Y_CENTER
 
         # NO vertical overcut above z_hi. Rounds 50-54 ran the mouth up to
         # z_hi + oc, which was free air then (the part stopped at 24.000).
@@ -1062,18 +1820,32 @@ class PoweredUpHubHousing:
         # both Z directions now, which is also what the reference has.
         profile = (
             cq.Workplane("YZ")
-            .transformed(offset=cq.Vector(0.0, 0.0, x_sign * self.UPPER_X_OUTER))
-            .moveTo(-y_lo, z_lo)
-            .lineTo(y_lo, z_lo)
-            .lineTo(y_hi, z_hi)
-            .lineTo(-y_hi, z_hi)
+            .transformed(offset=cq.Vector(0.0, 0.0, x_sign * self.SOCKET_FLOOR_X))
+            .moveTo(yc - y_lo, z_lo)
+            .lineTo(yc + y_lo, z_lo)
+            .lineTo(yc + y_hi, z_hi)
+            .lineTo(yc - y_hi, z_hi)
             .close()
         )
         # The YZ workplane's normal is +X whatever the sign, so the extrusion
         # must be signed or the -X socket is cut out of thin air inboard.
-        # Depth IS the upper section's inset, so the socket floor and the
-        # wall above it are one plane by construction -- see UPPER_INSET.
-        depth = self.UPPER_INSET + oc
+        #
+        # ROUND 73d: depth is now SOCKET_DEPTH, its own constant, NOT
+        # UPPER_INSET. The socket floor and the upper wall are consequently
+        # no longer the same plane -- that coplanarity was a deliberate
+        # property of the old fused constant and it is being given up on
+        # purpose (see SOCKET_DEPTH's comment). Asserted here rather than
+        # left implicit, so that if someone later "restores" the coupling by
+        # setting the two equal, the backing-thickness consequence is
+        # visible at the point of change instead of surfacing as an
+        # unprintable 0.200 mm wall three rounds downstream.
+        assert self.SOCKET_BACKING >= 0.770, (
+            f"only {self.SOCKET_BACKING:.3f} mm of wall survives behind the "
+            f"socket recess (wall {self.WALL_THICKNESS_LOWER:.3f} less recess "
+            f"{self.SOCKET_DEPTH:.3f}); below ~0.770 this is thinner than a "
+            "normal extruded section and the compartment opens into the recess"
+        )
+        depth = self.SOCKET_DEPTH + oc
         return profile.extrude(x_sign * depth)
 
     def _build_end_wall_socket(self, y_sign: int) -> cq.Workplane:
@@ -1136,8 +1908,126 @@ class PoweredUpHubHousing:
             center=((x_lo + x_hi) / 2.0, 0.0, z_lo),
         )
 
+    def _build_latch_plate_relief(self) -> cq.Workplane:
+        """Owner-specified running gap between the Cover's plate edge and the
+        LATCH end wall, over the plate's own Z band only.
+
+        Round 76, owner (annotated top view): the hook-side bands *"should
+        have 1mm gaps"*.  Measured before this cut, all three of them read
+        **-0.050 mm** -- an interference, not a gap: the Cover's plate edge
+        sits at ``PLATE_Y_LO`` = -27.800 and the latch wall's inner face at
+        -27.750, so the wall stood 0.050 inside the plate.
+
+        **Height-limited, and that is the whole point.**  Round 74 set the
+        latch wall's inner face from the owner's other ground-truth
+        constraint -- the Cover hook's inner face sits flush against it at
+        -27.750 -- and the hook engages well above the plate (its own
+        material starts around Z 8).  Pulling the face back everywhere would
+        satisfy this round's gap and destroy that flush fit.  So the relief
+        is bounded to ``PLATE_EDGE_RELIEF_Z_HI``: the wall reads 6.050 thick
+        where the hook meets it and 5.000 across the plate band, a step
+        rather than a thinner wall.
+
+        Bounds, and why each is safe:
+
+        * ``+Y`` (inboard) takes a small overcut past the wall's own inner
+          face so the cutter's end face is not coincident with it -- the
+          space inboard here is the battery bay's own void at this height,
+          verified by the interference measurement above, not assumed.
+        * ``-Y`` stops at the target face; going further would eat the wall
+          itself.
+        * ``X`` stops at the Cover plate's own half-width plus one running
+          clearance -- it is NOT overcut past the shell.  Round 76's first
+          version used ``2 * (ARM_X_OUTER + oc)``, i.e. far wider than the
+          part, on the "overcut into waste" reflex; the space outboard of
+          the plate edge is not waste, it is the outer side wall, and the
+          cut punched a through-slot in it (measured: material present at
+          |X| 18.55..27.85 at Z 3.000, absent at Z 1.000).  Owner: *"The gap
+          should not cut through the outer wall."*  The plate edge is the
+          only thing this relief exists to clear, so the plate's own extent
+          is the correct bound -- see the overcut-on-the-non-waste-side
+          pitfall in ``vibe/INSTRUCTIONS.md``.
+        * ``-Z`` is overcut below the bottom face into free air -- waste.
+        """
+        clr = self._profile.free.radial
+        gap = self.LATCH_PLATE_RELIEF_GAP
+        oc = 1.0
+        # Target face: `gap` OUTBOARD of the Cover's plate edge. Both terms
+        # are back-compensated by -SHELL_Y_OFFSET because this is cut in the
+        # shell's LOCAL frame but must land on the frozen Cover's own edge.
+        target = (PoweredUpHubCover.PLATE_Y_LO - gap) - self.SHELL_Y_OFFSET
+        face = self.LATCH_Y + self.LATCH_WALL_THICKNESS
+        assert target < face, (
+            f"latch plate relief would ADD material: target {target:.3f} is "
+            f"not outboard of the wall face {face:.3f}"
+        )
+        y_lo, y_hi = target, face + 0.200
+        z_hi = self.PLATE_EDGE_RELIEF_Z_HI + clr
+        # ROUND 79 -- the cut runs out to the LONG WALL'S OWN INNER FACE,
+        # not to the plate edge.  Owner: *"The gap along X should start at
+        # the inner wall along Y."*
+        #
+        # Round 77 bounded this at PLATE_WIDTH/2 + clr = 26.315 (the plate
+        # edge plus a running clearance), which stopped 0.185 mm short of
+        # the wall's inner face at CAVITY_X_HALF_LOWER = 26.500 and left a
+        # lip of latch-wall material standing proud of it in the corner.
+        # The gap must meet the wall it runs into, so the wall's own inner
+        # face is the correct bound.  Still NOT overcut past that face --
+        # outboard of it is the side wall itself, which round 77 already
+        # punched a through-slot in once.
+        x_half = self.CAVITY_X_HALF_LOWER
+        return rounded_box(
+            width=2 * x_half,
+            depth=y_hi - y_lo,
+            height=z_hi + oc,
+            corner_r=0.0,
+            # rounded_box's center.z is the BASE, not the centroid
+            # (cq_utils.rounded_box docstring) -- start it below the part so
+            # the cut covers the plate's full Z band down to Z = 0.  A first
+            # version passed a centroid here and began the cut at Z 0.575,
+            # leaving the bottom 0.5 mm of the plate edge still interfering.
+            center=(0.0, (y_lo + y_hi) / 2.0, -oc),
+        )
+
     def _build_plate_edge_relief(self) -> cq.Workplane:
-        """Running clearance for the Cover's plate edge against both side
+        """**RETIRED round 78 -- built but no longer cut into the body.**
+
+        Two owner observations killed it, and they turned out to be one
+        defect: *"Tight the [long] wall gap"* and *"there shouldn't be a step
+        around the corner either (the long wall should just join the short
+        wall directly)"*.
+
+        1. **It double-counted the fit.**  The side wall's inner face is the
+           battery cavity wall (``WALL_THICKNESS_LOWER`` is DERIVED from
+           ``CAVITY_X_HALF_LOWER``), and the owner's calipers measured a real
+           MATING pair: Cover plate 52.330 inside a 52.960 cavity, i.e.
+           0.315 mm per side of working clearance already present in those
+           two numbers.  That is the same reason
+           ``PoweredUpHubCover.fit_clearance()`` returns 0.0 rather than a
+           free-fit allowance.  This relief then took a FURTHER
+           ``profile.free.radial`` off the same face, giving a measured
+           0.485 mm gap where the real part has 0.315.
+        2. **Its Y bound was the corner step.**  The cut is bounded to the
+           Cover plate's own Y span (deliberately -- an earlier unbounded
+           version ate the tongue ribs), so past ``PLATE_Y_HI`` the wall
+           reverted to its un-relieved face.  Measured, the inner face ran
+           26.650 down the length and then stepped 26.480 -> 26.140 into the
+           corner.  Any Y-bounded thinning of this face produces a step
+           there by construction; the only way to have no step is to not
+           thin it.
+
+        Retiring it leaves a uniform 0.335 mm gap along the whole long wall
+        -- tighter than the 0.485 it replaced, no step at the corner, and
+        within 0.020 mm of the 0.315 the owner actually measured on the real
+        pair.
+
+        Kept rather than deleted because the bounding analysis below is the
+        record of a real bug (the round-48 rib-eating overcut) and should not
+        have to be rediscovered.
+
+        Original description follows.
+
+        Running clearance for the Cover's plate edge against both side
         walls -- see :attr:`PLATE_EDGE_RELIEF_Z_HI` for why it lives on
         this part and why it is local.
 
@@ -1170,10 +2060,18 @@ class PoweredUpHubHousing:
         an edge and not a face.
         """
         clr = self._profile.free.radial
-        wall_inner = self.WALL_X_OUTER_LOWER - self.WALL_THICKNESS
+        # ROUND 73: band 1's real inner face, WALL_THICKNESS_LOWER -- this
+        # relief runs over the plate's own Z span, entirely inside band 1.
+        wall_inner = self.WALL_X_OUTER_LOWER - self.WALL_THICKNESS_LOWER
         z_hi = self.PLATE_EDGE_RELIEF_Z_HI + clr
-        y_lo = PoweredUpHubCover.PLATE_Y_LO - 0.200
-        y_hi = PoweredUpHubCover.PLATE_Y_HI
+        # ROUND 74 -- both back-compensated by `- SHELL_Y_OFFSET`: this
+        # relief is cut in the shell's LOCAL frame and must still land
+        # exactly on the frozen Cover's own plate span after the
+        # shell-wide translate (see SHELL_Y_OFFSET's own comment). Without
+        # this, the relief would drift SHELL_Y_OFFSET past the plate edges
+        # it is bounded to.
+        y_lo = PoweredUpHubCover.PLATE_Y_LO - 0.200 - self.SHELL_Y_OFFSET
+        y_hi = PoweredUpHubCover.PLATE_Y_HI - self.SHELL_Y_OFFSET
 
         relief = None
         for x_sign in (-1, +1):
@@ -1222,7 +2120,13 @@ class PoweredUpHubHousing:
         # for, re-derived against geometry that moved under it.
         x_hi = self.UPPER_X_INNER                                 # 26.050
         x_lo = x_hi - self.CORD_PORT_WIDTH
-        y_lo = PoweredUpHubCover.LATCH_BAND_Y_HI                  # -30.000
+        # ROUND 74 -- back-compensated by `- SHELL_Y_OFFSET`: this port is
+        # cut in the shell's LOCAL frame and its -Y edge must still land
+        # exactly on the frozen Cover's own LATCH_BAND_Y_HI after the
+        # shell-wide translate (see SHELL_Y_OFFSET's own comment; cross-
+        # checked against the built solid by
+        # test_cord_port_is_a_clear_opening_into_the_battery_bay).
+        y_lo = PoweredUpHubCover.LATCH_BAND_Y_HI - self.SHELL_Y_OFFSET   # -31.825
         y_hi = y_lo + self.CORD_PORT_LENGTH
 
         # Z: the cutter spans the whole ROUTE, not just the deck slab.
@@ -1274,40 +2178,45 @@ class PoweredUpHubHousing:
         )
 
     def _build_upper_step_in(self) -> cq.Workplane:
-        """Everything above :attr:`REF_STEP_Z` that lies outside the
-        reference's own upper-section footprint (round 55b).
+        """Everything above :attr:`WALL_INNER_STEP_Z` that lies outside the
+        upper-section footprint (round 55b; re-derived round 73b).
 
         Round 55 raised ``DECK_Z`` to the reference's 29.600 by extruding
         the full 72 x 71.2 lower footprint the whole way, which the user
         then spotted from the wrong side: with the side wall running
         straight past it, the trapezoid mating socket reads as a slot in a
-        flat face instead of the recess it is. The reference does not do
-        that -- it steps in at exactly 24.000 (see :attr:`UPPER_X_OUTER`),
-        and the socket's top edge meeting that step is what makes it look
-        like a socket.
+        flat face instead of the recess it is. Rounds 55-73a stepped in at
+        the reference's own 24.000 (:attr:`REF_STEP_Z`); round 73b's item-2
+        decision moved the wall's own inner step (and, via this cut, the
+        WHOLE silhouette's step -- side walls and end walls alike) to
+        :attr:`WALL_INNER_STEP_Z` (26.000, the Tray's own wall top) instead.
+        Both trapezoid sockets stay at their own fixed, PARKED Z-band
+        ([22.000, 24.000]), which is now entirely below this cut's ``z_lo``
+        either way -- moving ``z_lo`` cannot touch them.
 
         Built as a subtraction rather than by re-shaping the wall builders:
-        every feature below the step -- the stepped side walls, both end
-        walls, the arms, both trapezoid sockets, the pin bores -- is
-        already correct and stays untouched, and one cut above the step
-        cannot disturb any of it.
+        every feature below the step -- the side walls, both end walls, the
+        arms, both trapezoid sockets, the pin bores -- is already correct
+        and stays untouched, and one cut above the step cannot disturb any
+        of it.
 
         Bounds, and why each is safe (the *Overcuts on the non-waste side*
         pitfall applies with force here, since this removes material by the
         cubic centimetre):
 
-        * ``-Z`` stops DEAD at ``REF_STEP_Z``. This is the whole
-          correctness condition: 1 mm of overcut here would take a
-          millimetre off the top of both trapezoid sockets, the arms
-          (which end at exactly 24.000 -- verified, not assumed) and the
-          wall step itself. There is no overcut on this face.
+        * ``-Z`` stops DEAD at ``WALL_INNER_STEP_Z``. This is the whole
+          correctness condition, and it moved this round: cutting from the
+          old 24.000 again would remove 2.000 mm of the now-full-thickness
+          lower band (and the socket's own host material, round 71's exact
+          trap) that must survive up to the new step. There is no overcut
+          on this face.
         * ``+Z`` is free air above the part.
         * X and Y are bounded by the upper footprint on the inside and by a
           generous envelope on the outside, so the cut is exactly
           "everything outboard of the upper section".
         """
         oc = 1.0
-        z_lo = self.REF_STEP_Z
+        z_lo = self.WALL_INNER_STEP_Z
         z_hi = self.DECK_Z + oc
         envelope = 40.0   # comfortably past the arms' own |X| = 36.000
 
@@ -1327,6 +2236,67 @@ class PoweredUpHubHousing:
             ),
         )
         return outer.cut(keep)
+
+    def _build_tongue_end_floor_trim(self) -> cq.Workplane:
+        """Square the tongue-end wall off at ``BOTTOM_ROUND_Z_FLOOR_TONGUE``.
+
+        Round 75, owner: *"The end should sit flush with the cover bottom
+        and lives little gap (the tongues should be mostly covered)"*.
+
+        Flooring the bottom-round cutter (see
+        :attr:`BOTTOM_ROUND_Z_FLOOR_TONGUE`) recovers the wall material the
+        arc used to eat, but it recovers it all the way to ``Z = 0``, i.e.
+        coplanar with the Cover's own bottom face.  This takes the last
+        0.100 mm back off, so the wall ends just clear of that plane.
+
+        **NOT CURRENTLY WIRED IN -- kept as the record of two failed
+        approaches, so the third attempt does not repeat them.**
+
+        1. Adding a slab-below-floor term *inside* the arc cutter destroyed
+           the entire tongue-end wall (measured -- no material left at
+           Y 35..37).  The arc cutter is built per X-band and is itself the
+           result of a ``cut``; unioning a large slab into it changes what
+           those per-band booleans subtract.
+        2. This cut, applied once to the finished body, severs the shell
+           into multiple solids (the ``len(solids) == 1`` guard in
+           ``_build`` fires).  The Z 0.000..0.100 layer it removes is
+           evidently load-bearing for connectivity somewhere in the
+           Y >= BOTTOM_ROUND_CY band -- most likely the tongue-end bottom
+           lip at Y 35.5..36.0 reaches the rest of the shell only through
+           it.
+
+        Before a third attempt, MEASURE which lump detaches and why, rather
+        than narrowing the bounds by trial -- per the tunnel-vision rule in
+        ``vibe/INSTRUCTIONS.md``.  The wall presently ends at Z = 0.000,
+        coplanar with the Cover's bottom face.
+
+        Bounds, and why each is safe:
+
+        * ``-Z`` is overcut into free air below the part -- waste.
+        * ``+Z`` is the floor itself: the whole point of the cut.
+        * ``X`` is overcut past the shell on both sides; at this height the
+          only material is the tongue end's own bottom lip.
+        * The inboard ``Y`` bound is ``BOTTOM_ROUND_CY``, the arc's own
+          centre plane -- the same bound the round uses.  It stops the trim
+          short of the deck and the tray bay, which sit inboard of it and
+          must keep their own bottom faces.  The outboard ``Y`` bound is
+          overcut past the shell into free air.
+        """
+        floor = self.BOTTOM_ROUND_Z_FLOOR_TONGUE
+        assert floor is not None, (
+            "_build_tongue_end_floor_trim called with no floor set -- guard "
+            "the call site, or the cut silently removes the whole bottom"
+        )
+        oc = 10.0
+        y_in = self.BOTTOM_ROUND_CY          # arc centre plane, local frame
+        y_out = self.HALF_Y + oc
+        return rounded_box(
+            width=2 * (self.ARM_X_OUTER + oc),
+            depth=y_out - y_in,
+            height=floor + oc,
+            corner_r=0.0,
+            center=(0.0, (y_in + y_out) / 2.0, floor - (floor + oc) / 2.0),
+        )
 
     def _build_bottom_end_round(self, y_sign: int) -> cq.Workplane:
         """The bottom edge round where the shell meets one end plane
@@ -1378,6 +2348,47 @@ class PoweredUpHubHousing:
                 .extrude((x_hi - x_lo) + 2 * oc)
             )
             band = corner.cut(arc)
+            # ROUND 75 -- the tongue end's round is FLOORED, so the wall
+            # reaches down to the Cover's bottom instead of being eaten away
+            # by the arc.  The owner: "The end should sit flush with the
+            # cover bottom and lives little gap (the tongues should be mostly
+            # covered)".
+            #
+            # The shell itself already extends to Z = 0; it was this cutter
+            # that removed everything below the arc, and at the wall's own
+            # inner face (Y 35.203, where the arc reads Z 0.264) that is
+            # exactly how much material was lost.  So the fix is to bound the
+            # CUTTER, not to reshape the arc: the radius stays 3.600 and the
+            # latch end -- which the owner has approved visually -- is
+            # untouched, because this floor applies to the tongue end only.
+            floor = self.BOTTOM_ROUND_Z_FLOOR_TONGUE
+            if y_sign > 0 and floor is not None:
+                # Removing the cutter below `floor` is what stops the arc
+                # eating the wall, recovering the material down to the
+                # Cover's bottom.
+                #
+                # ROUND 75, measured consequence -- the wall then stands to
+                # Z = 0.000, coplanar with the Cover's bottom face, NOT to
+                # `floor`.  Flooring the cutter preserves the shell's own
+                # material below the floor; it does not trim to it.  Adding a
+                # slab-below-floor to the cutter to square it off at 0.100 was
+                # tried and REVERTED: unioning that slab into the arc cutter
+                # destroyed the whole tongue-end wall (verified -- no material
+                # left at Y 35..37).  A square trim, if wanted, belongs as a
+                # single bounded cut on the finished body, not inside this
+                # per-band arc cutter.
+                below = rounded_box(
+                    width=(x_hi - x_lo) + 2 * oc,
+                    depth=abs(y_out - cy) + 2 * oc,
+                    height=100.0,
+                    corner_r=0.0,
+                    center=(
+                        (x_lo + x_hi) / 2.0,
+                        (cy + y_out) / 2.0,
+                        floor - 50.0,
+                    ),
+                )
+                band = band.cut(below)
             cutter = band if cutter is None else cutter.union(band)
         assert cutter is not None, (
             f"no bottom-round bands for y_sign={y_sign} -- an empty band list "
@@ -1424,7 +2435,10 @@ class PoweredUpHubHousing:
         """
         overcut = 1.0  # break cleanly through the wall's X extent
         x_outer = self.WALL_X_OUTER_LOWER + overcut
-        x_inner = self.WALL_X_OUTER_LOWER - self.WALL_THICKNESS - overcut
+        # ROUND 73: this window's Z range (up to ~8.4 mm) sits entirely in
+        # band 1, so it must cut band 1's own WALL_THICKNESS_LOWER section,
+        # not the parked group's WALL_THICKNESS.
+        x_inner = self.WALL_X_OUTER_LOWER - self.WALL_THICKNESS_LOWER - overcut
         x_lo = x_sign * min(x_outer, x_inner)
         x_hi = x_sign * max(x_outer, x_inner)
         width = abs(x_hi - x_lo)
@@ -1451,8 +2465,12 @@ class PoweredUpHubHousing:
         # 45-degree point on each round-over, for the three-point arc.
         # Round 71: the tab is no longer centred on Y = 0 -- it tracks the
         # Cover's window sill at TAB_Y_CENTER -- so the window it passes
-        # through must move with it. Read from the tab, not restated.
-        yc = PoweredUpHubBatteryTray.TAB_Y_CENTER
+        # through must move with it. Round 74: read via self.WINDOW_Y_CENTER
+        # (already back-compensated by SHELL_Y_OFFSET), not the bare Tray
+        # constant directly -- this cut runs in the shell's LOCAL frame and
+        # must still land on the Tray's tab centreline after the shell-wide
+        # translate.
+        yc = self.WINDOW_Y_CENTER
         d = r * math.sqrt(0.5)
         sketch = (
             cq.Workplane("YZ")
@@ -1672,31 +2690,54 @@ class PoweredUpHubHousing:
         beam_half_width_pre = arm.val().BoundingBox().ymax  # BEAM_WIDTH / 2
         # Local X span matches the trim bounds exactly (0.400..23.600) so
         # the bridge cannot reintroduce the material the envelope trim
-        # just removed at either end.  Depth reaches only 0.05 mm past the
-        # upper-band wall's own inner face (WALL_X_OUTER_UPPER -
-        # WALL_THICKNESS = 26.400 mm, -> local Y = -5.650) -- the minimum
-        # needed to genuinely overlap the upper wall band ([26.4, 27.2])
-        # for a reliable union, without intruding further into the cavity
-        # than necessary.  An earlier version reached to local Y = -6.0
-        # (global X = 26.0), which collided with PoweredUpHubBatteryTray's
-        # own side wall -- caught by the cross-part verification probe.
+        # just removed at either end.
+        #
+        # ROUND 73b -- RE-DERIVED, not left at its old hardcoded literal.
+        # This used to be a bare `-5.650` ("0.05 mm past the upper-band
+        # wall's own inner face, WALL_X_OUTER_UPPER - WALL_THICKNESS =
+        # 26.400 mm"), a figure from BEFORE round 73a moved
+        # WALL_X_OUTER_LOWER (and with it, UPPER_X_OUTER/UPPER_X_INNER) --
+        # it was never updated then, so it had already gone stale once
+        # (round 73a's real inner face there was 25.900, not 26.400) before
+        # round 73b's item-2 restructure changed the picture again: Band A's
+        # own global Z-range ([22.0, 24.0]) now sits entirely inside the
+        # FULL-thickness band (the item-2 step moved to 26.000), not the
+        # narrow upper band at all, so the wall face it should overlap is
+        # now the full band's own inner face
+        # (WALL_X_OUTER_LOWER - WALL_THICKNESS_LOWER = 26.500), not either
+        # of the stale figures above. Reaching only 0.05 mm past THAT face
+        # -- the same "minimum for a reliable union" margin the literal
+        # always intended -- keeps the same design, corrected to read the
+        # wall the arm's Z-range now actually mates with.
+        #
+        # Verified clear of PoweredUpHubBatteryTray's own wall
+        # (WALL_OUTER_X = 26.250, frozen) by 0.200 mm -- see the round-73b
+        # implementation report for the built-solid measurement. An earlier
+        # version reached to local Y = -6.0 (global X = 26.0), which
+        # collided with the Tray's own side wall -- caught by the
+        # cross-part verification probe; this derivation is bounded well
+        # short of that.
+        #
         # The bridge lives on the NEGATIVE-Y side only (Y < -beam_half_width_pre,
         # i.e. beyond the arm's own -Y edge, toward the wall) -- NOT
         # symmetric with the +Y side, which must stay untouched (that is
         # where the hole bores live). An earlier version used
         # `+beam_half_width_pre` for both the depth and centre calc below,
-        # which silently spanned the *whole* arm width (-5.65..+3.9) and
-        # refilled the main-hole bores with the root's own material --
-        # caught by the cross-part / hole-presence test suite.
-        root_inner_local_y = -5.650
+        # which silently spanned the *whole* arm width and refilled the
+        # main-hole bores with the root's own material -- caught by the
+        # cross-part / hole-presence test suite.
+        wall_inner_face_at_band_a = self.WALL_X_OUTER_LOWER - self.WALL_THICKNESS_LOWER
+        root_inner_local_y = (wall_inner_face_at_band_a - 0.05) - self.HOLE_X
         root_outer_local_y = -beam_half_width_pre
-        # Post-fix hardening (round 17): this Z window is the entirety of
-        # the structural fuse -- 2.0 mm (ROOT_BAND_A_Z_HI - ROOT_BAND_A_Z_LO)
-        # x 1.85 mm (reach depth, root_outer_local_y - root_inner_local_y)
-        # x 23.2 mm (arm length) ~= 85.8 mm^3, see the design brief's own
-        # margin derivation. If ROOT_BAND_A_Z_LO is ever raised (shrinking
-        # Band A) without re-deriving that margin, the guard below fails
-        # loudly instead of silently reopening the floating-arm defect.
+        # Post-fix hardening (round 17, re-derived round 73b): this Z
+        # window is the entirety of the structural fuse -- 2.0 mm
+        # (ROOT_BAND_A_Z_HI - ROOT_BAND_A_Z_LO) x (reach depth,
+        # root_outer_local_y - root_inner_local_y, now ~1.875 mm rather
+        # than the pre-round-73b 1.85 mm) x 23.35 mm (arm length) -- see
+        # the round-73b report for the exact re-measured margin. If
+        # ROOT_BAND_A_Z_LO is ever raised (shrinking Band A) without
+        # re-deriving that margin, the guard below fails loudly instead of
+        # silently reopening the floating-arm defect.
         # Band B (below) deliberately DOES now reach the wall again (round
         # 20, H4) -- but only by SEAM_MARGIN, not Band A's full depth; the
         # assert after Band B's own construction guards that relationship.
@@ -1717,11 +2758,22 @@ class PoweredUpHubHousing:
             "brief's Escalation 8) -- shrinking it reopens the floating-"
             "arm defect the bridge exists to prevent."
         )
+        # ROUND 73b -- WALL_STEP_Z is now a LEGACY Z-split marker only (see
+        # its own note); this assert still checks a real invariant (Band A's
+        # Z-lower-bound must not slide down into Band B's own Z-range), it
+        # is just no longer protecting against "the tray's lower-band wall"
+        # in the sense the original comment meant -- under item 2's
+        # restructure, the Tray's wall now occupies BOTH bands' Z-range
+        # (it stands to world Z 26.000, past Band A's own 24.000 cap), so
+        # what actually protects the Tray is each band's own re-derived
+        # X-reach (see `root_inner_local_y`/`root_b_inner_local_y`), not
+        # this Z-split. This assert only guards that the two bands don't
+        # swap positions in Z.
         assert self.ROOT_BAND_A_Z_LO >= self.WALL_STEP_Z - self.ARM_Z_LO, (
-            "Root bridge Band A must not extend below the wall step "
-            "(global Z = WALL_STEP_Z) -- doing so regrows a wall-reaching "
-            "extension into Band B's Z-range, which the tray's lower-band "
-            "wall occupies (design brief Escalation 8)."
+            "Root bridge Band A must not extend below the historical Z-split "
+            "(global Z = WALL_STEP_Z) -- doing so regrows Band A's own "
+            "(deeper) X-reach into Band B's Z-range, undoing the two-band "
+            "split entirely (design brief Escalation 8)."
         )
         arm = arm.union(root)
 
@@ -1730,8 +2782,16 @@ class PoweredUpHubHousing:
         # than Band A's (into the wall's own material by SEAM_MARGIN only,
         # not past its inner face) -- this band exists solely to close the
         # slit, not to duplicate Band A's structural-fuse role.
+        #
+        # ROUND 73b -- reads WALL_THICKNESS_LOWER, NOT the shared
+        # WALL_THICKNESS. This was a round-73a staleness bug: band 1's real
+        # thickness became WALL_THICKNESS_LOWER (1.350) that round, but this
+        # formula kept reading the parked group's own WALL_THICKNESS (0.800)
+        # -- under-reaching the real wall by 0.550 mm (found by measurement,
+        # not inspection; see the round-73b implementation report).
         root_b_inner_local_y = (
-            self.WALL_X_OUTER_LOWER - self.WALL_THICKNESS + SEAM_MARGIN - self.HOLE_X
+            self.WALL_X_OUTER_LOWER - self.WALL_THICKNESS_LOWER + SEAM_MARGIN
+            - self.HOLE_X
         )
         root_b = rounded_box(
             width=self.ARM_LENGTH,
@@ -1774,9 +2834,10 @@ class PoweredUpHubHousing:
         # The horizontal hole: BLIND, counterbored at the entry rim only --
         # LDraw `connhol3`, which is the primitive Philo actually uses here
         # (the vertical positions get `connhole`, the through-hole variant).
-        # See MID_BORE_DEPTH for the derivation off 24851s01.
-        boss_tip = half_w + self.BOSS_PROUD                  # local y = +4.000
-        floor_local_y = boss_tip - self.MID_BORE_DEPTH       # local y = -3.200
+        # See MID_BORE_DEPTH for the derivation off 24851s01 and its
+        # round-73b functional supersession.
+        boss_tip = half_w + self.BOSS_PROUD                  # local y = +3.850
+        floor_local_y = boss_tip - self.MID_BORE_DEPTH       # local y = -4.150
 
         floor_x = self.HOLE_X + floor_local_y
         assert abs(floor_x - self.MID_BORE_FLOOR_X) < 1e-9, (
@@ -1784,11 +2845,43 @@ class PoweredUpHubHousing:
             f"{self.MID_BORE_FLOOR_X:.3f} -- MID_BORE_DEPTH and the boss "
             f"geometry have drifted apart"
         )
-        arm_inboard_x = self.HOLE_X - half_w                 # 28.400
-        assert floor_x - arm_inboard_x >= self.MID_BORE_MIN_FLOOR - 1e-9, (
-            f"the bore leaves only {floor_x - arm_inboard_x:.3f} mm of arm "
-            f"behind its floor; the reference leaves "
-            f"{self.MID_BORE_MIN_FLOOR:.3f} mm"
+
+        # ROUND 73b -- stack-up along the bore's own axis, boss tip inward,
+        # reported explicitly per the owner's request ("Report the stack-up
+        # as an explicit list of components with numbers"):
+        #
+        #   1. boss (BOSS_PROUD)                          0.175 mm
+        #   2. arm's own bulk width (ARM_WIDTH)            7.350 mm
+        #   3. "the gap" -- past the arm's own nominal      0.475 mm
+        #      flat face (half_w from the hole centre),
+        #      into the root-bridge transition zone
+        #   ------------------------------------------------------
+        #   total (== MID_BORE_DEPTH)                      8.000 mm
+        #
+        # ROUND 73b -- the floor guard is RE-POINTED, not merely re-valued.
+        # `arm_inboard_x` (the arm's own bare flat face) is no longer the
+        # right thing to measure against: at MID_BORE_DEPTH = 8.000 the
+        # floor is 0.475 mm PAST it BY DESIGN (component 3 above, the "gap"
+        # the owner explicitly described), so a check against the arm's own
+        # face would fail on correct, owner-confirmed geometry. What
+        # actually matters structurally is whether real material still
+        # backs the floor -- which, past the arm's own face, is the ROOT
+        # BRIDGE's own reach (`root_b_inner_local_y`, Band B, since this
+        # hole's Z position -- ARM_THICKNESS / 2 -- falls inside Band B's
+        # local Z range [0, ROOT_BAND_A_Z_LO]). `root_b_inner_local_y` is
+        # already in scope here (computed above, before the boss/bore
+        # block) and reaches FURTHER inboard than the bore's own floor by
+        # construction (see its own assert against `root_inner_local_y`),
+        # so this checks the bore does not floor out past the bridge's own
+        # limit -- STOP-and-report territory, not a value to shave, if it
+        # ever fires.
+        remaining_backing = floor_local_y - root_b_inner_local_y
+        assert remaining_backing >= self.MID_BORE_MIN_FLOOR - 1e-9, (
+            f"the bore floor ({floor_local_y:.3f} local) leaves only "
+            f"{remaining_backing:.3f} mm before the root bridge's own reach "
+            f"limit ({root_b_inner_local_y:.3f} local) -- the bore has eaten "
+            f"into the structural bridge itself; this needs a design "
+            f"decision, not a floor shave"
         )
         # That the bore does NOT reach the cavity is verified on the BUILT
         # solid by test_middle_bore_is_blind -- these asserts pin the inputs,
@@ -2026,30 +3119,46 @@ class PoweredUpHubHousing:
     # ------------------------------------------------------------------
 
     def _build_tongue_wall(self) -> cq.Workplane:
-        """Three Z bands (round 22 adds the third), plus the round-46
-        locating ribs (:meth:`_build_tongue_ribs`) that stand in the
-        cavity in front of them.
+        """Four Z bands, plus the round-46 locating ribs
+        (:meth:`_build_tongue_ribs`) that stand in the cavity in front of
+        them.
 
         1. ``[0, TONGUE_STEP_Z]`` -- the rebate, inner face at
            :attr:`TONGUE_INNER_Y_LOWER`. This is the lap the cover's
-           tongue tip hooks under; unchanged.
+           tongue tip hooks under; unchanged since round 18, and NOT the
+           feature the owner described in round 73c (see
+           ``TONGUE_STEP_Z``'s own note -- the exact numeric coupling to
+           ``PoweredUpHubCover.TIP_Z_LO`` rules that out).
         2. ``[TONGUE_STEP_Z, tongue_clear_z_hi]`` -- the band the cover's
            tongue tip and riser actually occupy, inner face held back at
-           :attr:`TONGUE_INNER_Y_UPPER` (+ running clearance); unchanged.
-        3. ``[tongue_clear_z_hi, END_WALL_Z_HI]`` -- **new in round 22.**
-           Above the riser there is nothing to clear, so the wall thickens
-           inward to the cover's own plate edge
-           (``PoweredUpHubCover.PLATE_Y_HI``), closing the open slot the
-           user flagged at this end. This is the tongue-end counterpart of
-           the latch end's own :attr:`LATCH_WALL_THICKNESS` thickening --
-           and it needs no clearance channel, because the tongue is a
-           low feature (it tops out at ``RISER_Z_HI``) rather than a
-           full-height one like the latch U.
+           :attr:`TONGUE_INNER_Y_UPPER` (+ running clearance). UNCHANGED
+           since round 22, and round 73c specifically KEPT it that way
+           after an attempted merge into band 3 measurably regressed
+           Housing/Cover clearance by 49.546 mm^3 -- see
+           ``TONGUE_INNER_Y_UPPER``'s own note for the A/B measurement.
+        3. ``[tongue_clear_z_hi, TONGUE_RELIEF_Z_HI]`` -- **new in round
+           73c.** The owner's own observation: "the wall on the tongue
+           side is stepped, the first 5mm on the Z is narrower." This band
+           extends the relief from where band 2 already stops (~2.95 mm,
+           above the Cover's own riser reach) out to the owner's stated
+           5.000 mm, at :attr:`TONGUE_RELIEF_THICKNESS` (owner-measured
+           this round, with a hard derived ceiling from the frozen Cover's
+           own plate edge -- see that constant's own comment). This Z-range
+           had no pre-existing clearance requirement (nothing Cover-side
+           reaches this high), so adding it does not disturb band 2.
+        4. ``[TONGUE_RELIEF_Z_HI, END_WALL_Z_HI]`` -- the flat wall's own
+           thickness, :attr:`TONGUE_WALL_THICKNESS` (round 73c: 4.100,
+           owner-measured directly above the step -- supersedes round
+           73b's 4.500, itself a proposed round number rather than a
+           caliper reading). This is the tongue-end counterpart of the
+           latch end's own :attr:`LATCH_WALL_THICKNESS` thickening.
 
         Round 46 adds the three mirrored rib pairs that enter the Cover's
         own tongue slots -- see :meth:`_build_tongue_ribs`. They stand
         inboard of band 1, in the cavity the two skins bound in the
-        reference, and tie bands 1 and 3 together in Z.
+        reference, and tie bands 1 and 2 together in Z (their own Z-height
+        is independently pinned to ``Cover.RISER_Z_HI``, unaffected by
+        round 73c's new band 3).
         """
         lower = self._y_slab(
             self.TONGUE_Y,
@@ -2061,21 +3170,31 @@ class PoweredUpHubHousing:
         # The cover's riser tops out at RISER_Z_HI; clear it by the
         # project's own running-clearance convention before thickening.
         tongue_clear_z_hi = PoweredUpHubCover.RISER_Z_HI + self._profile.free.radial
-        middle = self._y_slab(
+        riser_clearance = self._y_slab(
             self.TONGUE_Y,
             self.TONGUE_Y - self._tongue_inner_y_upper,
             self.TONGUE_STEP_Z,
             tongue_clear_z_hi,
             inward=False,
         )
+        relief_extension = self._y_slab(
+            self.TONGUE_Y,
+            self.TONGUE_RELIEF_THICKNESS,
+            tongue_clear_z_hi,
+            self.TONGUE_RELIEF_Z_HI,
+            inward=False,
+        )
         upper = self._y_slab(
             self.TONGUE_Y,
-            self.TONGUE_Y - PoweredUpHubCover.PLATE_Y_HI,
-            tongue_clear_z_hi,
+            self.TONGUE_WALL_THICKNESS,
+            self.TONGUE_RELIEF_Z_HI,
             self.END_WALL_Z_HI,
             inward=False,
         )
-        return lower.union(middle).union(upper).union(self._build_tongue_ribs())
+        return (
+            lower.union(riser_clearance).union(relief_extension).union(upper)
+            .union(self._build_tongue_ribs())
+        )
 
     def _build_tongue_ribs(self) -> cq.Workplane:
         """The three mirrored rib pairs that enter the Cover's tongue slots.
@@ -2092,30 +3211,44 @@ class PoweredUpHubHousing:
         flanks and will not enter the slot on FDM.  Each such flank is
         pulled back by ``profile.free.radial`` -- the same running-fit
         knob the tongue's own back wall already routes its insertion
-        datum through (see :attr:`TONGUE_INNER_Y_UPPER`).  The outer
+        datum through (ROUND 73c: was :attr:`TONGUE_INNER_Y_UPPER`,
+        retired -- see that constant's own note; the concept is unchanged,
+        only which constant carries it).  The outer
         band's ``28.000`` flank is the shell's own outer face with no
         Cover material outboard of it, so it takes no clearance.
 
-        **Y -- each rib starts where its own slot actually opens.**  Out
-        to ``TONGUE_INNER_Y_LOWER``, where the rib merges into the rebate
-        band; but the -Y end is per-band, because the Cover's slots are
-        not all open to the same depth.  Outboard of
-        ``PoweredUpHubCover.LEDGE_X_HALF`` the slot runs back to the plate
-        edge (``PLATE_Y_HI``).  Inboard of it -- which is the centre rib
-        -- the Cover's castellated ledge closes the slot off at
-        ``LEDGE_Y_LO``: its notch floor (``NOTCH_FLOOR_Z``) is a
-        continuous full-ledge-width band over ``[TEETH_Y_LO, TEETH_Y_HI]``
-        and crosses the centre, so a centre rib run back to the plate edge
-        collides with it (measured: 0.130 mm^3 of interference).  Both
-        starts then take the same running clearance -- the +Y insertion
-        stop is the tongue tip against the back wall at
-        ``TONGUE_INNER_Y_UPPER``, so a rib butting a Cover face in -Y
+        **Y -- every rib starts where the Cover's slots actually open.**
+        Out to ``TONGUE_INNER_Y_LOWER``, where the rib merges into the
+        rebate band; the -Y end is the SAME for all three bands, because
+        ``cover.py`` ``_build_tongue()`` cuts all three slots from one
+        expression, ``PLATE_Y_HI + TONGUE_GAP_Y_INSET`` (= 33.000).
+
+        ROUND 75 retired the previous per-band story here.  It claimed the
+        starts differed -- plate edge outboard of
+        ``PoweredUpHubCover.LEDGE_X_HALF``, ``LEDGE_Y_LO`` inboard of it
+        for the centre rib -- but both of those constants are 32.200, so
+        the branch chose between identical values, and 32.200 is the wrong
+        line anyway: inboard of 33.000 the Cover is solid (the blades'
+        shared root), so every rib starting at the plate edge buried
+        0.800 mm into it.  A sweep of the built Cover
+        (``tmp/r75e_slot_open_exact.py``) measures all three slots opening
+        at 33.000 with 0.000 spread, which is the positive evidence that
+        no per-band variation exists.  All starts then take the same
+        running clearance -- the +Y insertion
+        stop is the tongue tip against the back wall (ROUND 73c: the
+        relief's own inner face, :attr:`TONGUE_RELIEF_THICKNESS`; was
+        ``TONGUE_INNER_Y_UPPER``), so a rib butting a Cover face in -Y
         would be a competing stop.
 
-        **Z.**  From the bottom face up to the same ``tongue_clear_z_hi``
-        the wall's upper band starts at, so each rib is continuous with
-        the rebate band below (in Y) and the thickened upper band above
-        (in Z) rather than floating.  Both joins carry a small overlap:
+        **Z.**  From the bottom face up to (approximately) ``Cover.
+        RISER_Z_HI`` + running clearance -- independently pinned to the
+        Cover's own riser height, NOT to :attr:`TONGUE_RELIEF_Z_HI` (round
+        73c widened the wall's own relief band well past this rib height,
+        but the rib itself only needs to clear the riser it enters,
+        computed directly below as ``z_hi``) -- so each rib sits inside
+        the rebate band below (in Y) and comfortably inside the (now
+        wider) relief band above (in Z) rather than floating.  Both joins
+        carry a small overlap:
         coincident union faces are unreliable in the OCCT boolean kernel
         (see CLAUDE.md, *Chord-vs-arc ring*), and the overlap lands
         strictly inside material this method does not own, so it adds no
@@ -2157,11 +3290,36 @@ class PoweredUpHubHousing:
 
         ribs = None
         for x_lo, x_hi in bands:
-            under_ledge = max(abs(x_lo), abs(x_hi)) <= PoweredUpHubCover.LEDGE_X_HALF
+            # ROUND 75 -- the rib's inboard start is DERIVED from where the
+            # Cover's slots actually open, not from the plate edge.
+            #
+            # Round 74 read this as `LEDGE_Y_LO if under_ledge else
+            # PLATE_Y_HI` -- both of which are 32.200, so the conditional was
+            # a distinction without a difference, AND the value was wrong:
+            # the slots do not open at the plate edge.  `cover.py`
+            # `_build_tongue()` cuts them at
+            #     gap_y_lo = PLATE_Y_HI + TONGUE_GAP_Y_INSET = 33.000
+            # for ALL three bands from one expression -- which is exactly why
+            # a sweep of the built Cover (`tmp/r75e_slot_open_exact.py`) finds
+            # every slot opening at 33.000 with 0.000 spread across all three
+            # centres and all sampled heights.  Between the plate edge and
+            # that line the Cover is SOLID (the blades' shared root, round
+            # 66), so a rib starting at 32.200 buries 0.800 mm into it --
+            # the measured 4.394 mm^3 bind that
+            # `test_tongue_ribs_locate_sideways_without_obstructing_withdrawal`
+            # reports at dX = 0.000.
+            #
+            # Derived, not restated: a housing-side literal 33.000 would be
+            # the same stale-literal hazard this file has already been bitten
+            # by once (see the round-61/69 PAD_SCALLOP note).  The `- SHELL_
+            # Y_OFFSET` back-compensation is unchanged from round 74 -- these
+            # ribs are built in the shell's LOCAL frame and must still land on
+            # the frozen Cover's feature after the shell-wide translate.
+            # `y_hi` is a housing-native constant and rides with the shell.
             y_lo = (
-                PoweredUpHubCover.LEDGE_Y_LO if under_ledge
-                else PoweredUpHubCover.PLATE_Y_HI
-            ) + clr
+                PoweredUpHubCover.PLATE_Y_HI
+                + PoweredUpHubCover.TONGUE_GAP_Y_INSET
+            ) - self.SHELL_Y_OFFSET + clr
             rib = rounded_box(
                 width=x_hi - x_lo,
                 depth=y_hi - y_lo,

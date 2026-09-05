@@ -4795,3 +4795,161 @@ this Developer could not achieve as literally worded.
 ### Human Final Approval
 - [ ] **Human approved** for merge / release
 - Human notes:
+
+## Design Decision — Latch-end wall: solid slab, not two-skin void (2026-09-04)
+
+**Question delegated to Designer:** should the housing's latch/hook-end wall be
+modelled as a two-skin sandwich with an internal void (matching the real LEGO
+part's injection-moulded construction), or left as a solid slab? Owner's
+stated constraint driving the call: **"it needs to be easy to print."**
+
+**Ground truth consulted (not re-derived):**
+- Owner's caliper reading: *"Hook end: 6mm, around 1mm gap"* — the real part
+  reads ~6 mm overall with a ~1 mm internal void.
+- As-built (`vibe_cading/lego_adapters/poweredup_hub/housing.py`,
+  `_build_latch_wall` at line 2437): `LATCH_WALL_THICKNESS` builds a **solid**
+  `Y`-slab (`_y_slab(...)`, no cavity) from `LATCH_Y` inward, currently 5.000 mm
+  (becoming 6.050 mm under the separately-decided +1.825 mm Y-translation /
+  re-thickening — not this decision). Verified solid at every sampled height
+  by `tmp/r73e_hook_wall.py` (no void, no gap, one contiguous run in Y).
+- Critically, this solid slab is **not** the load-bearing latch mechanism.
+  The hook/finger interface already has its own, separately-derived and
+  independently-verified thin skin: `LATCH_SKIN_THICKNESS = 1.200 mm`
+  (`_build_latch_clearance`, line 2519) cuts the two finger channels
+  (`|X|` bands at `hook_pitch/2 ± hook_width/2`) back to that skin, and
+  `_build_latch_land` / `_build_finger_windows` are derived against it. The
+  6.050 mm solid slab under discussion here is only the *flat spans between
+  and outboard of the fingers* (per the round-22 comment at line 1210) — the
+  region the owner's caliper most plausibly reached from outside, not the
+  hook-channel interface itself.
+
+**Decision: keep the solid slab. Do NOT model a two-skin void at the outer
+latch-end wall.**
+
+**Reasoning, in order of weight:**
+
+1. **The owner's stated driver — printability — is decided by the print
+   process, and FDM has none of the reasons the real part is hollow.** LEGO's
+   ~1 mm internal void exists because injection moulding needs uniform wall
+   thickness to avoid sink marks and to control cooling time and material
+   cost across a high-volume production run. None of those constraints apply
+   to a single FDM print. A solid slab prints as plain solid infill: no
+   internal cavity to negotiate, no risk of a fragile roof/floor cap over the
+   void failing during or after printing, no dependency on print orientation
+   to keep an enclosed pocket free of trapped ooze or accidental support
+   generation. It is the mechanically simplest thing a slicer can be asked to
+   produce. A two-skin void is not un-printable here (the void's own
+   thickness, ~1 mm, is trivially bridgeable in either orientation), but it
+   trades away simplicity for zero functional gain — see point 2.
+2. **The void's only case for existing is cosmetic reference-fidelity — this
+   region is not the mechanism.** The hook clearance channels, the finger
+   windows, and the retention land are the only load-bearing surfaces in
+   this wall, and all three are already correctly modelled against the
+   existing `LATCH_SKIN_THICKNESS = 1.200 mm` skin, independent of whatever
+   the flat outboard spans are built as. Hollowing the outboard spans changes
+   nothing about how the latch functions; it only makes the model look more
+   like the real part's cross-section where a caliper happens to reach it.
+3. **Structural consequence at a snap-fit interface — a solid slab is
+   strictly stiffer, and stiffness here is a functional asset, not a cosmetic
+   one.** This wall is the anchor frame the compliant hook/release-leg
+   fingers flex against on every insertion and release cycle. A two-skin
+   void, by construction, replaces a monolithic 6.050 mm cross-section with
+   two independently-thin skins joined only at their Z/X boundaries (unless
+   ribbed, which reintroduces the complexity point 1 argues against) — this
+   is a lower second-moment-of-area cross-section, more prone to flexing
+   under the repeated snap load, right where the fingers most need a rigid
+   reaction surface. Any give in the anchor wall reduces the fingers'
+   effective engagement and retention margin, which is exactly the class of
+   defect this project's own `Functional Claims Need Kinematic Evidence`
+   convention (`vibe/INSTRUCTIONS.md` §4) exists to catch downstream — better
+   not to introduce the risk than to have to re-verify it away later.
+4. **Direct precedent already in this file for the same trade.** The
+   `Arm faces NOT dished` deviation (housing class docstring, *Known
+   simplifications*) made the identical call for the identical reason: the
+   real part's arm faces carry a shallow relief pocket that exists purely for
+   injection-moulding purposes (material/cooling), and this project
+   deliberately keeps the arm solid instead because a thinned web under an
+   FDM-cantilevered load is the wrong trade — "fidelity to the reference's
+   appearance is knowingly traded for strength." The latch-end wall's flat
+   spans are the same category of decision: a hollow feature whose *reason to
+   exist* is a manufacturing process this project does not use, adjacent to
+   (here, upstream of) a feature that does carry real mechanical load.
+5. **Boolean-geometry risk is not zero, and buys nothing.** Bounding a void so
+   it stays clear of the already-verified hook-clearance channels
+   (`_build_latch_clearance`) and finger windows
+   (`_build_finger_windows`) without reducing either to a sliver is exactly
+   the failure shape this project's own *Known Modelling Pitfalls → Overcuts
+   on the non-waste side* entry warns against (round 48's plate-edge relief
+   incident). Taking on that risk for a purely cosmetic, non-verified-by-any-
+   test outcome fails this project's own *Predicted-Cost Estimation for
+   Non-Blocking Concerns* standard: the downside (a re-run of that incident,
+   this time at the actual latch mechanism's own wall) is disproportionate to
+   the upside (a caliper reading matching more closely on a region nobody
+   measures functionally).
+
+**Net effect on the model:** no code change from this decision. The wall
+stays a solid slab; the already-decided, separately-tracked +1.825 mm Y shift
+and 5.000 → 6.050 mm thickening (not part of this call) proceed as recorded
+elsewhere in this document. `LATCH_SKIN_THICKNESS` (1.200 mm) and the
+hook-channel / finger-window / retention-land geometry derived against it are
+untouched by this decision either way.
+
+**Scope note:** this ruling is specific to the *latch-end* wall's flat
+outboard spans. It says nothing about the tongue-end wall's own stepped
+construction (`TONGUE_RELIEF_Z_HI` / `TONGUE_RELIEF_THICKNESS` /
+`TONGUE_WALL_THICKNESS`), which is a separate, already-resolved feature with
+its own derivation chain (round 73c) and is not reopened here.
+
+## Tongue-root web at Y = 33.000 — domain finding (round 75, designer review)
+
+**Question raised:** the Cover's three tongue slots (where the Housing's
+locating ribs enter) measure OPEN at exactly Y = 33.000 on all three slot
+centres, with a solid 0.800 mm band between `PLATE_Y_HI` (32.200) and that
+edge. No Cover constant literally equals 33.000.
+
+**1. What the band IS.** It is the tongue's own root web — the strip of
+material that keeps the four segmented tongue blades (round 45,
+`TONGUE_GAP_X_INNER` / `TONGUE_RIB_X_HI`) fused to the plate rather than
+starting as free-floating slivers right at the plate edge. `cover.py`
+`TONGUE_GAP_Y_INSET`'s own comment (round 66) states this directly: "the
+gaps start … outboard of the plate edge … so the blades stay joined at
+their root." It is not a separate named LEGO moulding feature and it is not
+the *ledge* (a different, already-named feature at the same 32.200
+coordinate purely by round-68 coincidence) — it is this project's own
+structural decision, not a reference feature being reproduced.
+
+**2. Independent datum or consequence?** Pure consequence, verified against
+the code: `cover.py:1407` computes `gap_y_lo = self.PLATE_Y_HI +
+self.TONGUE_GAP_Y_INSET` = 32.200 + 0.800 = 33.000 exactly. No new constant
+is needed or warranted; citing `PLATE_Y_HI + TONGUE_GAP_Y_INSET` is the
+correct derivation for any code that needs "where the Cover's slot actually
+opens."
+
+**3/4. Should the Housing rib stop against this band — and a measured
+conflict.** `housing.py._build_tongue_ribs` computes each rib's -Y stop from
+`PLATE_Y_HI` (centre/ledge case) or `LEDGE_Y_LO` (both 32.200) — i.e. it
+still assumes the Cover's slot opens at the plate edge itself, which was
+true before round 66 but has not been true since. Built and measured
+directly (`cover.solid.intersect(housing._build_tongue_ribs())`), this is
+**not** a documentation staleness only — it is a live 10.91 mm³ of
+interference between the ribs and the Cover's now-solid root web. This is
+almost certainly why `test_general_body_seated_interference_is_zero` is
+carrying `@xfail_cross_datum` rather than passing.
+
+Per round 46's own docstring, the ribs are the *optional* X-location — the
+tongue rebate is the real retention, and the shell's own side walls already
+locate the lid — so under-reaching the web is the safe failure direction
+and over-reaching it (the current state) is not. The rib's -Y stop should
+be derived from `PoweredUpHubCover.PLATE_Y_HI + PoweredUpHubCover.
+TONGUE_GAP_Y_INSET` (i.e. the slot's real open edge, 33.000) minus the
+running clearance, not from `PLATE_Y_HI` directly — bringing it in line
+with the same "track the lid's actual walls, not the nominal reference"
+principle `_build_tongue_ribs`'s own docstring already states for the X
+bands. This is a code fix for the Developer/TL, not something resolved here
+— flagged as the domain answer to "should it bottom out against the band":
+it should stop *clear of* the web by the running clearance, and today it
+does not.
+
+No conflict found between the LDraw reference and the physical-measurements
+record on this specific point — the root web is a this-project decision,
+not a reference-vs-hardware disagreement.

@@ -291,6 +291,48 @@ Use the dedicated `vibe_cading/tools/view.py` entry point instead:
     python3 vibe_cading/tools/view.py vibe_cading.rc.servo.sg90.Sg90Servo
     python3 vibe_cading/tools/view.py vibe_cading.rc.servo.sg90.Sg90Servo --params body_width=23.0
 
+### Push to the viewer after every model change (standing instruction)
+
+After any change to model or geometry code, push the affected class or assembly
+to the live viewer as the closing step of that round.  This is the human
+maintainer's **standing instruction** — it needs no per-turn confirmation and
+must not be dropped because a round felt small.  The human inspects geometry in
+the viewer; a round that ends without a push leaves them looking at the previous
+shape and reasoning about a part that no longer exists.
+
+**Delegation does not discharge it — the round ends at the report, not at the
+subagent's return.** If geometry moved anywhere in the round — edited by you, by
+a subagent you spawned, or reverted and restored so the *net* shape differs from
+what the viewer last rendered — the agent writing the report to the human is
+responsible for the push and its screenshot proof. A pointer in a role file
+(e.g. the Developer's) makes the sub-round's push *also* expected; it never
+transfers the obligation away from the reporting agent. Dual ownership is how
+this reaches zero ownership. *(Triggering incident: round 74 of the PoweredUp-hub
+work re-datumed the housing in Y and thickened a wall inside a spawned developer
+subagent; the orchestrator reported the new dimensions to the maintainer with no
+push, leaving them inspecting the pre-re-datum shape — in a session where that
+same orchestrator had personally restored the viewer stack hours earlier.)*
+
+**A sender-side success message is not proof of delivery.**  The standalone
+`ocp_vscode` server is a pass-through relay with no store: it forwards the
+payload to whatever browser is currently registered and silently drops it when
+none is.  So `Showing <Class>` and exit 0 confirm only that the *server* accepted
+the model — never that anything rendered (see *Gotchas* in
+[docs/viewer.md](../docs/viewer.md)).  What counts as proof is a **round-trip
+artifact read back from the viewer itself**: capture a screenshot after the push
+(`ocp_vscode.save_screenshot`) and confirm the file exists and shows the new
+geometry.  Without that, report the push as *attempted*, not as *delivered* —
+claiming delivery on a sender-side message is a hallucinated action under §1.
+
+Two mechanics that keep this honest:
+
+- **Reset the camera on the push** (`Camera.RESET`).  A retained camera pose can
+  frame a changed part so it looks unchanged, which turns the screenshot into a
+  check that cannot fail (§4).
+- A push helper that needs `ocp_vscode` directly may live under `tmp/`.  The
+  no-`ocp_vscode`-import rule above scopes to `vibe_cading/**` and `parts/**`
+  (that is what CI enforces); `tmp/` scratch is outside it.
+
 ### Class-scoped demos via `--demo` and `demo()` classmethod
 
 A class may opt into a richer multi-shape demonstration (multi-instance

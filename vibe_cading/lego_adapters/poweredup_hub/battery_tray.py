@@ -127,9 +127,12 @@ class PoweredUpHubBatteryTray:
     **Rejected alternative** (the user's own second suggestion, so recorded
     rather than silently dropped): routing the strap through slots in the
     lower side walls to avoid a second part entirely. It does not fit --
-    this tray's lower-band outer face is at ``|X| = 27.200`` and
-    ``PoweredUpHubHousing``'s lower-band inner face is *also* 27.200, so a
-    strap leaving sideways has exactly zero mm of space to run in.
+    this tray's lower-band outer face and ``PoweredUpHubHousing``'s
+    lower-band inner face were the same number (27.200), so a strap leaving
+    sideways had exactly zero mm of space to run in. Round 72 moved this
+    tray's face to 26.250 (owner-measured), which opens a nominal 0.950 mm
+    -- still far too little for a strap, and against the REAL housing the
+    gap is the running clearance (~0.230 a side), so the rejection stands.
 
     Origin / datum
     ---------------
@@ -159,13 +162,45 @@ class PoweredUpHubBatteryTray:
         profile name string, or ``None`` for the process-global default.
     """
 
-    # --- Side walls (SS2.2), lower X-band -- unaffected by any round-51
-    # change: Housing's lower-band inner face (WALL_X_OUTER_LOWER -
-    # WALL_THICKNESS = 28.000 - 0.800 = 27.200) has been the same number
-    # since the reference's own "exact copy" envelope was first measured,
-    # and this tray still rides directly against it.
-    WALL_OUTER_X = 27.200
-    WALL_INNER_X = 26.400
+    # --- Side walls (SS2.2), lower X-band.
+    #
+    # ROUND 72 -- OWNER-MEASURED, superseding the derivation below.
+    # 52.500 outer-to-outer across the two side walls, measured on the real
+    # tray, so each outer face is at 26.250.
+    #
+    # What it replaces, and why that was wrong: this used to be 27.200,
+    # derived from OUR Housing's lower-band inner face
+    # (WALL_X_OUTER_LOWER - WALL_THICKNESS = 28.000 - 0.800), on the note
+    # that the figure "has been the same number since the reference's own
+    # 'exact copy' envelope was first measured". That is exactly the failure
+    # this part has now hit four times: the LDraw reference was wrong about
+    # the hardware in width, hook height, latch depth and compartment
+    # height, and a constant derived from it inherits the error while
+    # LOOKING well-founded. The Housing's own cavity width (54.400) is
+    # itself unverified and known too wide against a real-housing reading of
+    # 52.960 -- so this constant is no longer allowed to depend on it.
+    #
+    # 52.500 in a 52.960 cavity leaves 0.460 total, i.e. 0.230 a side, which
+    # is a plausible running clearance and an independent corroboration of
+    # both numbers.
+    # ROUND 72 -- wall thickened 0.800 -> 2.000 on the owner's report that the
+    # printed tray feels "too filmy" in the hand. That is a tactile reading of
+    # a real printed part, which outranks any derivation.
+    #
+    # It goes INBOARD, because WALL_OUTER_X is the measured drop-in datum and
+    # cannot move. On a 0.4 mm nozzle 0.800 is two perimeters (no infill
+    # between them -- it IS a film); 2.000 is five, and flexural stiffness
+    # goes as thickness cubed, so this is ~15x stiffer rather than 2.5x.
+    #
+    # Honest caveat, per the Designer: some of the floppiness is probably the
+    # SHAPE, not the section. This tray is an open U -- both end walls were
+    # removed in round 51 to clear a real Cover collision -- and an open
+    # channel twists in a way no wall thickness fully fixes. If it still feels
+    # twisty after this print, the next lever is a cross-rib or a thicker
+    # floor, NOT another thickness bump; re-adding the end walls is off the
+    # table (they were removed for a geometric reason, not a preference).
+    WALL_OUTER_X = 26.250                          # 52.500 / 2, owner-measured
+    WALL_INNER_X = WALL_OUTER_X - 2.000            # 24.250
 
     # --- Wall top (round 57): the wall STOPS where Housing's cavity
     # narrows, instead of following it inboard.
@@ -191,11 +226,30 @@ class PoweredUpHubBatteryTray:
     # ROUND 70: 20.000 -> 26.000, the owner's measured tray height. This is
     # now an OWNER-SPECIFIED figure, not a derivation from Housing's cavity
     # step -- so the round-57 note above (which derived it as
-    # Housing.WALL_INNER_STEP_Z - the seat) no longer governs. The wall now
-    # stands 4.800 mm ABOVE Housing's own 21.200 inner step, which our Housing
-    # is not yet shaped to receive; that is expected and is part of bringing
-    # the Housing backward to the frozen Cover/Tray, not a defect here.
-    WALL_Z_HI = 26.000
+    # Housing.WALL_INNER_STEP_Z - the seat) no longer governs.
+    #
+    # ROUND 73: 26.000 -> 24.800. The owner test-fitted the round-72 tray in
+    # the REAL housing and confirmed width and height match it -- so 26.000 is
+    # the COMPARTMENT's height, not the tray's. The real housing's top cover
+    # carries snap-fits that come down into the top of that compartment, and
+    # the tray has to leave room for them.
+    #
+    # The 1.200 is therefore NOT a clearance or a fudge: it is the snap-fit
+    # allowance the owner measured off the real assembly. Deliberately kept as
+    # its own named constant rather than folded into a smaller WALL_Z_HI,
+    # because the two numbers now have different owners -- CAVITY_HEIGHT is
+    # what the Housing must provide (and is exported to it as ground truth,
+    # see the class docstring), while this wall is what the Tray may occupy.
+    # Collapsing them would lose exactly the distinction the owner drew.
+    #: Clear height of the real housing's battery compartment, measured from
+    #: the Cover's inner face. Round-72 tray was built to this and fitted, so
+    #: it is now GROUND TRUTH FOR THE HOUSING, which must be re-datumed to
+    #: provide it. Read by PoweredUpHubHousing; do not re-derive it there.
+    CAVITY_HEIGHT = 26.000
+    #: Vertical room the top cover's snap-fits need at the top of the
+    #: compartment -- owner-measured on the real assembly (round 73).
+    SNAP_FIT_ALLOWANCE = 1.200
+    WALL_Z_HI = CAVITY_HEIGHT - SNAP_FIT_ALLOWANCE                         # 24.800
     WALL_THICKNESS = WALL_OUTER_X - WALL_INNER_X   # 0.800
 
     # --- Y span (round 51) -- the U's open ends. ---
@@ -251,6 +305,16 @@ class PoweredUpHubBatteryTray:
     FLOOR_THICKNESS = 2.700
 
     # --- Strap channel + the separate cap plate (round 55, user sketch) ---
+    # ROUND 72 -- the whole strap assembly (corridor, cap rebate, and hence
+    # the cap plate) is CENTRE-ALIGNED WITH THE SIDE TABS by owner direction,
+    # not left on Y = 0.
+    #
+    # Read from the Cover's window sill rather than from TAB_Y_CENTER purely
+    # because of class-body evaluation order -- the tab block is defined
+    # below this one, so naming TAB_Y_CENTER here would be a NameError. It is
+    # the SAME datum, and __init__ asserts the two agree so this cannot drift
+    # into two different "centres" if one of them is ever re-pointed.
+    STRAP_Y_CENTER = PoweredUpHubCover.WINDOW_SILL_Y_CENTER                # 2.000
     # 20.0 mm nominal strap width (user-supplied) + 0.500 mm so the strap
     # is not pinched in its own slot.
     STRAP_WIDTH = 20.500
@@ -315,16 +379,24 @@ class PoweredUpHubBatteryTray:
     # (which the Housing cuts FROM this tab) by 1.750 on its +Y edge. Deriving
     # both from one source makes that mismatch unrepresentable rather than
     # merely fixed.
-    TAB_ROOT_X = 27.200        # side-wall face the tab stands on
-    TAB_PAD_X = 28.000         # 0.800 mm proud
+    # ROUND 72 -- these four were literals (27.200 / 28.000 / 28.400 /
+    # 28.320) that silently encoded the OLD wall face. The tab stands ON the
+    # side wall, so when WALL_OUTER_X moved 27.200 -> 26.250 a literal root
+    # would have left the tab floating 0.950 mm outboard of the wall it is
+    # supposed to grow from -- geometry that still unions into one solid and
+    # still passes every dimensional check on the tab itself. Derived now, so
+    # the proud offsets (what the tab actually IS: 0.800 pad, 1.200 border,
+    # 0.320 rib) survive any further move of the wall.
+    TAB_ROOT_X = WALL_OUTER_X          # side-wall face the tab stands on
+    TAB_PAD_X = TAB_ROOT_X + 0.800     # 0.800 mm proud
     TAB_PAD_Y_HALF = PoweredUpHubCover.WINDOW_SILL_WIDTH / 2.0    # 11.750
     TAB_Y_CENTER = PoweredUpHubCover.WINDOW_SILL_Y_CENTER          # 2.000
     # Owner-measured 7.500 from the BOTTOM OF THE COVER, i.e. world Z. This
     # class's own frame is the tray's underside, one PLATE_THICKNESS above
     # that, so the local value is the measurement less the seat offset.
     TAB_PAD_Z_HI = 7.500 - PoweredUpHubCover.PLATE_THICKNESS       # 6.300
-    TAB_LEDGE_X = 28.400       # 1.200 mm proud -- the border's own face
-    TAB_RIB_X = 28.320         # 0.320 mm proud of the pad
+    TAB_LEDGE_X = TAB_ROOT_X + 1.200   # the border's own face
+    TAB_RIB_X = TAB_PAD_X + 0.320      # 0.320 mm proud of the pad
     TAB_RIB_Y_HALF = 8.800
     TAB_RIB_1_Z = (0.720, 1.680)   # == (1.920, 2.880) - 1.200
     TAB_RIB_2_Z = (2.720, 3.680)   # == (3.920, 4.880) - 1.200
@@ -384,6 +456,45 @@ class PoweredUpHubBatteryTray:
         # corridor ends' inner edges leaves them open top-to-bottom.
         self._cap_x_half, _ = self.cap_rebate_half_extents(prof)
 
+        # Round 72: STRAP_Y_CENTER has to be read from the Cover directly
+        # (class-body ordering -- see its own comment), so this is what stops
+        # it and TAB_Y_CENTER silently becoming two different "centres".
+        # Falsifier: re-point either one at a different datum and this fires.
+        assert self.STRAP_Y_CENTER == self.TAB_Y_CENTER, (
+            f"the strap assembly is centred at Y = {self.STRAP_Y_CENTER} but "
+            f"the side tabs are at Y = {self.TAB_Y_CENTER}; they are required "
+            "to be the same datum (owner: 'center align with the side tabs')"
+        )
+        # The rebate MOVED in Y this round, toward +Y. Its clearance from the
+        # side walls used to be symmetric and comfortable; it is now
+        # asymmetric, and the walls themselves moved inboard 0.950 in the
+        # same round. Two independent changes shrinking the same margin is
+        # exactly when a "well inside" comment stops being true, so assert it
+        # rather than restate it.
+        _reb_y_hi = self.STRAP_Y_CENTER + self.STRAP_CAP_Y_HALF
+        _reb_y_lo = self.STRAP_Y_CENTER - self.STRAP_CAP_Y_HALF
+        assert self.WALL_Y_LO < _reb_y_lo and _reb_y_hi < self.WALL_Y_HI, (
+            f"the cap rebate spans Y [{_reb_y_lo:.3f}, {_reb_y_hi:.3f}], "
+            f"outside the tray's own Y span "
+            f"[{self.WALL_Y_LO:.3f}, {self.WALL_Y_HI:.3f}]"
+        )
+        assert self._cap_x_half < self.WALL_INNER_X, (
+            f"the cap rebate reaches |X| = {self._cap_x_half:.3f}, into the "
+            f"side walls' inner face at {self.WALL_INNER_X:.3f}"
+        )
+        # The strap corridor reaches FURTHER out in X than the cap rebate does
+        # -- it is the tightest interior feature against the wall, and it was
+        # the one thing here with no guard. Round 72 thickened the wall
+        # inboard by 1.200, which spends margin on exactly this clearance, so
+        # it gets an assertion rather than a comment. Currently 24.250 -
+        # 22.900 = 1.350 mm.
+        _corridor_x_half = self.STRAP_HOLDER_X + self._strap_slot_x / 2.0
+        assert _corridor_x_half < self.WALL_INNER_X, (
+            f"the strap corridor reaches |X| = {_corridor_x_half:.3f}, into "
+            f"the side walls' inner face at {self.WALL_INNER_X:.3f} -- the "
+            "wall has been thickened past what the strap route allows"
+        )
+
         self._solid = self._build()
 
     @classmethod
@@ -428,7 +539,10 @@ class PoweredUpHubBatteryTray:
         One band, not two. It stops AT :attr:`WALL_Z_HI` and never goes
         past it: above that height Housing's cavity narrows to an inner
         face of 26.400, so this wall's wide (``WALL_OUTER_X``) section is
-        only legal below the step. Following the narrowing upward is what
+        only legal below the step. (Round 72: that 26.400 is OUR Housing's
+        number and is itself unverified -- this wall's own face is now the
+        owner-measured 26.250 and no longer derives from it. The Housing's
+        Z re-datum is a separate open item; see WALL_INNER_STEP_Z there.) Following the narrowing upward is what
         round 55 did, and it produced a wall whose upper band shared no X
         range with its lower one -- see the class-level comment on
         :attr:`WALL_Z_HI` for why that is gone.
@@ -627,7 +741,7 @@ class PoweredUpHubBatteryTray:
             depth=self.STRAP_WIDTH,
             height=self.FLOOR_THICKNESS + 2 * overcut,
             corner_r=0.0,
-            center=(0.0, 0.0, -overcut),
+            center=(0.0, self.STRAP_Y_CENTER, -overcut),
         )
 
     def _build_cap_rebate(self) -> cq.Workplane:
@@ -657,7 +771,7 @@ class PoweredUpHubBatteryTray:
           channel and there would be nothing left for the cap to glue to.
         * X and Y stop short of the side walls by construction
           (``STRAP_CAP_Y_HALF`` = 15.250 and the X half below is ~20.850,
-          both well inside ``WALL_INNER_X`` = 26.400), so this pocket
+          both well inside ``WALL_INNER_X`` = 25.450), so this pocket
           never reaches material that is doing another job. Verified by
           ``test_cap_rebate_stays_clear_of_the_side_walls``.
         """
@@ -667,7 +781,7 @@ class PoweredUpHubBatteryTray:
             depth=2 * self.STRAP_CAP_Y_HALF,
             height=self.STRAP_CAP_THICKNESS + overcut,
             corner_r=0.0,
-            center=(0.0, 0.0, self.STRAP_CAP_Z),
+            center=(0.0, self.STRAP_Y_CENTER, self.STRAP_CAP_Z),
         )
 
     def _build_extraction_tab(self, side: int) -> cq.Workplane:

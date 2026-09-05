@@ -34,6 +34,9 @@ Designer, and TL).
 
 4. **Run validation** — After completing deliverables, run the validation
    commands listed in the design brief. Record results. Topologically validate models by using programmatic checks (e.g., `assert len(result.solids().vals()) == 1`).
+   Then close the round by pushing the changed geometry to the live viewer and
+   proving it rendered — see *Push to the viewer after every model change* in
+   `vibe/INSTRUCTIONS.md`.
 
 5. **Escalate blockers** — If you encounter something that blocks progress:
    - **Design ambiguity** (a dimension is unclear, features conflict) →

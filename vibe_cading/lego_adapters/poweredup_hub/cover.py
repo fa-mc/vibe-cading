@@ -1426,6 +1426,38 @@ class PoweredUpHubCover:
                     ),
                 )
             )
+
+        # ROUND 77 -- give the two SIDE sockets the same root web the three
+        # interior ones have, so all five open at the same Y.
+        #
+        # Owner: *"On the plate, the length of the sockets on the sides
+        # should be the same as the 3 sockets in the middle, adjust it."*
+        # Measured before this: the interior sockets open at Y 33.025
+        # (= PLATE_Y_HI + TONGUE_GAP_Y_INSET, the round-66 web that keeps the
+        # blades joined at their root), but the side sockets -- the strips
+        # between the riser's outer edge and the plate edge -- open at
+        # 32.225, i.e. straight off the plate edge, 0.800 longer.  They were
+        # never gap-CUT at all; they are simply where the tongue stops in X,
+        # so the web that shortens the others never applied to them.
+        #
+        # Adding it here rather than widening the tongue: the tongue's own
+        # outer extent (RISER_X_HALF) is measured ground truth and must not
+        # move.  This is only the missing root web, spanning the same Y band
+        # and the same height as the interior webs.
+        for sign in (-1.0, 1.0):
+            lo, hi = sorted((sign * self.RISER_X_HALF,
+                             sign * self.PLATE_WIDTH / 2.0))
+            tongue = tongue.union(
+                rounded_box(
+                    width=hi - lo,
+                    depth=self.TONGUE_GAP_Y_INSET,
+                    height=self.RISER_Z_HI,
+                    corner_r=0.0,
+                    center=((lo + hi) / 2.0,
+                            self.PLATE_Y_HI + self.TONGUE_GAP_Y_INSET / 2.0,
+                            0.0),
+                )
+            )
         return tongue
 
     def _build_locating_groove(self) -> cq.Workplane:
