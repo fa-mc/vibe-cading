@@ -63,16 +63,18 @@ section to the new version and date.
 - `vibe_cading/mechanical/holes.py`: `CounterboreHole`'s cylindrical (pan/socket)
   head-recess branch extruded in the wrong Z direction — outward, into open air
   above the entry face — instead of sinking into the part like the sibling cone
-  (flat-head) branch. In practice the recess cut almost nothing (or, depending on
-  cutter placement, the oversized head diameter punched through the full part
-  thickness instead of transitioning back to the shaft diameter). Both `.solid`
+  (flat-head) branch. In practice the recess cut almost nothing: the shoulder
+  never formed and the bore stayed at shaft diameter for the full wall
+  thickness, leaving no clearance for the head to pass. (The failure was always
+  under-removal — with the recess on the wrong side of the entry face it could
+  not cut deeper than intended.) Both `.solid`
   and `.to_cutter()` now sink the recess body downward from the entry face, with
   a small outward overcut at the opening (matching the cone branch's existing
   convention) rather than putting the whole recess on the outward side. No
   shipped model previously exercised this code path — `Arrma223sEscMount` is the
   first real usage, via hole 1 (`_hole1_counterbore_cutter`, an M2.5 round-head
-  counterbore built directly on `CounterboreHole`) and the two chassis
-  motor-mount holes (`_chassis_mount_cutter`, M3 pan-head via
+  counterbore built directly on `CounterboreHole`) and the two M3
+  chassis-mounting holes (`_chassis_mount_cutter`, M3 pan-head via
   `MetricMachineScrew.to_cutter()`). Its south ear hole is *not* affected: the
   2026-09-01 resize made it a plain M2.5 clearance through-hole with no recess
   of any kind. No other model's geometry changes as a result.
