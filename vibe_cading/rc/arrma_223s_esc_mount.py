@@ -78,9 +78,11 @@ Local Y=0 : main body's "north" edge — the edge the arm projects from.
       spans Y in [-38, 0]. East-west width (``BODY_WIDTH``) and corner
       fillets are unchanged.
    2. **The north ear is removed entirely.** Its M2.5 fastener becomes a
-      hole in the main plate body at local ``HOLE1_CENTER`` = (1.026,
-      -5.0) — 5 mm south (inward) of the north edge, on the old ear's
-      centerline X. **Revised 2026-09-02** (was a flat-head countersink):
+      hole in the main plate body at local ``HOLE1_CENTER`` = (-3.5,
+      -5.0) — 5 mm south (inward) of the north edge, on the derived
+      ``MOTOR_HOLE_X`` centerline it shares with the south ear (this
+      supersedes the old ear's originally-measured 1.026 X).
+      **Revised 2026-09-02** (was a flat-head countersink):
       it is now a **round-head counterbore**, sized to the M2.5 pan head.
       The screw is still inserted from below, but its head is no longer
       seated flush in the bottom face — a head-diameter bore runs the

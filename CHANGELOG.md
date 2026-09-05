@@ -63,15 +63,32 @@ section to the new version and date.
 - `vibe_cading/mechanical/holes.py`: `CounterboreHole`'s cylindrical (pan/socket)
   head-recess branch extruded in the wrong Z direction — outward, into open air
   above the entry face — instead of sinking into the part like the sibling cone
-  (flat-head) branch. In practice the recess cut almost nothing (or, depending on
-  cutter placement, the oversized head diameter punched through the full part
-  thickness instead of transitioning back to the shaft diameter). Both `.solid`
-  and `.to_cutter()` now sink the recess body downward from the entry face, with
-  a small outward overcut at the opening (matching the cone branch's existing
-  convention) rather than putting the whole recess on the outward side. No
-  shipped model previously exercised this code path (`Arrma223sEscMount`'s
-  pan-head ear/motor-mount holes are the first real usage), so no other model's
-  geometry changes as a result.
+  (flat-head) branch. In practice the recess cut almost nothing: the shoulder
+  never formed and the bore stayed at shaft diameter for the full wall
+  thickness, leaving no clearance for the head to pass. (For both shipped
+  placements the wrong side was open air, so the failure was pure
+  under-removal.) Both `.solid` and `.to_cutter()` now sink the recess body
+  downward from the entry face; `.to_cutter()` additionally keeps its
+  `_THROUGH_OVERCUT` breakout above the opening, matching the cone branch's
+  existing convention (`.solid` carries no outward overcut — its recess stops
+  at the entry face).
+  **Blast radius — corrected 2026-09-04:** this entry previously said no
+  shipped model exercised the path and no other model's geometry changed.
+  Both were wrong. `ToleranceGauge`
+  (`vibe_cading/mechanical/tolerance_gauge.py`) has been building its row-1
+  M3 **socket**-head cutter through this branch all along
+  (`head_type="socket"` maps to `CounterboreHole(head_type="cylinder")`), so
+  the fix changed that part's geometry by **−246.58 mm³** — its M3 head
+  recess now actually cuts instead of extruding into open air. `ToleranceGauge`
+  is public and present in `engine_api.json` but is registered in neither
+  `build.toml` nor `visual_contracts.toml`, which is why nothing flagged the
+  change. `Arrma223sEscMount` is the first *registered/built* consumer, via
+  hole 1 (`_hole1_counterbore_cutter`, an M2.5 round-head counterbore built
+  directly on `CounterboreHole`) and the two M3 chassis-mounting holes
+  (`_chassis_mount_cutter`, M3 pan-head via `MetricMachineScrew.to_cutter()`).
+  Its south ear hole is *not* affected: the 2026-09-01 resize made it a plain
+  M2.5 clearance through-hole with no recess of any kind. Flat-head (`"cone"`)
+  consumers are unaffected (verified: identical volume pre- and post-fix).
 - `vibe_cading/tools/view.py`: no longer reports a false success when no OCP CAD
   Viewer is listening. Previously it printed `Showing <Class>` and exited 0 while
   the model was never transmitted (the underlying connection failure surfaced only
