@@ -531,7 +531,15 @@ class PoweredUpHubHousing:
     # separately measured) the wall becomes 1.000 and the gap 0.335 -- which
     # matches the 0.315/side the owner measured on the real mating pair to
     # within 0.020.  The three numbers agree; none is being forced.
-    WALL_X_OUTER_LOWER = 27.500   # |X| outer face, Z < WALL_STEP_Z
+    # ROUND 81b -- 27.500 -> 27.800. The owner re-measured the real part
+    # carefully ("I gave a good measure of the housing") and the BASE, near
+    # the arms, is 55.600 across the outer faces, not the 55.000 measured in
+    # round 79. That earlier figure was taken without knowing the wall is
+    # not a constant section -- the shell narrows toward the top, so a
+    # single "short side" reading depends entirely on the height it was
+    # taken at. This constant is now explicitly the BASE width; the top is
+    # UPPER_X_OUTER, narrower by UPPER_INSET.
+    WALL_X_OUTER_LOWER = 27.800   # |X| outer face at the BASE, Z < UPPER_STEP_Z
     # NO LONGER the socket floor, nor the face above it -- round 55e moved
     # both to UPPER_X_OUTER (26.850) when it deepened the socket to widen
     # the cover's wall. What is left of this constant is the TOP DECK's
@@ -559,8 +567,15 @@ class PoweredUpHubHousing:
     # socket only ever lives in bands 2/3), so it gets its own constant
     # instead, used by band 1's own slab, the plate-edge relief, and the
     # side window -- the three places that read band 1's real inner face.
-    CAVITY_X_HALF_LOWER = 26.500   # owner-measured, cavity clear over Z[10,20]
-    WALL_THICKNESS_LOWER = WALL_X_OUTER_LOWER - CAVITY_X_HALF_LOWER  # 1.350
+    # ROUND 81b -- 26.500 -> 26.400, derived from the owner's re-measure:
+    # base outer 55.600 with 1.400 mm side walls (their words: "The side
+    # walls (along Y) are 1.4mm thick" -- the +-X walls, i.e. the ones that
+    # RUN along Y). Cross-check against the frozen Cover: 26.400 leaves
+    # 26.400 - PLATE_WIDTH/2 (26.165) = 0.235 mm of clearance per side,
+    # consistent with the ~0.315 the owner measured in round 79 under the
+    # coarser 55.000 figure.
+    CAVITY_X_HALF_LOWER = 26.400   # owner-measured, UNPATCHED cavity face
+    WALL_THICKNESS_LOWER = WALL_X_OUTER_LOWER - CAVITY_X_HALF_LOWER  # 1.400
 
     # --- Trapezoid mating socket, outer face of each side wall (round 50) ---
     # Measured off 25560.dat. Rounds 16-49 read the design doc's SS4 line
@@ -737,13 +752,50 @@ class PoweredUpHubHousing:
     # and the cover -- which does not exist yet -- will apply its own
     # clearance when it is built. 0.150 is fdm_standard's free.radial.
     COVER_FIT_CLEARANCE = 0.150
-    UPPER_INSET = COVER_WALL + COVER_FIT_CLEARANCE          # 1.150
-    # ROUND 73b: comment value corrected (was stale at 26.850, left over
-    # from before round 73a moved WALL_X_OUTER_LOWER 28.000 -> 27.850 --
-    # the derivation itself was always live and correct, only this inline
-    # comment had drifted).
-    UPPER_X_OUTER = WALL_X_OUTER_LOWER - UPPER_INSET        # 26.700
-    UPPER_X_INNER = UPPER_X_OUTER - WALL_THICKNESS          # 25.900
+    # ROUND 81 -- the owner sets the recess directly, and the trapezoid
+    # socket's depth is DERIVED from it (see SOCKET_DEPTH below), re-fusing
+    # the coupling round 73d deliberately broke.
+    #
+    # Owner: *"reduce the length and width of the top portion (above the
+    # arms but include the trapezoids) ... 0.5mm to 1mm recess compared to
+    # the bottom portion. The recess should be equal to the recess of the
+    # trapezoids"*, then, choosing among the priced options: **1.000, with
+    # SOCKET_DEPTH rising to match**, and the step at **Z = 24.000** so the
+    # *"trapezoid socket bottom is flush with the recessed surface"*.
+    #
+    # So this constant is no longer `COVER_WALL + COVER_FIT_CLEARANCE`. That
+    # derivation belonged to the abandoned slip-over-cover scheme and made
+    # the number answer to a part that was never built; it now answers to a
+    # measurement the owner states directly. COVER_WALL/COVER_FIT_CLEARANCE
+    # are left in place (other comments still cite them) but no longer feed
+    # anything geometric.
+    # ROUND 81b -- 1.000 -> 0.800, from the owner's re-measure. The patched
+    # section is 2.200 against an unpatched 1.400, i.e. 0.800 of inboard
+    # patch, and the owner reads the SAME 0.800 as the top portion's recess
+    # ("likely the 0.8mm for the recess on the top portion as well").
+    UPPER_INSET = 0.800
+    # ROUND 81 -- 26.500. Note this now lands exactly on
+    # CAVITY_X_HALF_LOWER (26.500), i.e. the recessed upper face is
+    # coplanar with the lower band's own INNER face. That is a coincidence
+    # of the current numbers, not a designed identity -- do not derive one
+    # from the other.
+    UPPER_X_OUTER = WALL_X_OUTER_LOWER - UPPER_INSET        # 26.500
+    UPPER_X_INNER = UPPER_X_OUTER - WALL_THICKNESS          # 25.700
+
+    # ROUND 81 -- where the OUTER silhouette steps in. Split out from
+    # WALL_INNER_STEP_Z, which round 73b had made do double duty as both
+    # "where the wall changes its inner-face thickness" and "where the
+    # external silhouette narrows". The owner moved the silhouette step
+    # down to the trapezoids' own top (REF_STEP_Z = 24.000) so the sockets
+    # fall inside the recessed portion; the cord port still keys off
+    # WALL_INNER_STEP_Z (26.000) and is deliberately NOT moved with it.
+    #
+    # Do not collapse these two back into one constant: they now answer to
+    # different requirements, and round 73b's own docstring records what
+    # happens when a single Z is asked to mean two things (an inverted
+    # [26.000, 24.000] band that OCCT accepts silently while deleting the
+    # socket's host material).
+    UPPER_STEP_Z = REF_STEP_Z                               # 24.000
 
     # --- ROUND 73d: the socket recess DECOUPLED from the upper inset ---
     #
@@ -814,13 +866,83 @@ class PoweredUpHubHousing:
     # own plate edge.  Consequence accepted by the owner: the socket is now
     # a shallow register rather than a deep seat, so whatever mates into it
     # engages less.
-    SOCKET_DEPTH = 0.230
+    # ROUND 81 -- DERIVED from UPPER_INSET again, reversing round 73d's
+    # decoupling on owner instruction: *"The recess should be equal to the
+    # recess of the trapezoids"*, and *"make the trapezoid thickness =
+    # recess so the trapezoid socket bottom is flush with the recessed
+    # surface"*. The socket floor and the recessed upper face are once more
+    # the same plane BY CONSTRUCTION (asserted below), which is the whole
+    # point -- the trapezoid reads as the transition into the recess rather
+    # than as a separate pocket inside it.
+    #
+    # The round-73d paragraph above records why they were split (the owner
+    # then wanted a shallow register matching the real part without
+    # widening the shell). That requirement is superseded, not forgotten:
+    # the cost of re-fusing them is that the recess is now 1.000 mm deep
+    # against a 1.000 mm wall, i.e. the socket eats the ENTIRE lower wall
+    # section and the backing has to be rebuilt inboard as a local pad --
+    # see SOCKET_PAD_X_INNER and _build_socket_backing.
+    SOCKET_DEPTH = UPPER_INSET                               # 1.000
     #: |X| of the socket's floor -- derived, so it tracks the outer face.
-    SOCKET_FLOOR_X = WALL_X_OUTER_LOWER - SOCKET_DEPTH       # 27.350
+    SOCKET_FLOOR_X = WALL_X_OUTER_LOWER - SOCKET_DEPTH       # 26.500
+
+    #: Minimum wall that must survive behind the recess. Unchanged bound --
+    #: round 73b reached 0.200 mm here by spending it silently, and this is
+    #: the guard that has caught every attempt since.
+    SOCKET_BACKING_MIN = 0.770
+    # ROUND 81 -- with SOCKET_DEPTH == WALL_THICKNESS_LOWER (both 1.000),
+    # `WALL_THICKNESS_LOWER - SOCKET_DEPTH` is 0.000: the recess cuts clean
+    # through the side wall and the trapezoid would be a WINDOW into the
+    # battery bay, not a socket. The backing is therefore no longer whatever
+    # the plain wall happens to leave -- it is built back deliberately, as a
+    # local pad inboard of the socket footprint (owner: *"just patch up the
+    # trapezoids + z>=24 portion"*).
+    #
+    # SOCKET_BACKING is redefined to measure the pad rather than the plain
+    # wall, so the assert in _build_wall_socket still checks the section
+    # that ACTUALLY survives. It is not relaxed and not removed -- if the
+    # pad is ever dropped or mis-sized, that guard must fire.
+    #
+    # The owner has accepted, for now, that this pad reaches inboard of
+    # CAVITY_X_HALF_LOWER and so collides with PoweredUpHubBatteryTray
+    # (tray outer |X| 26.250 vs this pad's 25.730): *"This may make the
+    # inner wall collide with the battery tray, do not worry about it for
+    # now, will address later."* That is a KNOWN, ACCEPTED conflict, not an
+    # oversight -- do not "fix" it by thinning the pad below
+    # SOCKET_BACKING_MIN.
+    # --- ROUND 81b: the inner patches, as measured on the real part ---
+    #
+    # The owner measured the +-X wall as 1.400 mm unpatched and 2.200 mm
+    # where it is patched -- so the patch is 0.800 mm of material added
+    # INBOARD, and it starts at two different heights depending on where
+    # along the wall you are:
+    #
+    #   * a TRAPEZOID-shaped patch, echoing the outer socket's own outline,
+    #     from Z = 20.000 up;
+    #   * a UNIVERSAL patch running the whole wall length, from Z = 22.500 up.
+    #
+    # These Z values apply to the INNER wall only. The outer wall's own Z
+    # shape is NOT touched by them (owner, explicitly: *"Do not change the
+    # z shape on the outer wall"*) -- the silhouette still steps once, at
+    # UPPER_STEP_Z = 24.000.
+    #
+    # Scope is the +-X (long) side walls only, per the owner's answer at the
+    # design gate: both the 1.400/2.200 readings and the corresponding tray
+    # cut are long-wall measurements, and the +-Y end walls have their own,
+    # different measured recess (END_SOCKET_DEPTH = 1.200). Do not
+    # extrapolate this patch around the perimeter without a measurement.
+    PATCH_THICKNESS = 0.800
+    #: Inner face where either patch is present: 1.400 + 0.800 = 2.200 mm
+    #: of total section, matching the owner's patched reading.
+    PATCH_X_INNER = CAVITY_X_HALF_LOWER - PATCH_THICKNESS     # 25.600
+    #: Trapezoid patch's own start height (world Z), owner-measured.
+    TRAPEZOID_PATCH_Z_LO = 20.000
+    #: Full-length patch's start height (world Z), owner-measured.
+    UNIVERSAL_PATCH_Z_LO = 22.500
     #: Material surviving behind the recess. Named because it is the whole
     #: point of this change and because a future edit to either input
     #: silently spends it -- exactly how it reached 0.200 in round 73b.
-    SOCKET_BACKING = WALL_THICKNESS_LOWER - SOCKET_DEPTH     # 0.850
+    SOCKET_BACKING = SOCKET_FLOOR_X - PATCH_X_INNER          # 1.400
 
     # CONSEQUENCE THE OWNER MUST OWN, recorded here rather than buried:
     # the socket is the register for a FUTURE top cover, and its depth was
@@ -1002,9 +1124,33 @@ class PoweredUpHubHousing:
     # live instead of the pre-round-73 literal 28.000. The 19.200 inner
     # bound is an independent LDraw-measured curve-span boundary, unrelated
     # to the wall thickness, and is untouched.
+    # ROUND 83 -- the inner bound is now LATCH_WINDOW_X_HI (18.400), not the
+    # LDraw-measured 19.200.
+    #
+    # Owner: *"The curve on the hook end should extend all the way to the
+    # hook socket. Currently there are probably around 1mm residual, remove
+    # it."* The arithmetic matches exactly: the curve stopped at 19.200
+    # while the hook socket's own edge is at LATCH_WINDOW_X_HI = 18.400,
+    # leaving 0.800 mm of square bottom edge stranded between them on each
+    # side -- visible as a small step where the arc should have run into the
+    # socket.
+    #
+    # This is the same class of finding as round 56 at the TONGUE end, where
+    # "all the way" also turned out to be about EXTENT along X rather than
+    # arc depth, and 47.200 mm of square edge was hiding in the gaps between
+    # bands. Same lesson, smaller number.
+    #
+    # The bound is CONCEPTUALLY `LATCH_WINDOW_X_HI` -- "where the hook socket
+    # starts" -- but that constant is defined further down this class body,
+    # so referencing it here would raise NameError at class-creation time.
+    # Written as the literal, with _build_bottom_end_round asserting the two
+    # stay equal: if the hook socket ever moves and this does not follow, the
+    # assert fires instead of a fresh residual appearing silently. The
+    # superseded LDraw reading was 19.200.
+    _LATCH_ROUND_X_INNER = 18.400
     BOTTOM_ROUND_X_LATCH = (
-        (-WALL_X_OUTER_LOWER, -19.200, BOTTOM_ROUND_CZ_FULL),
-        (19.200, WALL_X_OUTER_LOWER, BOTTOM_ROUND_CZ_FULL),
+        (-WALL_X_OUTER_LOWER, -_LATCH_ROUND_X_INNER, BOTTOM_ROUND_CZ_FULL),
+        (_LATCH_ROUND_X_INNER, WALL_X_OUTER_LOWER, BOTTOM_ROUND_CZ_FULL),
     )
     BOTTOM_ROUND_X_TONGUE = (
         (-WALL_X_OUTER_LOWER, WALL_X_OUTER_LOWER, BOTTOM_ROUND_CZ_FULL),  # round 56, full span
@@ -1090,6 +1236,15 @@ class PoweredUpHubHousing:
     # rounded slot of half-extents (a+m, b+m) with radius r only when
     # m >= r(1 - 1/sqrt(2)) ~= 0.293r; at r = 1.000 that is 0.293, taken as
     # 0.300. Without the margin the corners clip and the stated size is a lie.
+    # ROUND 81b -- frozen at 26.000, the value this port has always had, but
+    # stated directly instead of inherited from WALL_INNER_STEP_Z (which is
+    # PoweredUpHubCover.PLATE_THICKNESS + PoweredUpHubBatteryTray.WALL_Z_HI).
+    # That inheritance was harmless while the Tray's wall top and the port's
+    # floor happened to coincide; the owner's round-81b re-measure dropped
+    # the Tray's long wall to world 22.300, which would have moved this port
+    # 3.700 mm as an invisible side effect. The port answers to where the
+    # cord leaves the box, not to how tall the Tray is.
+    CORD_PORT_Z_LO = 26.000
     CORD_PORT_CORNER_R = 1.000
     CORD_PORT_MARGIN = 0.300
 
@@ -1769,17 +1924,155 @@ class PoweredUpHubHousing:
         # Runs slightly past the step so the two bands share a genuine
         # volume overlap rather than a coincident face (CLAUDE.md,
         # *Chord-vs-arc ring*).
+        # ROUND 81 -- both bands now meet at UPPER_STEP_Z (24.000), NOT at
+        # WALL_INNER_STEP_Z (26.000). This MUST track _build_upper_step_in's
+        # own z_lo: that cut removes everything outboard of UPPER_X_OUTER
+        # above the step, so if the upper band still started at 26.000 the
+        # Z band [24.000, 26.000] would have its lower slab cut away with
+        # nothing yet built to replace it -- a 2 mm gap severing the shell.
         full = self._x_slab(
             x_sign, self.WALL_X_OUTER_LOWER, self.WALL_THICKNESS_LOWER,
-            0.0, self.WALL_INNER_STEP_Z + overlap,
+            0.0, self.UPPER_STEP_Z + overlap,
         )
         upper = self._x_slab(
             x_sign, self.UPPER_X_OUTER, self.WALL_THICKNESS,
-            self.WALL_INNER_STEP_Z - overlap, self.DECK_Z,
+            self.UPPER_STEP_Z - overlap, self.DECK_Z,
         )
         return (
             full.union(upper)
+            .union(self._build_inner_patch(x_sign))
             .cut(self._build_wall_socket(x_sign))
+        )
+
+    def _build_inner_patch(self, x_sign: int) -> cq.Workplane:
+        """The two inboard thickening patches on one long (+-X) side wall.
+
+        ROUND 81b, from the owner's careful re-measure of the real part: the
+        wall is 1.400 mm unpatched and 2.200 mm where patched, i.e.
+        :attr:`PATCH_THICKNESS` of material added INBOARD, starting at two
+        different heights:
+
+        * a **trapezoid-shaped** patch from :attr:`TRAPEZOID_PATCH_Z_LO`
+          (20.000), echoing the outer socket's own flared outline -- owner:
+          *"The inner patching should start with the trapezoid shape as
+          well"*;
+        * a **universal** patch spanning the whole wall length from
+          :attr:`UNIVERSAL_PATCH_Z_LO` (22.500).
+
+        The universal patch subsumes the trapezoid one above 22.500, so the
+        trapezoid's distinct contribution is the band [20.000, 22.500] --
+        which is exactly the region that has to be backed before the socket
+        recess (Z 22.000 up) starts eating the wall.
+
+        These heights are INNER-wall geometry only. The outer silhouette
+        still steps once at :attr:`UPPER_STEP_Z`; the owner was explicit
+        that these Z values must not reshape it (*"Do not change the z shape
+        on the outer wall"*). That separation is the reason this is a
+        separate builder unioned into the wall rather than extra bands in
+        :meth:`_build_side_wall`.
+
+        Both patches ADD material, so a loose bound here is a lump inside
+        the battery bay rather than a hole -- but it is still a bound worth
+        stating (*Overcuts on the non-waste side*, vibe/INSTRUCTIONS.md):
+
+        * ``X`` runs from :attr:`PATCH_X_INNER` out to
+          :attr:`CAVITY_X_HALF_LOWER`, stopping exactly on the unpatched
+          cavity face so the patch unions into the wall instead of leaving
+          a coincident-face seam.
+        * ``Z`` runs up to :attr:`DECK_Z`; above :attr:`UPPER_STEP_Z` the
+          step-in cut trims the OUTER face only, and the patch is entirely
+          inboard of it, so it survives and keeps the upper band's own
+          section continuous with the lower.
+
+        The owner has accepted that these patches reach inboard of the
+        Tray's outer wall for now -- a corresponding cut in the Tray's long
+        wall is a separate, already-specified task.
+        """
+        oc = 0.050   # union overlap, never a coincident face
+        x_lo = min(x_sign * self.PATCH_X_INNER,
+                   x_sign * (self.CAVITY_X_HALF_LOWER + oc))
+        x_hi = max(x_sign * self.PATCH_X_INNER,
+                   x_sign * (self.CAVITY_X_HALF_LOWER + oc))
+
+        universal = rounded_box(
+            width=x_hi - x_lo,
+            depth=2 * self.HALF_Y,
+            height=self.DECK_Z - self.UNIVERSAL_PATCH_Z_LO,
+            corner_r=0.0,
+            center=((x_lo + x_hi) / 2.0, 0.0, self.UNIVERSAL_PATCH_Z_LO),
+        )
+
+        # The trapezoid patch mirrors the socket's own profile: narrow edge
+        # at its start height, flaring to the wide edge at SOCKET_Z_HI, then
+        # constant. Drawn in YZ at the patch's inner face and extruded
+        # outward, so the flare is expressed once rather than approximated.
+        yc = self.SOCKET_Y_CENTER
+        y_lo, y_hi = self.SOCKET_Y_HALF_LO, self.SOCKET_Y_HALF_HI
+        z_lo, z_flare = self.TRAPEZOID_PATCH_Z_LO, self.SOCKET_Z_HI
+        trapezoid = (
+            cq.Workplane("YZ")
+            .transformed(offset=cq.Vector(0.0, 0.0, x_sign * self.PATCH_X_INNER))
+            .moveTo(yc - y_lo, z_lo)
+            .lineTo(yc + y_lo, z_lo)
+            .lineTo(yc + y_hi, z_flare)
+            .lineTo(yc - y_hi, z_flare)
+            .close()
+            # The YZ workplane's normal is +X whatever the sign, so the
+            # extrusion must be signed or the -X patch lands outside the part.
+            .extrude(x_sign * (self.PATCH_THICKNESS + oc))
+        )
+        return universal.union(trapezoid)
+        """The local pad that rebuilds the wall inboard of one trapezoid.
+
+        ROUND 81. :attr:`SOCKET_DEPTH` now equals
+        :attr:`WALL_THICKNESS_LOWER` (both 1.000), so the socket recess cuts
+        the plain side wall through completely -- without this pad the
+        trapezoid is a window into the battery bay rather than a seat. The
+        pad restores :attr:`SOCKET_BACKING_MIN` of section behind the
+        socket floor and nothing more.
+
+        Owner scope, verbatim: *"just patch up the trapezoids + z>=24
+        portion"* -- so this is deliberately NOT a uniform thickening of the
+        side wall. Below the socket the wall keeps its measured
+        :attr:`CAVITY_X_HALF_LOWER` inner face untouched; only the socket's
+        own footprint and the recessed band above it gain material. That
+        confines the accepted Tray conflict (see :attr:`SOCKET_PAD_X_INNER`)
+        to the pads instead of spreading it along the whole wall.
+
+        Bounds, each checked rather than assumed (*Overcuts on the non-waste
+        side*, vibe/INSTRUCTIONS.md -- this pad ADDS material, so a loose
+        bound here shows up as a lump inside the bay, not as a hole):
+
+        * ``X`` spans :attr:`SOCKET_PAD_X_INNER` to
+          :attr:`CAVITY_X_HALF_LOWER`, i.e. it stops exactly at the plain
+          wall's own inner face and unions into it. It does not reach the
+          socket floor, because the material between the cavity face and
+          the floor is already wall.
+        * ``Y`` covers the socket's WIDE edge (:attr:`SOCKET_Y_HALF_HI`,
+          the trapezoid's largest half-width) plus :attr:`_PAD_Y_MARGIN`, so
+          the pad is never narrower than the hole it backs at any Z. Using
+          the narrow edge here would leave the flared top of the socket
+          unbacked -- the failure this margin exists to prevent.
+        * ``Z`` runs from the socket's own bottom up to the top of the
+          recessed band, so the pad is continuous with the upper section's
+          wall rather than a floating island (the single-solid guard in
+          ``_build`` is what would catch a break here).
+        """
+        z_lo = self.SOCKET_Z_LO
+        z_hi = self.DECK_Z
+        y_half = self.SOCKET_Y_HALF_HI + self._PAD_Y_MARGIN
+
+        x_lo = min(x_sign * self.SOCKET_PAD_X_INNER,
+                   x_sign * self.CAVITY_X_HALF_LOWER)
+        x_hi = max(x_sign * self.SOCKET_PAD_X_INNER,
+                   x_sign * self.CAVITY_X_HALF_LOWER)
+
+        return rounded_box(
+            width=x_hi - x_lo,
+            depth=2 * y_half,
+            height=z_hi - z_lo,
+            corner_r=0.0,
+            center=((x_lo + x_hi) / 2.0, self.SOCKET_Y_CENTER, z_lo),
         )
 
     def _build_wall_socket(self, x_sign: int) -> cq.Workplane:
@@ -1839,11 +2132,20 @@ class PoweredUpHubHousing:
         # setting the two equal, the backing-thickness consequence is
         # visible at the point of change instead of surfacing as an
         # unprintable 0.200 mm wall three rounds downstream.
-        assert self.SOCKET_BACKING >= 0.770, (
+        # ROUND 81 -- reads SOCKET_BACKING_MIN rather than a repeated 0.770
+        # literal, and carries a representation epsilon: SOCKET_BACKING is
+        # now a difference of two decimals (26.500 - 25.730) that is not
+        # exact in binary, so a bare `>=` against the same nominal value
+        # fires on 0.7699999999999996. The BOUND IS UNCHANGED -- this is a
+        # float-comparison fix, not a relaxation, and the epsilon is 1e-9
+        # (a millionth of the tolerance being guarded), far too small to let
+        # a real thinning through.
+        assert self.SOCKET_BACKING >= self.SOCKET_BACKING_MIN - 1e-9, (
             f"only {self.SOCKET_BACKING:.3f} mm of wall survives behind the "
-            f"socket recess (wall {self.WALL_THICKNESS_LOWER:.3f} less recess "
-            f"{self.SOCKET_DEPTH:.3f}); below ~0.770 this is thinner than a "
-            "normal extruded section and the compartment opens into the recess"
+            f"socket recess (floor at |X| {self.SOCKET_FLOOR_X:.3f}, backing "
+            f"pad inner face {self.SOCKET_PAD_X_INNER:.3f}); below "
+            f"{self.SOCKET_BACKING_MIN:.3f} this is thinner than a normal "
+            "extruded section and the compartment opens into the recess"
         )
         depth = self.SOCKET_DEPTH + oc
         return profile.extrude(x_sign * depth)
@@ -2118,16 +2420,61 @@ class PoweredUpHubHousing:
         # it passes. Flush, the roof still simply ends where the wall
         # begins -- which is the reasoning the original figure was chosen
         # for, re-derived against geometry that moved under it.
-        x_hi = self.UPPER_X_INNER                                 # 26.050
-        x_lo = x_hi - self.CORD_PORT_WIDTH
+        # ROUND 83 -- x_hi is the wall's REAL inner face, which round 81b
+        # moved. Owner: *"Adjust the hole in the lid so its two edges sit
+        # flush with the inner walls."*
+        #
+        # This edge was always meant to be flush with the inner face (round
+        # 55e's own note below says so, and fixed the margin for exactly
+        # that reason). It read UPPER_X_INNER (26.200), which WAS that face
+        # until round 81b's universal patch thickened the wall inboard to
+        # PATCH_X_INNER (25.600) over Z >= UNIVERSAL_PATCH_Z_LO -- and this
+        # port's whole Z range (CORD_PORT_Z_LO = 26.000 upward) is inside
+        # that band. So the port had been cutting 0.600 mm INTO the wall,
+        # leaving 0.800 mm of section where the full 1.400 should stand.
+        #
+        # A stale constant, not a wrong one: UPPER_X_INNER still correctly
+        # describes the upper slab's own inner face; it just stopped being
+        # the innermost thing there. Asserted below rather than assumed.
+        x_hi = self.PATCH_X_INNER
+        # x_lo keeps its ABSOLUTE position -- the owner asked for two edges
+        # to move, not for the port to be re-sized around a moving one, so
+        # this is anchored to where it already was rather than to x_hi.
+        x_lo = self.UPPER_X_INNER - self.CORD_PORT_WIDTH          # 16.200
+        assert x_hi <= self.UPPER_X_INNER, (
+            f"the cord port's outboard edge ({x_hi:.3f}) is outboard of the "
+            f"upper slab's own inner face ({self.UPPER_X_INNER:.3f}) -- it "
+            "would cut into the side wall instead of stopping at it"
+        )
         # ROUND 74 -- back-compensated by `- SHELL_Y_OFFSET`: this port is
         # cut in the shell's LOCAL frame and its -Y edge must still land
         # exactly on the frozen Cover's own LATCH_BAND_Y_HI after the
         # shell-wide translate (see SHELL_Y_OFFSET's own comment; cross-
         # checked against the built solid by
         # test_cord_port_is_a_clear_opening_into_the_battery_bay).
-        y_lo = PoweredUpHubCover.LATCH_BAND_Y_HI - self.SHELL_Y_OFFSET   # -31.825
-        y_hi = y_lo + self.CORD_PORT_LENGTH
+        # ROUND 83 -- y_hi keeps its absolute position (anchored to the old
+        # Cover-registered start plus the port's length); y_lo now lands on
+        # the LATCH end wall's own inner face, per the owner's "two edges
+        # flush with the inner walls".
+        #
+        # The old y_lo sat on PoweredUpHubCover.LATCH_BAND_Y_HI (world
+        # -30.000). The latch wall spans world [-33.800, -27.750], so that
+        # put the port's -Y edge 2.250 mm INSIDE the wall -- the same defect
+        # as the X edge above, on the other axis. Flush means stopping at
+        # -27.750, i.e. local -HALF_Y + LATCH_WALL_THICKNESS.
+        #
+        # Local frame, like everything else built before the shell-wide
+        # SHELL_Y_OFFSET translate -- so this is written directly in local
+        # terms rather than as a world value back-compensated by the offset.
+        y_hi = (
+            PoweredUpHubCover.LATCH_BAND_Y_HI - self.SHELL_Y_OFFSET
+            + self.CORD_PORT_LENGTH
+        )                                                          # -11.825
+        y_lo = -self.HALF_Y + self.LATCH_WALL_THICKNESS             # -29.575
+        assert y_lo < y_hi, (
+            f"the cord port's Y span inverted ({y_lo:.3f} >= {y_hi:.3f}) -- "
+            "the latch wall now reaches past the port's inboard edge"
+        )
 
         # Z: the cutter spans the whole ROUTE, not just the deck slab.
         #
@@ -2152,7 +2499,13 @@ class PoweredUpHubHousing:
         # Bounded, not infinite: the cut stays inside the port's own
         # footprint, which the test's positive controls already pin to the
         # channel beside the pack.
-        z_lo = self.WALL_INNER_STEP_Z
+        # ROUND 81b -- reads CORD_PORT_Z_LO, not WALL_INNER_STEP_Z. Those
+        # were the same number until this round, when the owner's re-measure
+        # dropped the Tray's own long wall to world 22.300. WALL_INNER_STEP_Z
+        # derives from Tray.WALL_Z_HI, so leaving this coupled would have
+        # dragged the cord port down 3.700 mm as a side effect of a Tray
+        # measurement that has nothing to do with where the cord exits.
+        z_lo = self.CORD_PORT_Z_LO
         z_hi = self.DECK_Z + oc
         # The margin is applied on three sides, NOT four. Round 55e set the
         # outboard edge flush with the upper wall's inner face so the roof
@@ -2169,12 +2522,25 @@ class PoweredUpHubHousing:
         # taken entirely on the inboard side instead of being split.
         x_cut_lo = x_lo - 2 * m
         x_cut_hi = x_hi
+        # ROUND 83 -- the SAME directional-margin fix, now on Y too. The
+        # margin used to be split symmetrically here (`+ 2 * m` on the depth,
+        # centred on the span), which was harmless while y_lo sat in open
+        # roof; now that y_lo is flush with the LATCH wall's inner face, half
+        # a symmetric margin would push the cut 0.300 mm straight into that
+        # wall and undo the flushness the owner just asked for. Margins are
+        # directional exactly like overcuts (*Overcuts on the non-waste
+        # side*, vibe/INSTRUCTIONS.md): taken entirely on the inboard (+Y)
+        # side, which opens into the battery bay -- waste -- rather than
+        # into the only wall between the port and the outside of the part.
+        y_cut_lo = y_lo
+        y_cut_hi = y_hi + 2 * m
         return rounded_box(
             width=x_cut_hi - x_cut_lo,
-            depth=(y_hi - y_lo) + 2 * m,
+            depth=y_cut_hi - y_cut_lo,
             height=z_hi - z_lo,
             corner_r=self.CORD_PORT_CORNER_R,
-            center=((x_cut_lo + x_cut_hi) / 2.0, (y_lo + y_hi) / 2.0, z_lo),
+            center=((x_cut_lo + x_cut_hi) / 2.0,
+                    (y_cut_lo + y_cut_hi) / 2.0, z_lo),
         )
 
     def _build_upper_step_in(self) -> cq.Workplane:
@@ -2216,7 +2582,12 @@ class PoweredUpHubHousing:
           "everything outboard of the upper section".
         """
         oc = 1.0
-        z_lo = self.WALL_INNER_STEP_Z
+        # ROUND 81 -- the silhouette step moved DOWN, 26.000 -> 24.000, on
+        # owner instruction, so the trapezoid sockets fall inside the
+        # recessed portion instead of sitting in the full-width band below
+        # it. This must stay equal to _build_side_wall's own band split; see
+        # the note there for what a mismatch severs.
+        z_lo = self.UPPER_STEP_Z
         z_hi = self.DECK_Z + oc
         envelope = 40.0   # comfortably past the arms' own |X| = 36.000
 
@@ -2325,6 +2696,19 @@ class PoweredUpHubHousing:
         bands = (
             self.BOTTOM_ROUND_X_LATCH if y_sign < 0
             else self.BOTTOM_ROUND_X_TONGUE
+        )
+        # ROUND 83 -- the latch-end arc must run INTO the hook socket, not
+        # stop short of it. _LATCH_ROUND_X_INNER cannot reference
+        # LATCH_WINDOW_X_HI at class-body time (defined further down), so
+        # the identity is enforced here instead of assumed. Falsifier: move
+        # either constant without the other and this fires.
+        assert self._LATCH_ROUND_X_INNER == self.LATCH_WINDOW_X_HI, (
+            f"the latch-end bottom arc stops at |X| "
+            f"{self._LATCH_ROUND_X_INNER:.3f} while the hook socket starts at "
+            f"{self.LATCH_WINDOW_X_HI:.3f} -- that strands "
+            f"{abs(self._LATCH_ROUND_X_INNER - self.LATCH_WINDOW_X_HI):.3f} mm "
+            "of square bottom edge between them, the exact residual round 83 "
+            "removed"
         )
         oc = 1.0
         y_out = y_sign * (self.HALF_Y + oc)
@@ -2727,7 +3111,37 @@ class PoweredUpHubHousing:
         # main-hole bores with the root's own material -- caught by the
         # cross-part / hole-presence test suite.
         wall_inner_face_at_band_a = self.WALL_X_OUTER_LOWER - self.WALL_THICKNESS_LOWER
-        root_inner_local_y = (wall_inner_face_at_band_a - 0.05) - self.HOLE_X
+        # ROUND 82 -- Band A now stops INSIDE the wall instead of 0.05 mm
+        # PAST its inner face.
+        #
+        # Owner: *"in the long side inner wall just below the patch line, I
+        # saw a small gap (or bump) ... I suspect it's the arms getting
+        # through the wall after the width adjustment. Can you adjust the
+        # arm so they join the outer wall instead?"* -- correct diagnosis.
+        # Band A spans global Z [22.000, 24.000], i.e. exactly "just below
+        # the patch line" (UNIVERSAL_PATCH_Z_LO = 22.500), and the old
+        # `- 0.05` put its face at 26.350 against a 26.400 cavity: a 0.050 mm
+        # ledge standing proud INTO the battery bay, along the whole
+        # 23.350 mm arm length, on both long walls.
+        #
+        # The `- 0.05` was never about reaching the cavity -- it was there so
+        # the bridge would have a genuine VOLUMETRIC overlap with the wall
+        # rather than terminating on a coincident face (unreliable in the
+        # OCCT boolean kernel, *Chord-vs-arc ring* in vibe/INSTRUCTIONS.md).
+        # Overshooting inboard is only one way to get that overlap, and it
+        # is the one that shows. Stopping SHORT of the inner face buys the
+        # same overlap -- the bridge is then entirely buried in wall
+        # material, sharing no face with anything -- and leaves the cavity
+        # face clean. The fuse gets shallower by 0.075 mm out of ~1.875 mm
+        # of reach; its 2.000 mm Z-height, which is what the structural-fuse
+        # margin is actually derived from, is untouched.
+        #
+        # Half of SEAM_MARGIN, not the whole of it, because Band B already
+        # sits at a full SEAM_MARGIN inside the same face and the assert
+        # after Band B requires Band A to stay strictly deeper.
+        root_inner_local_y = (
+            wall_inner_face_at_band_a + SEAM_MARGIN / 2.0
+        ) - self.HOLE_X
         root_outer_local_y = -beam_half_width_pre
         # Post-fix hardening (round 17, re-derived round 73b): this Z
         # window is the entirety of the structural fuse -- 2.0 mm

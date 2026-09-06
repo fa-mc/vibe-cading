@@ -249,8 +249,49 @@ class PoweredUpHubBatteryTray:
     #: Vertical room the top cover's snap-fits need at the top of the
     #: compartment -- owner-measured on the real assembly (round 73).
     SNAP_FIT_ALLOWANCE = 1.200
-    WALL_Z_HI = CAVITY_HEIGHT - SNAP_FIT_ALLOWANCE                         # 24.800
-    WALL_THICKNESS = WALL_OUTER_X - WALL_INNER_X   # 0.800
+    # ROUND 82 -- owner-measured directly, superseding the
+    # CAVITY_HEIGHT - SNAP_FIT_ALLOWANCE derivation (which gave 24.800).
+    # The owner re-measured the real assembly and found the Housing's long
+    # wall thickens inboard above a certain height; the Tray's own long wall
+    # has to stop below that patch, and they measured its top at world
+    # Z = 22.300. This class's Z origin is its own base, which sits on the
+    # Cover plate at world Z = PoweredUpHubCover.PLATE_THICKNESS, hence the
+    # subtraction -- the owner confirmed their readings are in the shared
+    # world frame (Cover-plate-bottom datum), not this part's local one.
+    #
+    # The old derivation is kept above rather than deleted: CAVITY_HEIGHT is
+    # still ground truth for the Housing and SNAP_FIT_ALLOWANCE is still a
+    # real measurement -- they simply no longer determine THIS face.
+    WALL_Z_HI = 22.300 - PoweredUpHubCover.PLATE_THICKNESS                 # 21.100
+    # ROUND 82 -- inline comment corrected: this has been 2.000 since
+    # WALL_INNER_X became `WALL_OUTER_X - 2.000`, but the comment still read
+    # 0.800 (the shared WALL_THICKNESS of a different part). The derivation
+    # was always live and right; only the comment had drifted -- and it
+    # drifted somewhere load-bearing, because the trapezoid relief below is
+    # sized against this wall and a 0.800 reading made that relief look as
+    # though it would leave 0.100 mm of wall. It leaves 1.240 mm.
+    WALL_THICKNESS = WALL_OUTER_X - WALL_INNER_X   # 2.000
+
+    # --- ROUND 82: relief for the Housing's inner trapezoid patch ---
+    #
+    # Owner: *"A corresponding cut should be applied to the tray long wall.
+    # The tray side wall is measured z=22.3mm, with a trapezoid socket in
+    # the middle. The low end of the trapezoid measured z=18mm"* (world Z).
+    #
+    # The Housing's trapezoid patch (PoweredUpHubHousing.PATCH_X_INNER)
+    # reaches inboard to |X| 25.600 from world Z 20.000 up; this wall's
+    # outer face stands at 26.250, so the patch overlaps it by 0.650 mm.
+    # This relief is what lets the two parts coexist.
+    #
+    # KNOWN CONSEQUENCE, owner-directed and not silently absorbed: the wall
+    # is 0.800 mm thick, so a relief deep enough to clear the patch plus a
+    # running clearance leaves only ~0.100 mm of wall behind it. That was
+    # reported to the owner with the arithmetic before this was built, and
+    # they instructed *"apply the cut using the measurement I mentioned
+    # earlier"*. The residual is asserted (not silently accepted) in
+    # _build_wall_trapezoid_relief so the number stays visible; if a future
+    # measurement thickens this wall, the assert is where to look.
+    TRAPEZOID_RELIEF_Z_LO = 18.000 - PoweredUpHubCover.PLATE_THICKNESS     # 16.800
 
     # --- Y span (round 51) -- the U's open ends. ---
     # Both raised Cover features that the old END walls used to collide
@@ -556,6 +597,82 @@ class PoweredUpHubBatteryTray:
         return self._x_slab(
             x_sign, self.WALL_OUTER_X, self.WALL_THICKNESS,
             0.0, self.WALL_Z_HI,
+        ).cut(self._build_wall_trapezoid_relief(x_sign))
+
+    def _build_wall_trapezoid_relief(self, x_sign: int) -> cq.Workplane:
+        """Trapezoidal OPENING cut clean through one long wall, clearing the
+        Housing's inner trapezoid patch.
+
+        ROUND 82, owner-measured: it starts at world Z 18.000
+        (:attr:`TRAPEZOID_RELIEF_Z_LO` locally) and runs to this wall's own
+        top. Its outline mirrors the Housing's patch -- which itself mirrors
+        the Housing's outer socket -- so the three stay in one family
+        instead of drifting apart as three independent trapezoids.
+
+        ROUND 82b: a through cut, not a recess (owner: *"just cut off the
+        trapezoid area instead of making a recess"*). The wall section is
+        removed entirely over the footprint, so the Housing's patch sits in
+        an opening rather than bearing on a thin residual floor. The Y
+        outline still carries the running clearance, so the opening is never
+        narrower than the patch that has to pass into it.
+        """
+        from vibe_cading.lego_adapters.poweredup_hub.housing import (
+            PoweredUpHubHousing as _H,
+        )
+
+        oc = 1.0
+        clr = self._profile.slip.radial
+
+        # ROUND 82b -- a THROUGH cut, not a recess. Owner: *"For the battery
+        # tray just cut off the trapezoid area instead of making a recess"*.
+        #
+        # So the depth is no longer derived from how far the Housing's patch
+        # intrudes (that produced a partial-depth pocket with wall left
+        # behind it) -- the whole wall section goes, over the trapezoid
+        # footprint, leaving an opening. The Housing's patch then occupies
+        # that opening rather than pressing on a thin floor.
+        #
+        # Both overcut directions checked, not assumed (*Overcuts on the
+        # non-waste side*, vibe/INSTRUCTIONS.md): INBOARD of WALL_INNER_X is
+        # the battery compartment, void in this part -- the floor stops at
+        # Z 2.700 and the extraction tabs at 6.300, both far below this
+        # cut's own Z 16.800 start, so there is nothing of this part in the
+        # overcut's path. OUTBOARD of WALL_OUTER_X is free air (the Housing
+        # is a separate solid). Neither overcut can reach anything.
+        depth = self.WALL_THICKNESS + 2 * oc
+
+        # The point of this cut is that NOTHING survives behind it; assert
+        # that rather than trusting the arithmetic. A recess reintroduced
+        # here by a later edit would fail this.
+        assert depth > self.WALL_THICKNESS, (
+            f"the trapezoid cut ({depth:.3f} mm) does not clear the full wall "
+            f"({self.WALL_THICKNESS:.3f} mm) -- it would leave a floor, i.e. a "
+            "recess, which is exactly what this cut replaced"
+        )
+
+        # Y outline: the Housing patch's own trapezoid, widened by the
+        # running clearance on each flank so the relief is never narrower
+        # than the thing it clears.
+        yc = _H.SOCKET_Y_CENTER
+        y_lo = _H.SOCKET_Y_HALF_LO + clr
+        y_hi = _H.SOCKET_Y_HALF_HI + clr
+        # The Housing's patch flares over world Z [20.000, 24.000]; express
+        # the same flare here in this part's local Z.
+        z_lo = self.TRAPEZOID_RELIEF_Z_LO
+        z_flare = _H.SOCKET_Z_HI - PoweredUpHubCover.PLATE_THICKNESS
+
+        floor = x_sign * (self.WALL_INNER_X - oc)
+        return (
+            cq.Workplane("YZ")
+            .transformed(offset=cq.Vector(0.0, 0.0, floor))
+            .moveTo(yc - y_lo, z_lo)
+            .lineTo(yc + y_lo, z_lo)
+            .lineTo(yc + y_hi, z_flare)
+            .lineTo(yc - y_hi, z_flare)
+            .close()
+            # The YZ workplane's normal is +X whatever the sign, so the
+            # extrusion must be signed or the -X relief is cut in free air.
+            .extrude(x_sign * (depth + oc))
         )
 
     def _x_slab(
