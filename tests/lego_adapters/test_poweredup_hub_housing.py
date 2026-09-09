@@ -311,9 +311,22 @@ def test_middle_bore_is_blind():
             )
 
 
-@xfail_cross_datum
 def test_general_body_seated_interference_is_zero():
     """The seated Cover/Housing overlay must be zero EVERYWHERE.
+
+    ROUND 86 -- the ``xfail_cross_datum`` marker is REMOVED, exactly as that
+    marker's own reason string instructs ("Remove this marker in the same
+    change that re-datums the Housing"). The Housing was re-datumed in round
+    74; round 86's latch peg relief took the last remaining overlap to
+    0.000 mm^3, so this began XPASSing -- and being ``strict=True``, said so
+    loudly. That is the marker working as designed, not a new failure.
+
+    NOTE FOR WHOEVER TOUCHES THE OTHER SIX USAGES: the marker's premise
+    ("Housing and Tray have NOT been re-datumed yet") is now false for ALL
+    of them, since round 74. The six that still fail are therefore suppressed
+    under a reason that no longer describes why they fail. They need
+    individual diagnosis -- do NOT bulk-remove the marker, and do NOT leave
+    them sitting behind a stale justification either.
 
     Round 40 removed this test's carve-out. Rounds 18-39 excluded the latch
     catch's own footprint because the catch made "a geometrically
@@ -1488,12 +1501,33 @@ def test_upper_section_x_faces_are_the_cover_budget_not_the_reference():
         f"upper wall outer face at {bb.xmax:.3f}, cover budget wants "
         f"{H.UPPER_X_OUTER}"
     )
-    assert abs(bb.xmin - H.UPPER_X_INNER) < 1e-6, (
-        f"upper wall inner face at {bb.xmin:.3f}, expected {H.UPPER_X_INNER}"
+    # ROUND 86 -- the inner-face expectation is UPDATED from UPPER_X_INNER to
+    # PATCH_X_INNER, and the section from WALL_THICKNESS to SOCKET_BACKING.
+    #
+    # Not a loosened bound: both are still exact equalities, and they now name
+    # the faces the part actually has. Round 81b added the inner wall patch,
+    # which is unioned into the side wall over UNIVERSAL_PATCH_Z_LO..DECK_Z --
+    # i.e. across this probe's own Z. So the innermost material in the upper
+    # band has been PATCH_X_INNER (25.600), not the bare wall's UPPER_X_INNER
+    # (26.200), since that round; this test simply had not been run against it.
+    #
+    # The bare 0.800 mm WALL_THICKNESS section it used to assert no longer
+    # exists anywhere in this band -- asserting it would be asserting the
+    # absence of the patch.
+    assert z >= H.UNIVERSAL_PATCH_Z_LO, (
+        f"this probe sits at Z {z:.3f}, below the inner patch's own start "
+        f"({H.UNIVERSAL_PATCH_Z_LO:.3f}) -- the faces asserted below are the "
+        f"PATCHED ones, so a probe under the patch would measure something "
+        f"else entirely and pass for the wrong reason"
     )
-    assert abs((bb.xmax - bb.xmin) - H.WALL_THICKNESS) < 1e-6, (
-        f"upper wall is {(bb.xmax - bb.xmin):.3f} thick, not the shell's own "
-        f"{H.WALL_THICKNESS} -- moving one face without the other"
+    assert abs(bb.xmin - H.PATCH_X_INNER) < 1e-6, (
+        f"upper wall inner face at {bb.xmin:.3f}, expected the inner patch's "
+        f"own face {H.PATCH_X_INNER}"
+    )
+    assert abs((bb.xmax - bb.xmin) - H.SOCKET_BACKING) < 1e-6, (
+        f"upper wall + patch is {(bb.xmax - bb.xmin):.3f} thick, not the "
+        f"{H.SOCKET_BACKING:.3f} of backing the socket recess is sized "
+        f"against -- moving one face without the other"
     )
     # And the departure is real, not accidental: state it, so that reverting
     # UPPER_INSET to the reference's 0.800 fails here rather than silently
@@ -1504,8 +1538,18 @@ def test_upper_section_x_faces_are_the_cover_budget_not_the_reference():
     )
 
 
-def test_cover_budget_and_socket_backing_are_sufficient():
-    """Round 55e, RENAMED round 73d. Was ``test_cover_budget_and_socket_
+def test_socket_backing_is_sufficient():
+    """Round 55e, RENAMED round 73d, RENAMED AGAIN round 86.
+
+    ROUND 86: was ``test_cover_budget_and_socket_backing_are_sufficient``.
+    Property 1 (the cover-wall budget) is RETIRED -- see the block where it
+    used to be, below, for why the premise no longer exists on this part.
+    Renaming rather than leaving the old name is this test's own stated
+    discipline, applied to itself: a test's name must describe what it still
+    checks. Everything below about property 1 is kept as the record of a
+    retired requirement, NOT as a description of a live check.
+
+    Was ``test_cover_budget_and_socket_
     floor_stay_inline`` -- the rename is the point, same discipline as
     round 55e's own ``test_upper_section_x_faces_are_the_cover_budget_not_
     the_reference`` precedent: a test's name must describe what it still
@@ -1574,26 +1618,25 @@ def test_cover_budget_and_socket_backing_are_sufficient():
             x += step
         return None
 
-    # -- Property 1: cover-wall budget (long edge + short end). --
-    # Long edge: measured at a Z above the step, where the cover's wall sits.
-    # ROUND 73b: the step moved from REF_STEP_Z (24.000) to
-    # WALL_INNER_STEP_Z (26.000, item 2's decision) -- see the identical
-    # note in test_shell_steps_in_above_the_reference_step.
-    z_upper = (H.WALL_INNER_STEP_Z + H.DECK_Z - H.DECK_THICKNESS) / 2.0
-    upper_face = outer_face_at(0.0, z_upper, H.WALL_X_OUTER_LOWER + 0.5)
-    assert upper_face is not None, "no upper side wall found to measure"
-    wall = H.WALL_X_OUTER_LOWER - (upper_face + H.COVER_FIT_CLEARANCE)
-    assert wall >= H.COVER_WALL - 1e-6, (
-        f"a cover wall of only {wall:.3f} mm fits on the long edge "
-        f"(need {H.COVER_WALL})"
-    )
-
-    # Short end: the reference's own 1.200 socket depth already exceeds the
-    # 1.000 target, so it is left reference-exact rather than moved 0.050.
-    end_wall = H.HALF_Y - (H.UPPER_Y_HI + H.COVER_FIT_CLEARANCE)
-    assert end_wall >= H.COVER_WALL - 1e-6, (
-        f"a cover wall of only {end_wall:.3f} mm fits on the short end"
-    )
+    # -- Property 1: cover-wall budget -- RETIRED IN ROUND 86. --
+    #
+    # This half asserted that the upper section's inset left room for a
+    # SLIP-OVER COVER's wall (COVER_WALL = 1.000 plus COVER_FIT_CLEARANCE) on
+    # the long edge and the short end. That cover was a design direction the
+    # owner ABANDONED: the housing is one part, and round 81 replaced the
+    # `COVER_WALL + COVER_FIT_CLEARANCE` derivation of the upper inset with a
+    # directly measured UPPER_INSET = 0.800. So the budget this checked is no
+    # longer a requirement of the part -- the long edge now yields 0.650, and
+    # that is correct, not a regression.
+    #
+    # NOT deleted quietly, and NOT "fixed" by lowering COVER_WALL to 0.650:
+    # widening a bound to accommodate a number is how this project shipped a
+    # non-functional latch (vibe/INSTRUCTIONS.md, ratchet corollary). The
+    # premise is gone, so the assertion goes with it; property 2 below is the
+    # half that was always independent of the cover and it stays, unchanged.
+    #
+    # If a slip-over cover is ever revived, restore this from git history
+    # rather than re-deriving it -- the original reasoning is in 9ff29b0.
 
     # -- Property 2: socket backing (was "inline with the upper section"; --
     # -- round 73d retired the coplanarity, kept the printability floor). --
@@ -1847,4 +1890,65 @@ def test_the_tongue_end_is_rounded_all_the_way_across():
     assert not tongue_square, (
         f"the tongue end still runs square to the bed at X={tongue_square} "
         "-- the arc does not span the full wall"
+    )
+
+
+def test_tongue_main_band_is_23mm_from_the_deck():
+    """The tongue wall's thick band is 23.000 mm tall, measured from the
+    deck's INNER face (round 85, owner-measured).
+
+    Replaces a class-body assert that recomputed the span from the same
+    constant that defined it -- an identity, and one whose own comment
+    claimed it guarded DECK_THICKNESS changes it was structurally blind to.
+    Measured on the built solid here, which is where it can fail.
+
+    The station is a Y-gap between ridges, so the recess is visible: at a
+    ridge X the recess is filled flush with the main wall by design and the
+    step would not be detectable.
+
+    Falsifier: the lowest Z whose inner face sits at the main band's own
+    face, differing from (DECK_Z - DECK_THICKNESS) by other than 23.000.
+
+    Positive control: the scan must see at least two distinct inner faces.
+    One face at every Z means it never crossed the step, and any span it
+    reported would be its own scan bounds rather than the wall's.
+    """
+    H = PoweredUpHubHousing
+    v = PoweredUpHubHousing().solid.val()
+    y_out = H.TONGUE_Y + H.SHELL_Y_OFFSET
+    main_inner = y_out - H.TONGUE_WALL_THICKNESS
+    deck_inner = H.DECK_Z - H.DECK_THICKNESS
+    x_gap = 8.0                      # between ridge bands
+
+    def innermost(z):
+        y = main_inner - 0.5
+        while y < y_out:
+            if v.isInside(cq.Vector(x_gap, y, z), tolerance=1e-9):
+                return y
+            y += 0.005
+        return None
+
+    faces, z = {}, 0.5
+    while z <= deck_inner:
+        faces[round(z, 3)] = innermost(z)
+        z += 0.05
+
+    distinct = {round(f, 2) for f in faces.values() if f is not None}
+    assert len(distinct) >= 2, (
+        f"positive control failed: only {distinct} seen as an inner face at "
+        f"x={x_gap}, so the scan never crossed the wall's step and the span "
+        f"below would be an artifact of the scan range"
+    )
+
+    thick = [zz for zz, f in faces.items()
+             if f is not None and abs(f - main_inner) < 0.02]
+    assert thick, (
+        f"no Z carries the main band's own inner face ({main_inner:.3f}) -- "
+        f"the thick band is missing entirely"
+    )
+    span = deck_inner - min(thick)
+    assert abs(span - H.TONGUE_MAIN_BAND_HEIGHT) <= 0.06, (
+        f"the tongue wall's thick band spans {span:.3f} mm from the deck's "
+        f"inner face ({deck_inner:.3f}), not the owner-measured "
+        f"{H.TONGUE_MAIN_BAND_HEIGHT:.3f}"
     )

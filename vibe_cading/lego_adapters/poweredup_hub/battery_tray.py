@@ -385,11 +385,15 @@ class PoweredUpHubBatteryTray:
     # the feature datum, so if either the datum or the -Y end ever moves the
     # symmetry follows instead of silently breaking.
     WALL_Y_HI = 2.0 * PoweredUpHubCover.WINDOW_SILL_Y_CENTER - WALL_Y_LO  # 31.800
-    assert abs((WALL_Y_LO + WALL_Y_HI) / 2.0
-               - PoweredUpHubCover.WINDOW_SILL_Y_CENTER) < 1e-9, (
-        "the tray envelope is not centred on the feature datum -- the part "
-        "would not be reversible in Y"
-    )
+    # ROUND 86 -- a "centred on the datum" assert USED TO SIT HERE and was
+    # removed as decorative: substituting the line above makes it
+    # `(WALL_Y_LO + 2*datum - WALL_Y_LO)/2 == datum`, true for every possible
+    # input. It could not fail (vibe/INSTRUCTIONS.md, "A Check That Cannot
+    # Fail Is Not A Check"), yet read like the regression net for the
+    # reversibility work. The property IS checked, on the BUILT solid, by
+    # test_tray_is_reversible_in_y -- which is where a symmetry claim has to
+    # be tested, since symmetry is a property of the geometry and not of two
+    # constants.
     assert WALL_Y_HI <= PoweredUpHubCover.PLATE_Y_HI + 1e-9, (
         "the tray's +Y end now overhangs the Cover's plate edge"
     )
@@ -715,14 +719,14 @@ class PoweredUpHubBatteryTray:
         # is a separate solid). Neither overcut can reach anything.
         depth = self.WALL_THICKNESS + 2 * oc
 
-        # The point of this cut is that NOTHING survives behind it; assert
-        # that rather than trusting the arithmetic. A recess reintroduced
-        # here by a later edit would fail this.
-        assert depth > self.WALL_THICKNESS, (
-            f"the trapezoid cut ({depth:.3f} mm) does not clear the full wall "
-            f"({self.WALL_THICKNESS:.3f} mm) -- it would leave a floor, i.e. a "
-            "recess, which is exactly what this cut replaced"
-        )
+        # ROUND 86 -- a `depth > WALL_THICKNESS` assert USED TO SIT HERE.
+        # Removed as decorative: `depth` is `WALL_THICKNESS + 2 * oc` with `oc`
+        # a positive literal one line above, so it was true unconditionally.
+        # It claimed to catch "a recess reintroduced by a later edit", but an
+        # edit that reintroduced a recess would change `depth`'s DEFINITION,
+        # and the assert would move with it and stay true. The through-cut is
+        # verified where it can actually fail -- on the built solid, by
+        # test_tray_trapezoid_relief_is_a_through_cut.
 
         # Y outline: this part's own measured trapezoid, centred on the side
         # thumb tab (owner: the trapezoid's centreline is aligned with the
@@ -756,11 +760,20 @@ class PoweredUpHubBatteryTray:
         # Checked at every Z the two share, in this part's local frame.
         patch_z_lo = _H.TRAPEZOID_PATCH_Z_LO - PoweredUpHubCover.PLATE_THICKNESS
         patch_z_hi = _H.SOCKET_Z_HI - PoweredUpHubCover.PLATE_THICKNESS
-        patch_yc = _H.SOCKET_Y_CENTER + _H.SHELL_Y_OFFSET
-        assert abs(patch_yc - yc) < 1e-9, (
-            f"the Housing patch is centred on Y {patch_yc:.3f} but this relief "
-            f"on Y {yc:.3f}; they are meant to share the thumb tab's centreline"
-        )
+        # ROUND 86 -- a "both centred on the tab" assert USED TO SIT HERE,
+        # comparing `_H.SOCKET_Y_CENTER + _H.SHELL_Y_OFFSET` against
+        # `self.TAB_Y_CENTER`. Removed as a ROUND TRIP: housing.py derives
+        # SOCKET_Y_CENTER as `PoweredUpHubBatteryTray.TAB_Y_CENTER -
+        # SHELL_Y_OFFSET`, so the expression collapses to TAB_Y_CENTER and the
+        # tray was checking itself via the housing. It sat immediately beside
+        # round 84's frame-bug fix and read as that fix's regression net,
+        # which is the worst place for a check that cannot fail.
+        #
+        # The two ARE coupled -- but by shared derivation from the frozen
+        # Cover's WINDOW_SILL_Y_CENTER, not by coincidence, so there is no
+        # independent statement left to compare. What can still fail, and is
+        # therefore what the code below actually checks, is whether the
+        # opening is WIDE ENOUGH for the patch at every shared Z.
         _steps = 25
         _band_lo, _band_hi = max(z_lo, patch_z_lo), min(z_top, patch_z_hi)
         assert _band_hi > _band_lo, (

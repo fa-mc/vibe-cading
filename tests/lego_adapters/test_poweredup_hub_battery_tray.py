@@ -558,3 +558,85 @@ def test_the_floating_region_check_can_actually_see_one():
         "from the bed to its top -- it cannot distinguish supported from "
         "floating"
     )
+
+
+def test_tray_is_reversible_in_y():
+    """The tray drops in either way round (round 85e).
+
+    Replaces a class-body assert that compared WALL_Y_HI's own derivation
+    against the datum it was derived from -- an identity that could not fail.
+    Symmetry is a property of the built GEOMETRY, so it is measured here.
+
+    Falsifier: any material present in the part that the flipped copy does
+    not also cover. The motion checked is the one actually performed --
+    180 degrees about a vertical axis through the centre -- not a mirror,
+    because a mirror is not a rigid motion and a part can pass it while being
+    impossible to physically turn round.
+
+    Positive control: the same comparison against a 1 mm-displaced copy must
+    report a large mismatch. Without it, a boolean that silently returns
+    nothing is indistinguishable from perfect symmetry -- and "returns
+    nothing" is the more likely of the two.
+    """
+    T = PoweredUpHubBatteryTray
+    t = PoweredUpHubBatteryTray().solid
+    cy = (T.WALL_Y_LO + T.WALL_Y_HI) / 2.0
+
+    def mismatch(a, b):
+        return (sum(s.Volume() for s in a.cut(b).solids().vals())
+                + sum(s.Volume() for s in b.cut(a).solids().vals()))
+
+    displaced = mismatch(t, t.translate((0.0, 1.0, 0.0)))
+    assert displaced > 100.0, (
+        f"positive control failed: a 1 mm-displaced copy differs by only "
+        f"{displaced:.3f} mm^3, so the comparison cannot detect asymmetry "
+        f"and the verdict below would be meaningless"
+    )
+
+    flipped = t.rotate((0, cy, 0), (0, cy, 1), 180)
+    got = mismatch(t, flipped)
+    assert got < 1e-6, (
+        f"flipping the tray end-for-end leaves {got:.4f} mm^3 of mismatch -- "
+        f"it is not reversible. Both the envelope (WALL_Y_LO/HI) and every "
+        f"feature must be centred on PoweredUpHubCover.WINDOW_SILL_Y_CENTER; "
+        f"the classic cause is a feature datumed to the Cover's PLATE edges "
+        f"instead, which sit on a midplane 0.200 mm away."
+    )
+
+
+def test_tray_trapezoid_relief_is_a_through_cut():
+    """The trapezoid relief removes the WHOLE wall section, leaving an
+    opening rather than a recess (round 82b).
+
+    Replaces a class-body assert that compared a depth against its own
+    definition. Measured on the built solid instead: scan across the wall at
+    a station inside the relief and require NO material at any X.
+
+    Positive control: the same scan just BELOW the relief's own start must
+    find the full wall. A scan that finds nothing everywhere is a broken
+    probe, not a through cut.
+    """
+    T = PoweredUpHubBatteryTray
+    v = PoweredUpHubBatteryTray().solid.val()
+    yc = T.TAB_Y_CENTER
+    z_in = (T.TRAPEZOID_RELIEF_Z_LO + T.WALL_Z_HI) / 2.0
+    z_below = T.TRAPEZOID_RELIEF_Z_LO - 1.0
+
+    def material_across_wall(z):
+        x = T.WALL_INNER_X
+        while x <= T.WALL_OUTER_X:
+            if v.isInside(cq.Vector(x, yc, z), tolerance=1e-9):
+                return True
+            x += 0.005
+        return False
+
+    assert material_across_wall(z_below), (
+        f"positive control failed: no wall found at Z {z_below:.3f}, below "
+        f"the relief -- the scan is not on the wall, so its 'no material' "
+        f"result inside the relief would prove nothing"
+    )
+    assert not material_across_wall(z_in), (
+        f"material survives across the wall at Z {z_in:.3f}, inside the "
+        f"trapezoid relief -- this is a recess, not the through cut the "
+        f"Housing's inner patch has to pass into"
+    )

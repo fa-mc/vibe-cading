@@ -845,9 +845,10 @@ class PoweredUpHubHousing:
     # 0.200 mm -- under one 0.4 mm extrusion width, i.e. not printable as a
     # wall at all, which is the defect this fixes. At 0.500 it is 0.850,
     # comfortably above the 0.770 "normal section" floor that
-    # `test_cover_budget_and_socket_backing_are_sufficient` guards (renamed
-    # in round 73d from `..._floor_stay_inline` -- "stay inline" described
-    # exactly the coplanarity property this change retires; see that
+    # `test_socket_backing_is_sufficient` guards (renamed in round 73d from
+    # `..._floor_stay_inline` -- "stay inline" described exactly the
+    # coplanarity property this change retires -- and again in round 86, when
+    # its cover-budget half was retired with the slip-over cover; see that
     # test's own docstring).
     # ROUND 73e -- 0.500 -> 0.550, the owner's "more balanced" call, made
     # against the one fact that governs this choice:
@@ -2187,58 +2188,24 @@ class PoweredUpHubHousing:
             .extrude(x_sign * (self.PATCH_THICKNESS + oc))
         )
         return universal.union(trapezoid)
-        """The local pad that rebuilds the wall inboard of one trapezoid.
 
-        ROUND 81. :attr:`SOCKET_DEPTH` now equals
-        :attr:`WALL_THICKNESS_LOWER` (both 1.000), so the socket recess cuts
-        the plain side wall through completely -- without this pad the
-        trapezoid is a window into the battery bay rather than a seat. The
-        pad restores :attr:`SOCKET_BACKING_MIN` of section behind the
-        socket floor and nothing more.
-
-        Owner scope, verbatim: *"just patch up the trapezoids + z>=24
-        portion"* -- so this is deliberately NOT a uniform thickening of the
-        side wall. Below the socket the wall keeps its measured
-        :attr:`CAVITY_X_HALF_LOWER` inner face untouched; only the socket's
-        own footprint and the recessed band above it gain material. That
-        confines the accepted Tray conflict (see :attr:`SOCKET_PAD_X_INNER`)
-        to the pads instead of spreading it along the whole wall.
-
-        Bounds, each checked rather than assumed (*Overcuts on the non-waste
-        side*, vibe/INSTRUCTIONS.md -- this pad ADDS material, so a loose
-        bound here shows up as a lump inside the bay, not as a hole):
-
-        * ``X`` spans :attr:`SOCKET_PAD_X_INNER` to
-          :attr:`CAVITY_X_HALF_LOWER`, i.e. it stops exactly at the plain
-          wall's own inner face and unions into it. It does not reach the
-          socket floor, because the material between the cavity face and
-          the floor is already wall.
-        * ``Y`` covers the socket's WIDE edge (:attr:`SOCKET_Y_HALF_HI`,
-          the trapezoid's largest half-width) plus :attr:`_PAD_Y_MARGIN`, so
-          the pad is never narrower than the hole it backs at any Z. Using
-          the narrow edge here would leave the flared top of the socket
-          unbacked -- the failure this margin exists to prevent.
-        * ``Z`` runs from the socket's own bottom up to the top of the
-          recessed band, so the pad is continuous with the upper section's
-          wall rather than a floating island (the single-solid guard in
-          ``_build`` is what would catch a break here).
-        """
-        z_lo = self.SOCKET_Z_LO
-        z_hi = self.DECK_Z
-        y_half = self.SOCKET_Y_HALF_HI + self._PAD_Y_MARGIN
-
-        x_lo = min(x_sign * self.SOCKET_PAD_X_INNER,
-                   x_sign * self.CAVITY_X_HALF_LOWER)
-        x_hi = max(x_sign * self.SOCKET_PAD_X_INNER,
-                   x_sign * self.CAVITY_X_HALF_LOWER)
-
-        return rounded_box(
-            width=x_hi - x_lo,
-            depth=2 * y_half,
-            height=z_hi - z_lo,
-            corner_r=0.0,
-            center=((x_lo + x_hi) / 2.0, self.SOCKET_Y_CENTER, z_lo),
-        )
+    # ROUND 86 -- DEAD CODE REMOVED (found by the round-86 TL review).
+    #
+    # Lines here used to hold the body of `_build_socket_backing`, whose
+    # `def` line was lost in commit 9ff29b0. The orphaned body sat AFTER
+    # `_build_inner_patch`'s return, so it was unreachable, and it read two
+    # attributes that do not exist on this class at all:
+    # `SOCKET_PAD_X_INNER` and `_PAD_Y_MARGIN`. `flake8` is clean on all of
+    # it -- unreachable code and unresolved `self.` attributes are both
+    # outside what it checks, which is why this survived a lint-clean
+    # commit.
+    #
+    # The feature itself is NOT lost: round 81b superseded the local pad
+    # with `_build_inner_patch` above, which backs the socket over a wider
+    # band (a universal slab from UNIVERSAL_PATCH_Z_LO plus a trapezoid
+    # from TRAPEZOID_PATCH_Z_LO) and is what actually provides
+    # SOCKET_BACKING today. Deleting the orphan removes a duplicate,
+    # broken statement of a job another method already does.
 
     def _build_wall_socket(self, x_sign: int) -> cq.Workplane:
         """The trapezoidal recess in one side wall's outer face.
@@ -2308,7 +2275,7 @@ class PoweredUpHubHousing:
         assert self.SOCKET_BACKING >= self.SOCKET_BACKING_MIN - 1e-9, (
             f"only {self.SOCKET_BACKING:.3f} mm of wall survives behind the "
             f"socket recess (floor at |X| {self.SOCKET_FLOOR_X:.3f}, backing "
-            f"pad inner face {self.SOCKET_PAD_X_INNER:.3f}); below "
+            f"patch inner face {self.PATCH_X_INNER:.3f}); below "
             f"{self.SOCKET_BACKING_MIN:.3f} this is thinner than a normal "
             "extruded section and the compartment opens into the recess"
         )
@@ -3883,16 +3850,19 @@ class PoweredUpHubHousing:
             self.END_WALL_Z_HI,
             inward=False,
         )
-        # The owner's measurement is the 23.000 mm SPAN from the deck's inner
-        # face, not the Z it lands on, so check the span itself -- a change to
-        # DECK_THICKNESS that silently shortened this band would otherwise be
-        # invisible.
-        _span = (self.DECK_Z - self.DECK_THICKNESS) - self.TONGUE_MAIN_Z_LO
-        assert abs(_span - self.TONGUE_MAIN_BAND_HEIGHT) < 1e-9, (
-            f"the tongue wall's thick band spans {_span:.3f} mm from the deck's "
-            f"inner face, not the owner-measured "
-            f"{self.TONGUE_MAIN_BAND_HEIGHT:.3f}"
-        )
+        # ROUND 86 -- a span assert USED TO SIT HERE and was removed as
+        # decorative, along with a comment claiming it would catch "a change to
+        # DECK_THICKNESS that silently shortened this band". It would not:
+        # TONGUE_MAIN_Z_LO is DEFINED as `DECK_Z - DECK_THICKNESS -
+        # TONGUE_MAIN_BAND_HEIGHT`, so `(DECK_Z - DECK_THICKNESS) -
+        # TONGUE_MAIN_Z_LO` reduces to TONGUE_MAIN_BAND_HEIGHT for any value of
+        # DECK_THICKNESS -- it was structurally blind to the exact scenario its
+        # own comment named. A stated falsifier that is the wrong falsifier is
+        # worse than none, because it stops anyone looking further.
+        #
+        # The span is verified where it can fail -- on the BUILT solid, by
+        # test_tongue_main_band_is_23mm_from_the_deck, which measures the wall
+        # rather than re-arranging the constants that placed it.
 
         # The three steps must actually step, in the owner's stated order --
         # thickest at the deck, thinnest in the middle, and a tongue-end band
