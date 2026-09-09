@@ -283,15 +283,45 @@ class PoweredUpHubBatteryTray:
     # outer face stands at 26.250, so the patch overlaps it by 0.650 mm.
     # This relief is what lets the two parts coexist.
     #
-    # KNOWN CONSEQUENCE, owner-directed and not silently absorbed: the wall
-    # is 0.800 mm thick, so a relief deep enough to clear the patch plus a
-    # running clearance leaves only ~0.100 mm of wall behind it. That was
-    # reported to the owner with the arithmetic before this was built, and
-    # they instructed *"apply the cut using the measurement I mentioned
-    # earlier"*. The residual is asserted (not silently accepted) in
-    # _build_wall_trapezoid_relief so the number stays visible; if a future
-    # measurement thickens this wall, the assert is where to look.
+    # STALE-COMMENT CORRECTION (round 84): this used to warn that the relief
+    # left "only ~0.100 mm of wall behind it", arithmetic done off WALL_THICKNESS's
+    # inline comment (0.800) rather than its live derivation (2.000). It was
+    # wrong when written and is moot now regardless -- round 82b made this a
+    # THROUGH cut, so nothing at all survives behind it by design.
     TRAPEZOID_RELIEF_Z_LO = 18.000 - PoweredUpHubCover.PLATE_THICKNESS     # 16.800
+
+    # ROUND 85d -- extra depth on the Cover-hook notches, beyond the running
+    # clearance they already carry. Owner: *"I want to slightly increase the
+    # recess (maybe +0.2 to 0.4mm)"*.
+    #
+    # A RANGE, not a point value -- 0.300 is its midpoint, held as a soft
+    # nominal and not to be read as more precise than the +-0.100 it came
+    # from. This is deliberately NOT folded into profile.free.radial: that
+    # knob is the project-wide running fit and is shared by every interface
+    # on this part, whereas this is one local allowance the owner wants on
+    # the hooks specifically. Widening the shared knob to get it would move
+    # a dozen unrelated faces.
+    HOOK_NOTCH_EXTRA = 0.300
+
+    # ROUND 84 -- the relief's OWN measured outline, no longer derived from
+    # the Housing's socket.
+    #
+    # Until this round the relief mirrored PoweredUpHubHousing.SOCKET_Y_HALF_*
+    # plus a running clearance, on the reasoning that keeping the three
+    # trapezoids (outer socket, inner patch, this relief) in one family stopped
+    # them drifting apart. The owner then measured the real parts and they are
+    # NOT one family: the Housing's trapezoid is 18.000 / 22.000 across, this
+    # relief is 20.000 / 28.000. Deriving one from the other was encoding an
+    # assumption, not a measurement, so the derivation is cut and each side now
+    # states what was measured on it.
+    #
+    # The wide edge is measured at this wall's own TOP (WALL_Z_HI), not at the
+    # Housing's SOCKET_Z_HI (world 24.000) -- that plane is 1.700 mm above this
+    # wall and nothing here can be measured at it. See
+    # _build_wall_trapezoid_relief for how the outline is carried past the top
+    # face without landing a coincident face on it.
+    TRAPEZOID_RELIEF_Y_HALF_LO = 10.000    # short edge, 20.000 mm across
+    TRAPEZOID_RELIEF_Y_HALF_HI = 14.000    # long edge, 28.000 mm across, at WALL_Z_HI
 
     # --- Y span (round 51) -- the U's open ends. ---
     # Both raised Cover features that the old END walls used to collide
@@ -324,8 +354,45 @@ class PoweredUpHubBatteryTray:
     #
     # CONSEQUENCE, handled in _build_line_reliefs: the floor now lands ON both
     # raised lines (0.800 and 0.400 proud). It is relieved over each.
-    WALL_Y_LO = PoweredUpHubCover.PLATE_Y_LO     # -27.800
-    WALL_Y_HI = PoweredUpHubCover.PLATE_Y_HI     #  32.200
+    #
+    # ROUND 85e -- the envelope is now centred on the FEATURE datum, so the
+    # part is symmetric in Y and can be dropped in either way round.
+    #
+    # THE PROBLEM IT FIXES. This class was reading TWO different frozen-Cover
+    # datums that disagree by 0.200 mm: the envelope came from the Cover's
+    # PLATE edges (-27.800/32.200, midplane 2.200) while every feature on it
+    # -- strap channel, cap rebate, thumb tabs, trapezoid relief, hook
+    # notches -- comes from the Cover's WINDOW_SILL_Y_CENTER (2.000). So a
+    # symmetric set of features sat inside a box centred 0.200 mm off them,
+    # and flipping the tray end-for-end missed by 0.400.
+    #
+    # Measured before the change (tmp/r85l_symmetry_attribution.py): mirroring
+    # about 2.000 left ONE lump of mismatch, and it was the envelope's own end
+    # face -- no feature contributed. That is the evidence this is a datum
+    # bug and not a dozen independently misplaced features.
+    #
+    # The tongue end pays the 0.400 (owner's choice): the latch end stays
+    # exactly on the Cover's plate edge -- it carries the hook notches and the
+    # tall latch band, so it is the end with the least clearance to give --
+    # and the tongue end stops 0.400 short of the plate edge, which is free
+    # space.
+    #
+    # Length is therefore 59.600, not the owner's earlier 60.000. That figure
+    # was "the Cover's body length"; it is spent here, deliberately, on
+    # reversibility.
+    WALL_Y_LO = PoweredUpHubCover.PLATE_Y_LO     # -27.800, unchanged
+    # Derived, not typed: the +Y end is placed by reflecting the -Y end through
+    # the feature datum, so if either the datum or the -Y end ever moves the
+    # symmetry follows instead of silently breaking.
+    WALL_Y_HI = 2.0 * PoweredUpHubCover.WINDOW_SILL_Y_CENTER - WALL_Y_LO  # 31.800
+    assert abs((WALL_Y_LO + WALL_Y_HI) / 2.0
+               - PoweredUpHubCover.WINDOW_SILL_Y_CENTER) < 1e-9, (
+        "the tray envelope is not centred on the feature datum -- the part "
+        "would not be reversible in Y"
+    )
+    assert WALL_Y_HI <= PoweredUpHubCover.PLATE_Y_HI + 1e-9, (
+        "the tray's +Y end now overhangs the Cover's plate edge"
+    )
 
     # --- Floor (rounds 52-53, restored and re-datumed in round 55) ---
     # Not reference-derived: LDraw 24849's own floor is inside the part's
@@ -605,9 +672,16 @@ class PoweredUpHubBatteryTray:
 
         ROUND 82, owner-measured: it starts at world Z 18.000
         (:attr:`TRAPEZOID_RELIEF_Z_LO` locally) and runs to this wall's own
-        top. Its outline mirrors the Housing's patch -- which itself mirrors
-        the Housing's outer socket -- so the three stay in one family
-        instead of drifting apart as three independent trapezoids.
+        top.
+
+        ROUND 84: its outline is now this part's OWN measurement
+        (:attr:`TRAPEZOID_RELIEF_Y_HALF_LO` / ``_HI``, 20.000 -> 28.000
+        across) rather than the Housing's socket outline plus a running
+        clearance. The three trapezoids are not one family -- see those
+        constants. What replaces the derivation is an explicit assert that
+        this opening still clears the Housing's patch at every Z where the
+        two overlap, which is the property the derivation was really there
+        to protect and which it only ever guaranteed by construction.
 
         ROUND 82b: a through cut, not a recess (owner: *"just cut off the
         trapezoid area instead of making a recess"*). The wall section is
@@ -650,16 +724,61 @@ class PoweredUpHubBatteryTray:
             "recess, which is exactly what this cut replaced"
         )
 
-        # Y outline: the Housing patch's own trapezoid, widened by the
-        # running clearance on each flank so the relief is never narrower
-        # than the thing it clears.
-        yc = _H.SOCKET_Y_CENTER
-        y_lo = _H.SOCKET_Y_HALF_LO + clr
-        y_hi = _H.SOCKET_Y_HALF_HI + clr
-        # The Housing's patch flares over world Z [20.000, 24.000]; express
-        # the same flare here in this part's local Z.
+        # Y outline: this part's own measured trapezoid, centred on the side
+        # thumb tab (owner: the trapezoid's centreline is aligned with the
+        # tab's).
+        #
+        # ROUND 84 FRAME FIX: this used to read _H.SOCKET_Y_CENTER, which is
+        # written in the HOUSING'S LOCAL (pre-translate) frame -- 0.175, the
+        # tab centre back-compensated by the Housing's SHELL_Y_OFFSET. This
+        # class is never translated in Y, so consuming that value put the
+        # relief 1.825 mm off the tab it is supposed to be centred on. Read
+        # the tab centre from this class directly; there is no offset to undo
+        # here.
+        yc = self.TAB_Y_CENTER
+        y_lo = self.TRAPEZOID_RELIEF_Y_HALF_LO
+        y_hi = self.TRAPEZOID_RELIEF_Y_HALF_HI
         z_lo = self.TRAPEZOID_RELIEF_Z_LO
-        z_flare = _H.SOCKET_Z_HI - PoweredUpHubCover.PLATE_THICKNESS
+        z_hi = self.WALL_Z_HI
+
+        # The wide edge is measured AT the wall top, so a polygon that stopped
+        # there would land a face coincident with the top face -- the exact
+        # configuration the *Chord-vs-arc* / coincident-face pitfall in
+        # vibe/INSTRUCTIONS.md warns about. Carry the outline `oc` past the
+        # top instead, continuing the SAME flare rate, so the measured widths
+        # still hold at the two measured planes and the cut clears the face.
+        flare = (y_hi - y_lo) / (z_hi - z_lo)
+        z_top = z_hi + oc
+        y_top = y_hi + flare * oc
+
+        # What the retired derivation used to guarantee by construction: the
+        # opening is never narrower than the Housing patch passing into it.
+        # Checked at every Z the two share, in this part's local frame.
+        patch_z_lo = _H.TRAPEZOID_PATCH_Z_LO - PoweredUpHubCover.PLATE_THICKNESS
+        patch_z_hi = _H.SOCKET_Z_HI - PoweredUpHubCover.PLATE_THICKNESS
+        patch_yc = _H.SOCKET_Y_CENTER + _H.SHELL_Y_OFFSET
+        assert abs(patch_yc - yc) < 1e-9, (
+            f"the Housing patch is centred on Y {patch_yc:.3f} but this relief "
+            f"on Y {yc:.3f}; they are meant to share the thumb tab's centreline"
+        )
+        _steps = 25
+        _band_lo, _band_hi = max(z_lo, patch_z_lo), min(z_top, patch_z_hi)
+        assert _band_hi > _band_lo, (
+            "this relief and the Housing patch share no Z band at all -- one "
+            "of them has moved and the opening clears nothing"
+        )
+        for _i in range(_steps + 1):
+            _z = _band_lo + (_band_hi - _band_lo) * _i / _steps
+            _mine = y_lo + flare * (_z - z_lo)
+            _theirs = _H.SOCKET_Y_HALF_LO + (
+                (_H.SOCKET_Y_HALF_HI - _H.SOCKET_Y_HALF_LO)
+                * (_z - patch_z_lo) / (patch_z_hi - patch_z_lo)
+            )
+            assert _mine >= _theirs + clr, (
+                f"at local Z {_z:.3f} this relief is only {_mine:.3f} mm "
+                f"half-wide while the Housing patch is {_theirs:.3f} mm plus "
+                f"{clr:.3f} mm running clearance -- the patch would not pass"
+            )
 
         floor = x_sign * (self.WALL_INNER_X - oc)
         return (
@@ -667,8 +786,8 @@ class PoweredUpHubBatteryTray:
             .transformed(offset=cq.Vector(0.0, 0.0, floor))
             .moveTo(yc - y_lo, z_lo)
             .lineTo(yc + y_lo, z_lo)
-            .lineTo(yc + y_hi, z_flare)
-            .lineTo(yc - y_hi, z_flare)
+            .lineTo(yc + y_top, z_top)
+            .lineTo(yc - y_top, z_top)
             .close()
             # The YZ workplane's normal is +X whatever the sign, so the
             # extrusion must be signed or the -X relief is cut in free air.
@@ -754,12 +873,57 @@ class PoweredUpHubBatteryTray:
              PoweredUpHubCover.GROOVE_THICKNESS),
         )
 
+        # ROUND 85e -- each line's footprint is cut AT ITS OWN POSITION AND AT
+        # ITS MIRROR IMAGE, so all four are relieved.
+        #
+        # Equal DEPTH alone does not make this reversible. The two lines are
+        # not at mirror-image positions either: both are anchored to the
+        # Cover's plate edges (-27.800 / 32.200, midplane 2.200) while this
+        # part is symmetric about the feature datum 2.000. Mirroring the
+        # latch-end pocket lands it 0.400 mm from the tongue pocket, so a
+        # flipped tray would leave 0.250 mm of the tall latch band uncovered
+        # -- measured, not estimated. Cutting both positions removes the
+        # question entirely rather than relying on the offset staying small.
+        datum = PoweredUpHubCover.WINDOW_SILL_Y_CENTER
+        lines = lines + tuple(
+            (2.0 * datum - y_hi, 2.0 * datum - y_lo, th)
+            for y_lo, y_hi, th in lines
+        )
+
+        # BOTH pockets are cut to the DEEPER of the two.
+        #
+        # The Cover's two lines are different heights (latch band 0.800 proud,
+        # tongue groove 0.400). Sizing each pocket to its own line is correct
+        # for one orientation and wrong for the other: flip the tray and the
+        # shallow pocket lands on the tall band and interferes by 0.400 mm.
+        # Since round 85e the rest of this part is symmetric in Y, so this was
+        # the last thing standing between it and being reversible.
+        #
+        # Taking the max costs 0.400 mm of extra pocket at the tongue end, out
+        # of a FLOOR_THICKNESS of 2.700. Harmless: the tray's seat is the flat
+        # plate, never the inside of these pockets -- that is the whole reason
+        # this method relieves the lines instead of sitting on them (see the
+        # docstring above), so making one pocket roomier cannot affect how the
+        # part seats.
+        deepest_proud = max(
+            th - PoweredUpHubCover.PLATE_THICKNESS for _lo, _hi, th in lines
+        )
+        assert deepest_proud > 0.0, (
+            "no Cover line stands proud of the plate -- these pockets would "
+            "cut floor away for nothing"
+        )
+        assert deepest_proud + c < self.FLOOR_THICKNESS, (
+            f"a {deepest_proud + c:.3f} mm pocket does not fit in a "
+            f"{self.FLOOR_THICKNESS:.3f} mm floor -- it would break through"
+        )
+
         pockets = None
         for y_lo, y_hi, cover_thickness in lines:
             # How far the line stands proud of the plate == how deep the
-            # pocket must be, plus a clearance so the two never touch.
-            proud = cover_thickness - PoweredUpHubCover.PLATE_THICKNESS
-            depth = proud + c
+            # pocket must be, plus a clearance so the two never touch. Both
+            # pockets take the deepest line's figure, not their own -- see
+            # above.
+            depth = deepest_proud + c
             outboard = y_lo < 0.0
             p_lo = (y_lo - overcut) if outboard else (y_lo - c)
             p_hi = (y_hi + c) if outboard else (y_hi + overcut)
@@ -809,8 +973,8 @@ class PoweredUpHubBatteryTray:
             + PoweredUpHubCover.FINGER_WALL / 2.0
             + latch_dy
         )
-        y_hi = finger_inner + c
-        y_lo = self.WALL_Y_LO - overcut
+        # ROUND 85d -- deepened by HOOK_NOTCH_EXTRA, owner-requested.
+        y_hi = finger_inner + c + self.HOOK_NOTCH_EXTRA
 
         assert y_hi > self.WALL_Y_LO, (
             f"the finger's inner face ({finger_inner:.3f}) is outboard of the "
@@ -821,17 +985,43 @@ class PoweredUpHubBatteryTray:
         x_lo = lg.hook_pitch / 2.0 - c
         x_hi = lg.hook_pitch / 2.0 + lg.hook_width + c
 
+        # ROUND 85d -- the notch is now cut at BOTH ends. Owner: *"apply the
+        # recess to both ends so I don't have to worry about which way it
+        # is"*.
+        #
+        # Expressed as a DEPTH INBOARD FROM EACH END rather than as two
+        # absolute Y values. The tray is not symmetric in Y (its thumb tab,
+        # trapezoid relief and cap rebate all sit at their own Y), so
+        # mirroring an absolute Y through 0 would put the +Y notch somewhere
+        # that is not the same distance from the +Y end at all. Depth-from-end
+        # is the property the owner is asking for and the only one that
+        # survives the asymmetry.
+        depth_in = y_hi - self.WALL_Y_LO
+        assert depth_in > 0.0, (
+            f"the hook notch has no depth ({depth_in:.3f} mm) -- it would cut "
+            "nothing at either end"
+        )
+        # Both ends' cutters run OUTWARD into free air past the tray's own
+        # end face, so neither overcut direction can reach anything: outboard
+        # of WALL_Y_LO / WALL_Y_HI this part does not exist (checked, not
+        # assumed -- *Overcuts on the non-waste side*, vibe/INSTRUCTIONS.md).
+        ends = (
+            (self.WALL_Y_LO - overcut, self.WALL_Y_LO + depth_in),
+            (self.WALL_Y_HI - depth_in, self.WALL_Y_HI + overcut),
+        )
+
         notches = None
-        for sign in (-1.0, 1.0):
-            lo, hi = sorted((sign * x_lo, sign * x_hi))
-            notch = rounded_box(
-                width=hi - lo,
-                depth=y_hi - y_lo,
-                height=self.WALL_Z_HI + 2 * overcut,
-                corner_r=0.0,
-                center=((lo + hi) / 2.0, (y_lo + y_hi) / 2.0, -overcut),
-            )
-            notches = notch if notches is None else notches.union(notch)
+        for y_lo, y_hi_end in ends:
+            for sign in (-1.0, 1.0):
+                lo, hi = sorted((sign * x_lo, sign * x_hi))
+                notch = rounded_box(
+                    width=hi - lo,
+                    depth=y_hi_end - y_lo,
+                    height=self.WALL_Z_HI + 2 * overcut,
+                    corner_r=0.0,
+                    center=((lo + hi) / 2.0, (y_lo + y_hi_end) / 2.0, -overcut),
+                )
+                notches = notch if notches is None else notches.union(notch)
         return notches
 
     def _build_strap_channel(self) -> cq.Workplane:

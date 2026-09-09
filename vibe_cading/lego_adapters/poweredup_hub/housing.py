@@ -539,6 +539,26 @@ class PoweredUpHubHousing:
     # single "short side" reading depends entirely on the height it was
     # taken at. This constant is now explicitly the BASE width; the top is
     # UPPER_X_OUTER, narrower by UPPER_INSET.
+    # ================= OUTER ENVELOPE -- OWNER-LOCKED =====================
+    # Owner, round 86: *"do not change the outer wall distance in the
+    # housing"*. These five faces are the part's external size and are FROZEN;
+    # every fit problem gets solved by moving an INNER face instead.
+    #
+    #   side walls   |X| = WALL_X_OUTER_LOWER = 27.800   -> 55.600 across
+    #   latch end     Y  = -HALF_Y + SHELL_Y_OFFSET = -33.800
+    #   tongue end    Y  =  TONGUE_Y + SHELL_Y_OFFSET =  37.450  -> 71.250 long
+    #   deck top      Z  =  DECK_Z = 29.600
+    #
+    # This is the binding constraint behind round 86's peg relief: the Cover
+    # is frozen and the outer face cannot move, so the only remaining lever
+    # was the latch skin's thickness -- which is why that relief is local and
+    # bounded by LATCH_PEG_RELIEF_MIN_SKIN rather than simply "make the wall
+    # thinner until it fits".
+    #
+    # Re-checkable, not a promise: `tmp/r86d_outer_envelope.py` probes all
+    # five faces on the BUILT solid (a bounding box will not do -- the Technic
+    # arms stand proud of every wall and would mask a moved face).
+    # ======================================================================
     WALL_X_OUTER_LOWER = 27.800   # |X| outer face at the BASE, Z < UPPER_STEP_Z
     # NO LONGER the socket floor, nor the face above it -- round 55e moved
     # both to UPPER_X_OUTER (26.850) when it deepened the socket to widen
@@ -621,8 +641,15 @@ class PoweredUpHubHousing:
     # The socket's own Z-depth stays PARKED (owner direction, round 73b):
     # this value is unchanged.
     SOCKET_Z_LO = 22.000
-    SOCKET_Y_HALF_LO = 9.200      # narrow (lower) edge half-width
-    SOCKET_Y_HALF_HI = 11.200     # wide (upper) edge half-width, at SOCKET_Z_HI
+    # ROUND 84, owner re-measure: the trapezoid is 18.000 mm across its short
+    # (lower) edge and 22.000 mm across its long (upper) edge -- so 9.000 /
+    # 11.000 as half-widths, replacing the 9.200 / 11.200 carried since round
+    # 55. Both the outer socket and the inner patch read these, and the Tray's
+    # relief is a SEPARATE measurement (20.000 / 28.000) -- see
+    # PoweredUpHubBatteryTray.TRAPEZOID_RELIEF_Y_HALF_LO/HI, which no longer
+    # derives from these.
+    SOCKET_Y_HALF_LO = 9.000      # narrow (lower) edge half-width
+    SOCKET_Y_HALF_HI = 11.000     # wide (upper) edge half-width, at SOCKET_Z_HI
     # ROUND 73 -- owner: "the center line of the trapezoid should be aligned
     # with the center line of the thumb tab on the tray". Read live from the
     # Tray (ground truth), the same pattern WINDOW_Y_CENTER below already
@@ -1508,6 +1535,70 @@ class PoweredUpHubHousing:
     LATCH_WALL_THICKNESS = 6.050   # world: -33.800 -> -27.750
     LATCH_SKIN_THICKNESS = 1.200   # what survives in the latch-U band
 
+    # ROUND 86 -- the peg relief. This REVERSES round 85's preload decision;
+    # the retired reasoning is kept below it for the record.
+    #
+    # Owner, after printing: the 0.200 mm preload *"actually created a slight
+    # deformation. Can you solve it if it doesn't make the wall too thin?
+    # Keep the cover unchanged."* So the interference is cleared on the
+    # HOUSING side only, by deepening the latch skin locally.
+    #
+    # CORRECTION TO ROUND 85's ATTRIBUTION, which was wrong and would have
+    # sent this fix to the wrong feature: round 85 called the colliding part
+    # "the Cover's barb". It is not. LatchGeometry's barb bead sits at
+    # Z 11.000..13.000; the collision is at Z 4.750..7.344. The real culprits
+    # are the Cover's RETENTION PEG (`_build_peg`, Z BEAD_Z_LO..BEAD_Z_HI =
+    # 4.750..5.750, full hook width -- the 0.205 mm band) and its STIFFENING
+    # ARMS (`_build_peg_arms`, Z BEAD_Z_HI..+ARM_Z = 5.750..7.750, at the X
+    # extremes only -- which is exactly why the contact map showed two narrow
+    # edge strips there and nothing between them). The Y coincidence that
+    # misled round 85: BOTH the peg tip and that bead are quoted outboard of
+    # LATCH_DATUM_Y, so the tip arithmetic came out right while the feature
+    # name came out wrong.
+    #
+    # WHY RELIEVING A RETENTION FEATURE IS SAFE HERE. The peg retains in Z --
+    # its flat top bears on LATCH_LAND as pull-out acts in -Z. This relief
+    # moves the skin in Y only. Letting the peg sit 0.350 mm further outboard
+    # lets the spring leg relax toward its free position; it does not reduce
+    # the Z overlap with the land, and the land itself is untouched (the
+    # cutter is explicitly bounded off it -- see _build_latch_peg_relief).
+    LATCH_PEG_RELIEF_MIN_SKIN = 0.800
+    # 0.800 = two perimeters at a 0.400 mm nozzle. A floor, not a target: the
+    # relief is LOCAL (a ~3 mm Z band inside a 14.870 mm channel), so the
+    # thinned patch is braced by full-thickness skin above and below rather
+    # than being a 0.850 mm wall over the whole latch. That bracing is the
+    # reason this is preferable to simply reducing LATCH_SKIN_THICKNESS.
+
+    # --- RETIRED ROUND 85 (superseded above; kept for the record) ----------
+    # ROUND 85 -- the latch's seated INTERFERENCE, which was INTENDED.
+    #
+    # The Cover's barb tip sits at world Y = PLATE_Y_LO - BARB_TIP_OUT =
+    # -32.800; this pocket's floor is at LATCH_Y + LATCH_SKIN_THICKNESS +
+    # SHELL_Y_OFFSET = -32.600. So when the lid is closed the barb presses
+    # 0.200 mm into the pocket's back skin and the spring stays flexed.
+    #
+    # This is an owner DESIGN DECISION, not a defect that was measured and
+    # then tolerated. Round 85 localized it (5.488 mm^3, two symmetric lumps
+    # over the latch's full width) and reported it as a probable fault; the
+    # owner's call was: *"It's probably OK as the hook has elasticity. It'll
+    # be better if there's some small tension applied when the cover is
+    # closed."* The interference IS the retention preload.
+    #
+    # WHY IT IS PINNED RATHER THAN JUST ANNOTATED. vibe/INSTRUCTIONS.md is
+    # explicit that between two rigid printed parts a nonzero seated
+    # interference normally means a COLLISION, and that a residual which
+    # gets re-justified at greater length each round is the sound of a wrong
+    # premise being defended. The way to keep this one honest is to make it
+    # a designed quantity with a falsifiable range, so a future edit that
+    # drifts the pocket floor either loses the tension (<= 0, the lid
+    # rattles) or turns it into a jam (> MAX) and fails loudly here --
+    # rather than quietly re-deriving a new "accepted" number.
+    LATCH_SPRING_PRELOAD = 0.200
+    # Engineering judgment, NOT a measurement: past roughly this much the
+    # barb stops being preloaded and starts being unable to seat. Stated as
+    # a judgment so nobody later cites it as owner-measured.
+    LATCH_SPRING_PRELOAD_MAX = 0.400
+
     # ROUND 73b -- owner's own cross-check on HALF_Y and the two end-wall
     # thicknesses, verbatim: "The length between the inner walls (flat
     # part, not counting the holes left for the tongues and pegs) is
@@ -1573,7 +1664,25 @@ class PoweredUpHubHousing:
     # flush with the cover bottom", achieved by extending the curve rather
     # than truncating it (an earlier floored-cutter attempt flattened it and
     # was reverted -- see BOTTOM_ROUND_Z_FLOOR_TONGUE).
-    TONGUE_INNER_Y_LOWER = 32.525   # inner face, Z < TONGUE_STEP_Z (the rebate)
+    #
+    # ROUND 85 -- SUPERSEDED, 32.525 -> 32.825, i.e. the rebate's thickness
+    # drops 3.100 -> 2.800 on a fresh owner caliper read.
+    #
+    # ORIENTATION, because it inverted the reading of every band on this
+    # wall: the owner describes this wall with "the lid side as the bottom,
+    # since it's how the model is going to be printed", and "the lid" is
+    # THIS class's own DECK PLATE (world Z = DECK_Z), NOT PoweredUpHubCover.
+    # Their Z therefore runs OPPOSITE to world Z. Their "top ... that lets
+    # the tongues bite under" is this band, at world Z = 0; their "low end,
+    # thickest" is the main wall up at the deck (TONGUE_WALL_THICKNESS).
+    # Anything on this wall quoted in the owner's frame must be flipped
+    # before it is written as a world-Z band.
+    #
+    # The 2.800 still clears the frozen Cover: inner face lands at 34.650
+    # world against TONGUE_INNER_Y_UPPER's 34.400, and it still overhangs
+    # the recess above it (36.375) by 1.725 mm, which is the lap the Cover's
+    # tongue tip actually hooks under.
+    TONGUE_INNER_Y_LOWER = 32.825   # inner face, Z < TONGUE_STEP_Z (the rebate)
     # ROUND 73c -- KEPT UNCHANGED. This is a genuinely DIFFERENT feature from
     # the owner's "first 5mm is narrower" observation below, not the same
     # feature mis-dimensioned -- the evidence is the exact numeric coupling
@@ -1624,7 +1733,40 @@ class PoweredUpHubHousing:
     # distinguish three internal sub-bands from one, so "the first 5mm is
     # narrower" is consistent with all three existing/added, not evidence
     # that they should collapse into one.
-    TONGUE_RELIEF_Z_HI = 5.000
+    # ROUND 85 -- RETIRED as a band boundary (kept only so the round-73c
+    # reasoning above stays readable). The owner's round-85 re-description of
+    # this wall is THREE steps, not four: thickest at the deck, thinnest in
+    # the middle "starting from the base of the ridges", thicker at the
+    # tongue end. The 73c relief band was the fourth, and it is now absorbed
+    # into the main wall -- which starts at `tongue_clear_z_hi` instead.
+    #
+    # Why 73c's "the first 5mm on the Z is narrower" is not being defended
+    # here: that reading was taken in the owner's OWN frame (deck-down), so
+    # its "first 5mm" is world Z 24.600..29.600 -- the far end of the wall,
+    # not this band at all. It was mapped into world Z the wrong way up in
+    # round 73c. Rather than relocate a band on that re-reading, this round
+    # takes the owner's fresh, complete three-step spec as authoritative and
+    # records the discrepancy here.
+    TONGUE_RELIEF_Z_HI = 5.000   # RETIRED -- superseded by TONGUE_MAIN_Z_LO
+
+    # ROUND 85b -- where the thick main band starts, and hence where the
+    # recess above it ends. Owner: *"The middle part needs to start earlier.
+    # The thick part should be 23mm tall measured from the lid inner side."*
+    #
+    # "The lid" is this class's own DECK plate and its INNER side is the
+    # underside, DECK_Z - DECK_THICKNESS = 28.000 world. Measuring 23.000
+    # down from there puts the step at world Z 5.000. DERIVED, not typed, so
+    # the band tracks the deck if either deck constant moves -- the owner's
+    # measurement is of the 23.000 span, not of the resulting Z.
+    #
+    # WORTH NOTING: 5.000 is exactly where round 73c put its band boundary
+    # (the retired TONGUE_RELIEF_Z_HI above). That step is REAL and always
+    # was; what 73c got wrong was which side of it is thick. It assigned
+    # 3.000 below and 4.100 above; the truth is the recess (1.075) below and
+    # the main wall (4.400) above. The plane was right, the frame was upside
+    # down -- see TONGUE_INNER_Y_LOWER's orientation note.
+    TONGUE_MAIN_BAND_HEIGHT = 23.000
+    TONGUE_MAIN_Z_LO = DECK_Z - DECK_THICKNESS - TONGUE_MAIN_BAND_HEIGHT
 
     # The owner could not directly measure this thickness (curved outer
     # wall defeats a flush caliper reading), so it is NOT a measured
@@ -1673,7 +1815,19 @@ class PoweredUpHubHousing:
     # a point value -- 4.100 is the range's midpoint, held as a soft
     # nominal (not to be read as more precise than the +-0.100 range it
     # came from).
-    TONGUE_WALL_THICKNESS = 4.100
+    # ROUND 85 -- 4.100 -> 4.400, fresh owner caliper read of what they call
+    # "the thickest, near the lid". In their deck-down frame that is this
+    # band (see TONGUE_INNER_Y_LOWER's orientation note); it is the same
+    # feature their round-73c "4 to 4.2mm" read was of, now measured more
+    # precisely, so this supersedes rather than contradicts it.
+    #
+    # Clearance re-derived, not assumed: the inner face lands at 33.050
+    # world. The Cover's tongue blades reach out to 34.200 but only over
+    # Z [1.874, 2.800], entirely BELOW where this band now starts
+    # (tongue_clear_z_hi, 2.950), so they do not meet. Above that the
+    # nearest thing inboard is the Cover's / Tray's plate edge at 32.200 --
+    # cleared by 0.850. Asserted in _build_tongue_wall.
+    TONGUE_WALL_THICKNESS = 4.400
 
     # ROUND 73c -- the round-73b cross-check identity NO LONGER CLOSES and
     # the strict assert that encoded it has been REMOVED (not loosened) --
@@ -1735,6 +1889,14 @@ class PoweredUpHubHousing:
     # 0.750 + clr = 0.900 at the default profile -- i.e. the owner's 0.400 is
     # the total per-flank gap, of which 0.150 was already being applied.
     # Built width goes 1.300 -> 1.500.
+    # ROUND 85 -- minimum gap between a ridge's TIP and the root of the
+    # Cover's tongue slot it enters. Not a sliding fit (nothing rubs at the
+    # tip -- see the note in _build_tongue_ribs), so it is much smaller than
+    # the flank running clearance; it exists only to keep the ridge from
+    # bottoming out. As built the real gap is 0.050, so this floor is not
+    # tautological: thickening TONGUE_WALL_THICKNESS past 4.420 trips it.
+    TONGUE_RIB_TIP_GAP = 0.030
+
     TONGUE_RIB_CENTRE_X_HALF = 0.900
     # ROUND 75 -- the inner band is RE-CENTRED on the Cover's own slot, not
     # left on its nominal reference value.  Measured on the built Cover
@@ -1859,6 +2021,9 @@ class PoweredUpHubHousing:
         # reasoning; it is kept, unwired, because the reasoning is worth
         # more than the code.
         body = body.cut(self._build_latch_plate_relief())
+        # ROUND 86 -- after the latch wall and its channel exist, since this
+        # deepens the floor that channel leaves behind.
+        body = body.cut(self._build_latch_peg_relief())
         body = body.cut(self._build_cord_port())
         # Last: it rounds the end walls and the tongue ribs, so it has
         # to run after both exist.
@@ -3469,6 +3634,23 @@ class PoweredUpHubHousing:
         clearance = self._profile.free.radial
         y_inner = self.LATCH_Y + self.LATCH_WALL_THICKNESS   # -30.800
         y_outer = self.LATCH_Y + self.LATCH_SKIN_THICKNESS   # -34.400
+
+        # ROUND 85 -- the designed spring preload. Both sides are class
+        # constants (no instantiation of Cover needed), so this is cheap
+        # enough to run on every build.
+        #
+        # The Cover's barb is built in its LATCH frame and translated by
+        # `PLATE_Y_LO - LATCH_DATUM_Y`, so its tip lands at world
+        # `PLATE_Y_LO - BARB_TIP_OUT`; the two LATCH_DATUM_Y terms cancel.
+        # Derived rather than restated as -32.800 so it tracks the frozen
+        # Cover if either constant moves.
+        # ROUND 86 -- round 85's preload asserts are REMOVED, not loosened.
+        # They asserted the interference was present and within a band; the
+        # owner has since reversed that decision after printing it, so a
+        # check that the preload still EXISTS would now fail on correct
+        # geometry. The clearance is asserted instead, in
+        # _build_latch_peg_relief, which is where the geometry that provides
+        # it now lives.
         overcut = 1.0  # break cleanly through the wall's own inner face
         channels = None
         for side in (+1, -1):
@@ -3482,6 +3664,89 @@ class PoweredUpHubHousing:
             )
             channels = channel if channels is None else channels.union(channel)
         return channels
+
+    def _build_latch_peg_relief(self) -> cq.Workplane:
+        """Deepen the latch skin locally so the Cover's retention peg and its
+        stiffening arms clear it (round 86).
+
+        Provenance and the round-85 mis-attribution this corrects:
+        :attr:`LATCH_PEG_RELIEF_MIN_SKIN`.
+
+        The relief is a BLIND pocket taken off the channel floor. Its
+        outboard face IS the new floor, so it takes no overcut in that
+        direction -- an overcut there would break through the outer skin,
+        which is the whole thing being conserved.
+
+        Both other directions are bounded by something verified, not by an
+        assumption (*Overcuts on the non-waste side*, vibe/INSTRUCTIONS.md).
+        The feature at risk is :attr:`LATCH_LAND_Y` -- the ledge the peg
+        actually retains against -- which sits inboard of this pocket and
+        just below it. Destroy that and the latch holds nothing, while the
+        part still passes every topology and single-solid check. So:
+
+        * **inboard (+Y)** stops a hair past the existing channel floor.
+          Everything between there and the land is already void, so a deeper
+          reach would buy nothing and could reach the land.
+        * **-Z** stops above :attr:`LATCH_LAND_Z_HI`.
+
+        Both are asserted below rather than argued.
+        """
+        lg: LatchGeometry = self._latch
+        c = self._profile.free.radial
+        seam = 0.050
+
+        peg_tip_world = (
+            PoweredUpHubCover.PLATE_Y_LO - PoweredUpHubCover.BARB_TIP_OUT
+        )
+        # New floor: one running clearance outboard of the peg tip. The peg
+        # slides along this face as the lid closes, so it is a running fit.
+        floor_local = (peg_tip_world - c) - self.SHELL_Y_OFFSET
+        skin = floor_local - self.LATCH_Y
+        assert skin >= self.LATCH_PEG_RELIEF_MIN_SKIN, (
+            f"relieving the peg would leave only {skin:.3f} mm of latch skin, "
+            f"below the {self.LATCH_PEG_RELIEF_MIN_SKIN:.3f} mm floor "
+            f"(two perimeters at a 0.400 nozzle). The Cover is frozen, so the "
+            f"only other lever is the housing's outer face -- an external "
+            f"dimension. Raise this deliberately or move the outer face; do "
+            f"not silently print a thinner wall."
+        )
+
+        channel_floor_local = self.LATCH_Y + self.LATCH_SKIN_THICKNESS
+        y_lo = floor_local
+        y_hi = channel_floor_local + seam
+        assert y_hi < self.LATCH_LAND_Y, (
+            f"the peg relief reaches inboard to {y_hi:.3f}, at or past the "
+            f"latch land ({self.LATCH_LAND_Y:.3f}) -- it would eat the ledge "
+            f"the peg retains against and the latch would hold nothing"
+        )
+
+        # Z: the peg, plus the arms that stand on top of it, plus a seam.
+        z_lo = PoweredUpHubCover.BEAD_Z_LO - seam
+        z_hi = PoweredUpHubCover.BEAD_Z_HI + PoweredUpHubCover.ARM_Z + seam
+        assert z_lo > self.LATCH_LAND_Z_HI, (
+            f"the peg relief starts at Z {z_lo:.3f}, inside the latch land's "
+            f"own band (up to {self.LATCH_LAND_Z_HI:.3f}) -- it would undercut "
+            f"the retention ledge"
+        )
+
+        # X: the hook's own footprint plus a running clearance each side --
+        # the same span the latch channel uses, so the relief cannot be
+        # narrower than the peg it clears.
+        x_lo = lg.hook_pitch / 2.0 - c
+        x_hi = lg.hook_pitch / 2.0 + lg.hook_width + c
+
+        reliefs = None
+        for sign in (-1.0, 1.0):
+            lo, hi = sorted((sign * x_lo, sign * x_hi))
+            block = rounded_box(
+                width=hi - lo,
+                depth=y_hi - y_lo,
+                height=z_hi - z_lo,
+                corner_r=0.0,
+                center=((lo + hi) / 2.0, (y_lo + y_hi) / 2.0, z_lo),
+            )
+            reliefs = block if reliefs is None else reliefs.union(block)
+        return reliefs
 
     def _build_finger_windows(self) -> cq.Workplane:
         """The through-slot the cover's thumb pad passes into.
@@ -3584,29 +3849,79 @@ class PoweredUpHubHousing:
         # The cover's riser tops out at RISER_Z_HI; clear it by the
         # project's own running-clearance convention before thickening.
         tongue_clear_z_hi = PoweredUpHubCover.RISER_Z_HI + self._profile.free.radial
+        # ROUND 85b -- the recess now runs to TONGUE_MAIN_Z_LO, not to the
+        # riser's own clearance height. Owner: *"The middle part needs to
+        # start earlier"* -- in their deck-down frame the recess begins
+        # 23.000 mm up from the deck's inner face, which is 2.050 mm lower in
+        # world Z than the riser line this band used to stop at.
+        #
+        # The riser requirement is NOT dropped by extending the band -- it is
+        # subsumed. Making the recess TALLER only removes more material, so
+        # the clearance round 73c measured as load-bearing (its attempted
+        # merge cost 49.546 mm^3 by making this band THICKER) cannot be
+        # reduced by this change. Asserted below rather than argued.
+        assert self.TONGUE_MAIN_Z_LO > tongue_clear_z_hi, (
+            f"the tongue recess now ends at Z {self.TONGUE_MAIN_Z_LO:.3f}, "
+            f"below the Cover riser's clearance height "
+            f"({tongue_clear_z_hi:.3f}) -- the main band would close in on "
+            f"the riser instead of clearing it"
+        )
         riser_clearance = self._y_slab(
             self.TONGUE_Y,
             self.TONGUE_Y - self._tongue_inner_y_upper,
             self.TONGUE_STEP_Z,
-            tongue_clear_z_hi,
+            self.TONGUE_MAIN_Z_LO,
             inward=False,
         )
-        relief_extension = self._y_slab(
-            self.TONGUE_Y,
-            self.TONGUE_RELIEF_THICKNESS,
-            tongue_clear_z_hi,
-            self.TONGUE_RELIEF_Z_HI,
-            inward=False,
-        )
+        # ROUND 85 -- the main band now starts where the riser-clearance
+        # recess ends, absorbing round 73c's separate relief band. Three
+        # steps, per the owner's re-description; see TONGUE_RELIEF_Z_HI.
         upper = self._y_slab(
             self.TONGUE_Y,
             self.TONGUE_WALL_THICKNESS,
-            self.TONGUE_RELIEF_Z_HI,
+            self.TONGUE_MAIN_Z_LO,
             self.END_WALL_Z_HI,
             inward=False,
         )
+        # The owner's measurement is the 23.000 mm SPAN from the deck's inner
+        # face, not the Z it lands on, so check the span itself -- a change to
+        # DECK_THICKNESS that silently shortened this band would otherwise be
+        # invisible.
+        _span = (self.DECK_Z - self.DECK_THICKNESS) - self.TONGUE_MAIN_Z_LO
+        assert abs(_span - self.TONGUE_MAIN_BAND_HEIGHT) < 1e-9, (
+            f"the tongue wall's thick band spans {_span:.3f} mm from the deck's "
+            f"inner face, not the owner-measured "
+            f"{self.TONGUE_MAIN_BAND_HEIGHT:.3f}"
+        )
+
+        # The three steps must actually step, in the owner's stated order --
+        # thickest at the deck, thinnest in the middle, and a tongue-end band
+        # that still OVERHANGS the recess (that overhang IS the lap the
+        # Cover's tongue tip hooks under; without it this wall retains
+        # nothing). A future edit to any one thickness that flattened the
+        # profile would otherwise pass every topology check silently.
+        _rebate = self.TONGUE_Y - self.TONGUE_INNER_Y_LOWER
+        _recess = self.TONGUE_Y - self._tongue_inner_y_upper
+        assert self.TONGUE_WALL_THICKNESS > _rebate > _recess, (
+            f"the tongue wall's three steps are out of order: main "
+            f"{self.TONGUE_WALL_THICKNESS:.3f}, rebate {_rebate:.3f}, recess "
+            f"{_recess:.3f} -- the owner's spec is thickest at the deck, "
+            f"thinnest in the middle, with the rebate between the two"
+        )
+        # The main band reaches further inboard than anything it passes.
+        # Checked against the frozen Cover rather than assumed -- see
+        # TONGUE_WALL_THICKNESS's own note.
+        _main_inner_world = (
+            self.TONGUE_Y - self.TONGUE_WALL_THICKNESS + self.SHELL_Y_OFFSET
+        )
+        assert _main_inner_world > PoweredUpHubCover.PLATE_Y_HI, (
+            f"the tongue wall's main band reaches to Y {_main_inner_world:.3f} "
+            f"world, inboard of the frozen Cover's plate edge "
+            f"({PoweredUpHubCover.PLATE_Y_HI:.3f}) -- it would bind on insertion"
+        )
+
         return (
-            lower.union(riser_clearance).union(relief_extension).union(upper)
+            lower.union(riser_clearance).union(upper)
             .union(self._build_tongue_ribs())
         )
 
@@ -3671,8 +3986,54 @@ class PoweredUpHubHousing:
         clr = self._profile.free.radial
         overlap = 0.050
 
-        y_hi = self.TONGUE_INNER_Y_LOWER + overlap
-        z_hi = PoweredUpHubCover.RISER_Z_HI + clr + overlap
+        # ROUND 85 -- the ridges are re-based onto the THICK wall and made
+        # flush with it. Owner: *"The ridges grow on the thicker wall below.
+        # The ridges outer wall sits flush with the thicker wall below"*, and
+        # on follow-up: *"Start from the thicker part of the wall, it sits
+        # flush as the thicker part"*. ("Below" is in the owner's deck-down
+        # frame -- see TONGUE_INNER_Y_LOWER's orientation note -- so the wall
+        # they mean is the main band up at the deck, world Z >= 2.950.)
+        #
+        # WHAT CHANGED. Before, the ridges ran from world Z 0 to ~3.000 and
+        # their inboard reach was pulled from the Cover's slot-opening line;
+        # they stood in front of the rebate rather than growing off anything,
+        # and their inboard face bore no relation to the wall above them.
+        # Now they simply carry the main band's own inner face down through
+        # the recess -- so a section taken AT a ridge is full main-wall
+        # thickness, and only the gaps between ridges are recessed. That is
+        # what makes them ridges rather than free-standing fins, and it is
+        # what the owner means by "flush".
+        #
+        # Z now spans the RECESS only (the rebate below and the main band
+        # above are wall in their own right), plus an overlap into each so
+        # neither union lands a coincident face.
+        # ROUND 85c -- the ridges run all the way to the shell's Z = 0 face.
+        # Owner: *"the ridges on the housing tongue end should be taller.
+        # Using the housing lid as the bottom, the top of the ridges should
+        # sit flat with the top of the upper wall"*. In their deck-down frame
+        # the "upper wall" is the rebate band and its top face is world
+        # Z = 0, so the ridges now span the recess AND the rebate rather than
+        # stopping at the rebate's shoulder (TONGUE_STEP_Z) as round 85 had
+        # them. No overlap subtracted here: Z = 0 is the part's own bottom
+        # face, so starting below it would hang material into free space
+        # rather than seat a union.
+        z_lo = 0.0
+        # ROUND 85b -- the ridges span the recess, whose top moved up to
+        # TONGUE_MAIN_Z_LO. Pinned to the band they fill rather than to the
+        # Cover's riser height: the owner's own definition of the recess is
+        # "the thinnest in the middle, STARTING FROM THE BASE OF THE RIDGES",
+        # so the ridge base and the band boundary are one plane by
+        # construction and cannot drift apart into two numbers.
+        z_hi = self.TONGUE_MAIN_Z_LO + overlap
+
+        # Inboard face = the main band's inner face, i.e. flush. Held as one
+        # expression rather than a literal so a future change to
+        # TONGUE_WALL_THICKNESS carries the ridges with it instead of
+        # silently unsticking them from the wall they are supposed to
+        # continue.
+        y_lo_flush = self.TONGUE_Y - self.TONGUE_WALL_THICKNESS
+        # Outboard, they run into the recess floor and a little past it.
+        y_hi = self._tongue_inner_y_upper + overlap
 
         # Round 59 moved the Cover's slot walls: its blades narrow and its
         # gaps widen by the lid's own fit clearance, so the slots are no
@@ -3730,16 +4091,44 @@ class PoweredUpHubHousing:
             # ribs are built in the shell's LOCAL frame and must still land on
             # the frozen Cover's feature after the shell-wide translate.
             # `y_hi` is a housing-native constant and rides with the shell.
-            y_lo = (
+            #
+            # ROUND 85 -- the slot-opening line is now a FLOOR on how far
+            # inboard the ridge may reach, not the reach itself: the ridge
+            # stops at the main wall's own inner face (flush, per the owner),
+            # and that face must not bury into the Cover's blade root. If a
+            # future TONGUE_WALL_THICKNESS pushed it past this line the ridge
+            # would bind on insertion, which is the 4.394 mm^3 failure this
+            # comment's original text describes.
+            # The bound is the RAW slot-opening line plus a small TIP gap --
+            # deliberately NOT the flank running clearance `clr`.
+            #
+            # Those are two different fits and conflating them is what made
+            # this assert fire on the first attempt at the owner's "flush"
+            # instruction. The ridge's FLANKS slide against the Cover's blade
+            # sides on insertion, so they carry the full `clr` (applied in the
+            # X bands above). The ridge's TIP only has to avoid bottoming out
+            # on the slot root -- nothing slides there. Demanding `clr` at the
+            # tip would have forced the ridge 0.100 mm shy of flush and
+            # quietly contradicted the owner, to buy clearance on a face that
+            # never rubs.
+            slot_open = (
                 PoweredUpHubCover.PLATE_Y_HI
                 + PoweredUpHubCover.TONGUE_GAP_Y_INSET
-            ) - self.SHELL_Y_OFFSET + clr
+            ) - self.SHELL_Y_OFFSET
+            assert y_lo_flush >= slot_open + self.TONGUE_RIB_TIP_GAP, (
+                f"a ridge flush with the {self.TONGUE_WALL_THICKNESS:.3f} mm "
+                f"main wall reaches to local Y {y_lo_flush:.3f}; the Cover's "
+                f"tongue slots bottom out at {slot_open:.3f} and the ridge "
+                f"must stop at least {self.TONGUE_RIB_TIP_GAP:.3f} mm short "
+                f"of that or it bottoms on the blades' shared root"
+            )
+            y_lo = y_lo_flush
             rib = rounded_box(
                 width=x_hi - x_lo,
                 depth=y_hi - y_lo,
-                height=z_hi,
+                height=z_hi - z_lo,
                 corner_r=0.0,
-                center=((x_lo + x_hi) / 2.0, (y_lo + y_hi) / 2.0, 0.0),
+                center=((x_lo + x_hi) / 2.0, (y_lo + y_hi) / 2.0, z_lo),
             )
             ribs = rib if ribs is None else ribs.union(rib)
         return ribs
