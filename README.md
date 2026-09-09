@@ -107,13 +107,28 @@ and four runnable demos under [`examples/`](examples/).
 
 This project runs in a **VS Code Dev Container** — no local Python or CadQuery install.
 
-1. Clone the repo, open it in VS Code, and click **Reopen in Container**
-   (Python 3.11 + CadQuery + the OCP CAD viewer are provisioned for you).
-2. Run an example — writes STEP + SVG to `examples/build/`:
+1. Clone the repo into a project directory of its own, as `main`:
+   ```bash
+   git clone https://github.com/fa-mc/vibe-cading.git vibe-cading/main
+   cd vibe-cading/main
+   ```
+   (Already cloned flat? Run the script in step 2 from inside it — it offers the
+   one-time move for you.)
+2. Run the one-time workspace setup, then open `main` in VS Code and click
+   **Reopen in Container** (Python 3.11 + CadQuery + the OCP CAD viewer are
+   provisioned for you):
+   ```bash
+   vibe_cading/tools/setup-workspace.sh
+   ```
+   It validates the layout and writes a marker the container start checks for.
+   Without it the container refuses to start — the parent directory is what gets
+   bind-mounted, so it must be a project directory and not, say, your home
+   directory. Details: [CONTRIBUTING.md > Dev Setup](CONTRIBUTING.md).
+3. Run an example — writes STEP + SVG to `examples/build/`:
    ```bash
    python3 examples/gear_from_iso.py
    ```
-3. Preview any part live in the OCP CAD viewer (port 3939). **Start a viewer
+4. Preview any part live in the OCP CAD viewer (port 3939). **Start a viewer
    first** — `view.py` only pushes to one, it does not launch one. Either open
    the VS Code panel (Command Palette → *OCP CAD Viewer: Open viewer*), or run
    the standalone server and use a plain browser tab, which needs no VS Code:
@@ -125,7 +140,7 @@ This project runs in a **VS Code Dev Container** — no local Python or CadQuery
    python3 vibe_cading/tools/view.py vibe_cading.mechanical.gears.spur.SpurGear
    ```
    Details and troubleshooting: [docs/viewer.md](docs/viewer.md).
-4. **Before your first print**, calibrate the slip fit for your printer + material:
+5. **Before your first print**, calibrate the slip fit for your printer + material:
    print the axle gauge and run `python3 vibe_cading/tools/calibrate.py slip` — it
    writes the measured `slip.radial` into your gitignored `print_profiles_user.json`
    so Lego pins and axles fit. (Why it matters, plus the other knobs:
