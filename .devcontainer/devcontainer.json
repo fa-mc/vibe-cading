@@ -33,11 +33,19 @@
     // Path-identity worktree layout: mount the whole PROJECT ROOT at the identical
     // host==container path so every sibling worktree — and its .git, which points
     // back into main/.git/worktrees/ — resolves the same from host and container.
-    // The container always opens in `main` (the only checkout that runs Claude);
-    // work in sibling worktrees by `cd`-ing to them within this same container.
+    // ANY checkout under the mounted root may be opened directly, not only `main`:
+    // workspaceFolder follows whatever you opened, and the pre-mount guard
+    // (initializeCommand → checkWorkspaceSetup, below) validates whichever one it
+    // is. You can equally open `main` and `cd` to a sibling in the same container.
+    //
+    // `${localWorkspaceFolder}/..` is the PARENT of the opened checkout — the
+    // project directory. Docker normalizes the `/..` in both source and target, so
+    // source == target and path identity is preserved. Deriving it is what makes
+    // this file clone-portable; the previous hardcoded literal bound a path that
+    // existed only on one machine.
     // Migrated 2026-06-20 from the flat /workspaces/vibe-cading layout.
-    "workspaceMount": "source=/workspaces/vibe-cading,target=/workspaces/vibe-cading,type=bind",
-    "workspaceFolder": "/workspaces/vibe-cading/main",
+    "workspaceMount": "source=${localWorkspaceFolder}/..,target=${localWorkspaceFolder}/..,type=bind",
+    "workspaceFolder": "${localWorkspaceFolder}",
     "mounts": [
         "source=${localEnv:HOME}/.ssh,target=/tmp/host-ssh,type=bind,readonly",
         // If you override USERNAME (default "vscode") via build args, also update
@@ -62,15 +70,54 @@
     // Seed the per-project credentials file on first create: make the dir, then
     // copy the shared token in once (or touch an empty file if none exists yet) so
     // the nested bind mount above always has a real host file to bind. Idempotent.
-    "initializeCommand": "mkdir -p ${localEnv:HOME}${localEnv:USERPROFILE}/.claude-creds/vibe-cading && { [ -f ${localEnv:HOME}${localEnv:USERPROFILE}/.claude-creds/vibe-cading/.credentials.json ] || cp ${localEnv:HOME}${localEnv:USERPROFILE}/.claude/.credentials.json ${localEnv:HOME}${localEnv:USERPROFILE}/.claude-creds/vibe-cading/.credentials.json 2>/dev/null || touch ${localEnv:HOME}${localEnv:USERPROFILE}/.claude-creds/vibe-cading/.credentials.json; }",
+    //
+    // Object form, so the pre-mount guard is a SECOND, independent entry rather
+    // than replacing the seeding above (which is load-bearing: the nested
+    // .credentials.json bind hard-fails on a missing source). checkWorkspaceSetup
+    // is ARRAY form on purpose — the opened path reaches the script as argv[1],
+    // as data. A single interpolated string would execute a host directory named
+    // e.g. `pr$(touch PWNED)oj`. Never collapse these two entries into one string.
+    // The script refuses container creation unless the git-derived project root,
+    // the directory Docker will actually mount, and a human-written
+    // .vibe-cading-project-root marker all agree. Run
+    // vibe_cading/tools/setup-workspace.sh once after cloning to create it.
+    "initializeCommand": {
+        "seedClaudeCredentials": "mkdir -p ${localEnv:HOME}${localEnv:USERPROFILE}/.claude-creds/vibe-cading && { [ -f ${localEnv:HOME}${localEnv:USERPROFILE}/.claude-creds/vibe-cading/.credentials.json ] || cp ${localEnv:HOME}${localEnv:USERPROFILE}/.claude/.credentials.json ${localEnv:HOME}${localEnv:USERPROFILE}/.claude-creds/vibe-cading/.credentials.json 2>/dev/null || touch ${localEnv:HOME}${localEnv:USERPROFILE}/.claude-creds/vibe-cading/.credentials.json; }",
+        "checkWorkspaceSetup": [
+            "bash",
+            "${localWorkspaceFolder}/vibe_cading/tools/check-workspace-setup.sh",
+            "${localWorkspaceFolder}"
+        ]
+    },
+    // VIBE_OPENED carries the opened checkout's container path to postCreateCommand
+    // as a real ENVIRONMENT VARIABLE. postCreateCommand must reference it as the
+    // shell variable $VIBE_OPENED and must NEVER interpolate ${containerWorkspaceFolder}
+    // (or any other devcontainer substitution) into its command string — that is
+    // textual substitution into a shell command, i.e. the same injection the
+    // array-form initializeCommand entry above exists to avoid.
     "remoteEnv": {
         "SSH_AUTH_SOCK": "/ssh-agent",
-        "PYTHONPATH": "/workspaces/vibe-cading/main"
+        "PYTHONPATH": "${containerWorkspaceFolder}",
+        "VIBE_OPENED": "${containerWorkspaceFolder}"
     },
     // SSH key copy is best-effort: copy only files the container user can READ
     // (skip root-owned files like a known_hosts written by a root-context process
     // into the shared host ~/.ssh — `cp -a` aborts postCreate with exit 1 on an
     // unreadable source). `cp -p` keeps mode/timestamps but not ownership (avoids
     // the non-root chown EPERM); the chmod steps below then normalize perms.
-    "postCreateCommand": "git config --global --add safe.directory /workspaces/vibe-cading/main && sudo chown -R \"$(id -u):$(id -g)\" /workspaces/vibe-cading/main && mkdir -p \"$HOME/.ssh\" && { find /tmp/host-ssh -maxdepth 1 -type f -readable -exec cp -p {} \"$HOME/.ssh/\" \\; || true; } && chmod 700 \"$HOME/.ssh\" && find \"$HOME/.ssh\" -maxdepth 1 -type f ! -name '*.pub' -exec chmod 600 {} + && find \"$HOME/.ssh\" -maxdepth 1 -name '*.pub' -exec chmod 644 {} +"
+    //
+    // Ownership and git-trust cover the WHOLE mounted project root, not only the
+    // opened checkout: a sibling worktree's git operations write into
+    // main/.git/worktrees/, so marking only what was opened leaves `main` untrusted.
+    // $VIBE_OPENED / $VIBE_ROOT / ${d} are SHELL variables (see remoteEnv above) —
+    // no host path is interpolated into this string. The `: "${VIBE_OPENED:?...}"`
+    // guard is at the top level, outside any $(...): unset, `dirname ""` would
+    // silently yield `.` and the whole chain would exit 0 having provisioned
+    // nothing. The loop body is `if`/`fi`, NOT `[ -e ... ] && git config ...`: a
+    // for-loop's status is its last command's, so the `&&` form exits 1 whenever
+    // the lexically-last directory has no .git, aborting every step after it.
+    // Membership is `-e "${d}.git"` over top-level directories rather than
+    // `git worktree list`, so non-worktree sibling clones (e.g. a wiki clone) are
+    // covered too.
+    "postCreateCommand": ": \"${VIBE_OPENED:?VIBE_OPENED unset -- remoteEnv did not reach postCreateCommand}\" && VIBE_ROOT=\"$(dirname \"$VIBE_OPENED\")\" && sudo chown -R \"$(id -u):$(id -g)\" \"$VIBE_ROOT\" && for d in \"$VIBE_ROOT\"/*/; do if [ -e \"${d}.git\" ]; then git config --global --add safe.directory \"${d%/}\"; fi; done && mkdir -p \"$HOME/.ssh\" && { find /tmp/host-ssh -maxdepth 1 -type f -readable -exec cp -p {} \"$HOME/.ssh/\" \\; || true; } && chmod 700 \"$HOME/.ssh\" && find \"$HOME/.ssh\" -maxdepth 1 -type f ! -name '*.pub' -exec chmod 600 {} + && find \"$HOME/.ssh\" -maxdepth 1 -name '*.pub' -exec chmod 644 {} +"
 }

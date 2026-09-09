@@ -16,6 +16,18 @@ section to the new version and date.
 ## [Unreleased]
 
 ### Added
+- `vibe_cading/tools/setup-workspace.sh` — one-time host-side workspace setup, run
+  once after cloning. Validates the project layout, offers the flat → nested
+  (`<project>/main`) migration, writes the gitignored `docker/.env` Compose reads,
+  and writes the `.vibe-cading-project-root` marker. `--yes` accepts the migration
+  non-interactively; `--force` overwrites a stale `docker/.env`.
+- `vibe_cading/tools/check-workspace-setup.sh` — pre-mount guard invoked from
+  `devcontainer.json`'s `initializeCommand`. Aborts container creation unless the
+  git-derived project root, the directory Docker will actually bind-mount, and the
+  marker all agree, and the mount source is neither `$HOME`, an ancestor of it,
+  nor `/`.
+- `vibe_cading/tools/lib/workspace_root.sh` — the resolution predicates both
+  scripts share, so the two cannot disagree about where the project root is.
 - `vibe_cading/mechanical/bearings.py`: `Bearing.blind_pocket_dims()` (static
   method — diameter/depth for a blind bearing pocket, given just an OD and
   width — not registered in `engine_api.json`'s wire contract, which
@@ -58,6 +70,17 @@ section to the new version and date.
   `Bearing.outer_pocket()` gained a `fit: Literal["press", "free", "slip"] =
   "press"` parameter to support this (defaults to the prior behavior for
   every other caller; raises `ValueError` on an unrecognized grade name).
+- `.devcontainer/devcontainer.json` no longer hardcodes one maintainer's absolute
+  path: `workspaceMount` / `workspaceFolder` derive from `${localWorkspaceFolder}`,
+  so "Reopen in Container" works from any clone location and any sibling worktree
+  can be opened directly, not only `main`. `initializeCommand` becomes object form
+  (the existing credentials seeding, plus the new array-form guard entry), and
+  `postCreateCommand` receives the opened path through `remoteEnv` as a shell
+  variable rather than by textual substitution.
+- **Action required on an existing clone:** run
+  `vibe_cading/tools/setup-workspace.sh` once on the host before the next
+  container start, or the guard will refuse it. See
+  [CONTRIBUTING.md](CONTRIBUTING.md) § Dev Setup.
 
 ### Fixed
 - `vibe_cading/mechanical/holes.py`: `CounterboreHole`'s cylindrical (pan/socket)
