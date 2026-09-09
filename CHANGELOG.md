@@ -16,6 +16,18 @@ section to the new version and date.
 ## [Unreleased]
 
 ### Added
+- `vibe_cading/tools/setup-workspace.sh` — one-time host-side workspace setup, run
+  once after cloning. Validates the project layout, offers the flat → nested
+  (`<project>/main`) migration, writes the gitignored `docker/.env` Compose reads,
+  and writes the `.vibe-cading-project-root` marker. `--yes` accepts the migration
+  non-interactively; `--force` overwrites a stale `docker/.env`.
+- `vibe_cading/tools/check-workspace-setup.sh` — pre-mount guard invoked from
+  `devcontainer.json`'s `initializeCommand`. Aborts container creation unless the
+  git-derived project root, the directory Docker will actually bind-mount, and the
+  marker all agree, and the mount source is neither `$HOME`, an ancestor of it,
+  nor `/`.
+- `vibe_cading/tools/lib/workspace_root.sh` — the resolution predicates both
+  scripts share, so the two cannot disagree about where the project root is.
 - **`PoweredUpHubHousing.tongue_rib_flank_gap(profile)`** — the per-flank gap
   between the housing's tongue ridges and the Cover slots they enter, as a
   public classmethod. Profile-dependent (0.400 mm at `fdm_standard`, 0.270 mm
