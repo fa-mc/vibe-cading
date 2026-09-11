@@ -47,6 +47,8 @@ This project uses a structured workflow for complex tasks. Four **Contributor Ro
 └─────────────────────────────────────────────────────────────────┘
 ```
 
+**Exception:** instruction-graph changes skip the phase 1–2 *artifacts* but not independent review — see *Instruction-Graph Changes* in [vibe/INSTRUCTIONS.md](../vibe/INSTRUCTIONS.md) §5.
+
 ## Invoking Roles
 
 Each contributor role's canonical persona is tracked under `vibe/agents/` (tool-neutral). For Claude Code, `vibe_cading/tools/init-claude-runtime.sh` regenerates per-clone runtime aliases at `.claude/agents/<name>.md` that delegate back to the canonical content; the `.claude/` tree itself is git-ignored. For Google Antigravity (agy), you can define a subagent dynamically by loading the system prompt from the canonical file. The four roles below are shipped; **PM** (backlog prioritisation) is intentionally not shipped — the human contributor drives it. The human also remains the final acceptance authority for merges and project policy.

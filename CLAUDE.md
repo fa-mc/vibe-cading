@@ -42,6 +42,26 @@ mechanism:
   `designer`, `tl`, and `developer` subagents are the complete contributor
   toolkit; no additional install is required.
 
+### Tier → model mapping (Claude Code)
+
+*Orchestrator-Brain Routing* in [vibe/INSTRUCTIONS.md](vibe/INSTRUCTIONS.md) §5
+requires an explicit tier on every non-role spawn. For Claude Code the tiers map
+to the `model` parameter of the `Agent` tool:
+
+| Tier | `model` | Typical seat |
+|---|---|---|
+| strong | `opus` | adversarial / fresh-context review, design judgment, integrity-critical verdicts |
+| mid | `sonnet` | research digests, drafting, implementation against an approved brief |
+| cheap | `haiku` | read-only file search and log/artifact scan seats |
+
+Spawning one of the four shipped roles (`subagent_type: "admin" | "designer" |
+"tl" | "developer"`) **passes no `model`** — the pin in the canonical
+`vibe/agents/<role>.md` frontmatter governs (`admin`/`tl`: `opus`;
+`designer`/`developer`: `sonnet`), and `vibe_cading/tools/init-claude-runtime.sh`
+propagates it into the per-clone `.claude/agents/`. Escalate a role seat by
+spawning a separate non-role seat with an explicit `model`, never by overriding
+the pinned tier at the call site.
+
 ## `.claude/` runtime aliases
 
 Claude Code discovers subagents at `.claude/agents/<name>.md` and project

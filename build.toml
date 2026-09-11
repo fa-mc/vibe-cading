@@ -39,13 +39,17 @@ output = "rc/hex_hub_with_bearing.step"
 # ── Arrma Vorteks 223S (project-specific end-products) ────────────────────────
 
 [[build]]
-model  = "parts.arrma_vorteks_223s.esc_mount.EscMount"
+# Replaces the old parts.arrma_vorteks_223s.esc_mount.EscMount (2026-09-03) —
+# that was an unmeasured stub (plain notched plate, no holes); this is the
+# reverse-engineered replacement for the vehicle's actual BLX185 3S ESC/
+# receiver-box mount plate. Same output path — it is the same physical slot.
+model  = "vibe_cading.rc.arrma_223s_esc_mount.Arrma223sEscMount"
 output = "rc/vorteks_223s/esc_mount.step"
 [build.params]
 # all defaults — explicit here for reference
-length           = 57.0
-width            = 38.0
-height           = 4.0
+base_thickness       = 7.0
+accessory_thickness  = 5.0
+material             = "petg"
 
 [[build]]
 model  = "parts.arrma_vorteks_223s.motor_mount_plate.MotorMountPlate"

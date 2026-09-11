@@ -1415,6 +1415,35 @@ section to the new version and date.
   every other caller; raises `ValueError` on an unrecognized grade name).
 
 ### Fixed
+- `vibe_cading/mechanical/holes.py`: `CounterboreHole`'s cylindrical (pan/socket)
+  head-recess branch extruded in the wrong Z direction — outward, into open air
+  above the entry face — instead of sinking into the part like the sibling cone
+  (flat-head) branch. In practice the recess cut almost nothing: the shoulder
+  never formed and the bore stayed at shaft diameter for the full wall
+  thickness, leaving no clearance for the head to pass. (For both shipped
+  placements the wrong side was open air, so the failure was pure
+  under-removal.) Both `.solid` and `.to_cutter()` now sink the recess body
+  downward from the entry face; `.to_cutter()` additionally keeps its
+  `_THROUGH_OVERCUT` breakout above the opening, matching the cone branch's
+  existing convention (`.solid` carries no outward overcut — its recess stops
+  at the entry face).
+  **Blast radius — corrected 2026-09-04:** this entry previously said no
+  shipped model exercised the path and no other model's geometry changed.
+  Both were wrong. `ToleranceGauge`
+  (`vibe_cading/mechanical/tolerance_gauge.py`) has been building its row-1
+  M3 **socket**-head cutter through this branch all along
+  (`head_type="socket"` maps to `CounterboreHole(head_type="cylinder")`), so
+  the fix changed that part's geometry by **−246.58 mm³** — its M3 head
+  recess now actually cuts instead of extruding into open air. `ToleranceGauge`
+  is public and present in `engine_api.json` but is registered in neither
+  `build.toml` nor `visual_contracts.toml`, which is why nothing flagged the
+  change. `Arrma223sEscMount` is the first *registered/built* consumer, via
+  hole 1 (`_hole1_counterbore_cutter`, an M2.5 round-head counterbore built
+  directly on `CounterboreHole`) and the two M3 chassis-mounting holes
+  (`_chassis_mount_cutter`, M3 pan-head via `MetricMachineScrew.to_cutter()`).
+  Its south ear hole is *not* affected: the 2026-09-01 resize made it a plain
+  M2.5 clearance through-hole with no recess of any kind. Flat-head (`"cone"`)
+  consumers are unaffected (verified: identical volume pre- and post-fix).
 - `vibe_cading/tools/view.py`: no longer reports a false success when no OCP CAD
   Viewer is listening. Previously it printed `Showing <Class>` and exited 0 while
   the model was never transmitted (the underlying connection failure surfaced only
@@ -1433,6 +1462,52 @@ section to the new version and date.
   with no VS Code required. Covers the client/server split, port forwarding, and
   the "browser tab must be open before you push" behaviour. Port 3939 was already
   in the dev container's `forwardPorts`, so no container change was needed.
+- `vibe_cading/print_settings.py` / `vibe_cading/print_profiles.json`: new shipped
+  `petg` tolerance-profile tier alongside `fdm_standard` / `resin_precise` / `cnc`
+  — looser radial/slip-slot clearances than `fdm_standard` (PETG strings/oozes
+  more than PLA) and a smaller press-fit bump (PETG's own flexibility already
+  tolerates a snugger fit). See `docs/print-tolerances.md` §3.
+- `vibe_cading/rc/arrma_223s_esc_mount.py`: `Arrma223sEscMount`, an
+  ESC/receiver-box mount plate replacing the stock Arrma 223S-platform BLX185 3S
+  motor plate. Also replaces the unrelated `parts.arrma_vorteks_223s.esc_mount.
+  EscMount` (removed — an unmeasured stub with the same footprint role but no
+  holes) at the same `build.toml` output path, `rc/vorteks_223s/esc_mount.step`
+  — see "Removed" below. Reverse-engineered from an STL-only reference (no STEP available)
+  — see `docs/design_plans/2026-08-31-arrma-223s-receiver-mount_design.md` for
+  the full measurement method and correction history, including a 2026-09-01
+  user-directed resize that overrides several reference dimensions (the physical
+  reference part turned out to be the wrong size for the target vehicle).
+  `base_thickness` (default 7.0 mm) and `accessory_thickness` (default 5.0 mm)
+  are the two independent constructor parameters; `body_thickness` (the
+  plate's own full thickness, extruded from Z=0) is a *derived*, read-only
+  property equal to `base_thickness + accessory_thickness` (12.0 mm at
+  defaults) — not a constructor argument. The accessory thickness is added ON
+  TOP OF the base thickness: the plate itself is the full `body_thickness`,
+  and the arm + south ear are `accessory_thickness`-tall tabs occupying only
+  the plate's own top band, flush with its top face — they do not perch on a
+  thinner plate over open air. The north ear was removed; its M2.5 fastener
+  is now a round-head (M2.5 pan) counterbore in the plate body itself, entered
+  from the bottom (chassis-mating) face: a head-diameter bore runs the whole
+  `base_thickness` so the head passes freely through it, and the screw binds
+  only on the shoulder at Z=`base_thickness`, clamping just the top
+  `accessory_thickness` band — mirroring the south ear's plain bore, which
+  likewise clamps only its accessory band. The cutter pre-subtracts the
+  profile's `free.axial` allowance so that shoulder lands on `base_thickness`
+  exactly, rather than drifting with the active print profile.
+  Its X position (shared with the south ear's hole)
+  is now derived from the real motor's 37.0 mm body length and 16.0/21.0 mm
+  hole-to-edge offsets, centered between the two M3 hole centers, rather than
+  a bare measured literal — X = -3.5 at the shipped M3 positions. The south
+  ear's fastener is a plain M2.5 clearance hole with no recess, spaced
+  exactly 38.0 mm from the relocated hole. Where
+  the arm and south ear meet the plate they now butt against its full-height
+  vertical side wall over a real 2D area, so only a small (0.02 mm)
+  boolean-robustness union overlap is needed there, matching the project's
+  existing flush-join convention (`HexHubWithBearing`, `AxleHexHubAdapter`).
+  The main body still carries both original motor-mount holes (M3 pan-head
+  clearance + top-face counterbore, plus an as-measured relief pocket on one
+  hole's back face) alongside a back recess. Defaults to the `petg` tolerance
+  profile (heat-adjacent mount).
 - `vibe_cading/rc/hex_hub_bearing/`: RC 12 mm hex-wheel-adapter hub fused with
   an MR85-2RS bearing housing (`HexHubNut`, `BearingHexHousing`, and the
   primary deliverable `HexHubWithBearing`, which `.union()`s the two into a
@@ -1467,6 +1542,15 @@ section to the new version and date.
   construction; its `build.toml` registration (`rc/hex_wheel_hub_12mm.step`)
   is unchanged pending a separate human decision on migration. May be removed
   in a future release.
+
+### Removed
+- `parts.arrma_vorteks_223s.esc_mount.EscMount` — an unmeasured stub (a flat
+  notched plate with no holes) for the Arrma 223S ESC mount slot. Replaced by
+  `vibe_cading.rc.arrma_223s_esc_mount.Arrma223sEscMount` (see "Added" above),
+  reverse-engineered from the vehicle's actual BLX185 3S mount plate, at the
+  same `build.toml` output path (`rc/vorteks_223s/esc_mount.step`) since it
+  fills the same physical slot. No deprecation cycle — a direct replacement,
+  since the two never coexisted as intentionally-distinct parts.
 
 ## [0.1.4] - 2026-06-26
 
