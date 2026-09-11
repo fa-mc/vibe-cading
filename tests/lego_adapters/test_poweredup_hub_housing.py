@@ -1529,13 +1529,25 @@ def test_upper_section_x_faces_are_the_cover_budget_not_the_reference():
         f"{H.SOCKET_BACKING:.3f} of backing the socket recess is sized "
         f"against -- moving one face without the other"
     )
-    # And the departure is real, not accidental: state it, so that reverting
-    # UPPER_INSET to the reference's 0.800 fails here rather than silently
-    # shrinking the cover's wall back to 0.650.
-    assert abs(H.UPPER_X_OUTER - 27.200) > 0.1, (
-        "UPPER_X_OUTER is back on the reference's own figure -- the cover's "
-        "wall is 0.650 again"
-    )
+    # ROUND 86 -- an `abs(UPPER_X_OUTER - 27.200) > 0.1` assert USED TO SIT
+    # HERE and is REMOVED. It was a wrong falsifier twice over.
+    #
+    # Its comment said it would fire "reverting UPPER_INSET to the reference's
+    # 0.800". UPPER_INSET IS 0.800 today -- the owner set it so in round 81 --
+    # and the assert passed anyway, because 27.200 was never a function of
+    # UPPER_INSET: it was `28.000 - 0.800` from when WALL_X_OUTER_LOWER was
+    # 28.000. Since the owner re-measured that to 27.800, UPPER_X_OUTER is
+    # 27.000 and the literal relates to nothing on the part.
+    #
+    # Second, the property it defended -- "the cover's wall is 0.650 again" --
+    # is the SLIP-OVER COVER budget, a premise retired in this same round (see
+    # test_socket_backing_is_sufficient below). Keeping a check whose stated
+    # failure mode no longer matters, and which could not detect it anyway, is
+    # the exact defect this round removed four other asserts for.
+    #
+    # Nothing is lost: the outer face is already asserted above against
+    # UPPER_X_OUTER on the BUILT SOLID, which is the load-bearing check and one
+    # that can actually fail.
 
 
 def test_socket_backing_is_sufficient():

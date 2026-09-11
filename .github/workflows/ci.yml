@@ -46,6 +46,13 @@ jobs:
           echo "py_compile: $checked file(s) checked, $empty empty __init__.py skipped"
       - name: Check no __main__ blocks under vibe_cading/ or parts/ (AST)
         run: python vibe_cading/tools/check_no_main_blocks.py
+      # Catches what flake8 structurally cannot: statements after a return,
+      # and self.<attr> reads that resolve to nothing on the class. A commit
+      # on the PoweredUp hub branch carried 52 unreachable lines referencing
+      # two non-existent attributes -- one of them read from a LIVE assert's
+      # failure message -- and flake8 was clean on every line of it.
+      - name: Check no unreachable code / unresolved self attributes (AST)
+        run: python vibe_cading/tools/check_dead_code.py
       - name: Check no __main__ blocks under vibe_cading/ or parts/ (grep belt-and-braces)
         run: |
           set -euo pipefail
