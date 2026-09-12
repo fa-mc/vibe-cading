@@ -1,0 +1,510 @@
+# Reference conformance contracts.
+#
+# Sibling of `visual_contracts.toml`. That file pins "committed == regenerable";
+# this one pins "our model == the reference, EXCEPT where we say otherwise".
+#
+# Why this file exists
+# --------------------
+# A whole-part similarity number cannot be trusted or enforced, because it
+# conflates three different things:
+#
+#   1. unintended drift        -- real defects; only these should fail a gate
+#   2. intended deviation      -- features removed/added by design
+#   3. reference artifacts     -- moulding detail we never meant to copy
+#
+# Undifferentiated, the aggregate is unactionable: the PoweredUp hub's latch
+# scored "closely matching" for 25 rounds while being non-functional, and its
+# residual is now dominated by battery ribs we deleted on purpose. Registering
+# COMPONENTS with their own regions and thresholds, plus explicitly declared
+# accepted deviations, is what separates (1) from (2) and (3).
+#
+# Checked by: vibe_cading/tools/check_reference_conformance.py
+#
+# Fields
+# ------
+#   name            unique id
+#   model           module.path.ClassName
+#   reference       .stl / .step path (see the CI caveat below)
+#   region          [xmin, xmax, ymin, ymax, zmin, zmax] -- the component
+#   min_agreement   floor, in percent, on the WORSE of the two directions
+#   tolerance       mm; a sample within this counts as agreeing
+#
+#   [[retired_component.accepted_deviation]]
+#     what / why    prose, mandatory -- a deviation without a reason is drift
+#     region        optional AABB; when present its samples are EXCLUDED from
+#                   scoring, which is what makes the declaration load-bearing
+#                   rather than a comment
+#
+# CI caveat (do not paper over)
+# -----------------------------
+# Some references are derived from third-party sources that must never be
+# committed (for the PoweredUp hub: LDraw parts -- see the design brief). Rows
+# whose `reference` is absent are SKIPPED WITH NOTICE, not silently passed.
+# Those components are therefore contributor-local checks, not CI gates, and
+# the checker says so on every run.
+
+# =====================================================================
+# ALL ROWS RETIRED -- 2026-08-28
+# =====================================================================
+# The rows below are renamed `[[retired_component]]`, which the checker
+# does not read. Nothing in this file gates anything today.
+#
+# Why: every row here scores our geometry against LDraw parts 24853 /
+# 25560. Caliper measurements of the REAL parts
+# (docs/design_plans/2026-08-28-poweredup-hub_physical-measurements.md)
+# put the cover's width at 52.33 mm where LDraw draws 54.400, and the
+# housing's cavity at 52.96 where we modelled 54.400. The reference is
+# internally consistent to the digit -- +-68.000 LDU exactly, every
+# subpart resolving -- and still wrong about the hardware.
+#
+# So a HIGHER agreement score against it now means a WORSE part. A gate
+# that rewards moving away from the real object is not a weak gate, it is
+# an inverted one, and re-flooring cannot fix that.
+#
+# What guards these parts instead: the geometry tests, which assert real
+# dimensions to 1e-6 mm -- six orders of magnitude tighter than the
+# 0.2 mm surface tolerance these rows used -- plus the kinematic gap and
+# clearance tests, which measure the fit between our own two parts and do
+# not reference LDraw at all.
+#
+# Restoring any row requires a reference that has been checked against
+# the hardware. The text is kept in full because it records how each
+# figure was derived and why the earlier rows were retired; that history
+# is why this file is worth keeping at all.
+# =====================================================================
+
+all_rows_retired_reason = """
+Every row here scored our geometry against LDraw parts 24853 / 25560.
+Caliper measurements of the REAL parts, 2026-08-28, put the cover's width at
+52.33 mm where LDraw draws exactly 54.400, and the housing's cavity at 52.96
+where we had modelled 54.400 -- see
+docs/design_plans/2026-08-28-poweredup-hub_physical-measurements.md.
+
+The reference is internally consistent to the digit (+-68.000 LDU, every
+subpart resolving, verified straight from the .dat source) and still wrong
+about the hardware. So a HIGHER agreement score against it now means a WORSE
+part: the gate is not weak, it is inverted, and no floor value fixes that.
+
+Guarding these parts instead: the geometry tests, which assert real dimensions
+to 1e-6 mm -- six orders of magnitude tighter than the 0.2 mm surface
+tolerance these rows used -- and the kinematic gap/clearance tests, which
+measure the fit between our own two parts and never reference LDraw.
+
+Restoring a row requires a reference checked against the hardware. The retired
+rows are kept below, renamed so the checker ignores them, because they record
+how every figure was derived.
+"""
+
+[[retired_component]]
+name = "poweredup-hub-cover-latch-u"
+model = "vibe_cading.lego_adapters.poweredup_hub.cover.PoweredUpHubCover"
+reference = "tmp/ldraw/ref_lid.stl"
+region = [5.6, 19.2, -36.0, -30.0, 0.0, 13.5]
+min_agreement = 43.0
+tolerance = 0.2
+notes = """
+The cantilever latch U: release leg, retention bead, finger, fused head.
+Scoped deliberately -- whole-lid agreement is 39.6% and says nothing about
+this component, because it is dominated by side handles we added by design.
+
+The region's X bounds (5.600..19.200) are the NOMINAL hook footprint, which
+since round 58 is deliberately wider than the printed hook -- see the lateral
+clearance deviation below. They are kept at nominal on purpose: shrinking them
+to the printed footprint would stop the clearance counting against this row,
+which is the definition of defining a deviation away.
+"""
+
+  [[retired_component.accepted_deviation]]
+  what = "The printed hook is 0.150 mm per side narrower than the reference's, for lateral running clearance"
+  why = """
+  DELIBERATE FLOOR REDUCTION, 46.0 -> 43.0, round 58. DECLARED WITHOUT A
+  REGION, so it keeps counting against this row rather than being scoped out.
+
+  User report from a printed part: "May need to adjust the width of the U hook
+  as well to add a little clearance. Currently it gets stuck."
+
+  The reference gives the latch NO lateral clearance at all. Measured off both
+  reference meshes (tmp/ldraw/ref_latch_fit.py), 24853's hook and 25560's slot
+  both span X 5.600..19.200 -- 13.600 against 13.600, zero per side. That is
+  not an omission to correct: LDraw models NOMINAL geometry, and a moulded
+  LEGO part takes its working fit from mould tolerance and material. Printed
+  on FDM the same pair is a press fit, which is what the user hit.
+
+  The bind was NOT a modelling defect. Measured on the built parts
+  (tmp/ldraw/latch_x_gap.py), the housing's round-40 channel allowance already
+  delivered a uniform 0.150 mm on all four gaps over the full leg height --
+  no taper, no local pinch. 0.150 mm per side is simply too tight here in
+  print. User direction was that the HOUSING stays reference-faithful, so the
+  second half comes off the cover: the male features narrow by free.radial per
+  side, taking the pair to 2 x free.radial = 0.300 mm per side.
+
+  Applied to all four features sharing that footprint -- U ribbon, retention
+  bead, pad end walls, scalloped thumb pad -- because narrowing only the
+  ribbon would leave the pad jamming in the same slot at full width. The hook
+  stays centred on the NOMINAL centre so the clearance splits evenly; deriving
+  the centre from the narrowed width would slide it against one wall for the
+  same total width and no clearance, and a seated interference check would not
+  report it (touching faces measure 0.000 mm^3).
+
+  The cost was ISOLATED before this floor was touched, not inferred
+  (tmp/ldraw/latch_u_cost.py rebuilds the cover with the clearance forced to
+  each value and scores this exact region):
+
+      clearance 0.000 (pre-round-58)   46.1%   <- the pre-change score exactly
+      clearance 0.150 (as shipped)     43.5%
+
+  So the whole 2.6-point drop is the user-directed clearance and nothing else.
+  The mechanism is direct: this row's region runs to the nominal footprint, so
+  the 0.145 mm strip we vacate on each side is reference material we no longer
+  have.
+
+  Retention is unaffected -- it acts in Y, via the bead against the housing's
+  land, and the land is still the full 13.600 wide, so the narrowed leg still
+  overlaps it completely.
+
+  If the user's fit test shows 0.300 mm per side is still tight, the knob is
+  PoweredUpHubCover._hook_lateral_clearance and this floor moves again -- at
+  which point the repeated lowering IS the ratchet vibe/INSTRUCTIONS.md warns
+  about, and the right response is to stop scoring the hook's X faces here
+  rather than to keep re-flooring.
+  """
+
+  [[retired_component.accepted_deviation]]
+  what = "The U is modelled as a spring, not as a copy of the reference"
+  why = """
+  DELIBERATE FLOOR REDUCTION, 89.0 -> 55.0, round 38. `--update` refuses to
+  lower a floor precisely so this has to be a reviewed edit with a reason.
+  This is that reason.
+
+  The U is a hairpin cantilever spring and is now built as ONE
+  constant-thickness ribbon (open centreline, single `offset2D`), not as
+  unioned solids chasing the reference's face positions. What that bought:
+
+    * wall thickness exactly 0.800 at every z on both legs, by construction;
+    * an inner bend radius of 0.800 = 1.00 x wall. The previous model
+      terminated its aperture in a FLAT-BOTTOMED SLOT (0.618 mm at z = 10.00,
+      closed by 10.25) -- a sharp internal corner at the most cyclically
+      loaded point in the spring, carrying Kt 2-5 and consuming the entire
+      PLA strain margin (tmp/research/spring-latch-practice.md S4).
+
+  What it cost: the reference's legs converge (centrelines 2.39 -> 1.15 mm)
+  and its walls differ per leg (0.70 vs 1.09); a constant-section hairpin
+  reproduces neither. Mean deviation 0.228 mm, max 0.801 mm, agreement 55.2%.
+
+  The reference's own bend implies an inner radius of ~0.224 mm at its 0.70 mm
+  wall -- below even Covestro's 0.38 mm absolute floor. Acceptable for
+  injection moulding; not for FDM. Copying it faithfully would score higher
+  and be the worse part.
+
+  NOTE: the 89.0 figure is not directly comparable. It was measured before
+  surface_diff's point-to-triangle distance was corrected to use triangle
+  EDGES rather than vertices (round 38); the old metric overestimated against
+  coarse meshes, so every earlier figure was a lower bound.
+  """
+
+  [[retired_component.accepted_deviation]]
+  what = "The bend is thicker than the legs (user-directed, round 39)"
+  why = """
+  SECOND DELIBERATE FLOOR REDUCTION, 55.0 -> 46.0. Reviewed edit, as `--update`
+  refuses to lower a floor.
+
+  The bend is the most highly and most cyclically loaded section of the spring,
+  so it now carries more material: wall 1.038 at z = 11 against 0.800 down the
+  legs. The reference's own bend measures 1.047, so this MATCHES it. It is
+  achieved by flaring the OUTER surface from z = 8.000, not by shrinking the
+  inner radius -- which stays 0.800 (= 1.00 x leg wall), because reducing it
+  would raise the very stress concentration the radius exists to avoid.
+
+  Cost: the flare is SYMMETRIC, so the finger thickens too (0.800 -> 1.038)
+  where the reference's finger stays constant (1.086 -> 1.073) and only its leg
+  thickens. That is the whole of the 55.2% -> 46.1% drop. Flaring the leg side
+  alone would recover most of it and is the obvious next refinement.
+
+  An earlier attempt at 1.200 was worse on both counts: it put the leg's outer
+  face 0.050 mm from the housing wall and scored 41.3%.
+  """
+
+  [[retired_component.accepted_deviation]]
+  what = "Leg thickness above z = 8, and the aperture it sets"
+  why = """
+  The reference's two legs converge to an 0.087 mm slot by z = 11 -- an
+  injection-moulded dimension no FDM process can resolve; it would fuse into a
+  blob unpredictably. We copy the leg's OUTER face exactly (verified at
+  z = 6..11) and hold a printable 0.436..0.926 mm aperture, fusing at
+  HEAD_Z_LO. The structural property copied is 'the legs are one mass at the
+  top'; the slot width is deliberately not copied.
+  """
+
+# The R34 open gap (thumb-pad tall end-walls, 1.361 mm) is CLOSED as of
+# round 36: `_build_pad_end_walls` models the two 0.800 mm walls at the ends
+# of the hook width, measured at z = 2.5 as present at x = 5.8 / 6.2 (mirrored
+# 18.6 / 19.0) and absent from 6.6 through 18.2. Missing-max fell 1.361 ->
+# 0.217 and the component's agreement 84.1% -> 89.0%. No open gaps remain.
+
+[[retired_component]]
+name = "poweredup-hub-housing-latch-end-arc"
+model = "vibe_cading.lego_adapters.poweredup_hub.housing.PoweredUpHubHousing"
+reference = "tmp/ldraw/ref_housing.stl"
+region = [-28.0, 28.0, -33.4, -32.0, 0.0, 3.6]
+min_agreement = 99.0
+tolerance = 0.2
+notes = """
+The LATCH end's bottom-edge arc (round 56) -- the one bottom round this part
+still copies from the reference rather than deviating from by user direction:
+outer segments |X| 19.200..28.000 rounded on R = 3.600, middle left square,
+with the reference's own square vertices at X = +-5.600.
+
+This row REPLACES `poweredup-hub-housing-tongue-end`, whose region became a
+wholly deliberate deviation in round 56 -- see the retirement entry below for
+the measurements and why it was not simply re-floored.
+
+The Z span reaches 3.600 (the arc's full height) rather than the retired row's
+3.000, so the region is the arc's own band exactly.
+
+The floor is 99.0 against a measured 100.0, and it is a floor that can FAIL:
+rebuilding with the rounded span shrunk from |X| 19.200 to 24.000 -- 4.8 mm
+per side left square that the reference curves -- scores 96.7%
+(`tmp/ldraw/tongue_rescope.py`, which runs that variant as its own falsifier).
+A 100%-reading region with no demonstrated failing case would be decoration.
+
+The reference STL is produced by `tmp/ldraw/dump_housing_stl.py` (beside
+the lid's own `dump_stl.py`; both are contributor-local scratch, as is the
+LDraw library they read) from LDraw
+`parts/25560.dat` (Philippe Hurbain [Philo], CC BY 4.0). It is NOT committed,
+so this row SKIPS WITH NOTICE in CI and is a contributor-local check only.
+Its frame is established, not assumed: the raw LDraw->model map leaves the
+part on 25560's own origin, and the dump re-datums it to our bottom-face-at-
+Z=0 convention. Three independent figures confirm the result -- Y half-extent
+35.600 (== HALF_Y), X envelope 72.000 (== test_envelope_is_exactly_72mm_in_x),
+and overall height 33.800 (== the design doc's own measured figure).
+"""
+
+  [[retired_component.accepted_deviation]]
+  what = "RETIRED ROW: poweredup-hub-housing-tongue-end -- the whole tongue end is now a user-directed shape"
+  why = """
+  DECLARED, WITHOUT A REGION -- the tongue end's departure from the reference
+  keeps counting anywhere it is sampled. What is retired is the SCORED ROW,
+  not the disclosure.
+
+  History, because how it failed is the useful part. Round 55f added the
+  reference's own bottom-edge rounds, measured off its vertices: one arc,
+  R = 3.600, centre at |Y| = 32.000, the tongue end's copy truncated 0.274 mm
+  up. Round 55g gave the tongue end's outer rib bands (|X| 26.000..28.000)
+  the full-depth arc on user direction -- "the tongue side wall should have
+  the curve all the way" -- and the floor went 78.0 -> 68.0, a cost isolated
+  by measurement (tmp/tongue_cause.py) rather than inferred.
+
+  That reading was WRONG, and the user said so: "I'm still seeing squares."
+  55g had changed arc DEPTH on two bands while keeping the reference's band
+  structure, which left 47.200 mm of the tongue end's bottom edge running
+  square to the bed in the four gaps between bands
+  (tmp/ldraw/tongue_bottom_scan.py). "All the way" meant EXTENT along X.
+  Round 56 made the tongue end one continuous full-depth arc spanning the
+  whole wall, and this row fell to 47.4%.
+
+  It was NOT re-floored, for the reason vibe/INSTRUCTIONS.md gives directly:
+  "when a tolerance bound is widened ... treat that as a signal to question
+  the premise that made the residual necessary." A third lowering (78 -> 68
+  -> ~47) is that signal. The premise, questioned: this row's region
+  (Y 32.000..33.400) was drawn around the REFERENCE's tongue-end wall face.
+  Our wall face is at 35.600 -- a separately declared deviation -- so above
+  the arc our part has no surface in that region at all, and the checker
+  correctly refuses to score it (InconclusiveRegion, verified in
+  tmp/ldraw/tongue_rescope.py). Below the arc the only surface it can sample
+  is the arc itself, which the user chose. So every achievable value of this
+  row measured a deliberate departure. Like the upper-side-wall row below, it
+  was noise wearing a metric's clothes.
+
+  Rescoping was tried before retiring, in both axes, and both were rejected
+  by measurement rather than by argument:
+    - in X, narrowing to |X| < 26.0 to exclude the side wall scored 64.9%,
+      i.e. worse (recorded at round 55g);
+    - in Z, lifting above the arc to 3.600..6.600 / 3.600..9.000 /
+      3.600..12.000 returns InconclusiveRegion -- our part is not there.
+
+  Coverage was replaced, not dropped: this component is now the LATCH end's
+  arc, which IS reference-faithful, scores 100.0%, and carries a floor with a
+  demonstrated failing case. What guards the tongue end instead is geometry
+  assertion, which is far tighter than a 0.2 mm surface tolerance --
+  test_the_tongue_end_is_rounded_all_the_way_across sweeps all 141 X stations
+  and fails on a single square one, with the latch end's own square middle as
+  its positive control.
+
+  If the tongue end is ever brought back onto the reference's own figures, a
+  scored row here becomes meaningful again and should be restored.
+  """
+
+  [[retired_component.accepted_deviation]]
+  what = "The tongue end is single-walled, not the reference's two skins"
+  why = """
+  DECLARED, WITHOUT A REGION -- so it keeps counting against the score rather
+  than being defined away. This is an open gap, not a closed one.
+
+  The reference is two skins (inner at Y = 32.000, outer at 35.600) joined by
+  ribs, with the lid's tongue entering the 3.600 mm cavity between them
+  (SS12.4). This part builds ONE wall, per the user's standing single-wall
+  direction for both ends. SS12.4's own analysis is that only the rebate is
+  load-bearing at this end and that single-walling it is "genuinely easier
+  than the two-wall original" -- the missing inner skin is what most of the
+  residual here is.
+
+  Measured 78.6% at the floor above. The latch end, which has no such
+  departure, measures 94.2% in the same run -- that contrast is the honest
+  scale of what single-walling costs, and it is why this floor is not
+  comparable to the latch end's.
+
+  History worth keeping: this row was first set at 76.0 against a measured
+  76.3%, taken while a bug in _build_plate_edge_relief had eaten most of the
+  outer rib pair. Repairing the ribs moved it to 78.6% (mean deviation
+  0.113 -> 0.090). The floor was RAISED to match, which is the only direction
+  --update permits and the right one here.
+  """
+
+  [[retired_component.accepted_deviation]]
+  what = "The upper section runs to the end trapezoids' floor (+-34.400), not the reference's -32.000 / +33.3"
+  why = """
+  DECLARED, WITHOUT A REGION -- it keeps counting against the score.
+
+  User direction round 55d: "extend both shorter ends to sit inline with the
+  trapezoid (similar to what we currently have for the long edges)", with the
+  purpose stated in the same breath -- the trapezoids are kept as the register
+  for a future cover, whose legs mate into them and whose outer wall sits
+  flush with this part's own side walls.
+
+  The long edges already work that way, which is what makes a socket read as a
+  socket rather than as a slot milled in a flat face: the side trapezoid's
+  floor is at |X| = 27.200 and the upper section's outer face is the same
+  27.200, so floor and wall are one continuous plane. The reference does NOT
+  do this at the ends -- its upper section stops at Y = -32.000 / +33.3, i.e.
+  2.400 and 1.124 mm inboard of its own end-trapezoid floor at 34.400, leaving
+  those sockets with a lip the side ones do not have. This class carries the
+  upper section out to 34.400 at both ends instead, derived from
+  HALF_Y - END_SOCKET_DEPTH rather than retyped, so "inline with the
+  trapezoid" is arithmetic and cannot drift.
+
+  Scope of the departure, stated precisely: above REF_STEP_Z the Y faces are
+  ours, not the reference's, at both ends.
+
+  X WAS still reference-exact when this deviation was written, and R55e ended
+  that -- see the separate cover-budget deviation below. Left uncorrected this
+  paragraph would have gone on asserting a fidelity that had lapsed, which is
+  the same failure mode as a test that keeps passing under a name that has
+  stopped being true.
+
+  This also retires an earlier deviation recorded here -- that the reference's
+  tongue-end outer face is drafted (33.316 at Z 24.1 to 33.234 at Z 28.0) and
+  was modelled vertical at the mid-height 33.276. That +-0.042 mm
+  simplification is moot: the face is no longer where the reference puts it at
+  all.
+  """
+
+  [[retired_component.accepted_deviation]]
+  what = "RETIRED ROW: poweredup-hub-housing-upper-side-wall, and why it was retired rather than re-floored"
+  why = """
+  A scored row for the upper side wall existed briefly during round 55 and is
+  gone. It is recorded here because deleting a check quietly is worse than
+  never adding one, and because HOW it failed is the useful part.
+
+  Its floor had to move three times in a single round:
+
+    51.3%  created (R55b)
+    48.7%  R55d -- sampling artifact (geometry provably unchanged; extending
+           the wall in Y lengthened its triangles, and surface_diff clips
+           sampled POINTS but keeps whole triangles, so the point set moved)
+    40.0%  R55e -- real: the wall moved 0.350 mm inboard for the cover budget
+    25.0%  R55e cord-port fix -- and this one dropped because the part got
+           MORE correct: the port had been notching 0.300 mm out of the wall's
+           inner face, so that material was absent from the sample; restoring
+           it put more of our (deliberately offset) wall into the comparison.
+
+  That is the ratchet vibe/INSTRUCTIONS.md names explicitly -- "when a
+  tolerance bound is widened, or an accepted residual is re-justified at
+  greater length each round, treat that as a signal to question the premise."
+  So the premise: this row compared a wall we had DELIBERATELY moved 0.350 mm
+  off the reference against the reference, at a 0.2 mm tolerance. Its score
+  was therefore dominated by an intended departure, and moved with anything
+  that changed sampling -- it was noise wearing a metric's clothes, and no
+  achievable value of it would have told anyone anything.
+
+  What actually guards this wall, and guards it far harder: the geometry
+  tests assert both faces to 1e-6 mm
+  (test_upper_section_x_faces_are_the_cover_budget_not_the_reference), its
+  section to 1e-6, the socket floor's inline relationship, and the full-wall
+  section behind the recess. A 1e-6 assertion is six orders of magnitude
+  tighter than a 0.2 mm surface tolerance.
+
+  If the upper section is ever brought back onto the reference's own figures,
+  a scored row here becomes meaningful again and should be restored.
+  """
+
+  [[retired_component.accepted_deviation]]
+  what = "The upper section sits 0.350 mm inboard of the reference, to give a future cover a 1.000 mm wall"
+  why = """
+  DECLARED, WITHOUT A REGION -- it keeps counting against the score, and the
+  upper-side-wall row above is where it shows up (51.3% -> 40.0%).
+
+  The trapezoid sockets are the register for a future cover whose legs mate
+  into them and whose outer wall sits FLUSH with this part's own side walls.
+  That makes the cover's wall thickness this class's decision, not the
+  cover's: it is the gap between our outer face and our upper section, less
+  the fit clearance. At the reference's own 0.800 inset that gap is
+  28.000 - (27.200 + 0.150) = 0.650 mm, about 1.6 extrusion widths at a
+  0.4 mm nozzle. User direction: "Can we use 1mm for all the cover walls? I
+  feel 0.65 is too thin. Then adjust the housing top accordingly."
+
+  So UPPER_INSET = COVER_WALL + COVER_FIT_CLEARANCE = 1.150, and the side
+  socket's depth, the upper section's outer face (26.850), and the doubled
+  band's inner face (26.050) are all derived from it -- the socket floor and
+  the upper wall are one plane by construction, which is what makes the recess
+  read as a socket.
+
+  Not applied at the SHORT ends: the reference's own end-socket depth is
+  1.200, which already yields a 1.050 mm cover wall. Moving it to 1.150 would
+  buy 0.050 mm -- below print resolution -- at the cost of departing from a
+  measured figure, so the ends stay reference-exact.
+
+  Knock-on, recorded because it is not obvious from this file: Housing's inner
+  face above WALL_INNER_STEP_Z moved with the socket floor, so
+  PoweredUpHubBatteryTray's upper band moved 26.400 -> 26.050 to match. The
+  tray's own tests would not have caught the interference; the cross-part
+  seating check did. That coupling is GONE as of round 57 -- the tray's upper
+  band was removed outright (it was a wall standing on a hairline ledge, with
+  no material under its inboard half), so the tray now stops at Housing's step
+  instead of tracking its inner face above it.
+  """
+
+  [[retired_component.accepted_deviation]]
+  what = "The upper cavity's internal posts and ribs are not modelled"
+  why = """
+  DECLARED, WITHOUT A REGION -- it keeps counting against the score.
+
+  The reference carries internal structure inside the upper section: the
+  ray-cast finds posts at X -5.597..-2.403 and 8.803..11.997 at Z = 25.000,
+  widening with height (X -7.853..-0.147 and 6.547..14.253 at Z = 27.400),
+  plus a boss that drops the ceiling to 27.498 on the axis and one reaching
+  25.004 at (12, 12). These are the real hub's PCB standoffs and second-layer
+  internal structure.
+
+  Not modelled, under the same scope this part applies to the lower shell's
+  own internals -- LDraw 25560's "internal structure is simplified" note, and
+  this class's *Known simplifications*. Nothing here mates with them: the
+  battery bay is below the step, and the pack clears the 28.000 ceiling by
+  3.200 mm. They would matter if this part ever has to accept the real hub's
+  PCB, which is not what it is for.
+  """
+
+  [[retired_component.accepted_deviation]]
+  what = "Plate-edge running clearance thins the wall 0.150 mm (round 48)"
+  why = """
+  The Cover's plate and this wall's inner face were both at 27.200 mm --
+  literally zero clearance over the lid's whole length. Round 48 takes
+  profile.free.radial off the wall's inner face over the plate-edge band, so
+  the model is deliberately 0.150 mm short of the reference there.
+
+  This is a fit correction, not drift: the reference is an injection moulding
+  whose real clearance lives in draft and shrinkage we do not model, and two
+  FDM parts at the same nominal do not assemble. Visible in the bottom-rim
+  region as a ~0.15 mm "missing from ours" mean -- which is itself a useful
+  cross-check that the reference is aligned, since the measured shortfall
+  equals the clearance we chose.
+  """

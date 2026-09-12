@@ -104,6 +104,23 @@ class TechnicPinHole:
     counterbore_diameter:
         Diameter of the counterbore flanges (mm). Default 6.2 mm.
         Stays at nominal — see the *Profile awareness* note above.
+    counterbore_ends:
+        Which rims carry a counterbore flange. Keyword-only.
+
+        * ``"both"`` (default) — entry and far rim, the **through-hole**
+          shape. Matches LDraw's ``connhole`` primitive and preserves every
+          pre-existing caller's geometry byte-for-byte.
+        * ``"entry"`` — entry rim only, the **blind-hole** shape. Matches
+          LDraw's ``connhol3``, which real LEGO parts use where a pin hole
+          stops inside the part: there is no far face for a flange to sit
+          on, and cutting one anyway hollows out the material behind the
+          bore floor — exactly where a blind hole has least to spare.
+        * ``"none"`` — plain bore, no flanges at either end.
+
+        Independent of ``counterbore_depth``: setting that to ``0`` also
+        yields a plain bore, but ``counterbore_ends`` says *where* rather
+        than *how deep*, so the two compose without either being a magic
+        sentinel for the other.
     fit:
         Tolerance fit grade selector — ``"slip"`` / ``"free"`` /
         ``"press"``.  Default ``"slip"`` (pin-in-socket semantics).
@@ -132,6 +149,7 @@ class TechnicPinHole:
         *,
         fit: Literal["free", "slip", "press"] = "slip",
         profile: ToleranceProfile | str | None = None,
+        counterbore_ends: Literal["both", "entry", "none"] = "both",
     ) -> "TechnicPinHole":
         """Factory: standard Technic pin hole with default counterbore spec.
 
@@ -139,6 +157,9 @@ class TechnicPinHole:
         the printed bore tracks the active
         :class:`~vibe_cading.print_settings.ToleranceProfile`.  Counterbore
         defaults remain at the real-liftarm Cailliau spec.
+
+        ``counterbore_ends`` selects which rims are flanged — see the
+        constructor.  Default ``"both"``, the through-hole shape.
         """
         return cls(
             depth=depth,
@@ -147,6 +168,7 @@ class TechnicPinHole:
             counterbore_diameter=cls.DEFAULT_CB_DIAMETER,
             fit=fit,
             profile=profile,
+            counterbore_ends=counterbore_ends,
         )
 
     def __init__(
@@ -157,7 +179,14 @@ class TechnicPinHole:
         counterbore_diameter: float = DEFAULT_CB_DIAMETER,
         fit: Literal["free", "slip", "press"] = "slip",
         profile: ToleranceProfile | str | None = None,
+        *,
+        counterbore_ends: Literal["both", "entry", "none"] = "both",
     ):
+        if counterbore_ends not in ("both", "entry", "none"):
+            raise ValueError(
+                f"counterbore_ends must be 'both', 'entry' or 'none', "
+                f"got {counterbore_ends!r}"
+            )
         # Bore-diameter resolution — the single load-bearing formula.
         # An explicit ``diameter=`` kwarg wins as-is; the profile path is
         # only taken when the caller leaves the override at its ``None``
@@ -184,6 +213,7 @@ class TechnicPinHole:
         # surface; see the *Profile awareness* note in the class docstring.
         self.counterbore_depth = counterbore_depth
         self.counterbore_diameter = counterbore_diameter
+        self.counterbore_ends = counterbore_ends
         self._solid = self._build()
 
     def _build(self) -> cq.Workplane:
@@ -193,19 +223,21 @@ class TechnicPinHole:
         overcut = self._ENTRY_OVERCUT
         bore = cylinder(self.diameter / 2, self.depth + overcut, center=(0, 0, -overcut))
 
-        if self.counterbore_depth > 0:
+        if self.counterbore_depth > 0 and self.counterbore_ends != "none":
             cb_bottom = cylinder(
                 self.counterbore_diameter / 2,
                 self.counterbore_depth + overcut,
                 center=(0, 0, -overcut)
             )
-            # Top counterbore stops exactly at self.depth, forming the blind cavity
-            cb_top = cylinder(
-                self.counterbore_diameter / 2,
-                self.counterbore_depth,
-                center=(0, 0, self.depth - self.counterbore_depth),
-            )
-            bore = bore.union(cb_bottom).union(cb_top)
+            bore = bore.union(cb_bottom)
+            if self.counterbore_ends == "both":
+                # Top counterbore stops exactly at self.depth, forming the blind cavity
+                cb_top = cylinder(
+                    self.counterbore_diameter / 2,
+                    self.counterbore_depth,
+                    center=(0, 0, self.depth - self.counterbore_depth),
+                )
+                bore = bore.union(cb_top)
 
         return bore
 
