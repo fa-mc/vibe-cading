@@ -95,7 +95,6 @@ def _latch_only_volume(a: cq.Workplane, b: cq.Workplane) -> float:
 _PIVOT = (0.0, PoweredUpHubCover.TONGUE_Y_HI, PoweredUpHubCover.TIP_Z_LO)
 
 
-@xfail_cross_datum
 def test_latch_catch_seated_interference_is_zero():
     """At the seated position the Cover and Housing must NOT overlap at all.
 
@@ -224,8 +223,33 @@ def test_envelope_and_single_solid_guards_hold():
     tray = PoweredUpHubBatteryTray()
 
     bb = housing.solid.val().BoundingBox()
-    assert abs(bb.xlen - 72.000) < 1e-6
-    assert abs(bb.ylen - 71.200) < 1e-6
+    # ROUND 88 -- the two envelope literals are RE-POINTED, not loosened.
+    #
+    # They were 72.000 and 71.200, bare figures from the LDraw-reference era.
+    # The owner has since re-measured the real part twice over: the shell is
+    # 55.600 across the walls (rounds 81b) and 71.250 long (round 74's
+    # re-datum), and ARM_X_OUTER is their own caliper figure for the arm
+    # faces. The old numbers describe a part this no longer is, so they were
+    # failing for the same reason the retired `27.200` literal did -- the
+    # reference moved out from under them.
+    #
+    # ylen IS derivable and is now derived: the arms set it, at exactly
+    # 2 * ARM_X_OUTER.
+    assert abs(bb.ylen - 2 * PoweredUpHubHousing.ARM_X_OUTER) < 1e-6, (
+        f"housing Y envelope {bb.ylen:.3f} is not the arms' own "
+        f"{2 * PoweredUpHubHousing.ARM_X_OUTER:.3f}"
+    )
+    # xlen is NOT 2 * ARM_X_OUTER -- it measures 71.700 against that
+    # constant's 71.350, i.e. the arms reach 0.175 further in X than their
+    # flat-face half-width, from the tip rounding. That extra is not a
+    # specified quantity anywhere in the class, so deriving it here would be
+    # inventing an identity. Pinned as a MEASURED regression bound instead,
+    # labelled as such: it still fails on drift, and it does not pretend to
+    # be a requirement.
+    assert abs(bb.xlen - 71.700) < 1e-6, (
+        f"housing X envelope {bb.xlen:.3f} has drifted from the measured "
+        f"71.700 (arms' outer reach including tip rounding)"
+    )
     assert abs(bb.zlen - PoweredUpHubHousing.DECK_Z) < 1e-6
     assert abs(PoweredUpHubHousing.DECK_Z - PoweredUpHubHousing.REF_SHELL_Z) < 1e-9
 
@@ -285,7 +309,6 @@ def _latch_band_interference(cover_solid, housing_solid, dz=0.0, dy=0.0):
     return sum(s.Volume() for s in v) if v else 0.0
 
 
-@xfail_cross_datum
 def test_latch_retains_under_withdrawal():
     """Withdrawing the lid must be RESISTED by growing interference.
 
@@ -424,7 +447,6 @@ def _x_edge_and_gap(cover, housing, xc, direction, y, z, step=0.005):
     return edge, None
 
 
-@xfail_cross_datum
 def test_latch_hook_has_lateral_running_clearance_in_its_channel():
     """Round 58, from a printed part: "the U hook ... currently it gets
     stuck."

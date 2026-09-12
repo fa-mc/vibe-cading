@@ -44,32 +44,122 @@ def test_single_solid():
 
 
 def _seated(profile="fdm_standard"):
-    """The cap where it actually lives, in the Tray's own frame: its print
-    datum is its bottom face at Z = 0, so placing it means adding SEAT_Z.
+    """The cap where it actually lives, in the Tray's own frame.
+
+    ROUND 88 BUG FIX: this helper translated by ``SEAT_Z`` ONLY and omitted
+    ``SEAT_Y``. The plate is built centred on its own Y = 0, while its rebate
+    is centred on ``STRAP_Y_CENTER`` (2.000) -- round 72 centre-aligned the
+    whole strap assembly with the side tabs, and ``SEAT_Y`` exists precisely
+    so a placer does not miss it. ``assembly.assemble()`` applies both.
+
+    Placed 2.000 mm off in Y, the plate overhangs its pocket wall by 1.850 mm
+    and the interference test below reported a confident, reproducible
+    **93.018 mm^3** -- of a collision that does not exist on the part. It had
+    been doing so since at least round 83.
+
+    The lesson is the one in vibe/INSTRUCTIONS.md under *Positive Control*:
+    this helper's own placement was never itself checked, so a mis-seated
+    probe and a real defect were indistinguishable. ``test_seated_cap_is_in
+    _its_rebate`` below now pins the placement, so a future edit that drops
+    a component of it fails loudly instead of manufacturing a fault.
     """
     return PoweredUpHubBatteryTrayCap(profile=profile).solid.translate(
-        (0.0, 0.0, PoweredUpHubBatteryTrayCap.SEAT_Z)
+        (0.0,
+         PoweredUpHubBatteryTrayCap.SEAT_Y,
+         PoweredUpHubBatteryTrayCap.SEAT_Z)
     )
 
 
-def test_thickness_is_the_rebate_depth_so_it_finishes_flush():
-    """Seated, the cap's top face must be level with the floor's own top
-    face: the pack lands on both, so a proud cap rocks the battery and a
-    sunk one leaves a step.
+def test_seated_cap_is_in_its_rebate():
+    """The ``_seated()`` helper actually puts the plate in the pocket.
 
-    Asserted against ``PoweredUpHubBatteryTray``'s constants rather than
-    literals precisely so that changing the floor thickness cannot break
-    the joint silently.
+    Guards the round-88 bug directly: every other test in this module trusts
+    ``_seated()``, so an error there does not fail *it* -- it silently
+    corrupts all of them, and reports the corruption as a geometry defect.
+
+    Falsifier: the seated plate's centre not matching the rebate's centre in
+    X and Y, or its footprint not lying strictly inside the pocket.
     """
-    cap = PoweredUpHubBatteryTrayCap().solid
-    bb = cap.val().BoundingBox()
+    prof = get_profile("fdm_standard")
+    bb = _seated().val().BoundingBox()
+    x_half, y_half = PoweredUpHubBatteryTray.cap_rebate_half_extents(prof)
+
+    cx = (bb.xmin + bb.xmax) / 2.0
+    cy = (bb.ymin + bb.ymax) / 2.0
+    assert abs(cx - 0.0) < 1e-6, (
+        f"seated plate is centred on X {cx:.3f}, not the rebate's 0.000"
+    )
+    assert abs(cy - PoweredUpHubBatteryTray.STRAP_Y_CENTER) < 1e-6, (
+        f"seated plate is centred on Y {cy:.3f}, not the rebate's "
+        f"{PoweredUpHubBatteryTray.STRAP_Y_CENTER:.3f} -- SEAT_Y was very "
+        f"likely dropped from the placement (the round-88 bug)"
+    )
+    assert bb.xmin > -x_half and bb.xmax < x_half, (
+        f"seated plate spans X {bb.xmin:.3f}..{bb.xmax:.3f}, outside its "
+        f"rebate's +-{x_half:.3f}"
+    )
+    assert bb.ymin > PoweredUpHubBatteryTray.STRAP_Y_CENTER - y_half, (
+        f"seated plate's -Y edge {bb.ymin:.3f} is outside its rebate"
+    )
+    assert bb.ymax < PoweredUpHubBatteryTray.STRAP_Y_CENTER + y_half, (
+        f"seated plate's +Y edge {bb.ymax:.3f} is outside its rebate"
+    )
+
+
+def test_cap_finishes_at_or_below_flush_never_proud():
+    """Seated, the cap's top face must be level with the floor's top face or
+    slightly below it -- never above.
+
+    ROUND 88, RENAMED. Was ``test_thickness_is_the_rebate_depth_so_it_
+    finishes_flush``, asserting EXACT equality on the premise that a plate
+    dimensioned to exactly fill its pocket finishes flush. The owner printed
+    it and reported the opposite: *"the plate does not sit flush in the
+    tray"* -- it sat proud.
+
+    The premise was wrong about the physical world, not about the arithmetic.
+    This is a GLUED joint, and an exactly-filling plate has nowhere to put
+    the glue except under itself; add a glue film, or an elephant's foot on
+    the rebate floor, or a squished first layer on the plate, and every one
+    of those departures pushes it the SAME way -- proud. The part gave the
+    plate a running clearance on all four edges and none on its thickness.
+
+    So the assertion becomes one-sided, which is what the requirement
+    actually is: proud rocks the battery pack and is a real defect; a few
+    tenths recessed is harmless, because the pack bears on the floor around
+    the plate. The gap is ``profile.free.axial`` -- see the cap's own
+    ``GLUE_GAP_Z``.
+
+    Falsifier: a seated top face above FLOOR_THICKNESS, or a gap so large
+    the plate no longer roofs the corridor meaningfully.
+    """
+    prof = get_profile("fdm_standard")
+    cap = PoweredUpHubBatteryTrayCap(profile=prof)
+    bb = cap.solid.val().BoundingBox()
     assert abs(bb.zmin) < 1e-6, f"cap's print datum is not Z = 0: {bb.zmin}"
-    assert abs(bb.zmax - PoweredUpHubBatteryTray.STRAP_CAP_THICKNESS) < 1e-6
+
+    rebate_depth = (PoweredUpHubBatteryTray.FLOOR_THICKNESS
+                    - PoweredUpHubBatteryTray.STRAP_CAP_Z)
+    assert abs(bb.zmax - cap.thickness) < 1e-6, (
+        f"built plate is {bb.zmax:.3f} thick, not the {cap.thickness:.3f} the "
+        f"class computed"
+    )
+    assert abs((rebate_depth - cap.thickness) - prof.free.axial) < 1e-9, (
+        f"the plate's Z gap is {rebate_depth - cap.thickness:.3f}, not the "
+        f"profile's axial allowance {prof.free.axial:.3f} -- the glue gap has "
+        f"stopped tracking the knob that is supposed to set it"
+    )
 
     bb_seated = _seated().val().BoundingBox()
-    assert abs(bb_seated.zmax - PoweredUpHubBatteryTray.FLOOR_THICKNESS) < 1e-6, (
-        f"seated cap top at {bb_seated.zmax} is not flush with the floor's "
-        f"own {PoweredUpHubBatteryTray.FLOOR_THICKNESS}"
+    floor = PoweredUpHubBatteryTray.FLOOR_THICKNESS
+    assert bb_seated.zmax <= floor + 1e-9, (
+        f"seated cap top at {bb_seated.zmax:.3f} stands PROUD of the floor's "
+        f"{floor:.3f} -- it will rock the battery pack. This is the exact "
+        f"failure the owner reported from a printed part in round 88."
+    )
+    assert bb_seated.zmax >= floor - prof.free.axial - 1e-9, (
+        f"seated cap top at {bb_seated.zmax:.3f} is more than the glue gap "
+        f"below the floor's {floor:.3f} -- it has stopped being a flush-ish "
+        f"roof and is now a pocket the pack can drop into"
     )
 
 
@@ -95,9 +185,22 @@ def test_drops_into_the_rebate_from_above_with_a_glue_gap():
     vol = sum(s.Volume() for s in cap.intersect(tray).solids().vals())
     assert vol < 1e-6, f"cap interferes with the tray by {vol:.4f} mm^3"
 
+    # ROUND 88 -- these compare against the rebate's ABSOLUTE bounds, not
+    # against bare half-extents. `bb_c` is the SEATED plate, so its Y is
+    # offset by SEAT_Y (2.000); the previous form compared an absolute Y
+    # against a half-width and only held while the plate was mis-seated at
+    # Y = 0 by the `_seated()` bug this round fixed. Two errors were
+    # cancelling: a wrong placement and a wrong frame in the check.
     x_half, y_half = PoweredUpHubBatteryTray.cap_rebate_half_extents(prof)
-    assert bb_c.xmax < x_half, "cap is not narrower than its rebate in X"
-    assert bb_c.ymax < y_half, "cap is not narrower than its rebate in Y"
+    yc = PoweredUpHubBatteryTray.STRAP_Y_CENTER
+    assert -x_half < bb_c.xmin and bb_c.xmax < x_half, (
+        f"cap spans X {bb_c.xmin:.3f}..{bb_c.xmax:.3f}, not strictly inside "
+        f"its rebate's +-{x_half:.3f}"
+    )
+    assert yc - y_half < bb_c.ymin and bb_c.ymax < yc + y_half, (
+        f"cap spans Y {bb_c.ymin:.3f}..{bb_c.ymax:.3f}, not strictly inside "
+        f"its rebate's {yc - y_half:.3f}..{yc + y_half:.3f}"
+    )
 
 
 def test_it_roofs_the_corridor():
@@ -143,9 +246,18 @@ def test_the_channel_under_the_cap_is_tall_enough_for_the_strap():
     tray = PoweredUpHubBatteryTray(profile="fdm_standard").solid
     cap = _seated()
 
+    # ROUND 88 -- the corridor probe is centred on STRAP_Y_CENTER, not Y = 0.
+    # Round 72 centre-aligned the whole strap assembly with the side tabs
+    # (Y = 2.000); this probe kept the old Y = 0 centre, so it straddled the
+    # corridor's edge and struck tray material. Its positive control then
+    # fired -- correctly, and that is the control doing precisely its job:
+    # it refused to report a clear height from a probe that was not in the
+    # channel, rather than returning a confident wrong number. Same root
+    # cause as the `_seated()` bug this round fixed.
     corridor = rounded_box(
         width=1.0, depth=T.STRAP_WIDTH - 1.0, height=4 * T.FLOOR_THICKNESS,
-        corner_r=0.0, center=(0.0, 0.0, -T.FLOOR_THICKNESS),
+        corner_r=0.0,
+        center=(0.0, T.STRAP_Y_CENTER, -T.FLOOR_THICKNESS),
     )
     assert not tray.intersect(corridor).solids().vals(), (
         "positive control failed: the tray blocks the corridor, so the "

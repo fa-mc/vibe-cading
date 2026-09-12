@@ -25,7 +25,10 @@ from vibe_cading.cq_utils import rounded_box
 from vibe_cading.lego_adapters.poweredup_hub.cover import PoweredUpHubCover
 from vibe_cading.lego_adapters.poweredup_hub.latch_geometry import get_latch_geometry
 from vibe_cading.print_settings import get_profile
-from tests.lego_adapters._poweredup_hub_datum import xfail_cross_datum
+# ROUND 88 -- the xfail_cross_datum import is gone with the last marker in
+# this module. Both of its uses started XPASSing once the Housing's re-datum
+# (round 74) made the marker's premise false, so they were removed per the
+# marker's own strict=True contract. This file now has no suppressed tests.
 
 
 def test_single_solid():
@@ -327,7 +330,6 @@ def test_window_sill_fills_the_bottom_of_the_side_window():
         )
 
 
-@xfail_cross_datum
 def test_window_sill_clears_the_window_and_its_neighbours():
     """The sill has to fill the opening without binding in it.
 
@@ -386,7 +388,6 @@ def test_window_sill_clears_the_window_and_its_neighbours():
     )
 
 
-@xfail_cross_datum
 def test_window_sill_tracks_the_tab_width():
     """The sill used to be a hardcoded copy of the Tray's ``TAB_PAD_Y_HALF``
     (the two classes cannot import each other -- see the constant's comment),
