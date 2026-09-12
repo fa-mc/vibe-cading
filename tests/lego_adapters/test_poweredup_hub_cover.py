@@ -313,20 +313,51 @@ def test_window_sill_fills_the_bottom_of_the_side_window():
         (0.0, 0.0, seat)
     )
 
-    # A column inside the wall's own X band, on the window's centreline.
-    x_mid = 28.000 - PoweredUpHubHousing.WALL_THICKNESS / 2.0
+    # ROUND 88 -- this scans the wall's FULL thickness instead of sampling one
+    # hand-picked X, and asserts the property the docstring actually states:
+    # you cannot see THROUGH the wall.
+    #
+    # The old probe sat at `28.000 - WALL_THICKNESS / 2`, which was stale
+    # twice over: 28.000 was the wall's outer face before the owner
+    # re-measured it to 27.800 (round 81b), and WALL_THICKNESS (0.800) is the
+    # UPPER band's figure while this window is cut through the LOWER wall
+    # (WALL_THICKNESS_LOWER, 1.400). It landed at X 27.600.
+    #
+    # More importantly it was the wrong SHAPE of check. Measured across the
+    # wall, the tray's extraction tab fills the window from the inner face out
+    # to 27.050-27.370 and stops there -- deliberately recessed 0.43-0.75 mm
+    # so it does not stand proud of the housing's outer surface. X 27.600 sits
+    # inside that intended recess, so the old probe reported a design feature
+    # as a hole. Nothing was ever open to daylight.
+    #
+    # The falsifier the docstring names is PRESERVED: over Z 0..1.2 the Cover's
+    # sill is the only thing occupying the wall at any X, so deleting
+    # _build_window_sill still empties that band completely and still fails
+    # here. That is the regression this test exists for.
+    x_in = PoweredUpHubHousing.CAVITY_X_HALF_LOWER
+    x_out = PoweredUpHubHousing.WALL_X_OUTER_LOWER
+    y_mid = PoweredUpHubBatteryTray.TAB_Y_CENTER
+
+    def occupied_anywhere(z):
+        x = x_in
+        while x <= x_out:
+            probe = rounded_box(
+                width=0.05, depth=1.0, height=0.1, corner_r=0.0,
+                center=(x, y_mid, z),
+            )
+            if any(part.intersect(probe).solids().vals()
+                   for part in (housing, cover, tray)):
+                return round(x, 3)
+            x += 0.05
+        return None
+
     for z in (0.1, 0.4, 0.8, 1.1, 1.6, 3.0, 6.0):
-        probe = rounded_box(
-            width=0.4, depth=1.0, height=0.1, corner_r=0.0,
-            center=(x_mid, 0.0, z),
-        )
-        filled = any(
-            part.intersect(probe).solids().vals()
-            for part in (housing, cover, tray)
-        )
-        assert filled, (
-            f"the side window is open to daylight at z={z} -- nothing "
-            "(housing, cover sill, or tray tab) occupies the wall there"
+        at = occupied_anywhere(z)
+        assert at is not None, (
+            f"the side window is open to daylight at z={z}: NOTHING (housing, "
+            f"cover sill, or tray tab) occupies any X across the wall's full "
+            f"{x_in:.3f}..{x_out:.3f} thickness, so the slot goes straight "
+            f"through"
         )
 
 
