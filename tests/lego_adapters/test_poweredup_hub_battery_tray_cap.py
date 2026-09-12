@@ -24,6 +24,8 @@ channel runs UNDER this plate: floored by the Cover's own face, roofed by
 the cap.
 """
 
+import pytest
+
 from vibe_cading.cq_utils import rounded_box
 from vibe_cading.lego_adapters.poweredup_hub.battery_tray import (
     PoweredUpHubBatteryTray,
@@ -106,7 +108,9 @@ def test_seated_cap_is_in_its_rebate():
     )
 
 
-def test_cap_finishes_at_or_below_flush_never_proud():
+@pytest.mark.parametrize(
+    "profile_name", ["fdm_standard", "resin_precise", "petg", "cnc"])
+def test_cap_finishes_at_or_below_flush_never_proud(profile_name):
     """Seated, the cap's top face must be level with the floor's top face or
     slightly below it -- never above.
 
@@ -131,8 +135,20 @@ def test_cap_finishes_at_or_below_flush_never_proud():
 
     Falsifier: a seated top face above FLOOR_THICKNESS, or a gap so large
     the plate no longer roofs the corridor meaningfully.
+
+    ROUND 88, THIRD PASS -- swept over all four shipped profiles, having been
+    hard-coded to ``fdm_standard`` while ``_seated`` already took a profile no
+    caller passed. The sibling kinematic test gained a sweep earlier in this
+    same PR on the stated principle that single-profile checks are what let
+    errors through; leaving this one pinned contradicted that in the same
+    breath. ``cnc`` is the interesting row and the reason the sweep is not
+    cosmetic: its ``free.axial`` is 0.000, so there the glue gap is legitimately
+    zero -- an exact fit is correct on a machined part -- which means the
+    value-pinning assertion below passes identically on a fixed and a reverted
+    part at that one profile. That is a real limit of the check and is stated
+    at the assertion rather than left for someone to rediscover.
     """
-    prof = get_profile("fdm_standard")
+    prof = get_profile(profile_name)
     cap = PoweredUpHubBatteryTrayCap(profile=prof)
     bb = cap.solid.val().BoundingBox()
     assert abs(bb.zmin) < 1e-6, f"cap's print datum is not Z = 0: {bb.zmin}"
@@ -165,14 +181,20 @@ def test_cap_finishes_at_or_below_flush_never_proud():
     # revert `_thickness` to the nominal and this fails; the interval checks
     # below do not.
 
-    bb_seated = _seated().val().BoundingBox()
+    bb_seated = _seated(profile_name).val().BoundingBox()
     measured_gap = PoweredUpHubBatteryTray.FLOOR_THICKNESS - bb_seated.zmax
+    # On every profile with a nonzero axial allowance, a measured gap of 0.000
+    # IS the round-88 printed-part failure: an exactly-filling plate has
+    # nowhere to put the glue but under itself, so it sits proud and rocks the
+    # pack. On `cnc` (free.axial 0.000) a zero gap is instead CORRECT -- an
+    # exact fit is right on a machined part -- so this assertion cannot
+    # distinguish a fixed part from a reverted one at that profile. It is not
+    # vacuous there (a nonzero gap would still fail it), but it is not the
+    # regression guard either; the other three rows are.
     assert abs(measured_gap - prof.free.axial) < 1e-9, (
-        f"the seated plate's glue gap measures {measured_gap:.4f} mm, not the "
-        f"profile's axial allowance {prof.free.axial:.4f}. At 0.000 this is "
-        f"the round-88 printed-part failure exactly: an exactly-filling plate "
-        f"has nowhere to put the glue but under itself, so it sits proud and "
-        f"rocks the pack."
+        f"[{profile_name}] the seated plate's glue gap measures "
+        f"{measured_gap:.4f} mm, not the profile's axial allowance "
+        f"{prof.free.axial:.4f}"
     )
     floor = PoweredUpHubBatteryTray.FLOOR_THICKNESS
     assert bb_seated.zmax <= floor + 1e-9, (

@@ -3685,8 +3685,11 @@ class PoweredUpHubHousing:
         # project forbids. Measured margins against the floor
         # (tmp/r88n_petg_skin_numbers.py): fdm_standard +5.0e-02,
         # resin_precise +1.5e-01, cnc +1.8e-01, petg -2.9e-15. Only the last
-        # is inside 1e-9, and it is fifteen orders of magnitude below any
-        # manufacturable quantity. No profile with a real shortfall is masked.
+        # is inside 1e-9 -- and 2.9e-15 mm is around twelve orders of
+        # magnitude below a 0.01 mm layer line, i.e. accumulated double
+        # rounding rather than any manufacturable shortfall. The nearest real
+        # margin is fdm_standard's +0.050, seven orders of magnitude clear of
+        # this epsilon, so no profile with a genuine shortfall can be masked.
         assert skin >= self.LATCH_PEG_RELIEF_MIN_SKIN - 1e-9, (
             f"relieving the peg would leave only {skin:.3f} mm of latch skin, "
             f"below the {self.LATCH_PEG_RELIEF_MIN_SKIN:.3f} mm floor "

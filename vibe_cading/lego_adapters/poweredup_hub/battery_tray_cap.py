@@ -168,8 +168,9 @@ class PoweredUpHubBatteryTrayCap:
         gap.
 
         (This text previously sat in a class-body ``#:`` block labelled
-        ``GLUE_GAP_Z`` -- a constant that was never defined. Three places
-        referenced it and none resolved. It lives on the real accessor now.)
+        ``GLUE_GAP_Z`` -- a constant that was never defined. Two places
+        referenced it, one of them live ``__init__`` code, and neither
+        resolved. It lives on the real accessor now.)
         """
         return self._thickness
 

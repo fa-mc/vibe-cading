@@ -197,9 +197,18 @@ def _orphaned_doc_comments(source: str, path: str, tree: ast.AST) -> list[str]:
         return out
 
     # Only real COMMENT tokens -- a "#:" inside a string is a STRING token and
-    # never reaches here, which is the false positive the line scan had.
-    comments = [t for t in toks if t.type == tokenize.COMMENT
-                and t.string.startswith("#:")]
+    # never reaches here.
+    #
+    # Sphinx has TWO forms, and only the leading one can dangle. `X = 1  #: doc`
+    # is the trailing form: it documents the assignment on its own line and is
+    # by construction attached to it. Its comment token starts at a column past
+    # the start of the line, which is how it is told apart. Without this the
+    # scanner flags the standard trailing form and points at the very line that
+    # assigns -- a false positive on correct code.
+    comments = [t for t in toks
+                if t.type == tokenize.COMMENT
+                and t.string.startswith("#:")
+                and not source.splitlines()[t.start[0] - 1][:t.start[1]].strip()]
 
     # Group consecutive "#:" comment lines into blocks.
     blocks: list[list[int]] = []
@@ -211,16 +220,20 @@ def _orphaned_doc_comments(source: str, path: str, tree: ast.AST) -> list[str]:
             blocks.append([line])
 
     # A "#:" block documents the assignment DIRECTLY below it -- adjacency is
-    # the whole convention, so a blank line between the two breaks the
-    # association and the block documents nothing. (That is the exact shape
-    # the GLUE_GAP_Z block had: prose, blank line, then an unrelated
-    # attribute. A rule that merely looked for "an assignment eventually"
-    # would call it fine -- this self-test catches that, having caught it on
-    # the first attempt at this very rewrite.)
+    # the whole convention, so anything between the two breaks the association
+    # and the block documents nothing. (That is the exact shape the GLUE_GAP_Z
+    # block had: prose, blank line, then an unrelated attribute. A rule that
+    # merely looked for "an assignment eventually" would call it fine -- the
+    # self-test catches that, having caught it on the first attempt at this
+    # rewrite.)
     #
-    # A plain "#" aside between the block and the assignment is tolerated:
-    # the block is still plainly attached to it, and flagging that would be
-    # noise rather than a dangling reference.
+    # ROUND 88, THIRD PASS -- an earlier version of this loop skipped over any
+    # number of intervening plain "#" comment lines before looking for the
+    # assignment. That carve-out contradicted the adjacency rationale directly
+    # above it, disagreed with Sphinx, and was unbounded: replacing the blank
+    # line in the GLUE_GAP_Z shape with a single "# TODO: ..." made the
+    # flagship defect pass the guard written to catch it. Adjacency now means
+    # adjacency.
     lines = source.splitlines()
 
     def _text(lineno: int) -> str:
@@ -228,20 +241,18 @@ def _orphaned_doc_comments(source: str, path: str, tree: ast.AST) -> list[str]:
 
     for block in blocks:
         probe = block[-1] + 1
-        while probe <= len(lines) and _text(probe).startswith("#"):
-            probe += 1           # a non-"#:" aside; keep looking
-        ok = probe <= len(lines) and _text(probe) != "" and probe in assigns
-        if not ok:
-            if probe > len(lines):
-                where = "end of file"
-            elif _text(probe) == "":
-                where = f"blank line {probe}"
-            else:
-                where = f"line {probe}"
-            out.append(
-                f"{path}:{block[0]}: '#:' doc-comment block documents no "
-                f"assignment ({where} follows it)"
-            )
+        if probe <= len(lines) and probe in assigns:
+            continue
+        if probe > len(lines):
+            where = "end of file"
+        elif _text(probe) == "":
+            where = f"blank line {probe}"
+        else:
+            where = f"line {probe}"
+        out.append(
+            f"{path}:{block[0]}: '#:' doc-comment block documents no "
+            f"assignment ({where} follows it)"
+        )
     return out
 
 
@@ -277,11 +288,18 @@ def _self_test() -> None:
     assert not _unresolved_attrs(clean, "<probe>"), (
         "self-test failed: tuple-unpacked self attribute was wrongly flagged"
     )
-    # The orphaned-doc-comment check. The cases below are the ones the FIRST
-    # version of this scanner got wrong -- a raw line scan that never looked
-    # for an assignment and had no concept of strings. Each is kept as a
-    # regression: four it missed, three it wrongly flagged.
-    def _orphans(src):
+    # The orphaned-doc-comment check.
+    #
+    # These cases were once described as "four it missed, three it wrongly
+    # flagged". That was wrong, and the correction matters more than the
+    # tally: re-running the original line scan over all of them shows it got
+    # 4 of 12 wrong (3 missed, 1 wrongly flagged). Several cases here are NOT
+    # regressions of the old version -- the string-literal one cannot fail
+    # under any implementation, and the dedent case the old docstring claimed
+    # to mishandle was in fact caught. They are kept anyway as forward
+    # guards; what is not kept is the claim that each one documents a past
+    # failure.
+    def _orphans(src: str) -> list[str]:
         return _orphaned_doc_comments(src, "<probe>", ast.parse(src))
 
     must_flag = {
@@ -300,6 +318,14 @@ def _self_test() -> None:
             "    #: documents nothing\n\nX = 1\n"),
         "at end of file": (
             "class C:\n    X = 1\n    #: documents nothing\n"),
+        # The GLUE_GAP_Z shape with its blank line replaced by an aside.
+        # Tolerating intervening comments made this pass the guard built to
+        # catch it -- see the adjacency note in _orphaned_doc_comments.
+        "separated by a plain '#' aside": (
+            "class C:\n    #: documents nothing\n    # TODO: revisit\n"
+            "    OTHER = 1\n"),
+        "module top before any code": (
+            "#: documents nothing\n\nimport os\n"),
     }
     for label, src in must_flag.items():
         assert _orphans(src), (
@@ -310,8 +336,23 @@ def _self_test() -> None:
         "plain assignment": "class C:\n    #: a real doc\n    REAL = 1\n",
         "annotated assignment": (
             "class C:\n    #: a real doc\n    REAL: int = 1\n"),
-        "plain '#' aside between": (
-            "class C:\n    #: a real doc\n    # an aside\n    REAL = 1\n"),
+        # A bare annotation IS a documentable attribute in Sphinx -- `#:` above
+        # `X: int` documents a declared-but-unassigned attribute, so this is
+        # correct code, not an orphan.
+        "bare annotation, no value": (
+            "class C:\n    #: a real doc\n    X: int\n"),
+        "trailing '#:' form": "class C:\n    REAL = 1  #: a real doc\n",
+        "trailing form, module level": "REAL = 1  #: a real doc\n",
+        "annotated, nested class": (
+            "class C:\n    class D:\n        #: a real doc\n"
+            "        REAL: int = 1\n"),
+        "inside a function body": (
+            "def f():\n    #: a real doc\n    real = 1\n    return real\n"),
+        "async def body": (
+            "async def f():\n    #: a real doc\n    real = 1\n"
+            "    return real\n"),
+        "walrus is not an assignment stmt, but the block sits on one": (
+            "class C:\n    #: a real doc\n    REAL = (x := 1)\n"),
         "'#:' inside a docstring": (
             'def f():\n    """Example:\n\n    #: a doc comment\n    X = 1\n'
             '    """\n    return 1\n'),
