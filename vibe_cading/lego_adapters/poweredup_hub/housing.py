@@ -3670,15 +3670,23 @@ class PoweredUpHubHousing:
         floor_local = (peg_tip_world - c) - self.SHELL_Y_OFFSET
         skin = floor_local - self.LATCH_Y
         # ROUND 88 -- epsilon, because this is a float comparison against a
-        # floor the geometry lands EXACTLY on. `petg` (free.radial 0.100)
+        # floor the geometry lands EXACTLY on. `petg` (free.radial 0.200)
         # produces skin = 0.800 = LATCH_PEG_RELIEF_MIN_SKIN to the last
-        # decimal the message prints, yet the raw double is 0.7999999999999998
+        # decimal the message prints, yet the raw double is 0.7999999999999972
         # and the bare `>=` fired -- so PoweredUpHubHousing(profile="petg")
         # raised AssertionError with a message reading "only 0.800 mm ...
         # below the 0.800 mm floor", which is self-contradictory on its face
         # and would send the next reader hunting a geometry bug that is not
         # there. The floor is a manufacturing minimum, not an exact equality;
         # a part landing on it precisely is acceptable.
+        #
+        # This epsilon does NOT widen the floor -- the distinction matters,
+        # because loosening a bound to clear a failure is exactly what this
+        # project forbids. Measured margins against the floor
+        # (tmp/r88n_petg_skin_numbers.py): fdm_standard +5.0e-02,
+        # resin_precise +1.5e-01, cnc +1.8e-01, petg -2.9e-15. Only the last
+        # is inside 1e-9, and it is fifteen orders of magnitude below any
+        # manufacturable quantity. No profile with a real shortfall is masked.
         assert skin >= self.LATCH_PEG_RELIEF_MIN_SKIN - 1e-9, (
             f"relieving the peg would leave only {skin:.3f} mm of latch skin, "
             f"below the {self.LATCH_PEG_RELIEF_MIN_SKIN:.3f} mm floor "
@@ -3910,9 +3918,14 @@ class PoweredUpHubHousing:
         """Per-flank gap between a tongue ridge and the Cover slot it enters.
 
         Profile-dependent: the gap tracks ``profile.free.radial``, measuring
-        0.400 mm at ``fdm_standard`` and 0.270 mm at ``cnc``. Derived from the
-        Cover's slot half-width and the rib half-width, so it cannot drift
-        from the geometry :meth:`_build_tongue_ribs` actually builds.
+        0.400 mm at ``fdm_standard`` and 0.270 mm at ``cnc``.
+
+        Derived from the Cover's slot half-width and the rib half-width rather
+        than stated as a literal. Note this is a *parallel re-derivation* of
+        the arithmetic in :meth:`_build_tongue_ribs`, not a shared expression,
+        so it does not by itself make drift impossible -- what forecloses that
+        is ``test_tongue_ribs_locate_sideways_*``, which measures the gap on
+        the BUILT parts at every shipped profile.
         """
         # WHY THIS IS A METHOD AND NOT A CONSTANT (round 88).
         #

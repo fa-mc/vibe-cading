@@ -150,10 +150,30 @@ def test_cap_finishes_at_or_below_flush_never_proud():
     # (battery_tray.py:466), so that first term is identically
     # `Cap.THICKNESS` and the whole expression reduces to
     # |free.axial - free.axial| < 1e-9 -- true for every profile and every
-    # geometry, including a plate built inside out. The seated checks below
-    # are the real version of the same claim: they measure the built parts.
+    # geometry, including a plate built inside out.
+    #
+    # Deleting it was described as lossless. It was NOT, and the replacement
+    # below is why. The seated pair further down bounds the gap to the
+    # INTERVAL [0, free.axial]; the deleted line pinned its VALUE. A plate
+    # with gap == 0 -- precisely the printed-part failure the owner reported
+    # -- passes every one of them, verified by rebuilding that exact
+    # regression as a subclass (tmp/r88m_cap_coverage_check.py): 4 of 4
+    # surviving assertions PASS on the broken part.
+    #
+    # So the value IS pinned again, but measured off the BUILT seated solid
+    # rather than restated from the constants that defined it. Falsifier:
+    # revert `_thickness` to the nominal and this fails; the interval checks
+    # below do not.
 
     bb_seated = _seated().val().BoundingBox()
+    measured_gap = PoweredUpHubBatteryTray.FLOOR_THICKNESS - bb_seated.zmax
+    assert abs(measured_gap - prof.free.axial) < 1e-9, (
+        f"the seated plate's glue gap measures {measured_gap:.4f} mm, not the "
+        f"profile's axial allowance {prof.free.axial:.4f}. At 0.000 this is "
+        f"the round-88 printed-part failure exactly: an exactly-filling plate "
+        f"has nowhere to put the glue but under itself, so it sits proud and "
+        f"rocks the pack."
+    )
     floor = PoweredUpHubBatteryTray.FLOOR_THICKNESS
     assert bb_seated.zmax <= floor + 1e-9, (
         f"seated cap top at {bb_seated.zmax:.3f} stands PROUD of the floor's "

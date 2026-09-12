@@ -226,9 +226,14 @@ def test_latch_catch_insertion_path_is_bounded_by_the_seated_minimum():
 
 
 def test_envelope_and_single_solid_guards_hold():
-    """Housing envelope stays 72.000 x 71.200 mm in plan, and both parts
+    """Housing envelope stays 71.700 x 71.350 mm in plan, and both parts
     remain single solids -- the final cross-part sign-off checks from the
     round-18 acceptance gate.
+
+    (This line read "72.000 x 71.200" until round 88's second pass: the
+    round-18 figures, left behind when the assertions below were re-pointed
+    to the owner's re-measured part. A summary that contradicts the
+    assertions under it is worse than none -- it is what a reader skims.)
 
     **Round 22** capped Z at DECK_Z = 24.000 (3 studs, the user's
     bottom-layer decision) rather than the reference shell's 29.600, and
@@ -454,7 +459,7 @@ def test_tongue_ribs_locate_sideways_without_obstructing_withdrawal():
     _assert_ribs_locate("fdm_standard")
 
 
-@pytest.mark.parametrize("profile_name", ["resin_precise", "cnc"])
+@pytest.mark.parametrize("profile_name", ["resin_precise", "cnc", "petg"])
 def test_tongue_ribs_locate_sideways_on_other_profiles(profile_name):
     """The rib fit must hold at every shipped profile, not just the default.
 
@@ -462,6 +467,14 @@ def test_tongue_ribs_locate_sideways_on_other_profiles(profile_name):
     pinned as a literal passes at ``fdm_standard`` and is silently wrong
     elsewhere. Falsifier: hard-code any single value into
     ``tongue_rib_flank_gap`` and at least one of these profiles fails.
+
+    ``petg`` earns its place twice over. It is the widest-clearance profile
+    (``free.radial`` 0.200, so the gap is 0.450 -- the furthest from the
+    0.400 literal that briefly shipped), and until round 88 it was the one
+    profile that could not build the Housing AT ALL: a latch-skin assertion
+    compared a float against a floor petg's geometry lands on exactly. That
+    crash went unnoticed because nothing in the suite ever constructed this
+    class at petg. It does now.
     """
     _assert_ribs_locate(profile_name)
 

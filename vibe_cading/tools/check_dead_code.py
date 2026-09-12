@@ -54,8 +54,10 @@ finding, printing ``file:line`` for each.
 from __future__ import annotations
 
 import ast
+import io
 import pathlib
 import sys
+import tokenize
 
 TERMINALS = (ast.Return, ast.Raise, ast.Continue, ast.Break)
 DEFAULT_ROOTS = ("vibe_cading", "parts")
@@ -150,7 +152,16 @@ def _unresolved_attrs(tree: ast.AST, path: str) -> list[str]:
     return out
 
 
-def _orphaned_doc_comments(source: str, path: str) -> list[str]:
+def _assignment_lines(tree: ast.AST) -> set[int]:
+    """Line numbers on which an assignment (or annotated one) begins."""
+    lines = set()
+    for node in ast.walk(tree):
+        if isinstance(node, (ast.Assign, ast.AnnAssign, ast.AugAssign)):
+            lines.add(node.lineno)
+    return lines
+
+
+def _orphaned_doc_comments(source: str, path: str, tree: ast.AST) -> list[str]:
     """Find ``#:`` doc-comment blocks that document no assignment.
 
     Sphinx's ``#:`` prefix means "this comment documents the attribute
@@ -160,29 +171,76 @@ def _orphaned_doc_comments(source: str, path: str) -> list[str]:
 
     Round 88 shipped exactly that: a 24-line ``#:`` block describing
     ``GLUE_GAP_Z`` on ``PoweredUpHubBatteryTrayCap`` with no such constant
-    anywhere, plus three references to it -- one in live ``__init__`` code.
-    Nothing caught it. The AST cannot: comments are not nodes, so this check
-    is deliberately textual.
+    anywhere, plus references to it -- one in live ``__init__`` code.
 
-    Only blocks that reach a blank line or a dedent without an assignment are
-    reported, so the normal ``#:`` + assignment pattern stays silent.
+    ROUND 88, SECOND PASS -- this was first written as a raw line scan, and
+    it did not do what this docstring said. It never checked for an
+    assignment at all: it fired iff the next line was blank, a comment, or
+    EOF. So it was silent when a block was followed by ``def``, a decorator,
+    a dedent (which the docstring explicitly claimed to handle) or any other
+    non-assignment statement -- had ``GLUE_GAP_Z`` sat directly above
+    ``def __init__`` the guard would have said nothing. It also fired on any
+    ``#:``-leading line inside a string or docstring, so documenting this
+    very convention with an example reddened CI on itself.
+
+    ``tokenize`` fixes both directions and dissolves the "must be textual"
+    premise the first version argued from: comments are not AST nodes, but
+    they ARE tokens, and the assignment lines come from the AST. Neither half
+    has to guess.
     """
     out: list[str] = []
+    assigns = _assignment_lines(tree)
+    try:
+        toks = list(tokenize.generate_tokens(io.StringIO(source).readline))
+    except (tokenize.TokenError, IndentationError):
+        # Unparseable as tokens; the AST parse above already reported it.
+        return out
+
+    # Only real COMMENT tokens -- a "#:" inside a string is a STRING token and
+    # never reaches here, which is the false positive the line scan had.
+    comments = [t for t in toks if t.type == tokenize.COMMENT
+                and t.string.startswith("#:")]
+
+    # Group consecutive "#:" comment lines into blocks.
+    blocks: list[list[int]] = []
+    for t in comments:
+        line = t.start[0]
+        if blocks and line == blocks[-1][-1] + 1:
+            blocks[-1].append(line)
+        else:
+            blocks.append([line])
+
+    # A "#:" block documents the assignment DIRECTLY below it -- adjacency is
+    # the whole convention, so a blank line between the two breaks the
+    # association and the block documents nothing. (That is the exact shape
+    # the GLUE_GAP_Z block had: prose, blank line, then an unrelated
+    # attribute. A rule that merely looked for "an assignment eventually"
+    # would call it fine -- this self-test catches that, having caught it on
+    # the first attempt at this very rewrite.)
+    #
+    # A plain "#" aside between the block and the assignment is tolerated:
+    # the block is still plainly attached to it, and flagging that would be
+    # noise rather than a dangling reference.
     lines = source.splitlines()
-    i = 0
-    while i < len(lines):
-        if not lines[i].lstrip().startswith("#:"):
-            i += 1
-            continue
-        start = i
-        while i < len(lines) and lines[i].lstrip().startswith("#:"):
-            i += 1
-        # The block documents whatever the next non-comment line assigns.
-        nxt = lines[i].strip() if i < len(lines) else ""
-        if not nxt or nxt.startswith("#"):
+
+    def _text(lineno: int) -> str:
+        return lines[lineno - 1].strip() if lineno - 1 < len(lines) else ""
+
+    for block in blocks:
+        probe = block[-1] + 1
+        while probe <= len(lines) and _text(probe).startswith("#"):
+            probe += 1           # a non-"#:" aside; keep looking
+        ok = probe <= len(lines) and _text(probe) != "" and probe in assigns
+        if not ok:
+            if probe > len(lines):
+                where = "end of file"
+            elif _text(probe) == "":
+                where = f"blank line {probe}"
+            else:
+                where = f"line {probe}"
             out.append(
-                f"{path}:{start + 1}: '#:' doc-comment block documents no "
-                f"assignment (orphaned at line {i or len(lines)})"
+                f"{path}:{block[0]}: '#:' doc-comment block documents no "
+                f"assignment ({where} follows it)"
             )
     return out
 
@@ -219,21 +277,54 @@ def _self_test() -> None:
     assert not _unresolved_attrs(clean, "<probe>"), (
         "self-test failed: tuple-unpacked self attribute was wrongly flagged"
     )
-    # The orphaned-doc-comment check, both directions.
-    assert _orphaned_doc_comments(
-        "class C:\n"
-        "    #: documents nothing at all\n"
-        "    #: (no assignment follows this block)\n"
-        "\n"
-        "    OTHER = 1\n",
-        "<probe>",
-    ), "self-test failed: planted orphaned '#:' block was not detected"
-    assert not _orphaned_doc_comments(
-        "class C:\n"
-        "    #: a real attribute doc\n"
-        "    REAL = 1\n",
-        "<probe>",
-    ), "self-test failed: a normal '#:' + assignment was wrongly flagged"
+    # The orphaned-doc-comment check. The cases below are the ones the FIRST
+    # version of this scanner got wrong -- a raw line scan that never looked
+    # for an assignment and had no concept of strings. Each is kept as a
+    # regression: four it missed, three it wrongly flagged.
+    def _orphans(src):
+        return _orphaned_doc_comments(src, "<probe>", ast.parse(src))
+
+    must_flag = {
+        "blank line after": (
+            "class C:\n    #: documents nothing\n\n    OTHER = 1\n"),
+        "followed by def": (
+            "class C:\n    #: documents nothing\n    def m(self):\n"
+            "        return 1\n"),
+        "followed by decorator": (
+            "class C:\n    #: documents nothing\n    @property\n"
+            "    def m(self):\n        return 1\n"),
+        "followed by non-assignment stmt": (
+            "class C:\n    #: documents nothing\n    print(1)\n"),
+        "followed by dedent": (
+            "class C:\n    def m(self):\n        pass\n"
+            "    #: documents nothing\n\nX = 1\n"),
+        "at end of file": (
+            "class C:\n    X = 1\n    #: documents nothing\n"),
+    }
+    for label, src in must_flag.items():
+        assert _orphans(src), (
+            f"self-test failed: orphaned '#:' block not detected ({label})"
+        )
+
+    must_not_flag = {
+        "plain assignment": "class C:\n    #: a real doc\n    REAL = 1\n",
+        "annotated assignment": (
+            "class C:\n    #: a real doc\n    REAL: int = 1\n"),
+        "plain '#' aside between": (
+            "class C:\n    #: a real doc\n    # an aside\n    REAL = 1\n"),
+        "'#:' inside a docstring": (
+            'def f():\n    """Example:\n\n    #: a doc comment\n    X = 1\n'
+            '    """\n    return 1\n'),
+        "'#:' inside a string literal": (
+            'S = "#: not a comment at all"\n'),
+        "multi-line assignment": (
+            "class C:\n    #: a real doc\n    REAL = (\n        1,\n"
+            "        2,\n    )\n"),
+    }
+    for label, src in must_not_flag.items():
+        assert not _orphans(src), (
+            f"self-test failed: '#:' wrongly flagged ({label})"
+        )
 
 
 def iter_files(roots):
@@ -263,7 +354,7 @@ def main(argv):
         scanned += 1
         findings += _unreachable(tree, str(f))
         findings += _unresolved_attrs(tree, str(f))
-        findings += _orphaned_doc_comments(source, str(f))
+        findings += _orphaned_doc_comments(source, str(f), tree)
 
     if findings:
         print(f"check_dead_code: {len(findings)} problem(s) in {scanned} file(s)")

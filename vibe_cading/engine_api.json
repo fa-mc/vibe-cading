@@ -1336,7 +1336,7 @@
         {
           "kind": "classmethod",
           "name": "tongue_rib_flank_gap",
-          "doc": "Per-flank gap between a tongue ridge and the Cover slot it enters.\n\nProfile-dependent: the gap tracks ``profile.free.radial``, measuring\n0.400 mm at ``fdm_standard`` and 0.270 mm at ``cnc``. Derived from the\nCover's slot half-width and the rib half-width, so it cannot drift\nfrom the geometry :meth:`_build_tongue_ribs` actually builds.",
+          "doc": "Per-flank gap between a tongue ridge and the Cover slot it enters.\n\nProfile-dependent: the gap tracks ``profile.free.radial``, measuring\n0.400 mm at ``fdm_standard`` and 0.270 mm at ``cnc``.\n\nDerived from the Cover's slot half-width and the rib half-width rather\nthan stated as a literal. Note this is a *parallel re-derivation* of\nthe arithmetic in :meth:`_build_tongue_ribs`, not a shared expression,\nso it does not by itself make drift impossible -- what forecloses that\nis ``test_tongue_ribs_locate_sideways_*``, which measures the gap on\nthe BUILT parts at every shipped profile.",
           "params": [
             {
               "name": "profile",
