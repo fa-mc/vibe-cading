@@ -15,6 +15,25 @@ section to the new version and date.
 
 ## [Unreleased]
 
+### Added
+- **`PoweredUpHubHousing.tongue_rib_flank_gap(profile)`** — the per-flank gap
+  between the housing's tongue ridges and the Cover slots they enter, as a
+  public classmethod. Profile-dependent (0.400 mm at `fdm_standard`, 0.270 mm
+  at `cnc`) and derived from the Cover's slot half-width, so it cannot drift
+  from the geometry the builder produces. Replaces a briefly-shipped bare
+  constant that was measured at one profile and wrong at the other three.
+
+### Fixed
+- **`PoweredUpHubBatteryTrayCap` finishes flush instead of proud.** The plate
+  took a running clearance on its four edges but none on its thickness, so an
+  exactly-filling plate had nowhere to put the glue except under itself. Its
+  built thickness is now the rebate depth less the profile's axial allowance.
+  Reported from a printed part.
+- **`PoweredUpHubHousing(profile="petg")` no longer raises.** A latch-skin
+  assertion compared a float against a floor the geometry lands on exactly,
+  so petg failed with a self-contradictory message ("only 0.800 mm … below
+  the 0.800 mm floor").
+
 ### Changed
 - **`PoweredUpHubCover`'s hook: vertical outer wall, rectangular peg,
   stiffening arms** (round 63, from the owner's annotated section of the

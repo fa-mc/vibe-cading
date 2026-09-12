@@ -1332,6 +1332,21 @@
               "value_doc": null
             }
           ]
+        },
+        {
+          "kind": "classmethod",
+          "name": "tongue_rib_flank_gap",
+          "doc": "Per-flank gap between a tongue ridge and the Cover slot it enters.\n\nProfile-dependent: the gap tracks ``profile.free.radial``, measuring\n0.400 mm at ``fdm_standard`` and 0.270 mm at ``cnc``. Derived from the\nCover's slot half-width and the rib half-width, so it cannot drift\nfrom the geometry :meth:`_build_tongue_ribs` actually builds.",
+          "params": [
+            {
+              "name": "profile",
+              "type": "ToleranceProfile",
+              "required": true,
+              "units": null,
+              "allowed_values": null,
+              "value_doc": null
+            }
+          ]
         }
       ],
       "result_accessor": ".solid"

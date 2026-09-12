@@ -3907,37 +3907,35 @@ class PoweredUpHubHousing:
 
     @classmethod
     def tongue_rib_flank_gap(cls, profile: ToleranceProfile) -> float:
-        """Per-flank gap between a tongue ridge and the Cover slot wall.
+        """Per-flank gap between a tongue ridge and the Cover slot it enters.
 
-        ROUND 88 -- this exists because the number was, briefly, a lie.
-
-        Round 77 set this gap on the owner's instruction (*"try leaving 0.4mm
-        gap on the side"*), but recorded it only inside a comment's arithmetic
-        on :attr:`TONGUE_RIB_CENTRE_X_HALF` -- *"1.150 - 0.400 = 0.750 ... at
-        the default profile"*. The kinematic test consequently asserted
-        against ``profile.free.radial`` (0.150), the running clearance every
-        OTHER sliding flank here uses, and failed for fourteen rounds. It was
-        nearly "fixed" by moving working geometry.
-
-        The first repair promoted 0.400 to a bare constant. That was measured
-        at ``fdm_standard`` only, and it dropped the round-77 note's own *"at
-        the default profile"* qualifier -- so it was right for one profile and
-        wrong for the rest (``resin_precise`` 0.300, ``cnc`` 0.270). It also
-        pointed the wrong way: the gap is an OUTPUT of
-        :attr:`TONGUE_RIB_CENTRE_X_HALF`, not an input, so a bare literal
-        would silently desynchronise the moment that half-width moved -- the
-        exact recurrence it claimed to prevent.
-
-        Derived, therefore, from the two facts that actually determine it: the
-        Cover's own slot half-width and the rib half-width ``
-        _build_tongue_ribs`` builds below. ``cover_fit`` appears in both the
-        slot wall and the rib flank and cancels; ``clr`` does not, which is
-        why the gap tracks the profile.
-
-        Verified against the built parts at every shipped profile
-        (``tmp/r88j_gap_across_profiles.py``): all three slot centres agree
-        with this expression to 0.000 spread.
+        Profile-dependent: the gap tracks ``profile.free.radial``, measuring
+        0.400 mm at ``fdm_standard`` and 0.270 mm at ``cnc``. Derived from the
+        Cover's slot half-width and the rib half-width, so it cannot drift
+        from the geometry :meth:`_build_tongue_ribs` actually builds.
         """
+        # WHY THIS IS A METHOD AND NOT A CONSTANT (round 88).
+        #
+        # Round 77 set this gap on the owner's instruction ("try leaving 0.4mm
+        # gap on the side") but recorded it only inside a comment's arithmetic
+        # on TONGUE_RIB_CENTRE_X_HALF -- "1.150 - 0.400 = 0.750 ... at the
+        # default profile". The kinematic test consequently asserted against
+        # profile.free.radial (0.150), the running clearance every OTHER
+        # sliding flank here uses, and failed for fourteen rounds. It was
+        # nearly "fixed" by moving working geometry.
+        #
+        # The first repair promoted 0.400 to a bare constant, measured at
+        # fdm_standard alone, dropping the round-77 note's own "at the default
+        # profile" qualifier -- right for one profile, wrong for the other
+        # three. It also pointed the wrong way: the gap is an OUTPUT of
+        # TONGUE_RIB_CENTRE_X_HALF, not an input, so a literal would
+        # desynchronise the moment that half-width moved -- the exact
+        # recurrence it claimed to prevent.
+        #
+        # cover_fit appears in both the slot wall and the rib flank and
+        # cancels; clr does not, which is why the gap tracks the profile.
+        # Verified on the built parts at every shipped profile
+        # (tmp/r88j_gap_across_profiles.py): 0.000 spread across slot centres.
         clr = profile.free.radial
         cover_fit = PoweredUpHubCover.fit_clearance(profile)
         rib_half = cls.TONGUE_RIB_CENTRE_X_HALF + cover_fit - clr
