@@ -126,8 +126,8 @@ def test_cap_finishes_at_or_below_flush_never_proud():
     So the assertion becomes one-sided, which is what the requirement
     actually is: proud rocks the battery pack and is a real defect; a few
     tenths recessed is harmless, because the pack bears on the floor around
-    the plate. The gap is ``profile.free.axial`` -- see the cap's own
-    ``GLUE_GAP_Z``.
+    the plate. The gap is ``profile.free.axial`` -- see the cap's
+    :attr:`~PoweredUpHubBatteryTrayCap.thickness` property.
 
     Falsifier: a seated top face above FLOOR_THICKNESS, or a gap so large
     the plate no longer roofs the corridor meaningfully.
@@ -137,17 +137,21 @@ def test_cap_finishes_at_or_below_flush_never_proud():
     bb = cap.solid.val().BoundingBox()
     assert abs(bb.zmin) < 1e-6, f"cap's print datum is not Z = 0: {bb.zmin}"
 
-    rebate_depth = (PoweredUpHubBatteryTray.FLOOR_THICKNESS
-                    - PoweredUpHubBatteryTray.STRAP_CAP_Z)
+    # Built solid vs. what the class computed -- catches a plate extruded the
+    # wrong way or to the nominal despite the gap being taken.
     assert abs(bb.zmax - cap.thickness) < 1e-6, (
         f"built plate is {bb.zmax:.3f} thick, not the {cap.thickness:.3f} the "
         f"class computed"
     )
-    assert abs((rebate_depth - cap.thickness) - prof.free.axial) < 1e-9, (
-        f"the plate's Z gap is {rebate_depth - cap.thickness:.3f}, not the "
-        f"profile's axial allowance {prof.free.axial:.3f} -- the glue gap has "
-        f"stopped tracking the knob that is supposed to set it"
-    )
+    # NOTE: a third assertion here checked
+    #     |(FLOOR_THICKNESS - STRAP_CAP_Z) - cap.thickness| == free.axial
+    # as "the glue gap still tracks its knob". It could not fail.
+    # `STRAP_CAP_Z` is DEFINED as `FLOOR_THICKNESS - STRAP_CAP_THICKNESS`
+    # (battery_tray.py:466), so that first term is identically
+    # `Cap.THICKNESS` and the whole expression reduces to
+    # |free.axial - free.axial| < 1e-9 -- true for every profile and every
+    # geometry, including a plate built inside out. The seated checks below
+    # are the real version of the same claim: they measure the built parts.
 
     bb_seated = _seated().val().BoundingBox()
     floor = PoweredUpHubBatteryTray.FLOOR_THICKNESS

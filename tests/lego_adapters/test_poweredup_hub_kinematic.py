@@ -56,6 +56,7 @@ equivalent to the rotation path.
 from __future__ import annotations
 
 import cadquery as cq
+import pytest
 
 from vibe_cading.cq_utils import rounded_box
 from vibe_cading.lego_adapters.poweredup_hub.battery_tray import (
@@ -261,22 +262,39 @@ def test_envelope_and_single_solid_guards_hold():
     # failing for the same reason the retired `27.200` literal did -- the
     # reference moved out from under them.
     #
-    # ylen IS derivable and is now derived: the arms set it, at exactly
-    # 2 * ARM_X_OUTER.
-    assert abs(bb.ylen - 2 * PoweredUpHubHousing.ARM_X_OUTER) < 1e-6, (
-        f"housing Y envelope {bb.ylen:.3f} is not the arms' own "
-        f"{2 * PoweredUpHubHousing.ARM_X_OUTER:.3f}"
+    # ROUND 88, SECOND PASS -- the first pass had these two backwards, and
+    # the way it got them backwards is the point.
+    #
+    # It asserted ylen against `2 * ARM_X_OUTER` ("the arms set it") and
+    # pinned xlen to a bare 71.700, reasoning that the arms' extra 0.175
+    # reach "is not a specified quantity anywhere in the class". Both claims
+    # are false, and measuring settles it (tmp/r88k_envelope_attribution.py):
+    # the arms span WORLD X, at exactly +-ARM_BOSS_X_OUTER = +-35.850.
+    #
+    #   xlen = 71.700 = 2 * ARM_BOSS_X_OUTER   <- a REAL identity
+    #   ylen = 71.350 = 2 * ARM_X_OUTER        <- a COINCIDENCE
+    #
+    # `ARM_X_OUTER` and `ARM_BOSS_X_OUTER` are the flat-face and boss-tip
+    # half-widths of the SAME arms on the SAME axis; they cannot explain two
+    # different world axes. Y runs latch-end to tongue-end and has nothing to
+    # do with the arms' flat faces -- 71.350 matching is numerical luck.
+    # That is exactly the coincidence-coupling housing.py:1340-1350 documents
+    # as a bug already caught twice on these very constants, and it was
+    # re-introduced here while quoting the constant that warns about it.
+    #
+    # And 0.175 IS named: BOSS_PROUD, ten lines from ARM_X_OUTER.
+    assert abs(bb.xlen - 2 * PoweredUpHubHousing.ARM_BOSS_X_OUTER) < 1e-6, (
+        f"housing X envelope {bb.xlen:.3f} is not the arm bosses' own "
+        f"{2 * PoweredUpHubHousing.ARM_BOSS_X_OUTER:.3f}"
     )
-    # xlen is NOT 2 * ARM_X_OUTER -- it measures 71.700 against that
-    # constant's 71.350, i.e. the arms reach 0.175 further in X than their
-    # flat-face half-width, from the tip rounding. That extra is not a
-    # specified quantity anywhere in the class, so deriving it here would be
-    # inventing an identity. Pinned as a MEASURED regression bound instead,
-    # labelled as such: it still fails on drift, and it does not pretend to
-    # be a requirement.
-    assert abs(bb.xlen - 71.700) < 1e-6, (
-        f"housing X envelope {bb.xlen:.3f} has drifted from the measured "
-        f"71.700 (arms' outer reach including tip rounding)"
+    # Y is pinned as a MEASURED regression bound, labelled as such, because
+    # no constant legitimately derives it. Note it is deliberately NOT the
+    # owner-locked 71.250 shell length: that figure is the WALL faces, which
+    # tmp/r86d_outer_envelope.py checks directly and reports PINNED. This
+    # bbox additionally catches whatever stands 0.050 proud of each wall.
+    assert abs(bb.ylen - 71.350) < 1e-6, (
+        f"housing Y envelope {bb.ylen:.3f} has drifted from the measured "
+        f"71.350 (locked 71.250 wall-to-wall, plus 0.050 proud at each end)"
     )
     assert abs(bb.zlen - PoweredUpHubHousing.DECK_Z) < 1e-6
     assert abs(PoweredUpHubHousing.DECK_Z - PoweredUpHubHousing.REF_SHELL_Z) < 1e-9
@@ -419,21 +437,42 @@ def test_tongue_ribs_locate_sideways_without_obstructing_withdrawal():
 
     ROUND 88 -- the sideways half asserted against ``profile.free.radial``
     (0.150), the running clearance every OTHER sliding flank in the housing
-    uses. These ribs do not use it: round 77 set their flank gap to 0.400 on
-    the owner's instruction (*"try leaving 0.4mm gap on the side"*), and that
+    uses. These ribs do not use it: round 77 set their flank gap on the
+    owner's instruction (*"try leaving 0.4mm gap on the side"*), and that
     number lived only inside a code comment's arithmetic, so this test never
     learned about it. It had failed ever since, and was nearly diagnosed as a
     geometry defect -- "clear until ~0.45 mm, roughly 3x the intended slop".
-    Measurement of the built parts (all three slot centres, 0.000 spread)
-    shows the gap is exactly 0.400: the ribs are built as designed and the
-    test was reading the wrong constant. It now reads
-    ``TONGUE_RIB_FLANK_GAP``, which round 88 promoted to a real constant for
-    this reason.
+
+    It now reads :meth:`PoweredUpHubHousing.tongue_rib_flank_gap`. Note the
+    first repair pinned a bare 0.400 here, measured at ``fdm_standard`` alone;
+    the gap actually tracks the profile (0.400 / 0.300 / 0.270), so that
+    constant was wrong for three of the four shipped profiles and this test
+    could not have caught it -- it only ever built one. Hence the sweep below:
+    a single-profile kinematic check is what let the error through, so the
+    check itself is the thing that had to change, not just the number.
     """
-    gap = PoweredUpHubHousing.TONGUE_RIB_FLANK_GAP
-    cover = PoweredUpHubCover(profile="fdm_standard").solid
-    with_ribs = PoweredUpHubHousing(profile="fdm_standard").solid
-    without = _RiblessHousing(profile="fdm_standard").solid
+    _assert_ribs_locate("fdm_standard")
+
+
+@pytest.mark.parametrize("profile_name", ["resin_precise", "cnc"])
+def test_tongue_ribs_locate_sideways_on_other_profiles(profile_name):
+    """The rib fit must hold at every shipped profile, not just the default.
+
+    Guards the specific error described in the sibling test above: a flank gap
+    pinned as a literal passes at ``fdm_standard`` and is silently wrong
+    elsewhere. Falsifier: hard-code any single value into
+    ``tongue_rib_flank_gap`` and at least one of these profiles fails.
+    """
+    _assert_ribs_locate(profile_name)
+
+
+def _assert_ribs_locate(profile_name: str) -> None:
+    """Shared body: ribs clear within their flank gap, engaging past it."""
+    profile = get_profile(profile_name)
+    gap = PoweredUpHubHousing.tongue_rib_flank_gap(profile)
+    cover = PoweredUpHubCover(profile=profile_name).solid
+    with_ribs = PoweredUpHubHousing(profile=profile_name).solid
+    without = _RiblessHousing(profile=profile_name).solid
 
     def rib_contribution(dx: float = 0.0, dy: float = 0.0) -> float:
         moved = cover.translate((dx, dy, 0.0))

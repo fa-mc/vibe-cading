@@ -1898,23 +1898,6 @@ class PoweredUpHubHousing:
     # tautological: thickening TONGUE_WALL_THICKNESS past 4.420 trips it.
     TONGUE_RIB_TIP_GAP = 0.030
 
-    # ROUND 88 -- the owner's round-77 flank gap, promoted from prose
-    # arithmetic to a named constant.
-    #
-    # It was only ever written as "1.150 - 0.400 = 0.750" in the note above,
-    # so nothing outside that comment knew the designed per-flank gap was
-    # 0.400 rather than the `clr` (0.150) every other sliding flank in this
-    # class uses.  The kinematic test duly asserted against `clr`, failed for
-    # 14 rounds, and was on its way to being diagnosed as a geometry defect --
-    # the ribs were measured clear until ~0.45 mm and read as "3x the intended
-    # slop", when in fact they are clear until exactly 0.400 mm because that
-    # is what the owner asked for.  A design value a test must agree with
-    # cannot live in a comment.
-    #
-    # Measured on the built parts (tmp/r88i_rib_gap_measure.py): all three
-    # slot centres report 0.400 with 0.000 spread.
-    TONGUE_RIB_FLANK_GAP = 0.400
-
     TONGUE_RIB_CENTRE_X_HALF = 0.900
     # ROUND 75 -- the inner band is RE-CENTRED on the Cover's own slot, not
     # left on its nominal reference value.  Measured on the built Cover
@@ -3686,7 +3669,17 @@ class PoweredUpHubHousing:
         # slides along this face as the lid closes, so it is a running fit.
         floor_local = (peg_tip_world - c) - self.SHELL_Y_OFFSET
         skin = floor_local - self.LATCH_Y
-        assert skin >= self.LATCH_PEG_RELIEF_MIN_SKIN, (
+        # ROUND 88 -- epsilon, because this is a float comparison against a
+        # floor the geometry lands EXACTLY on. `petg` (free.radial 0.100)
+        # produces skin = 0.800 = LATCH_PEG_RELIEF_MIN_SKIN to the last
+        # decimal the message prints, yet the raw double is 0.7999999999999998
+        # and the bare `>=` fired -- so PoweredUpHubHousing(profile="petg")
+        # raised AssertionError with a message reading "only 0.800 mm ...
+        # below the 0.800 mm floor", which is self-contradictory on its face
+        # and would send the next reader hunting a geometry bug that is not
+        # there. The floor is a manufacturing minimum, not an exact equality;
+        # a part landing on it precisely is acceptable.
+        assert skin >= self.LATCH_PEG_RELIEF_MIN_SKIN - 1e-9, (
             f"relieving the peg would leave only {skin:.3f} mm of latch skin, "
             f"below the {self.LATCH_PEG_RELIEF_MIN_SKIN:.3f} mm floor "
             f"(two perimeters at a 0.400 nozzle). The Cover is frozen, so the "
@@ -3911,6 +3904,44 @@ class PoweredUpHubHousing:
             lower.union(riser_clearance).union(upper)
             .union(self._build_tongue_ribs())
         )
+
+    @classmethod
+    def tongue_rib_flank_gap(cls, profile: ToleranceProfile) -> float:
+        """Per-flank gap between a tongue ridge and the Cover slot wall.
+
+        ROUND 88 -- this exists because the number was, briefly, a lie.
+
+        Round 77 set this gap on the owner's instruction (*"try leaving 0.4mm
+        gap on the side"*), but recorded it only inside a comment's arithmetic
+        on :attr:`TONGUE_RIB_CENTRE_X_HALF` -- *"1.150 - 0.400 = 0.750 ... at
+        the default profile"*. The kinematic test consequently asserted
+        against ``profile.free.radial`` (0.150), the running clearance every
+        OTHER sliding flank here uses, and failed for fourteen rounds. It was
+        nearly "fixed" by moving working geometry.
+
+        The first repair promoted 0.400 to a bare constant. That was measured
+        at ``fdm_standard`` only, and it dropped the round-77 note's own *"at
+        the default profile"* qualifier -- so it was right for one profile and
+        wrong for the rest (``resin_precise`` 0.300, ``cnc`` 0.270). It also
+        pointed the wrong way: the gap is an OUTPUT of
+        :attr:`TONGUE_RIB_CENTRE_X_HALF`, not an input, so a bare literal
+        would silently desynchronise the moment that half-width moved -- the
+        exact recurrence it claimed to prevent.
+
+        Derived, therefore, from the two facts that actually determine it: the
+        Cover's own slot half-width and the rib half-width ``
+        _build_tongue_ribs`` builds below. ``cover_fit`` appears in both the
+        slot wall and the rib flank and cancels; ``clr`` does not, which is
+        why the gap tracks the profile.
+
+        Verified against the built parts at every shipped profile
+        (``tmp/r88j_gap_across_profiles.py``): all three slot centres agree
+        with this expression to 0.000 spread.
+        """
+        clr = profile.free.radial
+        cover_fit = PoweredUpHubCover.fit_clearance(profile)
+        rib_half = cls.TONGUE_RIB_CENTRE_X_HALF + cover_fit - clr
+        return PoweredUpHubCover.TONGUE_GAP_X_INNER - rib_half
 
     def _build_tongue_ribs(self) -> cq.Workplane:
         """The three mirrored rib pairs that enter the Cover's tongue slots.

@@ -150,6 +150,43 @@ def _unresolved_attrs(tree: ast.AST, path: str) -> list[str]:
     return out
 
 
+def _orphaned_doc_comments(source: str, path: str) -> list[str]:
+    """Find ``#:`` doc-comment blocks that document no assignment.
+
+    Sphinx's ``#:`` prefix means "this comment documents the attribute
+    assigned on the next line". A block not followed by an assignment
+    documents nothing -- and reads, convincingly, as though the attribute
+    exists. Other code then references it by name and every reference dangles.
+
+    Round 88 shipped exactly that: a 24-line ``#:`` block describing
+    ``GLUE_GAP_Z`` on ``PoweredUpHubBatteryTrayCap`` with no such constant
+    anywhere, plus three references to it -- one in live ``__init__`` code.
+    Nothing caught it. The AST cannot: comments are not nodes, so this check
+    is deliberately textual.
+
+    Only blocks that reach a blank line or a dedent without an assignment are
+    reported, so the normal ``#:`` + assignment pattern stays silent.
+    """
+    out: list[str] = []
+    lines = source.splitlines()
+    i = 0
+    while i < len(lines):
+        if not lines[i].lstrip().startswith("#:"):
+            i += 1
+            continue
+        start = i
+        while i < len(lines) and lines[i].lstrip().startswith("#:"):
+            i += 1
+        # The block documents whatever the next non-comment line assigns.
+        nxt = lines[i].strip() if i < len(lines) else ""
+        if not nxt or nxt.startswith("#"):
+            out.append(
+                f"{path}:{start + 1}: '#:' doc-comment block documents no "
+                f"assignment (orphaned at line {i or len(lines)})"
+            )
+    return out
+
+
 def _self_test() -> None:
     """Positive control -- the checker must SEE a planted fault.
 
@@ -182,6 +219,21 @@ def _self_test() -> None:
     assert not _unresolved_attrs(clean, "<probe>"), (
         "self-test failed: tuple-unpacked self attribute was wrongly flagged"
     )
+    # The orphaned-doc-comment check, both directions.
+    assert _orphaned_doc_comments(
+        "class C:\n"
+        "    #: documents nothing at all\n"
+        "    #: (no assignment follows this block)\n"
+        "\n"
+        "    OTHER = 1\n",
+        "<probe>",
+    ), "self-test failed: planted orphaned '#:' block was not detected"
+    assert not _orphaned_doc_comments(
+        "class C:\n"
+        "    #: a real attribute doc\n"
+        "    REAL = 1\n",
+        "<probe>",
+    ), "self-test failed: a normal '#:' + assignment was wrongly flagged"
 
 
 def iter_files(roots):
@@ -202,14 +254,16 @@ def main(argv):
     findings = []
     scanned = 0
     for f in iter_files(roots):
+        source = f.read_text(encoding="utf-8")
         try:
-            tree = ast.parse(f.read_text(encoding="utf-8"), filename=str(f))
+            tree = ast.parse(source, filename=str(f))
         except SyntaxError as exc:
             findings.append(f"{f}: could not parse ({exc})")
             continue
         scanned += 1
         findings += _unreachable(tree, str(f))
         findings += _unresolved_attrs(tree, str(f))
+        findings += _orphaned_doc_comments(source, str(f))
 
     if findings:
         print(f"check_dead_code: {len(findings)} problem(s) in {scanned} file(s)")
