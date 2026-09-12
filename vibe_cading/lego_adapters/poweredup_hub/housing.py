@@ -1898,6 +1898,23 @@ class PoweredUpHubHousing:
     # tautological: thickening TONGUE_WALL_THICKNESS past 4.420 trips it.
     TONGUE_RIB_TIP_GAP = 0.030
 
+    # ROUND 88 -- the owner's round-77 flank gap, promoted from prose
+    # arithmetic to a named constant.
+    #
+    # It was only ever written as "1.150 - 0.400 = 0.750" in the note above,
+    # so nothing outside that comment knew the designed per-flank gap was
+    # 0.400 rather than the `clr` (0.150) every other sliding flank in this
+    # class uses.  The kinematic test duly asserted against `clr`, failed for
+    # 14 rounds, and was on its way to being diagnosed as a geometry defect --
+    # the ribs were measured clear until ~0.45 mm and read as "3x the intended
+    # slop", when in fact they are clear until exactly 0.400 mm because that
+    # is what the owner asked for.  A design value a test must agree with
+    # cannot live in a comment.
+    #
+    # Measured on the built parts (tmp/r88i_rib_gap_measure.py): all three
+    # slot centres report 0.400 with 0.000 spread.
+    TONGUE_RIB_FLANK_GAP = 0.400
+
     TONGUE_RIB_CENTRE_X_HALF = 0.900
     # ROUND 75 -- the inner band is RE-CENTRED on the Cover's own slot, not
     # left on its nominal reference value.  Measured on the built Cover

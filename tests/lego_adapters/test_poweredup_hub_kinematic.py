@@ -74,18 +74,46 @@ def _intersect_volume(a: cq.Workplane, b: cq.Workplane) -> float:
     return sum(v.Volume() for v in vals) if vals else 0.0
 
 
+# Half-space used to isolate the latch end. Deliberately enormous in X and Z:
+# it is a CLIP, and its only meaningful face is the +Y one at _LATCH_CLIP_Y.
+_LATCH_CLIP_Y = -29.0
+_LATCH_CLIP = (
+    cq.Workplane("XY")
+    .box(400.0, 400.0, 400.0, centered=(True, False, True))
+    .translate((0.0, _LATCH_CLIP_Y - 400.0, 0.0))
+    .val()
+)
+
+
 def _latch_only_volume(a: cq.Workplane, b: cq.Workplane) -> float:
-    """Same as :func:`_intersect_volume`, filtered to pieces at the latch
-    end only (Y < -29 mm) -- isolates the catch's own contribution from
-    the independently-verified, unrelated tongue-lap engagement at the
-    opposite end (which the audit already confirmed behaves correctly:
-    nonzero for a short -Z pull, zero beyond TIP_Z_LO = 1.874 mm)."""
-    inter = a.intersect(b)
-    total = 0.0
-    for v in inter.solids().vals():
-        if v.BoundingBox().ymax < -29.0:
-            total += v.Volume()
-    return total
+    """Overlap volume of ``a`` and ``b`` lying at the latch end
+    (Y < ``_LATCH_CLIP_Y``) -- isolates the catch's own contribution from the
+    independently-verified, unrelated tongue-lap engagement at the opposite
+    end (nonzero for a short -Z pull, zero beyond TIP_Z_LO = 1.874 mm).
+
+    **The clip is geometric, not topological, and that distinction is the
+    whole point.** This filtered by ``BoundingBox().ymax < -29.0`` until round
+    88, which made it report *falling* interference along the release path: as
+    the rotation deepens, OCCT fuses the catch's overlap into a larger lump
+    that also reaches the far wall at Y -27.750, and the bounding box of that
+    fused lump then fails the test -- discarding real, growing engagement.
+    Measured: 1.3030 mm^3 at 2 deg but 1.2007 mm^3 at 5 deg, read as a
+    mechanism that stopped resisting. Clipping the solids instead is immune to
+    however the kernel happens to partition them; the same sweep then reads
+    0.0000 / 0.0948 / 0.3106 / 1.8640 / 13.0120 / 32.3333, and stays monotone
+    at every clip plane from -29 to -32.
+
+    Note the empty case must be handled before clipping: chaining
+    ``.intersect()`` on an empty Workplane does NOT propagate the emptiness
+    (it reported 782.597 mm^3 at the provably-zero seated position), so an
+    empty overlap returns early rather than being clipped.
+    """
+    lumps = a.intersect(b).solids().vals()
+    if not lumps:
+        return 0.0
+    return sum(
+        s.Volume() for v in lumps for s in v.intersect(_LATCH_CLIP).Solids()
+    )
 
 
 # Pivot for the "swing the latch end down/away" rotation -- about the
@@ -388,8 +416,21 @@ def test_tongue_ribs_locate_sideways_without_obstructing_withdrawal():
       distance*. The tongue end is a lap, not a snap; retention there is
       the rebate bearing in Z and the latch at the far end. A rib that
       resisted withdrawal would be jamming the lid, not locating it.
+
+    ROUND 88 -- the sideways half asserted against ``profile.free.radial``
+    (0.150), the running clearance every OTHER sliding flank in the housing
+    uses. These ribs do not use it: round 77 set their flank gap to 0.400 on
+    the owner's instruction (*"try leaving 0.4mm gap on the side"*), and that
+    number lived only inside a code comment's arithmetic, so this test never
+    learned about it. It had failed ever since, and was nearly diagnosed as a
+    geometry defect -- "clear until ~0.45 mm, roughly 3x the intended slop".
+    Measurement of the built parts (all three slot centres, 0.000 spread)
+    shows the gap is exactly 0.400: the ribs are built as designed and the
+    test was reading the wrong constant. It now reads
+    ``TONGUE_RIB_FLANK_GAP``, which round 88 promoted to a real constant for
+    this reason.
     """
-    clr = get_profile("fdm_standard").free.radial
+    gap = PoweredUpHubHousing.TONGUE_RIB_FLANK_GAP
     cover = PoweredUpHubCover(profile="fdm_standard").solid
     with_ribs = PoweredUpHubHousing(profile="fdm_standard").solid
     without = _RiblessHousing(profile="fdm_standard").solid
@@ -399,13 +440,13 @@ def test_tongue_ribs_locate_sideways_without_obstructing_withdrawal():
         return _intersect_volume(with_ribs, moved) - _intersect_volume(without, moved)
 
     # Seated, and anywhere within the clearance: the ribs are clear.
-    for dx in (0.0, clr / 2.0, clr):
+    for dx in (0.0, gap / 2.0, gap):
         assert rib_contribution(dx=dx) < 1e-6, (
-            f"ribs bind at dX={dx:.3f}, inside their own {clr} mm flank clearance"
+            f"ribs bind at dX={dx:.3f}, inside their own {gap} mm flank clearance"
         )
 
     # Past the clearance they engage, and engage harder the further it goes.
-    engaged = [rib_contribution(dx=dx) for dx in (clr + 0.05, clr + 0.15, clr + 0.35)]
+    engaged = [rib_contribution(dx=dx) for dx in (gap + 0.05, gap + 0.15, gap + 0.35)]
     assert engaged[0] > 0.0, (
         "the tongue ribs never engage the Cover's slots -- they locate nothing"
     )
@@ -414,7 +455,7 @@ def test_tongue_ribs_locate_sideways_without_obstructing_withdrawal():
     )
 
     # Symmetric: the mirrored ribs work the same in -X.
-    assert abs(rib_contribution(dx=-(clr + 0.15)) - engaged[1]) < 1e-6
+    assert abs(rib_contribution(dx=-(gap + 0.15)) - engaged[1]) < 1e-6
 
     # And they never resist the lid sliding out.
     for dy in (-0.25, -0.5, -1.0, -2.0, -4.0):
