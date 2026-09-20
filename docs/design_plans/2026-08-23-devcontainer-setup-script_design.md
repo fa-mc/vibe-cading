@@ -1330,6 +1330,23 @@ to look past — its whole purpose is catching host-*specific* behaviour differe
 is no fallback: if Antigravity fails any part, this returns to authoring, not to a weaker shipped
 mechanism.
 
+### T10 waived — human decision (2026-09-20)
+
+The human explicitly waived T10 rather than holding the merge for it, accepting the residual risk
+that Antigravity's support for object-form `initializeCommand`, the derived mount expression, and
+`remoteEnv`-derived shell variables in `postCreateCommand` is unverified. This is a **waiver, not a
+finding that T10 was unnecessary** — the design's "no fallback" position (§T10, Known Risks) stands
+as written; nothing here weakens it technically. Merging is proceeding on: CI green, the CLI-based
+round-trips above (rows 14/15/15b/15c/15d), and the independent TL review (APPROVE WITH NITS,
+findings fixed).
+
+**Context for this decision:** the human has separately indicated Google Antigravity support in
+this project is slated for removal. If that lands, T10 becomes moot rather than perpetually
+deferred — there will be no second devcontainer-client host left for it to gate. Whoever does that
+removal should also strike T10 from this design's Implementation Plan and Success Criteria (and the
+`docs/agentic-workflow.md` / root `CLAUDE.md` Antigravity references it's entangled with) rather
+than leaving a dead pre-merge gate referencing a host the project no longer supports.
+
 ### Independent PR review (2026-09-19) — APPROVE WITH NITS, two findings fixed inline
 
 A fresh-context TL review of PR #96 (post-rebase head `6a9b5ba`) verified the two load-bearing
