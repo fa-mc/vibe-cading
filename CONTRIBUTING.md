@@ -35,6 +35,20 @@ For non-trivial geometry changes, please open an issue first describing the use 
 
 The repo ships a VS Code Dev Container with everything pre-installed (Python 3.11, CadQuery, OCP CAD Viewer, Claude Code). See [README.md > Quick start](README.md#quick-start) for the click-by-click.
 
+**Where to clone.** Clone into a project directory of its own, with the checkout named `main`:
+
+```bash
+git clone https://github.com/fa-mc/vibe-cading.git vibe-cading/main
+cd vibe-cading/main
+vibe_cading/tools/setup-workspace.sh      # once, before the first container start
+```
+
+The container bind-mounts the checkout's **parent** — the project directory — at the identical path inside and outside the container. That path identity is what makes `git worktree`s usable from inside: a worktree's `.git` is a file holding an *absolute* pointer back into `main/.git/worktrees/`, so a worktree only resolves when the whole project directory is mounted where git expects it. Sibling worktrees (`vibe-cading/<branch-slug>`) then work in the same container, and you can open any of them directly rather than always opening `main`.
+
+Because the mount is the parent, the parent has to *be* a project directory. [`setup-workspace.sh`](vibe_cading/tools/setup-workspace.sh) is where that judgment gets made — once, by you, against one real invocation with real error messages — rather than re-guessed from directory contents on every container start. It refuses a root that is your home directory (or an ancestor of it, or `/`), offers the one-time move if you cloned flat, writes the gitignored `docker/.env` that Compose reads, and writes a `.vibe-cading-project-root` marker. `.devcontainer/devcontainer.json`'s `initializeCommand` then re-checks, live, that the directory about to be mounted really is that validated root, and aborts container creation otherwise. Re-run with `--force` if you move the project; `--yes` accepts the migration non-interactively.
+
+**Supported hosts:** Linux, macOS, and WSL2 with the clone inside the Linux filesystem. Both scripts are POSIX/bash shell — there is no native Windows PowerShell/cmd path.
+
 **Not using VS Code?** The image definition lives in [`docker/Dockerfile`](docker/Dockerfile) and is shared with [`docker/compose.yaml`](docker/compose.yaml), so the same *image* runs without VS Code or the devcontainer CLI:
 
 ```bash
@@ -46,11 +60,13 @@ docker compose -f docker/compose.yaml exec dev bash
 
 **On native Linux**, if your (non-root) host user is not UID 1000, build with `USER_UID=$(id -u) USER_GID=$(id -g) docker compose -f docker/compose.yaml up -d --build` so bind-mounted files keep the right owner. Don't pass `USER_UID=0` — the image builds a non-root user and that combination fails. `--build` matters: a bare `up -d` reuses the existing image tag and silently ignores changed UID args. On **macOS**, and on **Windows** with the clone on an NTFS drive, leave these alone — Docker Desktop maps ownership for you. On **WSL2 with the clone inside the Linux filesystem**, the bind mount is real ext4, so treat it like native Linux.
 
-The image is the same, but the Compose service is **not** a full devcontainer replacement: it deliberately omits the VS Code integration layer's convenience mounts (SSH keys, agent credentials) and its `postCreateCommand`. So `git` may report `detected dubious ownership` on a UID mismatch — fix with `git config --global --add safe.directory <path>` — and agent hosts or `gh` may need credentials wired up yourself. Note that the container's home directory is **not** persisted: those fixes, plus `gh auth`, live in the container layer and are lost on `down` or on the next `up -d --build`. Only the repo bind mount survives. Running git worktrees inside the container is out of scope here (see [#81](https://github.com/fa-mc/vibe-cading/pull/81)).
+The image is the same, but the Compose service is **not** a full devcontainer replacement: it deliberately omits the VS Code integration layer's convenience mounts (SSH keys, agent credentials) and its `postCreateCommand`. So `git` may report `detected dubious ownership` on a UID mismatch — fix with `git config --global --add safe.directory <path>` — and agent hosts or `gh` may need credentials wired up yourself. Note that the container's home directory is **not** persisted: those fixes, plus `gh auth`, live in the container layer and are lost on `down` or on the next `up -d --build`. Only the repo bind mount survives. Running git worktrees inside the container is out of scope here: Compose mounts only *this checkout*, not the project directory a worktree's absolute `gitdir:` pointer needs.
+
+Compose also has no pre-mount lifecycle hook, so nothing there enforces `setup-workspace.sh` the way `initializeCommand` does for the dev container. Run it first anyway — `docker/.env` is what points Compose at the right working directory. The asymmetry is deliberate rather than an oversight: Compose is always a human typing an explicit command, never an automatic "Reopen in Container".
 
 **First-clone checklist:**
 
-1. **Reopen in Container** when VS Code prompts.
+1. **Run [`vibe_cading/tools/setup-workspace.sh`](vibe_cading/tools/setup-workspace.sh)** once on the host (see *Where to clone* above), then **Reopen in Container** when VS Code prompts.
 2. **Initialize the workspace.** From inside your AI agent host (e.g. Claude Code or Google Antigravity): *"please initialize the project"*. This creates `tmp/` and `.agents/plans/`, copies `print_profiles.json.example` → `print_profiles_user.json`, and runs the host-specific runtime scaffolder ([`vibe_cading/tools/init-claude-runtime.sh`](vibe_cading/tools/init-claude-runtime.sh) for Claude Code, or [`vibe_cading/tools/init-agy-runtime.sh`](vibe_cading/tools/init-agy-runtime.sh) for Antigravity) to populate per-clone runtime aliases/skills. (Equivalent manual steps are documented in [vibe/INSTRUCTIONS.md](vibe/INSTRUCTIONS.md) §*Workspace Initialization*.)
 3. **Calibrate your printer's `slip.radial`.** The shipped `fdm_standard` profile is a reasonable starting point, but the slip fit for Lego pins/axles is printer-specific. Print the axle gauge and run `python3 vibe_cading/tools/calibrate.py slip` — the calibrated value lands in your gitignored `print_profiles_user.json`. Full procedure in [docs/print-tolerances.md](docs/print-tolerances.md).
 4. **Try an example.** `python3 examples/lego_technic_beam.py` writes a STEP file under `examples/build/` — confirms your environment works end-to-end.
