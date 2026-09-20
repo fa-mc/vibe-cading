@@ -101,6 +101,101 @@ machine — not just `localhost`.
 > `--host 0.0.0.0` on the server **and** `-p` on the container are both
 > required. Either one alone leaves the viewer unreachable from outside.
 
+### Already running under VS Code — a host-side relay
+
+The section above needs you to *restart* into `docker/compose.yaml`. If you are
+already working in a VS Code devcontainer and do not want to tear it down, a
+small relay on the **host** gets the same reach, because the two halves of the
+problem are separable:
+
+- The container publishes nothing, so nothing on the LAN can reach it.
+- But the host itself *can* reach it, over the Docker bridge.
+
+So run something on the host that listens on the LAN and forwards to the
+container. Two addresses are needed.
+
+**The container's bridge address:**
+
+```bash
+docker inspect -f '{{range .NetworkSettings.Networks}}{{.IPAddress}}{{end}}' <container>
+```
+
+**The host's LAN address** — and this is the step that goes wrong most often:
+
+```bash
+ip route get 1.1.1.1 | grep -oP 'src \K\S+'      # 192.168.1.184
+```
+
+Use that form. The obvious alternatives return a **Docker bridge address**, not
+your LAN address, and the relay then binds somewhere nothing can reach it: on a
+machine running this project, `hostname -I | awk '{print $1}'` gives
+`172.17.0.1` and grepping `ip addr` for the first `192.168.*` gives
+`192.168.16.1` — both plausible-looking and both wrong. `ip route get` asks
+which source address the kernel would actually use to leave the machine, which
+is the question you mean.
+
+Any TCP forwarder will do. `socat` is the one-liner if you have it
+(`socat TCP-LISTEN:3939,bind=<host-lan-ip>,fork,reuseaddr TCP:<container-ip>:3939`),
+but it is not installed by default on a plain Debian host, so here is the same
+thing in the standard library — save as `tmp/lan_relay.py` and run it on the
+**host**, not in the container:
+
+```python
+"""Forward <host-lan-ip>:3939 to the devcontainer's viewer. Host-side."""
+import asyncio
+import sys
+
+BIND, DST, PORT = sys.argv[1], sys.argv[2], 3939
+
+
+async def pump(reader, writer):
+    try:
+        while chunk := await reader.read(65536):
+            writer.write(chunk)
+            await writer.drain()
+    except Exception:
+        pass
+    finally:
+        writer.close()
+
+
+async def handle(client_reader, client_writer):
+    up_reader, up_writer = await asyncio.open_connection(DST, PORT)
+    await asyncio.gather(pump(client_reader, up_writer),
+                         pump(up_reader, client_writer))
+
+
+async def main():
+    server = await asyncio.start_server(handle, BIND, PORT)
+    print(f"relay {BIND}:{PORT} -> {DST}:{PORT}", flush=True)
+    async with server:
+        await server.serve_forever()
+
+
+asyncio.run(main())
+```
+
+```bash
+setsid nohup python3 tmp/lan_relay.py <host-lan-ip> <container-ip> \
+    > tmp/lan_relay.log 2>&1 < /dev/null &
+```
+
+Start the server **inside** the container as usual (`--host 0.0.0.0` still
+matters — it must accept the bridge connection, not just loopback), then open
+`http://<host-lan-ip>:3939/viewer` from any device on the network.
+
+> **Two things that cost real time here.**
+>
+> **Background it with `setsid`, not a bare `&`.** Launched as `nohup … &` from
+> a tool call or a script that exits, the relay dies with its process group the
+> moment the caller returns — it looks like it started, logs a startup line, and
+> is gone seconds later. `setsid nohup … &` detaches it properly.
+>
+> **This puts the viewer on your LAN.** There is no authentication in front of
+> it. Bind the specific LAN address rather than `0.0.0.0`, give the relay a TTL
+> or stop it when you are done, and do not do this on a network you do not
+> trust.
+
 ---
 
 ## Gotchas
