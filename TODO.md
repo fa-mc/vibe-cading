@@ -129,6 +129,26 @@ We are expanding this repository into a broader Code-CAD mechanical toolkit. Her
   step in `.github/workflows/ci.yml` after `Topology check`.  The mtime-lint
   alternative was rejected (git does not preserve mtimes; meaningless on a
   fresh CI checkout).  Design: `.agents/plans/2026-05-29-visual-contract-freshness_design.md`.
+- [ ] **Remove Google Antigravity support.** User direction (2026-09-20). Antigravity is a second
+  in-thread/subagent host this repo currently supports alongside Claude Code — see
+  `docs/agentic-workflow.md`, the root `/workspaces/CLAUDE.md` dispatch table (`vibe-cading engine`
+  row lists `admin, tl, pm` + workflow commands resolved via `.claude/commands/`, no
+  `.agents/roles/`), `AGENTS.md`, and `vibe_cading/tools/init-agy-runtime.sh` (generates per-clone
+  `.agents/skills/` from the canonical `vibe/agents/`/`vibe/commands/` content; personas load
+  directly from `vibe/agents/`). Removal needs to audit and strip every one of those surfaces, plus:
+  - `.devcontainer/devcontainer.json` / `docker/compose.yaml` — check for any Antigravity-specific
+    accommodation (none known today beyond general multi-host portability).
+  - [PR #96](https://github.com/fa-mc/vibe-cading/pull/96)'s design,
+    `docs/design_plans/2026-08-23-devcontainer-setup-script_design.md` — **T10** (the pre-merge hard
+    gate requiring object-form `initializeCommand` / the derived mount expression / `remoteEnv`
+    shell-variable wiring to be verified under Google Antigravity specifically) was **explicitly
+    WAIVED by the human on 2026-09-20**, not satisfied — no Antigravity binary was available to run
+    it. Once Antigravity support is removed, T10 becomes moot rather than perpetually deferred:
+    strike it from that design's Implementation Plan, Success Criteria, and Known Risks table
+    instead of leaving a dead gate referencing an unsupported host.
+  - `docs/lego-technic.md` / any other doc mentioning "Antigravity" or `init-agy-runtime.sh` by name
+    (grep the whole repo, not just the files listed above — this list is what's known off the top of
+    the PR #96 session, not an audited inventory).
 
 ## Session backlog / parking lot
 
