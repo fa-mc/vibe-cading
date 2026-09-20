@@ -53,8 +53,26 @@ fi
 
 opened="$1"
 
+# literal_mount_source's correctness rests on Docker/the devcontainer CLI
+# collapsing "component/.." lexically before resolving any symlink -- verified
+# for the CLI/Docker versions this design was reviewed against (see the
+# design doc), but not something CI can pin (it does not drive real Docker).
+# Refusing outright when the OPENED checkout itself is a symlink closes that
+# whole class independently of anyone's normalization semantics: no
+# legitimate layout needs the checkout itself to be a symlink (a symlinked
+# ANCESTOR directory -- e.g. the project directory reached via a symlink --
+# is unaffected by this check and stays supported).
+if [ -L "$opened" ]; then
+    echo "REFUSE: $opened is a symlink. Open the real checkout directly, not a" >&2
+    echo "symlink to it." >&2
+    exit 1
+fi
+
 git_root="$(resolve_project_root "$opened")" || exit 1
-mount_src="$(literal_mount_source "$opened")"
+mount_src="$(literal_mount_source "$opened")" || {
+    echo "ERROR: could not resolve the parent of $opened." >&2
+    exit 1
+}
 
 if [ "$mount_src" != "$git_root" ]; then
     echo "REFUSE: this checkout's git-resolved project root ($git_root) does not" >&2

@@ -82,7 +82,7 @@
     // .vibe-cading-project-root marker all agree. Run
     // vibe_cading/tools/setup-workspace.sh once after cloning to create it.
     "initializeCommand": {
-        "seedClaudeCredentials": "mkdir -p ${localEnv:HOME}${localEnv:USERPROFILE}/.claude-creds/vibe-cading && { [ -f ${localEnv:HOME}${localEnv:USERPROFILE}/.claude-creds/vibe-cading/.credentials.json ] || cp ${localEnv:HOME}${localEnv:USERPROFILE}/.claude/.credentials.json ${localEnv:HOME}${localEnv:USERPROFILE}/.claude-creds/vibe-cading/.credentials.json 2>/dev/null || touch ${localEnv:HOME}${localEnv:USERPROFILE}/.claude-creds/vibe-cading/.credentials.json; }",
+        "seedClaudeCredentials": "mkdir -p \"${localEnv:HOME}${localEnv:USERPROFILE}/.claude-creds/vibe-cading\" && { [ -f \"${localEnv:HOME}${localEnv:USERPROFILE}/.claude-creds/vibe-cading/.credentials.json\" ] || cp \"${localEnv:HOME}${localEnv:USERPROFILE}/.claude/.credentials.json\" \"${localEnv:HOME}${localEnv:USERPROFILE}/.claude-creds/vibe-cading/.credentials.json\" 2>/dev/null || touch \"${localEnv:HOME}${localEnv:USERPROFILE}/.claude-creds/vibe-cading/.credentials.json\"; }",
         "checkWorkspaceSetup": [
             "bash",
             "${localWorkspaceFolder}/vibe_cading/tools/check-workspace-setup.sh",

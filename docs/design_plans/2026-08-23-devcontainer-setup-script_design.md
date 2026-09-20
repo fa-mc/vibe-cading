@@ -1300,7 +1300,7 @@ Docker 29.4.2 via the mounted socket:
 
 | Row | Fixture | Result |
 |---|---|---|
-| 14 | project with **no marker**, the **real tracked** `.devcontainer/devcontainer.json` | Both `initializeCommand` entries ran in order (`seedClaudeCredentials`, then `checkWorkspaceSetup`); the guard printed *"no project-root marker at …"* and the CLI returned `{"outcome":"error"}` — **zero containers created**. Object-form `initializeCommand` confirmed working in the CLI. |
+| 14 | project with **no marker**, the **real tracked** `.devcontainer/devcontainer.json` | Both `initializeCommand` entries ran (`seedClaudeCredentials` and `checkWorkspaceSetup` — object-form `initializeCommand` is documented as unordered, and this design depends on nothing about their relative order); the guard printed *"no project-root marker at …"* and the CLI returned `{"outcome":"error"}` — **zero containers created**. Object-form `initializeCommand` confirmed working in the CLI. |
 | 15 + 15c | marker present; **a sibling worktree opened directly** (not `main`); project root also holds `zz-plain`, a lexically-last non-git directory | `{"outcome":"success"}`. `docker inspect`: `source == target ==` the project root, `RW=true` — path identity preserved by T5's derived expression. Inside the container, `git config --global --get-all safe.directory` lists **both** `feature-x` and `main` and **not** `zz-plain` — i.e. `remoteEnv` reached `postCreateCommand`, the widened scope works when a non-`main` checkout is opened, and the `if`/`fi` loop survived the non-git last directory. This is also the **T10 pass-condition observable**, satisfied here on the CLI. |
 | 15b | project root literally named `` pr$(touch PWNED)oj `` | `{"outcome":"success"}`, both checkouts marked `safe.directory`, and **no `PWNED` artifact** on the host or in the container. The hostile path is data at every hop: `argv[1]` to the guard, the mount `source`/`target`, and `$VIBE_OPENED`. |
 | 15d | `VIBE_OPENED` removed from `remoteEnv` | `postCreateCommand` aborted **loudly**: `/bin/sh: 1: VIBE_OPENED: VIBE_OPENED unset -- remoteEnv did not reach postCreateCommand`, *"failed with exit code 2. Skipping any further user-provided commands"*, `{"outcome":"error"}`. Round-8's silent-no-op is closed. |
@@ -1329,6 +1329,56 @@ own `safe.directory` observable) but on `@devcontainers/cli`, which is exactly t
 to look past — its whole purpose is catching host-*specific* behaviour differences. Per §T10 there
 is no fallback: if Antigravity fails any part, this returns to authoring, not to a weaker shipped
 mechanism.
+
+### Independent PR review (2026-09-19) — APPROVE WITH NITS, two findings fixed inline
+
+A fresh-context TL review of PR #96 (post-rebase head `6a9b5ba`) verified the two load-bearing
+mechanisms empirically — reproduced the `cd -P` mutation flipping the `$HOME`-symlink guard to
+ACCEPT, and confirmed the root-`/` glob is right under both `bash` and `dash` — and found the
+shipped code matches the design. Two findings addressed on this branch before merge:
+
+- **The `$HOME`/`/` live re-check in `check-workspace-setup.sh` had no test coverage of its own.**
+  Deleting the whole clause left the suite fully green (80 passed) — clause 1 (git-root vs.
+  mount-source mismatch) never fires when both sides resolve to `$HOME`, so nothing forced the
+  second clause to actually run. Reproduced the gap directly before trusting the finding. Fixed:
+  `test_guard_refuses_when_git_root_equals_home_even_with_a_valid_marker` hand-plants a marker at
+  `$HOME` (bypassing `setup-workspace.sh`, which already refuses to write one there) and asserts
+  the guard still refuses — the Known-Risks scenario of a marker created without running the real
+  checks.
+- **`literal_mount_source`'s symlink safety rests entirely on an external invariant** (Docker/the
+  devcontainer CLI collapsing `component/..` lexically before resolving a symlink) that CI cannot
+  pin — it does not drive real Docker. Added an independent refusal in `check-workspace-setup.sh`:
+  if the opened checkout's own path is itself a symlink, refuse outright, regardless of where it
+  points or whether the mismatch clause would also have caught it. A symlinked *ancestor* directory
+  stays supported (`test_guard_accepts_when_only_an_ancestor_is_symlinked`); only the checkout leaf
+  is restricted, since no legitimate layout needs it to be a symlink.
+  **The first positive-control test written for this was itself vacuous** — a symlink placed
+  *outside* the project directory it points into already trips the pre-existing mismatch clause on
+  its own, so deleting the new check left that test green (verified by mutation before trusting it,
+  per this project's *A Check That Cannot Fail Is Not A Check* convention). The corrected version,
+  `test_guard_refuses_a_symlinked_checkout_even_when_nothing_else_would_catch_it`, places the
+  symlink as a *sibling* of the real checkout inside the same project directory, so
+  `git_root == mount_src` and the mismatch clause stays silent — only the new check can refuse.
+  Confirmed by mutation to flip ACCEPT/REFUSE on exactly this line.
+
+Also fixed: a substring assertion (`f"VIBE_WORKDIR={root}"`) that could not distinguish "wrote the
+checkout" from "wrote the root" (the former is a string-prefix of the latter) — now an exact
+line-match on the checkout path; a missing `|| exit 1` on `literal_mount_source`'s call site
+(failed closed today via the empty-string comparison, but explicit now); the pre-existing,
+untouched `seedClaudeCredentials` entry's unquoted `${localEnv:HOME}` expansions, now quoted
+(defense-in-depth — it is the user's own `$HOME`, not the hostile-path class, but costs nothing to
+close); and an over-claim in this doc's own row-14 verification that the two `initializeCommand`
+entries ran "in order" — object-form `initializeCommand` is documented as unordered and nothing
+here depends on their relative order.
+
+**Not fixed, judged genuinely optional:** re-scoping the root-`/` migration test to avoid requiring
+a writable `/` (would need exposing `setup-workspace.sh`'s internal `refuse_unsafe_root` as an
+independently-callable function, which is more surface than the gap warrants — the `/` refusal is
+already covered at lib level under both shells); `docker/compose.yaml`'s own pre-existing hardcoded
+fallback (out of this PR's scope — Compose's asymmetry from the devcontainer path is already
+documented in `CONTRIBUTING.md`).
+
+Full suite after fixes: see the Tests section below for the current pass count.
 
 ---
 

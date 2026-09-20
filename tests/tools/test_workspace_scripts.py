@@ -190,7 +190,13 @@ def test_nested_happy_path_writes_env_then_marker(tmp_path, home):
 
     env_file = checkout / "docker" / ".env"
     assert env_file.exists()
-    assert f"VIBE_WORKDIR={root}" in env_file.read_text()
+    # An exact line match, not a substring check: VIBE_WORKDIR must be the
+    # CHECKOUT (root/main), and f"VIBE_WORKDIR={root}" is a strict PREFIX of
+    # that correct value, so a substring assertion here cannot distinguish
+    # "wrote the checkout" from "wrote the root" -- the bug this guards is
+    # writing dirname(root) or otherwise dropping the /main.
+    lines = env_file.read_text().splitlines()
+    assert f"VIBE_WORKDIR={checkout}" in lines
     assert (root / MARKER).exists()
 
 
@@ -417,6 +423,62 @@ def test_guard_refuses_a_main_symlink_planted_in_home(tmp_path, home):
     proc = run_check(home / "main", env)
     assert proc.returncode == 1
     assert "REFUSE" in proc.stderr
+
+
+def test_guard_refuses_when_git_root_equals_home_even_with_a_valid_marker(tmp_path, home):
+    """The ``$HOME/main`` case: git-root and mount-src AGREE (both resolve to
+    $HOME), so the mismatch clause above cannot catch it -- only the live
+    $HOME/``/`` re-check can. Deleting that clause leaves the rest of this
+    suite fully green, so it needs its own regression guard. The marker here
+    is hand-planted, not written by ``setup-workspace.sh`` (which already
+    refuses to write one at $HOME) -- this is the Known-Risks scenario of a
+    marker created without running the real checks, and a genuine marker must
+    not be sufficient on its own."""
+    env = base_env(home, tmp_path)
+    checkout = make_repo(home / "main", env)
+    (home / MARKER).write_text("2026-01-01\n", encoding="utf-8")
+
+    proc = run_check(checkout, env)
+    assert proc.returncode == 1
+    assert "REFUSE" in proc.stderr
+    assert "$HOME" in proc.stderr
+
+
+def test_guard_refuses_a_symlinked_checkout_even_when_nothing_else_would_catch_it(tmp_path, home):
+    """Isolates the new symlink-leaf refusal from the pre-existing mismatch
+    clause. A symlink placed OUTSIDE the project directory it points into (as
+    in test_guard_refuses_a_main_symlink_planted_in_home) already trips the
+    git-root-vs-mount-source mismatch on its own -- that does not exercise
+    this check at all. Here the symlink is a SIBLING of the real checkout,
+    inside the SAME project directory: "sibling/.." and "main/.." both
+    lexically collapse to the same project root, so git_root == mount_src and
+    the mismatch clause stays silent. Confirmed by mutation: deleting the new
+    check turns this from REFUSE into ACCEPT, whereas the planted-in-$HOME
+    variant above stays REFUSE regardless (it never depended on this check)."""
+    env = base_env(home, tmp_path)
+    project = tmp_path / "vibe-cading"
+    checkout = make_repo(project / "main", env)
+    run_setup(checkout, env)
+    shortcut = project / "shortcut"
+    shortcut.symlink_to(checkout)
+
+    proc = run_check(shortcut, env)
+    assert proc.returncode == 1
+    assert "symlink" in proc.stderr
+
+
+def test_guard_accepts_when_only_an_ancestor_is_symlinked(tmp_path, home):
+    """The new symlinked-checkout refusal must not overreach: a symlinked
+    ANCESTOR directory (the project directory itself, reached via a symlink)
+    is a supported layout and must still be accepted end-to-end."""
+    env = base_env(home, tmp_path)
+    checkout = make_repo(tmp_path / "real-proj" / "main", env)
+    run_setup(checkout, env)
+    sym_proj = tmp_path / "sym-proj"
+    sym_proj.symlink_to(checkout.parent)
+
+    proc = run_check(sym_proj / "main", env)
+    assert proc.returncode == 0, proc.stderr
 
 
 def test_guard_refuses_a_subdirectory_of_main(tmp_path, home):
