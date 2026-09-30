@@ -245,7 +245,7 @@ Tolerances are carried by a per-machine/material `ToleranceProfile` — the
 allowances — that every model class reads via `get_profile()`. See
 [docs/print-tolerances.md](print-tolerances.md) for the authoritative model: what
 each grade means physically, what each allowance modifies geometrically, the
-shipped `fdm_standard` / `resin_precise` / `cnc` values, and the calibration
+shipped `fdm_standard` / `resin_precise` / `cnc` / `petg` values, and the calibration
 workflow.
 
 ---
@@ -258,6 +258,8 @@ workflow.
 - Beam ends are typically modelled as a semicircle of radius `beam_width / 2`
   (≈ 3.9 mm for thick liftarms) centred on the outermost hole — thick liftarms
   have a square cross-section, so half-thickness and half-width coincide.
+  (`LegoTechnicBeam` offsets the cap centre to X = 3.9 so total length stays
+  n × 8 mm — see [`constants.py`](../vibe_cading/lego/constants.py).)
 - When modelling pin holes, use `TechnicPinHole` (which bores
   `PIN_HOLE_DIAMETER + 2 × profile.<fit>.radial`) rather than a hardcoded diameter:
   `fit="slip"` for a snug fit (~4.90 mm on `fdm_standard`), `fit="free"` for free

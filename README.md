@@ -69,9 +69,9 @@ cq.exporters.export(gear.solid, "gear.step")   # extension picks the format
   direction: bring an existing **STEP** file, let the engine's analysis tools
   measure it, and rebuild it — by hand or with an AI agent — as editable parametric
   code. `boolean_diff` then confirms the rebuild matches the original to within ~1%
-  by volume. That's how the **SG90 servo body** in the samples above was built:
-  measured from a reference STEP, rebuilt as a parametric class. Works best on
-  simple prismatic parts.
+  by volume. That's how the **SG90 servo body** (`Sg90Servo`) that the servo-mount
+  sample above is built around was made: measured from a reference STEP, rebuilt
+  as a parametric class. Works best on simple prismatic parts.
 - **Print-ready fits.** Real-world *nominal* geometry stays fixed; per-machine,
   per-material clearances live in a separate **tolerance profile** you calibrate once.
   The same model bores a tight hole on one printer and a loose one on another — the
@@ -167,7 +167,7 @@ Windows already have it.
 
 Printed fits are printer- and material-dependent. vibe-cading keeps real-world
 *nominal* geometry fixed and carries the per-machine clearance separately in a
-**tolerance profile** — `fdm_standard`, `resin_precise`, and `cnc` ship in-repo,
+**tolerance profile** — `fdm_standard`, `resin_precise`, `cnc`, and `petg` ship in-repo,
 selected via `PRINT_PROFILE` and overridable per-machine in a gitignored
 `print_profiles_user.json`.
 

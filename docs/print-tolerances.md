@@ -53,13 +53,13 @@ Each `FitGrade` carries three orthogonal numeric fields (see [`FitGrade`](../vib
 | Consumer                                                                                       | Grade   | Reference                                                                                        |
 |------------------------------------------------------------------------------------------------|---------|--------------------------------------------------------------------------------------------------|
 | `ClearanceHole.to_cutter`                                                                      | `free`  | [`holes.py:92`](../vibe_cading/mechanical/holes.py#L92)                                          |
-| `CounterboreHole.to_cutter` (shaft + head)                                                     | `free`  | [`holes.py:158`](../vibe_cading/mechanical/holes.py#L158), [`holes.py:165`](../vibe_cading/mechanical/holes.py#L165) |
-| `CountersinkHole.to_cutter`                                                                    | `free`  | [`holes.py:210`](../vibe_cading/mechanical/holes.py#L210)                                        |
-| `CaptiveNutPocket.to_cutter`                                                                   | `free`  | [`holes.py:269`](../vibe_cading/mechanical/holes.py#L269)                                        |
-| `TaperedHole.to_cutter` (top + bottom radii)                                                   | `free`  | [`holes.py:318-319`](../vibe_cading/mechanical/holes.py#L318)                                    |
-| `LipHole.to_cutter` (head + shaft)                                                             | `free`  | [`holes.py:361-362`](../vibe_cading/mechanical/holes.py#L361)                                    |
-| `HexPocket.to_cutter`                                                                          | `free`  | [`holes.py:440`](../vibe_cading/mechanical/holes.py#L440)                                        |
-| `MetricMachineScrew.to_cutter` (delegates to `CounterboreHole`)                                | `free`  | [`screws/metric.py:137-138`](../vibe_cading/mechanical/screws/metric.py#L137)                    |
+| `CounterboreHole.to_cutter` (shaft + head)                                                     | `free`  | [`holes.py:166`](../vibe_cading/mechanical/holes.py#L166), [`holes.py:173`](../vibe_cading/mechanical/holes.py#L173) |
+| `TeardropHole.to_cutter`                                                                       | `free`  | [`holes.py:226`](../vibe_cading/mechanical/holes.py#L226)                                        |
+| `SlottedHole.to_cutter`                                                                        | `free`  | [`holes.py:285`](../vibe_cading/mechanical/holes.py#L285)                                        |
+| `CaptiveNutPocket.to_cutter`                                                                   | `free`  | [`holes.py:456`](../vibe_cading/mechanical/holes.py#L456)                                        |
+| `TaperedHole.to_cutter` (top + bottom radii)                                                   | `free`  | [`holes.py:334-335`](../vibe_cading/mechanical/holes.py#L334)                                    |
+| `Keyhole.to_cutter` (head + shaft)                                                             | `free`  | [`holes.py:377-378`](../vibe_cading/mechanical/holes.py#L377)                                    |
+| `MetricMachineScrew.to_cutter` (delegates to `CounterboreHole`)                                | `free`  | [`screws/metric.py:165`](../vibe_cading/mechanical/screws/metric.py#L165)                        |
 | `MetricHexNut.to_cutter(fit="captive")`                                                        | `free`  | [`nuts/metric.py:106`](../vibe_cading/mechanical/nuts/metric.py#L106) (via `CaptiveNutPocket`)   |
 | `MetricHexNut.to_cutter(fit="press")` (synthesises `prof.press` onto `effective.free`)         | `press` | [`nuts/metric.py:119`](../vibe_cading/mechanical/nuts/metric.py#L119)                            |
 | `MetricSquareNut.to_cutter`                                                                    | `free`  | [`nuts/metric.py:225`](../vibe_cading/mechanical/nuts/metric.py#L225)                            |
@@ -69,7 +69,7 @@ Each `FitGrade` carries three orthogonal numeric fields (see [`FitGrade`](../vib
 | `DiscMagnet.pocket`                                                                            | `slip`  | [`magnets.py:43`](../vibe_cading/mechanical/magnets.py#L43)                                      |
 | `BarMagnet.pocket`                                                                             | `slip`  | [`magnets.py:115`](../vibe_cading/mechanical/magnets.py#L115)                                    |
 | `HexStandoff.to_cutter`                                                                        | `free`  | [`standoffs.py:87`](../vibe_cading/mechanical/standoffs.py#L87)                                  |
-| `PrintInPlaceHinge` (clearance + face gap)                                                     | `free`  | [`hinge.py:58-59`](../vibe_cading/mechanical/hinge.py#L58)                                       |
+| `PrintInPlaceHinge` (clearance + face gap)                                                     | `free`  | [`hinge.py:78-79`](../vibe_cading/mechanical/hinge.py#L78)                                       |
 | `TechnicAxleHole` (`TIP_TO_TIP` cross envelope; chooses grade by `fit=` kwarg)                 | `slip`* | [`technic_axle_hole.py:147`](../vibe_cading/lego/cutters/technic_axle_hole.py#L147)              |
 | `TechnicPinHole.standard` (round pin socket bore; chooses grade by `fit=` kwarg; counterbore stays at nominal) | `slip`* | [`technic_pin_hole.py`](../vibe_cading/lego/cutters/technic_pin_hole.py)                         |
 | `FreespinHexHub` / `HexHubNut` (blind bearing pocket lateral inflation; native workplane cut, formula shared via `Bearing.blind_pocket_dims`, not `Bearing.outer_pocket`) | `free`  | [`bearings.py:160`](../vibe_cading/mechanical/bearings.py#L160)                                  |
@@ -89,8 +89,8 @@ Each `FitGrade` carries three orthogonal numeric fields (see [`FitGrade`](../vib
 
 | Consumer                                                                                       | Grade   | Reference                                                                                        |
 |------------------------------------------------------------------------------------------------|---------|--------------------------------------------------------------------------------------------------|
-| `CounterboreHole.to_cutter` (head recess depth: `z_recess = -tol.free.axial`)                  | `free`  | [`holes.py:166`](../vibe_cading/mechanical/holes.py#L166)                                        |
-| `MetricMachineScrew.to_cutter` (head recess; delegates to `CounterboreHole`)                   | `free`  | [`screws/metric.py:138`](../vibe_cading/mechanical/screws/metric.py#L138)                        |
+| `CounterboreHole.to_cutter` (head recess depth: `z_recess = -tol.free.axial`)                  | `free`  | [`holes.py:174`](../vibe_cading/mechanical/holes.py#L174)                                        |
+| `MetricMachineScrew.to_cutter` (head recess; delegates to `CounterboreHole`)                   | `free`  | [`screws/metric.py:165`](../vibe_cading/mechanical/screws/metric.py#L165)                        |
 | `MetricHexNut.to_cutter` (pocket depth inflation)                                              | `free`  | [`nuts/metric.py:133`](../vibe_cading/mechanical/nuts/metric.py#L133)                            |
 | `MetricSquareNut.to_cutter`                                                                    | `free`  | [`nuts/metric.py:226`](../vibe_cading/mechanical/nuts/metric.py#L226)                            |
 | `TNut.to_cutter` (depth inflation per side)                                                    | `free`  | [`nuts/tnut.py:79`](../vibe_cading/mechanical/nuts/tnut.py#L79), [`nuts/tnut.py:97`](../vibe_cading/mechanical/nuts/tnut.py#L97) |
@@ -101,7 +101,7 @@ Each `FitGrade` carries three orthogonal numeric fields (see [`FitGrade`](../vib
 | `FreespinHexHub` / `HexHubNut` (bearing pocket axial — `prof.free.axial + proud_margin`, `proud_margin=0.5` default; formula shared via `Bearing.blind_pocket_dims`) | `free`  | [`bearings.py:161`](../vibe_cading/mechanical/bearings.py#L161)                                  |
 | `BearingHexHousing` (depth clearance, calls `Bearing.outer_pocket(fit="free")`)                | `free`  | [`bearing_hex_housing.py`](../vibe_cading/rc/hex_hub_bearing/bearing_hex_housing.py)              |
 
-Most through-hole consumers (`ClearanceHole`, `CountersinkHole`, etc.) do *not* read `axial` — they bake a fixed 100 mm overcut on both ends instead (see [`holes.py:36-38`](../vibe_cading/mechanical/holes.py#L36)).
+Most through-hole consumers (`ClearanceHole`, `TeardropHole`, etc.) do *not* read `axial` — they bake a fixed 100 mm overcut on both ends instead (see [`holes.py:36-38`](../vibe_cading/mechanical/holes.py#L36)).
 
 ### 2.3 `slot` — extra half-width applied **only** to narrow slots
 
@@ -123,7 +123,7 @@ A new consumer that reads `slot` would be any cutter whose narrow-slot geometry 
 
 ## 3. Shipped Profile Reference
 
-The four shipped profiles in [`_FALLBACK_PROFILES`](../vibe_cading/print_settings.py#L575-L601) resolve to the following 36 leaf-float values when passed through [`_profile_from_nested`](../vibe_cading/print_settings.py#L344) (i.e. the per-field defaults in [`_fitgrade_from_dict`](../vibe_cading/print_settings.py#L320) fill any missing leaf with `0.0`). These tuples are pinned in [`tests/test_tolerance_profile.py`](../tests/test_tolerance_profile.py) T9b — `test_shipped_profiles_pinned_tuples` — and a regression in any of the values fails that test loudly.
+The four shipped profiles in [`_FALLBACK_PROFILES`](../vibe_cading/print_settings.py#L575-L603) resolve to the following 36 leaf-float values when passed through [`_profile_from_nested`](../vibe_cading/print_settings.py#L344) (i.e. the per-field defaults in [`_fitgrade_from_dict`](../vibe_cading/print_settings.py#L320) fill any missing leaf with `0.0`). These tuples are pinned in [`tests/test_tolerance_profile.py`](../tests/test_tolerance_profile.py) T9b — `test_shipped_profiles_pinned_tuples` — and a regression in any of the values fails that test loudly.
 
 | Profile          | `free.radial` | `free.axial` | `free.slot` | `slip.radial` | `slip.axial` | `slip.slot` | `press.radial` | `press.axial` | `press.slot` |
 |------------------|---------------|--------------|-------------|---------------|--------------|-------------|----------------|---------------|--------------|
@@ -282,10 +282,10 @@ Resolve the profile via the constructor pattern used elsewhere — accept a `pro
 Most new consumers reuse the existing three fields. Adding a brand-new `FitGrade` field (e.g. a hypothetical `bridge` for over-bridge sag) is a structural change that requires a design-flow consult, because:
 
 - Every shipped profile in `_FALLBACK_PROFILES` needs a sensible value for the new field.
-- The T9b snapshot test pins all 27 leaf-floats — a new field adds a column to every row.
+- The T9b snapshot test pins all 36 leaf-floats (4 profiles × 9) — a new field adds a column to every row.
 - The user override-merge contract needs documenting for the new field.
 - Calibration tooling needs a new walk command.
 
 Before proposing a new field, check whether the physical failure mode is genuinely orthogonal to `radial` / `axial` / `slot` — `slot` was added because narrow-cross-slot corner blowout can't be modeled by widening `radial` alone. A field that adjusts the *same* physical surface as an existing one should reuse the existing knob.
 
-A related anti-pattern: do not promote a geometric default (a corner fillet radius, a chamfer size, an internal rib width) to a `FitGrade` field just because one printer wants a different value. If the parameter does not participate in the fit envelope — i.e. it does not enter a clearance computation against a mating Lego or hardware dimension — it belongs as a per-class constructor kwarg with a shipped default, like `TechnicAxleHole.concave_radius`. The shipped default is best-current-evidence on the maintainer's calibrated stack; per-printer divergence is handled by passing the kwarg at the call site, not by adding a profile-level field that every shipped profile must then carry a value for. See the 2026-05-28 design dialog (`.agents/plans/2026-05-28-concave-radius-default_design.md`) for the worked example.
+A related anti-pattern: do not promote a geometric default (a corner fillet radius, a chamfer size, an internal rib width) to a `FitGrade` field just because one printer wants a different value. If the parameter does not participate in the fit envelope — i.e. it does not enter a clearance computation against a mating Lego or hardware dimension — it belongs as a per-class constructor kwarg with a shipped default, like `TechnicAxleHole.concave_radius`. The shipped default is best-current-evidence on the maintainer's calibrated stack; per-printer divergence is handled by passing the kwarg at the call site, not by adding a profile-level field that every shipped profile must then carry a value for. See the 2026-05-28 design dialog ([`docs/design_plans/2026-05-28-concave-radius-default_design.md`](design_plans/2026-05-28-concave-radius-default_design.md)) for the worked example.

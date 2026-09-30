@@ -87,11 +87,11 @@ from vibe_cading.mechanical.screws import MetricMachineScrew
 from vibe_cading.print_settings import get_profile
 
 class MyPlate:
-    def __init__(self, material: str = "PLA") -> None:
-        # 1. Resolve the tolerance profile for the target material.  The
-        #    profile encapsulates all radial / axial allowances; no need
+    def __init__(self, profile: str = "fdm_standard") -> None:
+        # 1. Resolve the named tolerance profile for the target material.
+        #    The profile encapsulates all radial / axial allowances; no need
         #    to thread individual floats through call sites.
-        self.profile = get_profile(material)
+        self.profile = get_profile(profile)
 
     def _build(self) -> cq.Workplane:
         screw = MetricMachineScrew.from_size("M3", length=12, head_type="flat")
