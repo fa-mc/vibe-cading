@@ -15,6 +15,16 @@ section to the new version and date.
 
 ## [Unreleased]
 
+## [0.3.0] - 2026-09-30
+
+### Highlights
+- **New models:** the Powered Up hub battery box (`PoweredUpHubHousing`, `PoweredUpHubCover`, `PoweredUpHubBatteryTray`, `PoweredUpHubBatteryTrayCap`), `TechnicPinHoleBushing`, `PerpendicularHolesLiftarm`, `Arrma223sEscMount`, `HexHubWithBearing` and `AxleHexHubAdapter`.
+- **New `petg` tolerance profile** ships alongside `fdm_standard` / `resin_precise` / `cnc`; `TechnicPinHole` gains `counterbore_ends`, `Bearing` gains `blind_pocket_dims()` / `mr85()`.
+- **Tooling:** host-side `setup-workspace.sh` + devcontainer pre-mount guard; `docs/viewer.md` for the standalone browser viewer.
+- **Breaking — geometry:** `CounterboreHole`'s cylinder (socket/pan) head recess now sinks into the part instead of extruding into air, so every socket/pan-head counterbore — including `MetricMachineScrew.to_cutter()` — cuts more material than in earlier releases (last published: 0.1.2) (e.g. `ToleranceGauge` −246.58 mm³).
+- **Breaking — API:** `parts.arrma_vorteks_223s.esc_mount.EscMount` (repo-only, not in the wheel) is removed (replaced by `Arrma223sEscMount` at the same `build.toml` path); `MR85_ID` is no longer importable from `vibe_cading.rc.freespin_hex_hub`; `view.py` now exits 1 when no viewer is listening (except under `--export`). `FreespinHexHub` is deprecated.
+- PoweredUpHub* and BearingHexHousing are new in this release; `Breaking` markers on them below refer to intermediate development states, not to any published version.
+
 ### Added
 - `vibe_cading/tools/setup-workspace.sh` — one-time host-side workspace setup, run
   once after cloning. Validates the project layout, offers the flat → nested
@@ -34,324 +44,6 @@ section to the new version and date.
   at `cnc`) and derived from the Cover's slot half-width, so it cannot drift
   from the geometry the builder produces. Replaces a briefly-shipped bare
   constant that was measured at one profile and wrong at the other three.
-
-### Fixed
-- **`PoweredUpHubBatteryTrayCap` finishes flush instead of proud.** The plate
-  took a running clearance on its four edges but none on its thickness, so an
-  exactly-filling plate had nowhere to put the glue except under itself. Its
-  built thickness is now the rebate depth less the profile's axial allowance.
-  Reported from a printed part.
-- **`PoweredUpHubHousing(profile="petg")` no longer raises.** A latch-skin
-  assertion compared a float against a floor the geometry lands on exactly,
-  so petg failed with a self-contradictory message ("only 0.800 mm … below
-  the 0.800 mm floor").
-
-### Changed
-- **`PoweredUpHubCover`'s hook: vertical outer wall, rectangular peg,
-  stiffening arms** (round 63, from the owner's annotated section of the
-  round-62 print).
-  - **The slope was on the wrong face.** Round 62 correctly saw that the two
-    members converge, then put all of the convergence on the leg's **outer**
-    face — making the hook a wedge, thick at the plate and thin at the tip.
-    The outer wall now runs **vertical** off the cover plate and slopes only
-    over its top ~21%; the **inner** face carries the convergence, so the leg
-    *thickens* as it rises. The finger stays vertical to the tip, so exactly
-    one edge kinks.
-  - **This was visible in round 62's own reference plot.** Over `z = 3..11`
-    the reference's leg outer face moves `0.633 mm` (4.5°, essentially
-    vertical) while its inner face moves `0.987`. *Lesson one level up from
-    round 62's: seeing the shape is not decomposing it — the plot showed
-    convergence, but only differencing the two faces separately says which
-    one moves.*
-  - **Peg is rectangular** — flat top, bottom and outer face. Round 62 built
-    a right triangle (ramped lead-in, flat retention top) from engineering
-    reasoning rather than measurement. Noted rather than left to be found on
-    the bed: the underside is now a flat `1.196 mm` horizontal overhang; if it
-    droops, chamfer the **underside only**, never the top face, which takes
-    the pull-out load.
-  - **New: two stiffening arms** at the hook's X extremes directly above the
-    peg (`ARM_X`/`ARM_Z`/`ARM_OUT`), the same trick `PAD_END_WALL_X` already
-    plays for the thumb tab and present in Philo's own model. They brace the
-    peg's root against the bending moment pull-out applies to a cantilever off
-    a `0.800 mm` wall. Verified **by contrast** — present at the ends, absent
-    between them; checking only the ends would pass an arm spanning the full
-    width, which is a different part.
-  - Removed `CROWN_TOP_HALF`; `LEG_BASE_OUT_Y` → `LEG_OUT_Y` (it is no longer
-    a base-only value). Added `LEG_SLOPE_Z_FRAC`, `CROWN_TIP_WIDTH`.
-  - `ARM_Z`, `ARM_OUT` and `LEG_SLOPE_Z_FRAC` are scaled from the owner's
-    sketch, not measured — flagged as inferred.
-- **Breaking** — **`PoweredUpHubCover`'s latch is a V, not a U** (round 62,
-  after the owner printed round 61 and reported the hook still wrong).
-  - **The two members converge.** The reference's aperture is `1.454 mm` wide
-    at `z = 2` and `0.087` at `z = 11` — a V with its vertex up, the
-    plate-side member dead straight and all the slope on the outer one. Every
-    round from 38 onward built them **parallel** and then argued about where
-    to place them.
-  - **Why it took four rounds:** rounds 60 and 61 read span *tables* off the
-    reference and inferred a shape from the numbers. A table of widths at
-    stations cannot distinguish "two parallel walls" from "two converging
-    walls" unless you difference the stations. Plotting the section
-    (`tmp/ldraw/latch_picture_r62.py`) shows it immediately. *Plot the
-    section before believing a table about it.*
-  - **The peg grows; the hook does not move.** Round 61 reached the peg's
-    `5.000 mm` by translating the whole leg outboard `1.580 mm`. The peg now
-    protrudes `1.835 mm` from a leg back on its own geometry. The new
-    assertion checks the **protrusion**, not the reach — the reach was
-    correct in every wrong round, so asserting it caught nothing.
-  - **Peg reshaped** to match `~1 mm` tall against `~1.8 mm` proud: a right
-    triangle with a ramped underside (lead-in on `+Z` insertion, and the
-    printable face at ~32° rather than an unsupported 90°) and a flat
-    horizontal top (retention face, taking pull-out square-on). A symmetric
-    bump would bear the load on a slope that cams itself open.
-  - `hook_depth` **`13.000 → 14.720`**, `TAB_TIP_OUT` **`6.240 → 6.000`**,
-    both measured. The LDraw reference ends at `13.000`, so hook height is one
-    more place it falls short of the hardware.
-  - **Fixed a defect no check could see:** with the leg sloping, the thumb
-    pad's fixed inner face lost contact with it above `z ≈ 0.44`. The pad
-    stayed fused to the *plate*, so `solids == 1` and every dimensional check
-    passed — but pressing it would no longer deflect the leg. A dead release
-    mechanism that measures perfectly. `PAD_INNER_Y` is now derived from the
-    leg's face at the pad's own top, the worst case.
-  - Removed: `U_CENTRELINE_SEP`, `U_BEND_WALL`, `U_FLARE_Z`, `BEAD_PEAK_Y`,
-    `BEAD_BASELINE_Y`, `CROWN_SLOPE_H`, `CROWN_TOP_CLEAR` — all hairpin-era.
-    Added: `LEG_BASE_OUT_Y`, `APEX_Z_FRAC`, `CROWN_TOP_HALF`, `TAB_TIP_OUT`.
-- **Breaking** — **`PoweredUpHubCover` re-datumed from the printed part**
-  (round 61). The owner printed the round-60 cover and measured four faults on
-  the physical object; all four are now corrected, and each was re-verified
-  against the *built solid* rather than against the constants that produced it:
-  - **Body length `62.800 → 59.800`** (tongues excluded). Round 60's `61.900`
-    came from subtracting two whole-part readings, so both readings' errors
-    landed in it — and it never reconciled with the `61.660` cavity it has to
-    sit inside. The directly-measured figure does (`0.930 mm` per end).
-  - **Tongue protrusion `1.700 → 4.000`**, measured on the feature itself
-    rather than derived as a difference. It also closes the length books:
-    `59.800 + 4.000 = 63.800` against the `63.600` whole-part reading.
-  - **Latch finger `0.800 → 1.600` thick** (new `FINGER_WALL`). The finger and
-    the leg no longer share a thickness: the leg stays thin because it is the
-    compliant member, and stiffness scales with the **cube** of thickness, so
-    the single-ribbon model that forced them equal would have thrown away a
-    spring the owner had already confirmed works.
-  - **Retention bead reach `3.420 → 5.000`** outboard of the body edge (new
-    `BARB_TIP_OUT`). Corroborated independently by the round-60 session's
-    `6.240 mm` latch-depth reading: two measurements of different features, a
-    round apart, asking for the same `~1.5 mm` of deepening. The bead is driven
-    off the first and the thumb pad off the second, so neither reading is
-    discarded; they land `6.250` apart.
-  - **Crown is a slope, not a bend.** The outer faces now converge over the
-    hook's top `2 mm` (`4.840 → 3.320 mm`), replacing the semicircular hairpin.
-    Confirmed on the LDraw reference independently, which tapers `2.153 →
-    1.286 mm` over the same band. The aperture's **inner** arc is deliberately
-    untouched — a sharp corner there is the round-37 defect already fixed once.
-- **`PoweredUpHubCover.PLATE_Y_LO` no longer pins the latch.** New
-  `LATCH_DATUM_Y` records the plate edge the latch constants were *measured*
-  against; the latch sub-assembly is built in that frame and translated onto
-  wherever `PLATE_Y_LO` now sits. Rounds 59 and 60 both refused to re-datum the
-  lid's length because doing so meant hand-editing ~10 reference-measured `Y`
-  constants (and destroying what they record) — this removes that obstacle
-  permanently. All five latch features route through one method, so a future
-  length change cannot move four of them and leave the fifth behind — a failure
-  no seated interference check can see, because a detached pad still measures
-  `0.000 mm³`.
-- **Two stale X-footprint literals fixed**, both left behind when round 60 took
-  `hook_width` from `13.600` to `12.200`: `PoweredUpHubHousing`'s
-  `LATCH_WINDOW_X_HI` (`19.200 → 17.800`) and `PoweredUpHubCover`'s
-  `PAD_SCALLOP` X column. The housing's own assertion caught the first; the
-  second was **silent**, because the thumb pad is union-only, so a scallop
-  `1.400 mm` wider than both the hook it sits on and the window it passes
-  through simply widened the part. This is not a housing re-datum — the housing
-  stays reference-faithful; it is the window tracking the hook that goes
-  through it.
-- **`BEAD_BASELINE_Y` now records our leg's own outer face**, not the
-  reference's. It previously sat `0.050 mm` outboard of the face it was used
-  with, quietly costing that much bead reach — invisible while the constant was
-  only ever read as a protrusion *difference*. `__init__` now asserts the built
-  bead reaches `BARB_TIP_OUT` exactly, so the five constants that position it
-  cannot drift apart again.
-
-### Removed
-- **Breaking** — **`PoweredUpHubBatteryTray`'s upper wall band is gone**
-  (round 57, user direction: *"the wall becomes narrower due to the housing
-  gets narrower on top, this creates a floating region… for the tray we can
-  just remove the narrower part"*). The tray used to follow the housing's
-  cavity inboard above its step with a second, narrower band (outer face
-  `26.050 − clearance`, inner `25.250`) stacked on the main one. Those two
-  bands shared **no X range** — `25.250…25.900` sits entirely inboard of the
-  lower band's `26.400` inner face — so they were joined only by a hairline
-  horizontal ledge at the seam. That is legal as a solid, and
-  `test_single_solid` passed the whole time: connectivity and printability are
-  different properties and only the first was ever checked. On a printer it is
-  a `0.650 mm` wall standing on a `0.500 mm` ledge with nothing under its
-  inboard half. The wall is now one full-thickness band ending at the step.
-  Removed with it: `WALL_OUTER_X_UPPER_NOMINAL`, `WALL_INNER_X_UPPER`, and the
-  `_wall_outer_x_upper` / `_wall_z_hi` instance fields; `WALL_STEP_Z` is
-  renamed **`WALL_Z_HI`**, since it is the wall's top and no longer a step.
-  Consequence worth stating: the wall no longer reaches the pack's top (local
-  `Z = 23.600` against a `20.000` wall) — above `WALL_Z_HI` the pack is
-  confined by the housing's own cavity, not by the tray. The wall is also now
-  profile-independent.
-- **`PoweredUpHubHousing`'s arm face-dishing is deleted** (user direction) —
-  `_dish_arm_faces` cut the real liftarm's recessed pockets into both faces of
-  each arm, leaving a `2.756 mm` web. It matched the reference, and it is the
-  wrong shape to print: it thins the section of a cantilevered arm exactly where
-  bending stress peaks and asks an FDM machine to bridge a thin web. The arms
-  are now plain full-thickness beams — a declared departure from the reference
-  in favour of strength, with hole positions, pitch and envelope unchanged.
-  `_DISH_GAP_OPEN_RADIUS` goes with it.
-- **Breaking** — the hand-rolled middle-bore constants are removed from
-  `PoweredUpHubHousing`: `MID_BORE_CB_DIAMETER`, `MID_BORE_CB_DEPTH`,
-  `MID_BORE_DIAMETER`, `MID_BORE_GUIDED_LEN`, `MID_BORE_RELIEF_DIAMETER`.
-- **`PoweredUpHubHousing`'s latch catch is deleted** — the catch boss, its
-  undercut slot and the keeper nub were the mating half of a barb-on-the-finger
-  `PoweredUpHubCover` has not had since the latch became a hairpin spring, and
-  they were measured dead before removal: the slot cutter overlapped
-  `0.0000 mm³` of the built wall, the nub had not been unioned since round 27,
-  and the boss's only remaining effect was a `0.150 mm` overhang the wall
-  already provides. With it go `_LATCH_CATCH_Z_MARGIN`,
-  `_LATCH_CATCH_RETREAT_Y` and `_MIN_MATERIAL_BEHIND_UNDERCUT`.
-- **Breaking** — `PoweredUpHubCover` drops the public barb API that only the
-  deleted catch consumed: the `HOOK_FACE_Y0` / `HOOK_FACE_Y1` / `HOOK_FACE_Z1`
-  constants and the `barb_arc_points()` / `barb_outboard_y()` classmethods.
-  They described a drafted hook face and bead arc the part no longer has.
-- **`PoweredUpHubBatteryTray` is deleted** (user direction, 2026-08-20). The
-  housing is now capped at a 3-stud (`24.000 mm`) bottom layer, and a separate
-  tray no longer fits underneath: cover plate `1.2` + tray floor `1.5` + the
-  named `20 mm` pack + strap `~1.8` = `24.5 mm` against the `22.0 mm` available
-  below the deck — `2.5 mm` over, even after reclaiming the tray's own
-  `2.500 mm` raised-floor standoff. The pack now sits directly on
-  `PoweredUpHubCover`. **Breaking**: the class, its module
-  `vibe_cading.lego_adapters.poweredup_hub.battery_tray`, its two
-  `visual_contracts.toml` rows and their SVGs are all gone, and
-  `assembly.assemble()` returns two parts instead of three.
-- `PoweredUpHubCover`: the locating land (and its `LAND_Y_LO` / `LAND_Y_HI` /
-  `LAND_HEIGHT` constants) is removed — it existed solely to register the
-  deleted tray's bottom rim, so it now registers nothing.
-
-### Changed
-- **`PoweredUpHubCover` gains a whole-lid running clearance — width, length
-  and the tongue-side gaps** (round 59, user direction). Same root cause as
-  the hook one round earlier: the reference is a **zero-clearance model
-  throughout**, so every face this lid slides past had been built to the
-  housing's own nominal figure. Measured on the built pair *before* changing
-  anything:
-
-  | interface | before | after |
-  |---|---|---|
-  | width, X plate edge | 0.150 | **0.295** |
-  | length, latch end | **0.005** | 0.145 |
-  | length, tongue step | **0.005** | 0.150 |
-  | tongue blade, outboard | 0.150 | **0.295** |
-
-  The two length figures are the ones that mattered — 0.005 is the probe's own
-  step, so the lid was a hard face-to-face fit against the cavity at **both**
-  ends, which no amount of width clearance can relieve. Applied as **derived
-  build dimensions, not by editing the constants**: `PLATE_WIDTH`,
-  `TONGUE_STEP_Y`, `TONGUE_X_HALF` and the rest are reference *measurements*
-  cited as such throughout the class and in `reference_contracts.toml`, so
-  rewriting them would destroy that provenance and leave no record of what the
-  real part measures. Male faces shrink and female voids grow — the centre
-  tongue gap **opens** by the clearance while the blades narrow — so this is
-  not a single scale factor. New knob: `PoweredUpHubCover._fit`. A new
-  assertion guards the one coupling this could have broken silently: moving
-  the plate edge inboard eats the overlap the latch finger needs to fuse to
-  the plate, so that overlap is now checked at construction rather than
-  assumed.
-- **`PoweredUpHubCover`'s latch hook gains lateral running clearance**
-  (round 58, from a printed part: *"May need to adjust the width of the U hook
-  as well to add a little clearance. Currently it gets stuck."*). The
-  **reference gives this pair none** — measured off both reference meshes,
-  24853's hook and 25560's slot both span X `5.600…19.200`, `13.600` against
-  `13.600`, zero per side. That is not an omission to correct: LDraw models
-  *nominal* geometry and a moulded LEGO part takes its working fit from mould
-  tolerance and material. Printed on FDM the same pair is a press fit.
-  The bind was **not a modelling defect** — measured on the built parts, the
-  housing's round-40 channel allowance already delivered a uniform `0.150 mm`
-  on all four gaps over the full leg height, with no taper and no local pinch.
-  `0.150 mm` per side is simply too tight here in print. Per user direction the
-  **housing stays reference-faithful**, so the cover's male features narrow by
-  `free.radial` per side, taking the pair to `2 × free.radial` = **`0.300 mm`
-  per side** (measured 0.295, the balance being the probe's step). Applied to
-  all four features sharing that footprint — U ribbon, retention bead, pad end
-  walls and scalloped thumb pad — since narrowing only the ribbon would leave
-  the pad jamming at full width; the scallop is *scaled* about the footprint
-  centre so it keeps its shape. The hook stays centred on the **nominal**
-  centre so the clearance splits evenly: deriving the centre from the narrowed
-  width would slide it against one wall for the same total width and no
-  clearance, which no seated interference check would report (touching faces
-  measure `0.000 mm³`). Retention is unaffected — it acts in Y via the bead
-  against the housing's land, which is still the full `13.600` wide. New knob:
-  `PoweredUpHubCover._hook_lateral_clearance`.
-- **`reference_contracts.toml`: `poweredup-hub-cover-latch-u`'s floor drops
-  `46.0 → 43.0`.** The cost was isolated before the floor was touched, not
-  inferred: rebuilding the cover with the clearance forced to each value and
-  scoring the identical region gives `46.1%` at `0.000` (the pre-change score
-  exactly) and `43.5%` at `0.150`, so the whole 2.6-point drop is the
-  user-directed clearance and nothing else. The row's region keeps its
-  **nominal** X bounds on purpose — shrinking them to the printed footprint
-  would stop the clearance counting, which is what defining a deviation away
-  looks like. Recorded with it: if a further loosening is ever needed, the
-  repeated re-flooring *is* the ratchet, and the answer is to stop scoring the
-  hook's X faces rather than to lower this again.
-- **`PoweredUpHubHousing`'s tongue end is rounded all the way across**
-  (round 56, user direction). Round 55g read *"the tongue side wall should
-  have the curve all the way"* as arc **depth** and gave the two outer rib
-  bands the full-depth arc while keeping the reference's segmented band
-  structure. The user's follow-up — *"I'm still seeing squares"* — was
-  correct: that left **`47.200 mm` of the tongue end's bottom edge running
-  square to the bed** in the four gaps between bands
-  (`tmp/ldraw/tongue_bottom_scan.py`). *"All the way"* is about **extent
-  along X**. `BOTTOM_ROUND_X_TONGUE` is now a single band spanning the full
-  wall at `BOTTOM_ROUND_CZ_FULL`; `BOTTOM_ROUND_CZ_TRUNCATED` is retained as
-  the recorded reference measurement but is no longer used by the built part.
-  The **latch end is unchanged** and stays segmented — its middle is square by
-  user direction and in the reference (square vertices at `X = ±5.600`).
-  `test_the_tongue_end_is_rounded_all_the_way_across` replaces the old
-  three-station probe with a sweep over all 141 X stations, because the
-  defect was invisible to a hand-picked sample: all three stations sat on
-  bands that *had* been rounded, and the gaps between them were what the user
-  could see. The latch end's own square middle is its positive control.
-- **`reference_contracts.toml`: the `poweredup-hub-housing-tongue-end` row is
-  retired and replaced by `poweredup-hub-housing-latch-end-arc`.** After round
-  56 the tongue-end row scored `47.4%` against a `68.0%` floor that had
-  already been lowered twice (`78.0 → 68.0`). It was **not** lowered a third
-  time — that is the ratchet `vibe/INSTRUCTIONS.md` names explicitly. The
-  premise, questioned: the row's region (`Y 32.000…33.400`) was drawn around
-  the *reference's* tongue-end wall face, and ours is at `35.600` by a
-  separately declared deviation — so above the arc our part has no surface in
-  that region at all (the checker returns `InconclusiveRegion`), and below it
-  the only surface sampled is the arc the user chose. Every achievable value
-  measured a deliberate departure. Rescoping was tried in both axes and
-  rejected by measurement (`tmp/ldraw/tongue_rescope.py`). Coverage is
-  replaced rather than dropped: the new row scores the **latch** end's arc,
-  which *is* reference-faithful at `100.0%`, with a `99.0%` floor and a
-  demonstrated failing case (shrinking the rounded span to `|X| 24.000` scores
-  `96.7%`) — a floor from a check that cannot fail would be decoration.
-- **`PoweredUpHubHousing` gives the Cover's plate edge a running clearance**
-  (round 48). `PoweredUpHubCover.PLATE_WIDTH/2` and this class's own
-  `WALL_X_OUTER_LOWER − WALL_THICKNESS` are both `27.200 mm` — both
-  reference-measured, and the same number — so the lid had to pass through a
-  slot exactly its own width over the full `62.8 mm` length. Seated
-  interference could never catch it (faces that touch without overlapping
-  measure `0.000 mm³`); a `0.050 mm` sideways displacement already produced
-  `2.366 mm³`, which is what made the round-46 tongue ribs' own `0.150 mm`
-  clearance moot. New `_build_plate_edge_relief` takes `profile.free.radial`
-  off the wall's *inner* face over the Z band the plate edge occupies
-  (`PLATE_EDGE_RELIEF_Z_HI`, derived as the max of the Cover's own
-  `PLATE_THICKNESS` / `GROOVE_THICKNESS` / `LATCH_BAND_THICKNESS` = `2.000`).
-  The clearance goes on the housing because shrinking the plate would leave
-  the side tabs — which root at the independent literal `HANDLE_ROOT_X =
-  27.200` — floating clear of it, breaking the Cover into two solids. Local
-  because the plate edge is short: the wall keeps its full `0.800 mm` section
-  above the band and thins to `0.650 mm` only in a 2 mm strip at the bottom
-  rim, which carries no load (the Cover *is* the floor). The relief is bounded
-  in Y to the plate's own `[PLATE_Y_LO, PLATE_Y_HI]` span — a first version ran
-  the full envelope with a 1.0 mm inboard overcut on the assumption that
-  everything inboard of the wall is void, and ate most of the round-46 outer
-  rib pair (1.850 mm rib reduced to a 0.050 mm sliver) before
-  `test_tongue_ribs_interleave_with_the_cover_tongue_slots` caught it. The lid
-  is now free sideways to exactly `±0.150 mm` and locates beyond it, under both
-  the shipped `fdm_standard` and the local `bambu_p1s` profile.
-
-### Added
 - `PoweredUpHubCover.fit_clearance(profile)` — public classmethod returning the
   per-face running clearance taken off the lid's mating surfaces. A seam, not
   decoration: a subclass returning `0.0` reproduces the pre-round-59
@@ -837,8 +529,6 @@ section to the new version and date.
   round-18…21 latch interface — catch boss, undercut slot, keeper nub,
   retention ledge — still sits in the wall it was derived against. Verified:
   `Housing ∩ Cover` is byte-identical to the pre-change value.
-
-### Added
 - **`TechnicPinHole` gains `counterbore_ends`** (keyword-only; `"both"` /
   `"entry"` / `"none"`, default `"both"`). LEGO uses two different pin-hole
   shapes and LDraw ships a primitive for each: `connhole`, counterbored at both
@@ -847,8 +537,570 @@ section to the new version and date.
   hole hollows out the material immediately behind its floor — exactly where
   there is least to spare. The default preserves every existing caller
   byte-for-byte.
+- **Tongue-end castellation restored to the reference** (user direction): the
+  6 ledge locating teeth and the 4 notches between them (`TOOTH_X_BANDS`,
+  `NOTCH_FLOOR_Z`), which rounds 18–21 dropped as non-load-bearing. Both live on
+  `PoweredUpHubCover` exactly as in the real part, so the housing carries a plain
+  mating lip and no ridges. The **locating groove** (`GROOVE_*`, Y ∈ [30.0, 31.2]
+  at 1.600 mm) is restored with them: it had been deleted alongside the tray on
+  round 18's claim that it registered the tray's rim, but §1.5 of the LDraw
+  extract states plainly that *the lid seats laterally* on it — a lid-to-housing
+  feature that never had anything to do with the tray.
+- **`PoweredUpHubCover` side handles** (`HANDLE_*`), re-homed 1:1 from the
+  deleted tray's extraction tabs. The port needed no re-dimensioning: the
+  tray's outer wall face and the cover's plate half-width are the same
+  `27.200 mm`, so the handles still emerge through the housing's own side
+  windows with the ledge `0.400 mm` proud of the outer wall face.
+- `PerpendicularHolesLiftarm`: two default-preserving constructor additions
+  (TL round, 2026-08-19 — see
+  `docs/design_plans/2026-08-19-poweredup-hub-battery-box_design.md` →
+  *Reusable classes → TL round — decisions → Q1*). `thickness: float =
+  BEAM_THICKNESS` (keyword-only) lets a caller override the beam's Z-extent
+  per-instance — e.g. to match a real part's thicker cross-section — without
+  moving the shared `BEAM_THICKNESS` constant every other caller relies on.
+  `hole_axes` gains a third member, `"none"`, leaving a position unbored so a
+  caller can compose its own call-site-local hole geometry at that position
+  instead of un-cutting this class's own bore. Both additions preserve every
+  existing caller's geometry byte-for-byte (verified: the two registered
+  `visual_contracts.toml` rows regenerate with zero byte movement).
+- `PoweredUpHubCover` and `PoweredUpHubBatteryTray`: two new exported model
+  classes, task 2 of the Powered Up hub battery-box implementation sequence
+  (see
+  `docs/design_plans/2026-08-19-poweredup-hub-battery-box_design.md`). Both
+  are read from the LDraw parts library (CC BY 4.0, author Philippe
+  Hurbain) as measured facts — no LDraw file or converted geometry is
+  committed, only from-scratch CadQuery code.
+  `PoweredUpHubCover` is an exact copy of LEGO lid `24853` minus its three
+  inner AA-cell divider ribs, with the 15 outer through-slots closed
+  (round-13 user decision): the flat 1.2 mm plate, both cantilever latch
+  fingers (Ø2.000 mm barb, 13.6 mm wide, 11.2 mm apart), the slide-in
+  tongue/ledge at the insertion end, and a locating groove sized to the
+  tray's own bottom rim. `PoweredUpHubBatteryTray` repurposes LEGO tray
+  `24849` for a Spektrum SPMX812SH2 LiPo pack: both internal transverse
+  partitions removed (giving the pack's required 58.000 mm clear length,
+  plus a 1.5 mm relief since that figure is otherwise zero-slack), both
+  outer end walls and both side walls (with their extraction tabs) kept, a
+  new floor, and two new strap-holder slots sized to the confirmed 20.5 mm
+  opening. A shared `latch_geometry.LatchGeometry` frozen parameter object
+  (barb/hook dimensions plus the derived undercut/catch-width/ramp-angle
+  numbers) is the single source of truth the future `HousingBox` catch
+  (a separate PR) will import alongside the Cover, so the male and female
+  latch halves cannot drift apart.
+- `PoweredUpHubHousing`: new exported model class, task 3 of the Powered Up
+  hub battery-box implementation sequence (see
+  `docs/design_plans/2026-08-19-poweredup-hub-battery-box_design.md`). An
+  exact copy of the real hub's bottom shell's own envelope (LDraw `25560`,
+  72.0 × 71.2 × 29.6 mm — see the *Fixed* entry below for the round-20
+  correction from the LDraw part's bounding box, 33.8 mm) with a scoped
+  departure at the two lid-retention regions only
+  (a single wall instead of LEGO's real two-skin sandwich, per the design's
+  *Single wall at BOTH ends* section). Composes
+  `PerpendicularHolesLiftarm(3, ["main", "none", "main"], thickness=8.0)`
+  for the four arms (per the TL round's decision), finished locally with an
+  envelope trim to the real 23.2 mm arm length, an additive Ø7.2 × 0.4 mm
+  boss around each middle hole, and a housing-local three-step middle bore
+  (Ø6.4 × 0.8 outer counterbore → Ø4.8 × 6.4 guided → Ø7.2 × 1.6 relief
+  opening into the battery cavity). The latch-end catch (derived from
+  `PoweredUpHubCover`'s own barb geometry via the shared `LatchGeometry`
+  parameter object, absent from LDraw) and the tongue-end rebate (a lap,
+  not a snap, fully specified from LDraw) together implement the design's
+  complete retention scheme — verified by a zero-volume boolean
+  intersection against the built `PoweredUpHubCover` in its seated
+  position.
+- `TechnicPinHoleBushing`: new exported model class — a plain round tube
+  bushing that fits into a real Lego Technic pin hole (Ø4.8 mm nominal) on
+  its outer diameter and carries an independently-graded clearance
+  through-bore, bridging a Lego beam pin hole to a machine screw (M3 by
+  default; M2/M2.5/M4 via `bore_nominal_diameter`). Constructor
+  `TechnicPinHoleBushing(length=BEAM_THICKNESS, fit="slip",
+  bore_fit="slip", flange=True, flange_od=5.5, flange_thickness=0.8,
+  bore_nominal_diameter=None, profile=None)`.
+  `length` is the TOTAL axial span of the whole part (barrel plus the
+  nested flange, when enabled) — a caller sets it to the target insertion
+  depth (e.g. one beam thickness) and gets exactly that depth back
+  regardless of the `flange` flag. OD is computed as
+  `PIN_HOLE_DIAMETER - 2 * getattr(profile, fit).radial` — the sign is
+  negated relative to every other `fit` consumer in the codebase because
+  this is the first *male* (printed-peg-into-real-hole) fit site rather
+  than a printed-void site; `fit` defaults to `"slip"` rather than
+  `"press"` because a printed-and-measured unit showed shipped `press`
+  radial values don't model genuine interference on a real printer — the
+  OD lands at the modelled (under-nominal) target and spins freely, i.e.
+  it measures as `slip`, not `press`. The bore is independently graded via
+  `bore_fit` (ordinary, non-inverted female/void semantics), cut with a
+  hand-rolled through-hole cutter (not `ClearanceHole`, which hardcodes
+  `free.radial` with no override, and not `MetricMachineScrew.to_cutter()`,
+  which would destroy the flange with an oversized counterbore). The
+  optional single retaining flange sits strictly below `Z=0`, default
+  enabled, sized (Ø5.5 mm default) to nest inside the standard Technic
+  pin-hole counterbore recess rather than sit on the beam's flat outer
+  face. Registered in `build.toml` — M2 / M2.5 / M3 variants under
+  `xlego/bushings/`, each at `length=3.6`. An M4 variant was test-printed
+  and found unprintable (wall too thin — M4's clearance bore is
+  intrinsically close to the whole barrel OD, fixed by the Lego pin hole)
+  and is not registered; the class still constructs one programmatically
+  via `bore_nominal_diameter=4.3`.
+- `PerpendicularHolesLiftarm`: new exported model class — a parametric thick
+  studless Lego-Technic liftarm where each hole position bores along either the
+  flat-face axis (+Z, `"main"`) or the narrow side-face axis (±Y, `"perp"`),
+  generalizing the LEGO 6435016 / design-2391 "Liftarm Thick with Perpendicular
+  Holes" family. Constructor `PerpendicularHolesLiftarm(num_holes, hole_axes=None,
+  fit="slip", profile=None)`; `hole_axes=None` defaults to the alternating
+  `[perp, main, …]` pattern. Reuses `TechnicPinHole` (rotated 90° for the perp
+  bores) and the shared `LegoTechnicBeam` stadium body; counterbored pin holes +
+  lead-in chamfers on both axes. Registered in `build.toml`
+  (`lego/perpendicular_holes_liftarm_5hole.step`).
+- `vibe_cading/mechanical/bearings.py`: `Bearing.blind_pocket_dims()` (static
+  method — diameter/depth for a blind bearing pocket, given just an OD and
+  width — not registered in `engine_api.json`'s wire contract, which
+  catalogs only `__init__` and public classmethod factories, by design) and
+  `Bearing.mr85()` (the MR85-2RS preset, matching the existing
+  `b608()`/`b623()`/etc. classmethods). Consolidates bearing-pocket-sizing
+  math that `FreespinHexHub`, `HexHubNut`, and `BearingHexHousing` each
+  previously duplicated independently — `FreespinHexHub` and `HexHubNut`
+  now delegate their pocket-dimension properties to the shared formula
+  (verified behavior-identical by a regression test that computes each
+  consumer's expected diameter/depth independently, from the original
+  inline formula against an explicit fit-grade profile — not by
+  re-deriving "expected" via the same shared call under test, which
+  couldn't catch a drift in the shared formula's own defaults). Pure
+  refactor — no consumer's printed geometry changes. See `TODO.md`'s
+  "Consolidate blind bearing-pocket sizing" entry (flagged in PR #88's
+  review cycle).
+- `docs/viewer.md`: guide to running the OCP CAD Viewer **in a plain browser tab**
+  via the standalone server that ships inside `ocp_vscode`
+  (`python3 -m ocp_vscode --host 0.0.0.0 --port 3939` → `http://localhost:3939/viewer`),
+  with no VS Code required. Covers the client/server split, port forwarding, and
+  the "browser tab must be open before you push" behaviour. Port 3939 was already
+  in the dev container's `forwardPorts`, so no container change was needed.
+- `vibe_cading/print_settings.py` / `vibe_cading/print_profiles.json`: new shipped
+  `petg` tolerance-profile tier alongside `fdm_standard` / `resin_precise` / `cnc`
+  — looser radial/slip-slot clearances than `fdm_standard` (PETG strings/oozes
+  more than PLA) and a smaller press-fit bump (PETG's own flexibility already
+  tolerates a snugger fit). See `docs/print-tolerances.md` §3.
+- `vibe_cading/rc/arrma_223s_esc_mount.py`: `Arrma223sEscMount`, an
+  ESC/receiver-box mount plate replacing the stock Arrma 223S-platform BLX185 3S
+  motor plate. Also replaces the unrelated `parts.arrma_vorteks_223s.esc_mount.
+  EscMount` (removed — an unmeasured stub with the same footprint role but no
+  holes) at the same `build.toml` output path, `rc/vorteks_223s/esc_mount.step`
+  — see "Removed" below. Reverse-engineered from an STL-only reference (no STEP available)
+  — see `docs/design_plans/2026-08-31-arrma-223s-receiver-mount_design.md` for
+  the full measurement method and correction history, including a 2026-09-01
+  user-directed resize that overrides several reference dimensions (the physical
+  reference part turned out to be the wrong size for the target vehicle).
+  `base_thickness` (default 7.0 mm) and `accessory_thickness` (default 5.0 mm)
+  are the two independent constructor parameters; `body_thickness` (the
+  plate's own full thickness, extruded from Z=0) is a *derived*, read-only
+  property equal to `base_thickness + accessory_thickness` (12.0 mm at
+  defaults) — not a constructor argument. The accessory thickness is added ON
+  TOP OF the base thickness: the plate itself is the full `body_thickness`,
+  and the arm + south ear are `accessory_thickness`-tall tabs occupying only
+  the plate's own top band, flush with its top face — they do not perch on a
+  thinner plate over open air. The north ear was removed; its M2.5 fastener
+  is now a round-head (M2.5 pan) counterbore in the plate body itself, entered
+  from the bottom (chassis-mating) face: a head-diameter bore runs the whole
+  `base_thickness` so the head passes freely through it, and the screw binds
+  only on the shoulder at Z=`base_thickness`, clamping just the top
+  `accessory_thickness` band — mirroring the south ear's plain bore, which
+  likewise clamps only its accessory band. The cutter pre-subtracts the
+  profile's `free.axial` allowance so that shoulder lands on `base_thickness`
+  exactly, rather than drifting with the active print profile.
+  Its X position (shared with the south ear's hole)
+  is now derived from the real motor's 37.0 mm body length and 16.0/21.0 mm
+  hole-to-edge offsets, centered between the two M3 hole centers, rather than
+  a bare measured literal — X = -3.5 at the shipped M3 positions. The south
+  ear's fastener is a plain M2.5 clearance hole with no recess, spaced
+  exactly 38.0 mm from the relocated hole. Where
+  the arm and south ear meet the plate they now butt against its full-height
+  vertical side wall over a real 2D area, so only a small (0.02 mm)
+  boolean-robustness union overlap is needed there, matching the project's
+  existing flush-join convention (`HexHubWithBearing`, `AxleHexHubAdapter`).
+  The main body still carries both original motor-mount holes (M3 pan-head
+  clearance + top-face counterbore, plus an as-measured relief pocket on one
+  hole's back face) alongside a back recess. Defaults to the `petg` tolerance
+  profile (heat-adjacent mount).
+- `vibe_cading/rc/hex_hub_bearing/`: RC 12 mm hex-wheel-adapter hub fused with
+  an MR85-2RS bearing housing (`HexHubNut`, `BearingHexHousing`, and the
+  primary deliverable `HexHubWithBearing`, which `.union()`s the two into a
+  single printed body with a 0.02 mm boolean-robustness overlap epsilon at the
+  flush join — no press-fit register). `HexHubNut`'s through-bore is 6.0 mm
+  nominal (`free`-fit-grade), sized as a running-clearance hole around a
+  uniform 5 mm-nominal stub axle — matching `FreespinHexHub`'s established
+  convention. See `docs/design_plans/2026-08-25-rc-hex-hub-bearing_design.md`.
+- `vibe_cading/lego_adapters/axle_hex_hub/`: Lego Technic axle -> 12 mm RC hex
+  hub adapter (`AxleCompressionCollet`, `HexInsertHub`, and the primary
+  deliverable `AxleHexHubAdapter`, which `.union()`s the two into a single
+  printed body with the same 0.02 mm boolean-robustness overlap epsilon
+  convention as `HexHubWithBearing`). `AxleCompressionCollet` is a 10 mm OD,
+  10 mm-tall slotted split-collet cylinder carrying a keyed cross-shaped
+  Technic-axle bore cut to exactly its own height (`free` fit plus a small
+  extra radial clearance bump scoped to the bore only), with 2 axial collet
+  slots (0.6 mm gap) aligned with the bore's arm-tip axis for an
+  off-the-shelf compression collar's grub screws, a raised stop ring 6.5 mm
+  from the shaft end limiting collar insertion depth, and two locating
+  dimples 90 deg off the slots for the collar's set screws. `HexInsertHub`
+  is a 12 mm hex prism carrying a parametrized straight-walled M3-class
+  heat-set-insert pocket (`insert_length` default 5.0 mm) with no axle-bore
+  feature of its own.
+  See `docs/design_plans/2026-08-25-lego-axle-hex-hub-adapter_design.md`.
+
+### Changed
+- **`PoweredUpHubCover`'s hook: vertical outer wall, rectangular peg,
+  stiffening arms** (round 63, from the owner's annotated section of the
+  round-62 print).
+  - **The slope was on the wrong face.** Round 62 correctly saw that the two
+    members converge, then put all of the convergence on the leg's **outer**
+    face — making the hook a wedge, thick at the plate and thin at the tip.
+    The outer wall now runs **vertical** off the cover plate and slopes only
+    over its top ~21%; the **inner** face carries the convergence, so the leg
+    *thickens* as it rises. The finger stays vertical to the tip, so exactly
+    one edge kinks.
+  - **This was visible in round 62's own reference plot.** Over `z = 3..11`
+    the reference's leg outer face moves `0.633 mm` (4.5°, essentially
+    vertical) while its inner face moves `0.987`. *Lesson one level up from
+    round 62's: seeing the shape is not decomposing it — the plot showed
+    convergence, but only differencing the two faces separately says which
+    one moves.*
+  - **Peg is rectangular** — flat top, bottom and outer face. Round 62 built
+    a right triangle (ramped lead-in, flat retention top) from engineering
+    reasoning rather than measurement. Noted rather than left to be found on
+    the bed: the underside is now a flat `1.196 mm` horizontal overhang; if it
+    droops, chamfer the **underside only**, never the top face, which takes
+    the pull-out load.
+  - **New: two stiffening arms** at the hook's X extremes directly above the
+    peg (`ARM_X`/`ARM_Z`/`ARM_OUT`), the same trick `PAD_END_WALL_X` already
+    plays for the thumb tab and present in Philo's own model. They brace the
+    peg's root against the bending moment pull-out applies to a cantilever off
+    a `0.800 mm` wall. Verified **by contrast** — present at the ends, absent
+    between them; checking only the ends would pass an arm spanning the full
+    width, which is a different part.
+  - Removed `CROWN_TOP_HALF`; `LEG_BASE_OUT_Y` → `LEG_OUT_Y` (it is no longer
+    a base-only value). Added `LEG_SLOPE_Z_FRAC`, `CROWN_TIP_WIDTH`.
+  - `ARM_Z`, `ARM_OUT` and `LEG_SLOPE_Z_FRAC` are scaled from the owner's
+    sketch, not measured — flagged as inferred.
+- **Breaking** — **`PoweredUpHubCover`'s latch is a V, not a U** (round 62,
+  after the owner printed round 61 and reported the hook still wrong).
+  - **The two members converge.** The reference's aperture is `1.454 mm` wide
+    at `z = 2` and `0.087` at `z = 11` — a V with its vertex up, the
+    plate-side member dead straight and all the slope on the outer one. Every
+    round from 38 onward built them **parallel** and then argued about where
+    to place them.
+  - **Why it took four rounds:** rounds 60 and 61 read span *tables* off the
+    reference and inferred a shape from the numbers. A table of widths at
+    stations cannot distinguish "two parallel walls" from "two converging
+    walls" unless you difference the stations. Plotting the section
+    (`tmp/ldraw/latch_picture_r62.py`) shows it immediately. *Plot the
+    section before believing a table about it.*
+  - **The peg grows; the hook does not move.** Round 61 reached the peg's
+    `5.000 mm` by translating the whole leg outboard `1.580 mm`. The peg now
+    protrudes `1.835 mm` from a leg back on its own geometry. The new
+    assertion checks the **protrusion**, not the reach — the reach was
+    correct in every wrong round, so asserting it caught nothing.
+  - **Peg reshaped** to match `~1 mm` tall against `~1.8 mm` proud: a right
+    triangle with a ramped underside (lead-in on `+Z` insertion, and the
+    printable face at ~32° rather than an unsupported 90°) and a flat
+    horizontal top (retention face, taking pull-out square-on). A symmetric
+    bump would bear the load on a slope that cams itself open.
+  - `hook_depth` **`13.000 → 14.720`**, `TAB_TIP_OUT` **`6.240 → 6.000`**,
+    both measured. The LDraw reference ends at `13.000`, so hook height is one
+    more place it falls short of the hardware.
+  - **Fixed a defect no check could see:** with the leg sloping, the thumb
+    pad's fixed inner face lost contact with it above `z ≈ 0.44`. The pad
+    stayed fused to the *plate*, so `solids == 1` and every dimensional check
+    passed — but pressing it would no longer deflect the leg. A dead release
+    mechanism that measures perfectly. `PAD_INNER_Y` is now derived from the
+    leg's face at the pad's own top, the worst case.
+  - Removed: `U_CENTRELINE_SEP`, `U_BEND_WALL`, `U_FLARE_Z`, `BEAD_PEAK_Y`,
+    `BEAD_BASELINE_Y`, `CROWN_SLOPE_H`, `CROWN_TOP_CLEAR` — all hairpin-era.
+    Added: `LEG_BASE_OUT_Y`, `APEX_Z_FRAC`, `CROWN_TOP_HALF`, `TAB_TIP_OUT`.
+- **Breaking** — **`PoweredUpHubCover` re-datumed from the printed part**
+  (round 61). The owner printed the round-60 cover and measured four faults on
+  the physical object; all four are now corrected, and each was re-verified
+  against the *built solid* rather than against the constants that produced it:
+  - **Body length `62.800 → 59.800`** (tongues excluded). Round 60's `61.900`
+    came from subtracting two whole-part readings, so both readings' errors
+    landed in it — and it never reconciled with the `61.660` cavity it has to
+    sit inside. The directly-measured figure does (`0.930 mm` per end).
+  - **Tongue protrusion `1.700 → 4.000`**, measured on the feature itself
+    rather than derived as a difference. It also closes the length books:
+    `59.800 + 4.000 = 63.800` against the `63.600` whole-part reading.
+  - **Latch finger `0.800 → 1.600` thick** (new `FINGER_WALL`). The finger and
+    the leg no longer share a thickness: the leg stays thin because it is the
+    compliant member, and stiffness scales with the **cube** of thickness, so
+    the single-ribbon model that forced them equal would have thrown away a
+    spring the owner had already confirmed works.
+  - **Retention bead reach `3.420 → 5.000`** outboard of the body edge (new
+    `BARB_TIP_OUT`). Corroborated independently by the round-60 session's
+    `6.240 mm` latch-depth reading: two measurements of different features, a
+    round apart, asking for the same `~1.5 mm` of deepening. The bead is driven
+    off the first and the thumb pad off the second, so neither reading is
+    discarded; they land `6.250` apart.
+  - **Crown is a slope, not a bend.** The outer faces now converge over the
+    hook's top `2 mm` (`4.840 → 3.320 mm`), replacing the semicircular hairpin.
+    Confirmed on the LDraw reference independently, which tapers `2.153 →
+    1.286 mm` over the same band. The aperture's **inner** arc is deliberately
+    untouched — a sharp corner there is the round-37 defect already fixed once.
+- **`PoweredUpHubCover.PLATE_Y_LO` no longer pins the latch.** New
+  `LATCH_DATUM_Y` records the plate edge the latch constants were *measured*
+  against; the latch sub-assembly is built in that frame and translated onto
+  wherever `PLATE_Y_LO` now sits. Rounds 59 and 60 both refused to re-datum the
+  lid's length because doing so meant hand-editing ~10 reference-measured `Y`
+  constants (and destroying what they record) — this removes that obstacle
+  permanently. All five latch features route through one method, so a future
+  length change cannot move four of them and leave the fifth behind — a failure
+  no seated interference check can see, because a detached pad still measures
+  `0.000 mm³`.
+- **Two stale X-footprint literals fixed**, both left behind when round 60 took
+  `hook_width` from `13.600` to `12.200`: `PoweredUpHubHousing`'s
+  `LATCH_WINDOW_X_HI` (`19.200 → 17.800`) and `PoweredUpHubCover`'s
+  `PAD_SCALLOP` X column. The housing's own assertion caught the first; the
+  second was **silent**, because the thumb pad is union-only, so a scallop
+  `1.400 mm` wider than both the hook it sits on and the window it passes
+  through simply widened the part. This is not a housing re-datum — the housing
+  stays reference-faithful; it is the window tracking the hook that goes
+  through it.
+- **`BEAD_BASELINE_Y` now records our leg's own outer face**, not the
+  reference's. It previously sat `0.050 mm` outboard of the face it was used
+  with, quietly costing that much bead reach — invisible while the constant was
+  only ever read as a protrusion *difference*. `__init__` now asserts the built
+  bead reaches `BARB_TIP_OUT` exactly, so the five constants that position it
+  cannot drift apart again.
+- **`PoweredUpHubCover` gains a whole-lid running clearance — width, length
+  and the tongue-side gaps** (round 59, user direction). Same root cause as
+  the hook one round earlier: the reference is a **zero-clearance model
+  throughout**, so every face this lid slides past had been built to the
+  housing's own nominal figure. Measured on the built pair *before* changing
+  anything:
+
+  | interface | before | after |
+  |---|---|---|
+  | width, X plate edge | 0.150 | **0.295** |
+  | length, latch end | **0.005** | 0.145 |
+  | length, tongue step | **0.005** | 0.150 |
+  | tongue blade, outboard | 0.150 | **0.295** |
+
+  The two length figures are the ones that mattered — 0.005 is the probe's own
+  step, so the lid was a hard face-to-face fit against the cavity at **both**
+  ends, which no amount of width clearance can relieve. Applied as **derived
+  build dimensions, not by editing the constants**: `PLATE_WIDTH`,
+  `TONGUE_STEP_Y`, `TONGUE_X_HALF` and the rest are reference *measurements*
+  cited as such throughout the class and in `reference_contracts.toml`, so
+  rewriting them would destroy that provenance and leave no record of what the
+  real part measures. Male faces shrink and female voids grow — the centre
+  tongue gap **opens** by the clearance while the blades narrow — so this is
+  not a single scale factor. New knob: `PoweredUpHubCover._fit`. A new
+  assertion guards the one coupling this could have broken silently: moving
+  the plate edge inboard eats the overlap the latch finger needs to fuse to
+  the plate, so that overlap is now checked at construction rather than
+  assumed.
+- **`PoweredUpHubCover`'s latch hook gains lateral running clearance**
+  (round 58, from a printed part: *"May need to adjust the width of the U hook
+  as well to add a little clearance. Currently it gets stuck."*). The
+  **reference gives this pair none** — measured off both reference meshes,
+  24853's hook and 25560's slot both span X `5.600…19.200`, `13.600` against
+  `13.600`, zero per side. That is not an omission to correct: LDraw models
+  *nominal* geometry and a moulded LEGO part takes its working fit from mould
+  tolerance and material. Printed on FDM the same pair is a press fit.
+  The bind was **not a modelling defect** — measured on the built parts, the
+  housing's round-40 channel allowance already delivered a uniform `0.150 mm`
+  on all four gaps over the full leg height, with no taper and no local pinch.
+  `0.150 mm` per side is simply too tight here in print. Per user direction the
+  **housing stays reference-faithful**, so the cover's male features narrow by
+  `free.radial` per side, taking the pair to `2 × free.radial` = **`0.300 mm`
+  per side** (measured 0.295, the balance being the probe's step). Applied to
+  all four features sharing that footprint — U ribbon, retention bead, pad end
+  walls and scalloped thumb pad — since narrowing only the ribbon would leave
+  the pad jamming at full width; the scallop is *scaled* about the footprint
+  centre so it keeps its shape. The hook stays centred on the **nominal**
+  centre so the clearance splits evenly: deriving the centre from the narrowed
+  width would slide it against one wall for the same total width and no
+  clearance, which no seated interference check would report (touching faces
+  measure `0.000 mm³`). Retention is unaffected — it acts in Y via the bead
+  against the housing's land, which is still the full `13.600` wide. New knob:
+  `PoweredUpHubCover._hook_lateral_clearance`.
+- **`reference_contracts.toml`: `poweredup-hub-cover-latch-u`'s floor drops
+  `46.0 → 43.0`.** The cost was isolated before the floor was touched, not
+  inferred: rebuilding the cover with the clearance forced to each value and
+  scoring the identical region gives `46.1%` at `0.000` (the pre-change score
+  exactly) and `43.5%` at `0.150`, so the whole 2.6-point drop is the
+  user-directed clearance and nothing else. The row's region keeps its
+  **nominal** X bounds on purpose — shrinking them to the printed footprint
+  would stop the clearance counting, which is what defining a deviation away
+  looks like. Recorded with it: if a further loosening is ever needed, the
+  repeated re-flooring *is* the ratchet, and the answer is to stop scoring the
+  hook's X faces rather than to lower this again.
+- **`PoweredUpHubHousing`'s tongue end is rounded all the way across**
+  (round 56, user direction). Round 55g read *"the tongue side wall should
+  have the curve all the way"* as arc **depth** and gave the two outer rib
+  bands the full-depth arc while keeping the reference's segmented band
+  structure. The user's follow-up — *"I'm still seeing squares"* — was
+  correct: that left **`47.200 mm` of the tongue end's bottom edge running
+  square to the bed** in the four gaps between bands
+  (`tmp/ldraw/tongue_bottom_scan.py`). *"All the way"* is about **extent
+  along X**. `BOTTOM_ROUND_X_TONGUE` is now a single band spanning the full
+  wall at `BOTTOM_ROUND_CZ_FULL`; `BOTTOM_ROUND_CZ_TRUNCATED` is retained as
+  the recorded reference measurement but is no longer used by the built part.
+  The **latch end is unchanged** and stays segmented — its middle is square by
+  user direction and in the reference (square vertices at `X = ±5.600`).
+  `test_the_tongue_end_is_rounded_all_the_way_across` replaces the old
+  three-station probe with a sweep over all 141 X stations, because the
+  defect was invisible to a hand-picked sample: all three stations sat on
+  bands that *had* been rounded, and the gaps between them were what the user
+  could see. The latch end's own square middle is its positive control.
+- **`reference_contracts.toml`: the `poweredup-hub-housing-tongue-end` row is
+  retired and replaced by `poweredup-hub-housing-latch-end-arc`.** After round
+  56 the tongue-end row scored `47.4%` against a `68.0%` floor that had
+  already been lowered twice (`78.0 → 68.0`). It was **not** lowered a third
+  time — that is the ratchet `vibe/INSTRUCTIONS.md` names explicitly. The
+  premise, questioned: the row's region (`Y 32.000…33.400`) was drawn around
+  the *reference's* tongue-end wall face, and ours is at `35.600` by a
+  separately declared deviation — so above the arc our part has no surface in
+  that region at all (the checker returns `InconclusiveRegion`), and below it
+  the only surface sampled is the arc the user chose. Every achievable value
+  measured a deliberate departure. Rescoping was tried in both axes and
+  rejected by measurement (`tmp/ldraw/tongue_rescope.py`). Coverage is
+  replaced rather than dropped: the new row scores the **latch** end's arc,
+  which *is* reference-faithful at `100.0%`, with a `99.0%` floor and a
+  demonstrated failing case (shrinking the rounded span to `|X| 24.000` scores
+  `96.7%`) — a floor from a check that cannot fail would be decoration.
+- **`PoweredUpHubHousing` gives the Cover's plate edge a running clearance**
+  (round 48). `PoweredUpHubCover.PLATE_WIDTH/2` and this class's own
+  `WALL_X_OUTER_LOWER − WALL_THICKNESS` are both `27.200 mm` — both
+  reference-measured, and the same number — so the lid had to pass through a
+  slot exactly its own width over the full `62.8 mm` length. Seated
+  interference could never catch it (faces that touch without overlapping
+  measure `0.000 mm³`); a `0.050 mm` sideways displacement already produced
+  `2.366 mm³`, which is what made the round-46 tongue ribs' own `0.150 mm`
+  clearance moot. New `_build_plate_edge_relief` takes `profile.free.radial`
+  off the wall's *inner* face over the Z band the plate edge occupies
+  (`PLATE_EDGE_RELIEF_Z_HI`, derived as the max of the Cover's own
+  `PLATE_THICKNESS` / `GROOVE_THICKNESS` / `LATCH_BAND_THICKNESS` = `2.000`).
+  The clearance goes on the housing because shrinking the plate would leave
+  the side tabs — which root at the independent literal `HANDLE_ROOT_X =
+  27.200` — floating clear of it, breaking the Cover into two solids. Local
+  because the plate edge is short: the wall keeps its full `0.800 mm` section
+  above the band and thins to `0.650 mm` only in a 2 mm strip at the bottom
+  rim, which carries no load (the Cover *is* the floor). The relief is bounded
+  in Y to the plate's own `[PLATE_Y_LO, PLATE_Y_HI]` span — a first version ran
+  the full envelope with a 1.0 mm inboard overcut on the assumption that
+  everything inboard of the wall is void, and ate most of the round-46 outer
+  rib pair (1.850 mm rib reduced to a 0.050 mm sliver) before
+  `test_tongue_ribs_interleave_with_the_cover_tongue_slots` caught it. The lid
+  is now free sideways to exactly `±0.150 mm` and locates beyond it, under both
+  the shipped `fdm_standard` and the local `bambu_p1s` profile.
+- `LegoTechnicBeam`: stadium-body construction extracted to a shared module-level
+  `stadium_beam_body()` helper (internal refactor, no behavior change).
+- `_HoleMouthSelector`: gained an additive `axis="z"|"y"` discriminator; existing
+  `LegoTechnicBeam` / `LegoTechnicLLiftarm` call sites are unchanged.
+- `vibe_cading/mechanical/bearings.py`: `MR85_ID`/`MR85_OD`/`MR85_W` now
+  live once here (the single source of truth for the `vibe_cading.rc.*`
+  hex-hub family) instead of being duplicated in `freespin_hex_hub.py`,
+  `hex_hub_bearing/hex_hub_nut.py`, and `hex_hub_bearing/bearing_hex_housing.py`.
+  `MR85_ID` was previously importable from `vibe_cading.rc.freespin_hex_hub`
+  (unused there) and is no longer — import it from
+  `vibe_cading.mechanical.bearings` instead.
+- **(minor bump — breaking geometry change to `BearingHexHousing`'s existing
+  bearing pocket, see below)** `vibe_cading/rc/hex_hub_bearing/`: `HexHubNut`
+  now carries its own blind bearing pocket sunk into its outward (top,
+  wheel-facing) face, sized for the identical MR85-2RS bearing seated on the
+  shaft side by `BearingHexHousing` (new `bearing_od` / `bearing_width`
+  constructor params, default 8.0 mm / 2.5 mm) — both ends of the fused
+  `HexHubWithBearing` deliverable now seat a bearing, not just the shaft
+  side. Both the new hex-side pocket and the pre-existing shaft-side pocket
+  now use `free` fit grade (drop-in/pop-out by hand) rather than the prior
+  `press` grade — a behavior change to `BearingHexHousing`'s already-shipped
+  printed geometry (pocket diameter 8.08 mm -> 8.30 mm on `fdm_standard`),
+  not merely additive, hence the minor version bump — so the bearing is
+  user-replaceable at both ends.
+  `Bearing.outer_pocket()` gained a `fit: Literal["press", "free", "slip"] =
+  "press"` parameter to support this (defaults to the prior behavior for
+  every other caller; raises `ValueError` on an unrecognized grade name).
+
+### Deprecated
+- `vibe_cading.rc.freespin_hex_hub.FreespinHexHub` — superseded by
+  `vibe_cading.rc.hex_hub_bearing.hex_hub_with_bearing.HexHubWithBearing`
+  (same "12 mm hex + MR85-2RS bearing" family, modelled as fused component
+  classes with tolerance-profile-driven fit grades on both the bore and the
+  bearing pocket). `FreespinHexHub` now emits a `DeprecationWarning` on
+  construction; its `build.toml` registration (`rc/hex_wheel_hub_12mm.step`)
+  is unchanged pending a separate human decision on migration. May be removed
+  in a future release.
+
+### Removed
+- **Breaking** — **`PoweredUpHubBatteryTray`'s upper wall band is gone**
+  (round 57, user direction: *"the wall becomes narrower due to the housing
+  gets narrower on top, this creates a floating region… for the tray we can
+  just remove the narrower part"*). The tray used to follow the housing's
+  cavity inboard above its step with a second, narrower band (outer face
+  `26.050 − clearance`, inner `25.250`) stacked on the main one. Those two
+  bands shared **no X range** — `25.250…25.900` sits entirely inboard of the
+  lower band's `26.400` inner face — so they were joined only by a hairline
+  horizontal ledge at the seam. That is legal as a solid, and
+  `test_single_solid` passed the whole time: connectivity and printability are
+  different properties and only the first was ever checked. On a printer it is
+  a `0.650 mm` wall standing on a `0.500 mm` ledge with nothing under its
+  inboard half. The wall is now one full-thickness band ending at the step.
+  Removed with it: `WALL_OUTER_X_UPPER_NOMINAL`, `WALL_INNER_X_UPPER`, and the
+  `_wall_outer_x_upper` / `_wall_z_hi` instance fields; `WALL_STEP_Z` is
+  renamed **`WALL_Z_HI`**, since it is the wall's top and no longer a step.
+  Consequence worth stating: the wall no longer reaches the pack's top (local
+  `Z = 23.600` against a `20.000` wall) — above `WALL_Z_HI` the pack is
+  confined by the housing's own cavity, not by the tray. The wall is also now
+  profile-independent.
+- **`PoweredUpHubHousing`'s arm face-dishing is deleted** (user direction) —
+  `_dish_arm_faces` cut the real liftarm's recessed pockets into both faces of
+  each arm, leaving a `2.756 mm` web. It matched the reference, and it is the
+  wrong shape to print: it thins the section of a cantilevered arm exactly where
+  bending stress peaks and asks an FDM machine to bridge a thin web. The arms
+  are now plain full-thickness beams — a declared departure from the reference
+  in favour of strength, with hole positions, pitch and envelope unchanged.
+  `_DISH_GAP_OPEN_RADIUS` goes with it.
+- **Breaking** — the hand-rolled middle-bore constants are removed from
+  `PoweredUpHubHousing`: `MID_BORE_CB_DIAMETER`, `MID_BORE_CB_DEPTH`,
+  `MID_BORE_DIAMETER`, `MID_BORE_GUIDED_LEN`, `MID_BORE_RELIEF_DIAMETER`.
+- **`PoweredUpHubHousing`'s latch catch is deleted** — the catch boss, its
+  undercut slot and the keeper nub were the mating half of a barb-on-the-finger
+  `PoweredUpHubCover` has not had since the latch became a hairpin spring, and
+  they were measured dead before removal: the slot cutter overlapped
+  `0.0000 mm³` of the built wall, the nub had not been unioned since round 27,
+  and the boss's only remaining effect was a `0.150 mm` overhang the wall
+  already provides. With it go `_LATCH_CATCH_Z_MARGIN`,
+  `_LATCH_CATCH_RETREAT_Y` and `_MIN_MATERIAL_BEHIND_UNDERCUT`.
+- **Breaking** — `PoweredUpHubCover` drops the public barb API that only the
+  deleted catch consumed: the `HOOK_FACE_Y0` / `HOOK_FACE_Y1` / `HOOK_FACE_Z1`
+  constants and the `barb_arc_points()` / `barb_outboard_y()` classmethods.
+  They described a drafted hook face and bead arc the part no longer has.
+- **`PoweredUpHubBatteryTray` is deleted** (user direction, 2026-08-20). The
+  housing is now capped at a 3-stud (`24.000 mm`) bottom layer, and a separate
+  tray no longer fits underneath: cover plate `1.2` + tray floor `1.5` + the
+  named `20 mm` pack + strap `~1.8` = `24.5 mm` against the `22.0 mm` available
+  below the deck — `2.5 mm` over, even after reclaiming the tray's own
+  `2.500 mm` raised-floor standoff. The pack now sits directly on
+  `PoweredUpHubCover`. **Breaking**: the class, its module
+  `vibe_cading.lego_adapters.poweredup_hub.battery_tray`, its two
+  `visual_contracts.toml` rows and their SVGs are all gone, and
+  `assembly.assemble()` returns two parts instead of three.
+- `PoweredUpHubCover`: the locating land (and its `LAND_Y_LO` / `LAND_Y_HI` /
+  `LAND_HEIGHT` constants) is removed — it existed solely to register the
+  deleted tray's bottom rim, so it now registers nothing.
+- `parts.arrma_vorteks_223s.esc_mount.EscMount` — an unmeasured stub (a flat
+  notched plate with no holes) for the Arrma 223S ESC mount slot. Replaced by
+  `vibe_cading.rc.arrma_223s_esc_mount.Arrma223sEscMount` (see "Added" above),
+  reverse-engineered from the vehicle's actual BLX185 3S mount plate, at the
+  same `build.toml` output path (`rc/vorteks_223s/esc_mount.step`) since it
+  fills the same physical slot. No deprecation cycle — a direct replacement,
+  since the two never coexisted as intentionally-distinct parts.
 
 ### Fixed
+- **`PoweredUpHubBatteryTrayCap` finishes flush instead of proud.** The plate
+  took a running clearance on its four edges but none on its thickness, so an
+  exactly-filling plate had nowhere to put the glue except under itself. Its
+  built thickness is now the rebate depth less the profile's axial allowance.
+  Reported from a printed part.
+- **`PoweredUpHubHousing(profile="petg")` no longer raises.** A latch-skin
+  assertion compared a float against a floor the geometry lands on exactly,
+  so petg failed with a self-contradictory message ("only 0.800 mm … below
+  the 0.800 mm floor").
 - **`PoweredUpHubHousing`'s arms are built at the reference's own dimensions
   instead of being trimmed to fit.** Measured off Philo's `s\24851s01.dat`, the
   arm is `7.200 mm` wide with an end cap of radius `3.600 mm` centred **on** the
@@ -970,82 +1222,6 @@ section to the new version and date.
   the engagement band, since it no longer needs to refill the band the leg
   occupies. Net: envelope unchanged at `13.000 mm`, `Housing ∩ Cover` **20.71 →
   19.08 mm³** (18.1 of which is the intended keeper-nub retention).
-
-### Added
-- **Tongue-end castellation restored to the reference** (user direction): the
-  6 ledge locating teeth and the 4 notches between them (`TOOTH_X_BANDS`,
-  `NOTCH_FLOOR_Z`), which rounds 18–21 dropped as non-load-bearing. Both live on
-  `PoweredUpHubCover` exactly as in the real part, so the housing carries a plain
-  mating lip and no ridges. The **locating groove** (`GROOVE_*`, Y ∈ [30.0, 31.2]
-  at 1.600 mm) is restored with them: it had been deleted alongside the tray on
-  round 18's claim that it registered the tray's rim, but §1.5 of the LDraw
-  extract states plainly that *the lid seats laterally* on it — a lid-to-housing
-  feature that never had anything to do with the tray.
-- **`PoweredUpHubCover` side handles** (`HANDLE_*`), re-homed 1:1 from the
-  deleted tray's extraction tabs. The port needed no re-dimensioning: the
-  tray's outer wall face and the cover's plate half-width are the same
-  `27.200 mm`, so the handles still emerge through the housing's own side
-  windows with the ledge `0.400 mm` proud of the outer wall face.
-
-### Added
-- `PerpendicularHolesLiftarm`: two default-preserving constructor additions
-  (TL round, 2026-08-19 — see
-  `docs/design_plans/2026-08-19-poweredup-hub-battery-box_design.md` →
-  *Reusable classes → TL round — decisions → Q1*). `thickness: float =
-  BEAM_THICKNESS` (keyword-only) lets a caller override the beam's Z-extent
-  per-instance — e.g. to match a real part's thicker cross-section — without
-  moving the shared `BEAM_THICKNESS` constant every other caller relies on.
-  `hole_axes` gains a third member, `"none"`, leaving a position unbored so a
-  caller can compose its own call-site-local hole geometry at that position
-  instead of un-cutting this class's own bore. Both additions preserve every
-  existing caller's geometry byte-for-byte (verified: the two registered
-  `visual_contracts.toml` rows regenerate with zero byte movement).
-- `PoweredUpHubCover` and `PoweredUpHubBatteryTray`: two new exported model
-  classes, task 2 of the Powered Up hub battery-box implementation sequence
-  (see
-  `docs/design_plans/2026-08-19-poweredup-hub-battery-box_design.md`). Both
-  are read from the LDraw parts library (CC BY 4.0, author Philippe
-  Hurbain) as measured facts — no LDraw file or converted geometry is
-  committed, only from-scratch CadQuery code.
-  `PoweredUpHubCover` is an exact copy of LEGO lid `24853` minus its three
-  inner AA-cell divider ribs, with the 15 outer through-slots closed
-  (round-13 user decision): the flat 1.2 mm plate, both cantilever latch
-  fingers (Ø2.000 mm barb, 13.6 mm wide, 11.2 mm apart), the slide-in
-  tongue/ledge at the insertion end, and a locating groove sized to the
-  tray's own bottom rim. `PoweredUpHubBatteryTray` repurposes LEGO tray
-  `24849` for a Spektrum SPMX812SH2 LiPo pack: both internal transverse
-  partitions removed (giving the pack's required 58.000 mm clear length,
-  plus a 1.5 mm relief since that figure is otherwise zero-slack), both
-  outer end walls and both side walls (with their extraction tabs) kept, a
-  new floor, and two new strap-holder slots sized to the confirmed 20.5 mm
-  opening. A shared `latch_geometry.LatchGeometry` frozen parameter object
-  (barb/hook dimensions plus the derived undercut/catch-width/ramp-angle
-  numbers) is the single source of truth the future `HousingBox` catch
-  (a separate PR) will import alongside the Cover, so the male and female
-  latch halves cannot drift apart.
-- `PoweredUpHubHousing`: new exported model class, task 3 of the Powered Up
-  hub battery-box implementation sequence (see
-  `docs/design_plans/2026-08-19-poweredup-hub-battery-box_design.md`). An
-  exact copy of the real hub's bottom shell's own envelope (LDraw `25560`,
-  72.0 × 71.2 × 29.6 mm — see the *Fixed* entry below for the round-20
-  correction from the LDraw part's bounding box, 33.8 mm) with a scoped
-  departure at the two lid-retention regions only
-  (a single wall instead of LEGO's real two-skin sandwich, per the design's
-  *Single wall at BOTH ends* section). Composes
-  `PerpendicularHolesLiftarm(3, ["main", "none", "main"], thickness=8.0)`
-  for the four arms (per the TL round's decision), finished locally with an
-  envelope trim to the real 23.2 mm arm length, an additive Ø7.2 × 0.4 mm
-  boss around each middle hole, and a housing-local three-step middle bore
-  (Ø6.4 × 0.8 outer counterbore → Ø4.8 × 6.4 guided → Ø7.2 × 1.6 relief
-  opening into the battery cavity). The latch-end catch (derived from
-  `PoweredUpHubCover`'s own barb geometry via the shared `LatchGeometry`
-  parameter object, absent from LDraw) and the tongue-end rebate (a lap,
-  not a snap, fully specified from LDraw) together implement the design's
-  complete retention scheme — verified by a zero-volume boolean
-  intersection against the built `PoweredUpHubCover` in its seated
-  position.
-
-### Fixed
 - `PerpendicularHolesLiftarm`: fixed a latent crossed-constant bug in the
   cutter depths — the main bore (which runs along Z, through `thickness`) was
   sized from `BEAM_WIDTH`, and the perp bore (which runs along Y, through
@@ -1343,109 +1519,6 @@ section to the new version and date.
   all three parts (TL phase-4 review, finding M3). Also corrected an
   unlabeled citation of the Claude-specific `CLAUDE.md` to the
   provider-neutral `vibe/INSTRUCTIONS.md`.
-
-## [0.1.6] - 2026-08-10
-
-### Added
-- `TechnicPinHoleBushing`: new exported model class — a plain round tube
-  bushing that fits into a real Lego Technic pin hole (Ø4.8 mm nominal) on
-  its outer diameter and carries an independently-graded clearance
-  through-bore, bridging a Lego beam pin hole to a machine screw (M3 by
-  default; M2/M2.5/M4 via `bore_nominal_diameter`). Constructor
-  `TechnicPinHoleBushing(length=BEAM_THICKNESS, fit="slip",
-  bore_fit="slip", flange=True, flange_od=5.5, flange_thickness=0.8,
-  bore_nominal_diameter=None, profile=None)`.
-  `length` is the TOTAL axial span of the whole part (barrel plus the
-  nested flange, when enabled) — a caller sets it to the target insertion
-  depth (e.g. one beam thickness) and gets exactly that depth back
-  regardless of the `flange` flag. OD is computed as
-  `PIN_HOLE_DIAMETER - 2 * getattr(profile, fit).radial` — the sign is
-  negated relative to every other `fit` consumer in the codebase because
-  this is the first *male* (printed-peg-into-real-hole) fit site rather
-  than a printed-void site; `fit` defaults to `"slip"` rather than
-  `"press"` because a printed-and-measured unit showed shipped `press`
-  radial values don't model genuine interference on a real printer — the
-  OD lands at the modelled (under-nominal) target and spins freely, i.e.
-  it measures as `slip`, not `press`. The bore is independently graded via
-  `bore_fit` (ordinary, non-inverted female/void semantics), cut with a
-  hand-rolled through-hole cutter (not `ClearanceHole`, which hardcodes
-  `free.radial` with no override, and not `MetricMachineScrew.to_cutter()`,
-  which would destroy the flange with an oversized counterbore). The
-  optional single retaining flange sits strictly below `Z=0`, default
-  enabled, sized (Ø5.5 mm default) to nest inside the standard Technic
-  pin-hole counterbore recess rather than sit on the beam's flat outer
-  face. Registered in `build.toml` — M2 / M2.5 / M3 variants under
-  `xlego/bushings/`, each at `length=3.6`. An M4 variant was test-printed
-  and found unprintable (wall too thin — M4's clearance bore is
-  intrinsically close to the whole barrel OD, fixed by the Lego pin hole)
-  and is not registered; the class still constructs one programmatically
-  via `bore_nominal_diameter=4.3`.
-
-## [0.1.5] - 2026-06-26
-
-### Added
-- `PerpendicularHolesLiftarm`: new exported model class — a parametric thick
-  studless Lego-Technic liftarm where each hole position bores along either the
-  flat-face axis (+Z, `"main"`) or the narrow side-face axis (±Y, `"perp"`),
-  generalizing the LEGO 6435016 / design-2391 "Liftarm Thick with Perpendicular
-  Holes" family. Constructor `PerpendicularHolesLiftarm(num_holes, hole_axes=None,
-  fit="slip", profile=None)`; `hole_axes=None` defaults to the alternating
-  `[perp, main, …]` pattern. Reuses `TechnicPinHole` (rotated 90° for the perp
-  bores) and the shared `LegoTechnicBeam` stadium body; counterbored pin holes +
-  lead-in chamfers on both axes. Registered in `build.toml`
-  (`lego/perpendicular_holes_liftarm_5hole.step`).
-
-### Changed
-- `LegoTechnicBeam`: stadium-body construction extracted to a shared module-level
-  `stadium_beam_body()` helper (internal refactor, no behavior change).
-- `_HoleMouthSelector`: gained an additive `axis="z"|"y"` discriminator; existing
-  `LegoTechnicBeam` / `LegoTechnicLLiftarm` call sites are unchanged.
-
-### Added
-- `vibe_cading/mechanical/bearings.py`: `Bearing.blind_pocket_dims()` (static
-  method — diameter/depth for a blind bearing pocket, given just an OD and
-  width — not registered in `engine_api.json`'s wire contract, which
-  catalogs only `__init__` and public classmethod factories, by design) and
-  `Bearing.mr85()` (the MR85-2RS preset, matching the existing
-  `b608()`/`b623()`/etc. classmethods). Consolidates bearing-pocket-sizing
-  math that `FreespinHexHub`, `HexHubNut`, and `BearingHexHousing` each
-  previously duplicated independently — `FreespinHexHub` and `HexHubNut`
-  now delegate their pocket-dimension properties to the shared formula
-  (verified behavior-identical by a regression test that computes each
-  consumer's expected diameter/depth independently, from the original
-  inline formula against an explicit fit-grade profile — not by
-  re-deriving "expected" via the same shared call under test, which
-  couldn't catch a drift in the shared formula's own defaults). Pure
-  refactor — no consumer's printed geometry changes. See `TODO.md`'s
-  "Consolidate blind bearing-pocket sizing" entry (flagged in PR #88's
-  review cycle).
-
-### Changed
-- `vibe_cading/mechanical/bearings.py`: `MR85_ID`/`MR85_OD`/`MR85_W` now
-  live once here (the single source of truth for the `vibe_cading.rc.*`
-  hex-hub family) instead of being duplicated in `freespin_hex_hub.py`,
-  `hex_hub_bearing/hex_hub_nut.py`, and `hex_hub_bearing/bearing_hex_housing.py`.
-  `MR85_ID` was previously importable from `vibe_cading.rc.freespin_hex_hub`
-  (unused there) and is no longer — import it from
-  `vibe_cading.mechanical.bearings` instead.
-- **(minor bump — breaking geometry change to `BearingHexHousing`'s existing
-  bearing pocket, see below)** `vibe_cading/rc/hex_hub_bearing/`: `HexHubNut`
-  now carries its own blind bearing pocket sunk into its outward (top,
-  wheel-facing) face, sized for the identical MR85-2RS bearing seated on the
-  shaft side by `BearingHexHousing` (new `bearing_od` / `bearing_width`
-  constructor params, default 8.0 mm / 2.5 mm) — both ends of the fused
-  `HexHubWithBearing` deliverable now seat a bearing, not just the shaft
-  side. Both the new hex-side pocket and the pre-existing shaft-side pocket
-  now use `free` fit grade (drop-in/pop-out by hand) rather than the prior
-  `press` grade — a behavior change to `BearingHexHousing`'s already-shipped
-  printed geometry (pocket diameter 8.08 mm -> 8.30 mm on `fdm_standard`),
-  not merely additive, hence the minor version bump — so the bearing is
-  user-replaceable at both ends.
-  `Bearing.outer_pocket()` gained a `fit: Literal["press", "free", "slip"] =
-  "press"` parameter to support this (defaults to the prior behavior for
-  every other caller; raises `ValueError` on an unrecognized grade name).
-
-### Fixed
 - `vibe_cading/mechanical/holes.py`: `CounterboreHole`'s cylindrical (pan/socket)
   head-recess branch extruded in the wrong Z direction — outward, into open air
   above the entry face — instead of sinking into the part like the sibling cone
@@ -1485,103 +1558,6 @@ section to the new version and date.
   `--export` is unaffected — the STEP file is written and the command still exits 0,
   warning on stderr that nothing was displayed, so headless export keeps working in
   scripts and `&&` chains.
-
-### Added
-- `docs/viewer.md`: guide to running the OCP CAD Viewer **in a plain browser tab**
-  via the standalone server that ships inside `ocp_vscode`
-  (`python3 -m ocp_vscode --host 0.0.0.0 --port 3939` → `http://localhost:3939/viewer`),
-  with no VS Code required. Covers the client/server split, port forwarding, and
-  the "browser tab must be open before you push" behaviour. Port 3939 was already
-  in the dev container's `forwardPorts`, so no container change was needed.
-- `vibe_cading/print_settings.py` / `vibe_cading/print_profiles.json`: new shipped
-  `petg` tolerance-profile tier alongside `fdm_standard` / `resin_precise` / `cnc`
-  — looser radial/slip-slot clearances than `fdm_standard` (PETG strings/oozes
-  more than PLA) and a smaller press-fit bump (PETG's own flexibility already
-  tolerates a snugger fit). See `docs/print-tolerances.md` §3.
-- `vibe_cading/rc/arrma_223s_esc_mount.py`: `Arrma223sEscMount`, an
-  ESC/receiver-box mount plate replacing the stock Arrma 223S-platform BLX185 3S
-  motor plate. Also replaces the unrelated `parts.arrma_vorteks_223s.esc_mount.
-  EscMount` (removed — an unmeasured stub with the same footprint role but no
-  holes) at the same `build.toml` output path, `rc/vorteks_223s/esc_mount.step`
-  — see "Removed" below. Reverse-engineered from an STL-only reference (no STEP available)
-  — see `docs/design_plans/2026-08-31-arrma-223s-receiver-mount_design.md` for
-  the full measurement method and correction history, including a 2026-09-01
-  user-directed resize that overrides several reference dimensions (the physical
-  reference part turned out to be the wrong size for the target vehicle).
-  `base_thickness` (default 7.0 mm) and `accessory_thickness` (default 5.0 mm)
-  are the two independent constructor parameters; `body_thickness` (the
-  plate's own full thickness, extruded from Z=0) is a *derived*, read-only
-  property equal to `base_thickness + accessory_thickness` (12.0 mm at
-  defaults) — not a constructor argument. The accessory thickness is added ON
-  TOP OF the base thickness: the plate itself is the full `body_thickness`,
-  and the arm + south ear are `accessory_thickness`-tall tabs occupying only
-  the plate's own top band, flush with its top face — they do not perch on a
-  thinner plate over open air. The north ear was removed; its M2.5 fastener
-  is now a round-head (M2.5 pan) counterbore in the plate body itself, entered
-  from the bottom (chassis-mating) face: a head-diameter bore runs the whole
-  `base_thickness` so the head passes freely through it, and the screw binds
-  only on the shoulder at Z=`base_thickness`, clamping just the top
-  `accessory_thickness` band — mirroring the south ear's plain bore, which
-  likewise clamps only its accessory band. The cutter pre-subtracts the
-  profile's `free.axial` allowance so that shoulder lands on `base_thickness`
-  exactly, rather than drifting with the active print profile.
-  Its X position (shared with the south ear's hole)
-  is now derived from the real motor's 37.0 mm body length and 16.0/21.0 mm
-  hole-to-edge offsets, centered between the two M3 hole centers, rather than
-  a bare measured literal — X = -3.5 at the shipped M3 positions. The south
-  ear's fastener is a plain M2.5 clearance hole with no recess, spaced
-  exactly 38.0 mm from the relocated hole. Where
-  the arm and south ear meet the plate they now butt against its full-height
-  vertical side wall over a real 2D area, so only a small (0.02 mm)
-  boolean-robustness union overlap is needed there, matching the project's
-  existing flush-join convention (`HexHubWithBearing`, `AxleHexHubAdapter`).
-  The main body still carries both original motor-mount holes (M3 pan-head
-  clearance + top-face counterbore, plus an as-measured relief pocket on one
-  hole's back face) alongside a back recess. Defaults to the `petg` tolerance
-  profile (heat-adjacent mount).
-- `vibe_cading/rc/hex_hub_bearing/`: RC 12 mm hex-wheel-adapter hub fused with
-  an MR85-2RS bearing housing (`HexHubNut`, `BearingHexHousing`, and the
-  primary deliverable `HexHubWithBearing`, which `.union()`s the two into a
-  single printed body with a 0.02 mm boolean-robustness overlap epsilon at the
-  flush join — no press-fit register). `HexHubNut`'s through-bore is 6.0 mm
-  nominal (`free`-fit-grade), sized as a running-clearance hole around a
-  uniform 5 mm-nominal stub axle — matching `FreespinHexHub`'s established
-  convention. See `docs/design_plans/2026-08-25-rc-hex-hub-bearing_design.md`.
-- `vibe_cading/lego_adapters/axle_hex_hub/`: Lego Technic axle -> 12 mm RC hex
-  hub adapter (`AxleCompressionCollet`, `HexInsertHub`, and the primary
-  deliverable `AxleHexHubAdapter`, which `.union()`s the two into a single
-  printed body with the same 0.02 mm boolean-robustness overlap epsilon
-  convention as `HexHubWithBearing`). `AxleCompressionCollet` is a 10 mm OD,
-  10 mm-tall slotted split-collet cylinder carrying a keyed cross-shaped
-  Technic-axle bore cut to exactly its own height (`free` fit plus a small
-  extra radial clearance bump scoped to the bore only), with 2 axial collet
-  slots (0.6 mm gap) aligned with the bore's arm-tip axis for an
-  off-the-shelf compression collar's grub screws, a raised stop ring 6.5 mm
-  from the shaft end limiting collar insertion depth, and two locating
-  dimples 90 deg off the slots for the collar's set screws. `HexInsertHub`
-  is a 12 mm hex prism carrying a parametrized straight-walled M3-class
-  heat-set-insert pocket (`insert_length` default 5.0 mm) with no axle-bore
-  feature of its own.
-  See `docs/design_plans/2026-08-25-lego-axle-hex-hub-adapter_design.md`.
-
-### Deprecated
-- `vibe_cading.rc.freespin_hex_hub.FreespinHexHub` — superseded by
-  `vibe_cading.rc.hex_hub_bearing.hex_hub_with_bearing.HexHubWithBearing`
-  (same "12 mm hex + MR85-2RS bearing" family, modelled as fused component
-  classes with tolerance-profile-driven fit grades on both the bore and the
-  bearing pocket). `FreespinHexHub` now emits a `DeprecationWarning` on
-  construction; its `build.toml` registration (`rc/hex_wheel_hub_12mm.step`)
-  is unchanged pending a separate human decision on migration. May be removed
-  in a future release.
-
-### Removed
-- `parts.arrma_vorteks_223s.esc_mount.EscMount` — an unmeasured stub (a flat
-  notched plate with no holes) for the Arrma 223S ESC mount slot. Replaced by
-  `vibe_cading.rc.arrma_223s_esc_mount.Arrma223sEscMount` (see "Added" above),
-  reverse-engineered from the vehicle's actual BLX185 3S mount plate, at the
-  same `build.toml` output path (`rc/vorteks_223s/esc_mount.step`) since it
-  fills the same physical slot. No deprecation cycle — a direct replacement,
-  since the two never coexisted as intentionally-distinct parts.
 
 ## [0.1.4] - 2026-06-26
 
