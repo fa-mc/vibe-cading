@@ -188,6 +188,7 @@ The `free` and `press` defaults work for most FDM printers out of the box.
 | Look up Lego Technic dimensions | [docs/lego-technic.md](docs/lego-technic.md) |
 | Look up fastener sizes & fits | [docs/screws.md](docs/screws.md) |
 | Drive the engine from an MCP client | [docs/mcp.md](docs/mcp.md) |
+| Run the live 3D viewer (VS Code or browser) | [docs/viewer.md](docs/viewer.md) |
 | Understand the multi-role agent workflow | [docs/agentic-workflow.md](docs/agentic-workflow.md) |
 | **Onboard an AI coding agent** | **[AGENTS.md](AGENTS.md)** → [vibe/INSTRUCTIONS.md](vibe/INSTRUCTIONS.md) |
 

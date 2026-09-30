@@ -21,8 +21,9 @@ section to the new version and date.
 - **New models:** the Powered Up hub battery box (`PoweredUpHubHousing`, `PoweredUpHubCover`, `PoweredUpHubBatteryTray`, `PoweredUpHubBatteryTrayCap`), `TechnicPinHoleBushing`, `PerpendicularHolesLiftarm`, `Arrma223sEscMount`, `HexHubWithBearing` and `AxleHexHubAdapter`.
 - **New `petg` tolerance profile** ships alongside `fdm_standard` / `resin_precise` / `cnc`; `TechnicPinHole` gains `counterbore_ends`, `Bearing` gains `blind_pocket_dims()` / `mr85()`.
 - **Tooling:** host-side `setup-workspace.sh` + devcontainer pre-mount guard; `docs/viewer.md` for the standalone browser viewer.
-- **Breaking — geometry:** `CounterboreHole`'s cylinder (socket/pan) head recess now sinks into the part instead of extruding into air, so every socket/pan-head counterbore — including `MetricMachineScrew.to_cutter()` — cuts more material than in 0.1.4 (e.g. `ToleranceGauge` −246.58 mm³).
-- **Breaking — API:** `parts.arrma_vorteks_223s.esc_mount.EscMount` is removed (replaced by `Arrma223sEscMount` at the same `build.toml` path); `MR85_ID` is no longer importable from `vibe_cading.rc.freespin_hex_hub`; `view.py` now exits 1 when no viewer is listening (except under `--export`). `FreespinHexHub` is deprecated.
+- **Breaking — geometry:** `CounterboreHole`'s cylinder (socket/pan) head recess now sinks into the part instead of extruding into air, so every socket/pan-head counterbore — including `MetricMachineScrew.to_cutter()` — cuts more material than in earlier releases (last published: 0.1.2) (e.g. `ToleranceGauge` −246.58 mm³).
+- **Breaking — API:** `parts.arrma_vorteks_223s.esc_mount.EscMount` (repo-only, not in the wheel) is removed (replaced by `Arrma223sEscMount` at the same `build.toml` path); `MR85_ID` is no longer importable from `vibe_cading.rc.freespin_hex_hub`; `view.py` now exits 1 when no viewer is listening (except under `--export`). `FreespinHexHub` is deprecated.
+- PoweredUpHub* and BearingHexHousing are new in this release; `Breaking` markers on them below refer to intermediate development states, not to any published version.
 
 ### Added
 - `vibe_cading/tools/setup-workspace.sh` — one-time host-side workspace setup, run

@@ -137,7 +137,7 @@ The four shipped profiles in [`_FALLBACK_PROFILES`](../vibe_cading/print_setting
 - `fdm_standard` is the safest generic-FDM default — loosest radials and largest axials, plus the conservative narrow-slot floor on `slip.slot`. It's also the hardcoded fallback when no profile name is configured (see [`get_default_profile_name`](../vibe_cading/print_settings.py#L224)).
 - `resin_precise` is ~3× tighter radially and ~4× tighter axially than `fdm_standard` — resin parts shrink uniformly and don't sag.
 - `cnc` is ~10× tighter than `fdm_standard` and the only profile that ships `press.radial=0.0` — on a machined part the nominal IS the final dimension.
-- `petg` is looser than `fdm_standard` on `radial`/`slip.slot` — PETG strings and oozes more than PLA on the same nozzle/temp, so a free/slip fit under-tolerances more readily if given PLA-grade clearances. `press.radial` gets a smaller relative bump than `free`/`slip`, since PETG's own flexibility already tolerates a snugger fit without cracking (unlike brittle PLA). Intended as the material default for parts documented as PETG-appropriate (e.g. heat-adjacent RC mounts), not a general FDM replacement for `fdm_standard`.
+- `petg` is looser than `fdm_standard` on every radial and axial field and on `slip.slot` — PETG strings and oozes more than PLA on the same nozzle/temp, so a free/slip fit under-tolerances more readily if given PLA-grade clearances. `press.radial` gets a smaller absolute bump (+0.02 mm) than `free`/`slip` (+0.05 / +0.10 mm), since PETG's own flexibility already tolerates a snugger fit without cracking (unlike brittle PLA). Intended as the material default for parts documented as PETG-appropriate (e.g. heat-adjacent RC mounts), not a general FDM replacement for `fdm_standard`.
 
 ---
 
