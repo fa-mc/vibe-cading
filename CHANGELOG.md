@@ -15,6 +15,8 @@ section to the new version and date.
 
 ## [Unreleased]
 
+## [0.3.0] - 2026-09-30
+
 ### Added
 - `vibe_cading/tools/setup-workspace.sh` — one-time host-side workspace setup, run
   once after cloning. Validates the project layout, offers the flat → nested
